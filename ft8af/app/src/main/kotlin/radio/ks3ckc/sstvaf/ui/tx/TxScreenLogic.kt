@@ -81,6 +81,46 @@ internal fun initialTxMode(configValue: String?): SstvMode =
     SstvMode.entries.firstOrNull { it.name == configValue } ?: SstvMode.SCOTTIE_1
 
 // ---------------------------------------------------------------------------
+// Preview frame sizing
+// ---------------------------------------------------------------------------
+
+/** The dp size the TX preview frame should occupy; see [previewFrameSize]. */
+internal data class PreviewFrameSize(val widthDp: Float, val heightDp: Float)
+
+/**
+ * How big the mode-aspect preview frame should be for the given viewport.
+ *
+ * The frame always keeps the mode's aspect ratio. Normally it fills the
+ * available width (portrait phones and tablets are unchanged). But on a
+ * short/landscape canvas a width-filling ~4:3 box grows taller than the
+ * viewport and pushes the pick-image CTA, mode chips, and TRANSMIT button
+ * below the fold (issue #23). So the height is capped at [maxHeightFraction]
+ * of the available height; when the width-based height would exceed that cap
+ * the frame is sized from the cap instead (width = cappedHeight * aspect),
+ * which always fits the width — exceeding the cap means the width-based box
+ * was the taller one. The caller centers the result horizontally.
+ */
+internal fun previewFrameSize(
+    modeW: Int,
+    modeH: Int,
+    availableWidthDp: Float,
+    availableHeightDp: Float,
+    maxHeightFraction: Float = 0.6f,
+): PreviewFrameSize {
+    val aspect = modeW.toFloat() / modeH.toFloat()
+    val widthBasedHeight = availableWidthDp / aspect
+    val maxHeight = availableHeightDp * maxHeightFraction
+    return if (availableHeightDp <= 0f || widthBasedHeight <= maxHeight) {
+        // Portrait / tall canvas: fill the width, exactly as before.
+        PreviewFrameSize(availableWidthDp, widthBasedHeight)
+    } else {
+        // Short / landscape canvas: cap by height so the controls stay on
+        // screen. width = maxHeight * aspect is guaranteed <= availableWidth.
+        PreviewFrameSize(maxHeight * aspect, maxHeight)
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Gestures
 // ---------------------------------------------------------------------------
 

@@ -11,15 +11,16 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -146,67 +147,78 @@ fun TxComposeScreen(mainViewModel: MainViewModel) {
     ) {
         TopBar(title = stringResource(R.string.tx_title))
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Spacer(Modifier.height(12.dp))
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            // Capture the viewport here — OUTSIDE the vertical scroll, where the
+            // height constraint is still bounded — so the preview frame can cap
+            // itself against it (issue #23). The 16.dp horizontal padding below
+            // takes 32.dp off the usable width.
+            val availableWidthDp = maxWidth.value - 32f
+            val availableHeightDp = maxHeight.value
 
-            TxPreviewFrame(
-                preview = preview,
-                mode = composition.mode,
-                gesturesEnabled = !isTransmitting,
-                onPickImage = { pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                onGesture = { panDx, panDy, zoomFactor, previewW, previewH ->
-                    val src = sourceBitmap ?: return@TxPreviewFrame
-                    composition = applyPanZoomGesture(
-                        composition, src.width, src.height,
-                        previewW, previewH, panDx, panDy, zoomFactor,
-                    )
-                },
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Spacer(Modifier.height(12.dp))
 
-            Spacer(Modifier.height(12.dp))
-
-            ModeChipRow(
-                selected = composition.mode,
-                enabled = !isTransmitting,
-                onSelect = { mode ->
-                    composition = composition.copy(mode = mode)
-                    GeneralVariables.sstvTxMode = mode.name
-                    mainViewModel.databaseOpr.writeConfig("sstvTxMode", mode.name, null)
-                },
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            OverlayList(
-                overlays = composition.overlays,
-                enabled = !isTransmitting,
-                onEdit = { index -> editingOverlay = index },
-                onAdd = { editingOverlay = -1 },
-                onRemove = { index -> composition = composition.withOverlayRemoved(index) },
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            if (isTransmitting) {
-                TxProgressPanel(
-                    progress = txProgress,
+                TxPreviewFrame(
+                    preview = preview,
                     mode = composition.mode,
-                    onCancel = { mainViewModel.sstvTransmitter.cancel() },
+                    availableWidthDp = availableWidthDp,
+                    availableHeightDp = availableHeightDp,
+                    gesturesEnabled = !isTransmitting,
+                    onPickImage = { pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                    onGesture = { panDx, panDy, zoomFactor, previewW, previewH ->
+                        val src = sourceBitmap ?: return@TxPreviewFrame
+                        composition = applyPanZoomGesture(
+                            composition, src.width, src.height,
+                            previewW, previewH, panDx, panDy, zoomFactor,
+                        )
+                    },
                 )
-            } else {
-                TransmitButton(
-                    gate = gate,
-                    onClick = { showConfirmSheet = true },
-                )
-            }
 
-            Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(12.dp))
+
+                ModeChipRow(
+                    selected = composition.mode,
+                    enabled = !isTransmitting,
+                    onSelect = { mode ->
+                        composition = composition.copy(mode = mode)
+                        GeneralVariables.sstvTxMode = mode.name
+                        mainViewModel.databaseOpr.writeConfig("sstvTxMode", mode.name, null)
+                    },
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                OverlayList(
+                    overlays = composition.overlays,
+                    enabled = !isTransmitting,
+                    onEdit = { index -> editingOverlay = index },
+                    onAdd = { editingOverlay = -1 },
+                    onRemove = { index -> composition = composition.withOverlayRemoved(index) },
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                if (isTransmitting) {
+                    TxProgressPanel(
+                        progress = txProgress,
+                        mode = composition.mode,
+                        onCancel = { mainViewModel.sstvTransmitter.cancel() },
+                    )
+                } else {
+                    TransmitButton(
+                        gate = gate,
+                        onClick = { showConfirmSheet = true },
+                    )
+                }
+
+                Spacer(Modifier.height(24.dp))
+            }
         }
     }
 
@@ -264,14 +276,17 @@ fun TxComposeScreen(mainViewModel: MainViewModel) {
 private fun TxPreviewFrame(
     preview: Bitmap?,
     mode: SstvMode,
+    availableWidthDp: Float,
+    availableHeightDp: Float,
     gesturesEnabled: Boolean,
     onPickImage: () -> Unit,
     onGesture: (panDx: Float, panDy: Float, zoomFactor: Float, previewW: Float, previewH: Float) -> Unit,
 ) {
+    val frame = previewFrameSize(mode.width, mode.height, availableWidthDp, availableHeightDp)
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(mode.width.toFloat() / mode.height.toFloat())
+            .width(frame.widthDp.dp)
+            .height(frame.heightDp.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(BgSurface)
             .border(1.dp, BgSurface3, RoundedCornerShape(12.dp)),
