@@ -79,6 +79,23 @@ class TxPreviewFrameSizeTest {
     }
 
     @Test
+    fun `negative available width never yields negative sizes`() {
+        // The caller derives availableWidthDp as maxWidth - 32dp, which goes
+        // negative on a very narrow canvas (split-screen). Compose constraints
+        // must be >= 0, so the output must be clamped non-negative (#23 review).
+        val size = previewFrameSize(modeW, modeH, availableWidthDp = -20f, availableHeightDp = 700f)
+        assertThat(size.widthDp).isAtLeast(0f)
+        assertThat(size.heightDp).isAtLeast(0f)
+    }
+
+    @Test
+    fun `negative width and height still non-negative`() {
+        val size = previewFrameSize(modeW, modeH, availableWidthDp = -20f, availableHeightDp = -10f)
+        assertThat(size.widthDp).isAtLeast(0f)
+        assertThat(size.heightDp).isAtLeast(0f)
+    }
+
+    @Test
     fun `custom fraction changes the cap`() {
         // A 0.5 cap on a 360dp-tall canvas caps at 180 instead of 216.
         val size = previewFrameSize(

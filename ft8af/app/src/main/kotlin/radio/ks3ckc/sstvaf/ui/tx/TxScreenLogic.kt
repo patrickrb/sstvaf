@@ -107,12 +107,18 @@ internal fun previewFrameSize(
     availableHeightDp: Float,
     maxHeightFraction: Float = 0.6f,
 ): PreviewFrameSize {
+    // Clamp the inputs non-negative: the caller derives availableWidthDp as
+    // maxWidth - 32.dp (horizontal padding), which goes negative on a very
+    // narrow canvas (split-screen, tiny window). Compose constraints must be
+    // >= 0, so a negative dimension flowing into Modifier.width/height would
+    // break layout — guard here so the output is always non-negative.
+    val safeWidth = availableWidthDp.coerceAtLeast(0f)
     val aspect = modeW.toFloat() / modeH.toFloat()
-    val widthBasedHeight = availableWidthDp / aspect
-    val maxHeight = availableHeightDp * maxHeightFraction
+    val widthBasedHeight = safeWidth / aspect
+    val maxHeight = (availableHeightDp * maxHeightFraction).coerceAtLeast(0f)
     return if (availableHeightDp <= 0f || widthBasedHeight <= maxHeight) {
         // Portrait / tall canvas: fill the width, exactly as before.
-        PreviewFrameSize(availableWidthDp, widthBasedHeight)
+        PreviewFrameSize(safeWidth, widthBasedHeight)
     } else {
         // Short / landscape canvas: cap by height so the controls stay on
         // screen. width = maxHeight * aspect is guaranteed <= availableWidth.
