@@ -1,7 +1,7 @@
 # SSTVAF Desktop CLI (32-bit Windows build)
 
 A small, dependency-free command-line front end over the same clean-room SSTV
-codec that powers the SSTVAF Android app (`ft8af/app/src/main/cpp/sstv_lib`).
+codec that powers the SSTVAF Android app (`sstvaf/app/src/main/cpp/sstv_lib`).
 It exists so the codec can be used on a plain desktop PC — including **32-bit
 Windows** systems, cross-compiled from Linux and shipped as an **MSI** — with no
 Android device involved.

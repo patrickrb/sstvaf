@@ -23,13 +23,13 @@ on:
     tags: ['v*']
     paths:
       - 'desktop/**'
-      - 'ft8af/app/src/main/cpp/sstv_lib/**'
+      - 'sstvaf/app/src/main/cpp/sstv_lib/**'
       - '.github/workflows/windows-msi.yml'
   pull_request:
     branches: [main, staging, dev]
     paths:
       - 'desktop/**'
-      - 'ft8af/app/src/main/cpp/sstv_lib/**'
+      - 'sstvaf/app/src/main/cpp/sstv_lib/**'
       - '.github/workflows/windows-msi.yml'
   workflow_dispatch:
 
