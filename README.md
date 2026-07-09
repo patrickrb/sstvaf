@@ -46,26 +46,26 @@ Scottie 1 / 2 · Martin 1 / 2 · Robot 36 / 72 · PD 50 / 90 / 120
 ## Install
 
 Grab the latest APK from the Releases page, or build it yourself (the Android
-module still lives in the `ft8af/` directory — the heritage name is kept so
+module still lives in the `sstvaf/` directory — the heritage name is kept so
 history and tooling stay intact):
 
 ```bash
-cd ft8af
+cd sstvaf
 ./gradlew installDebug
 ```
 
-Windows: `cd ft8af && gradlew.bat installDebug`. Builds need JDK 17
+Windows: `cd sstvaf && gradlew.bat installDebug`. Builds need JDK 17
 (AGP 8.7.3 / Gradle 8.9).
 
 ---
 
 ## Native code
 
-The SSTV codec in `ft8af/app/src/main/cpp/sstv_lib/` is a **clean-room
+The SSTV codec in `sstvaf/app/src/main/cpp/sstv_lib/` is a **clean-room
 implementation** written for this project from published mode specifications
 (timing tables, tone frequencies, VIS codes) — no GPL SSTV source was
 consulted. See
-[`ft8af/app/src/main/cpp/sstv_lib/SOURCES.md`](ft8af/app/src/main/cpp/sstv_lib/SOURCES.md)
+[`sstvaf/app/src/main/cpp/sstv_lib/SOURCES.md`](sstvaf/app/src/main/cpp/sstv_lib/SOURCES.md)
 for the exact specification sources. The codec and its JNI glue
 (`cpp/sstvaf_glue/`) are built from source by the NDK/CMake toolchain into
 `libsstvaf.so`, so a fresh clone builds with no manual steps. Host-side C

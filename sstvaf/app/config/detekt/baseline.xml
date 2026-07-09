@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>SwallowedException:BugReportDialog.kt$e: ActivityNotFoundException</ID>
+    <ID>SwallowedException:SettingsBackup.kt$SettingsBackup$e: Exception</ID>
+    <ID>SwallowedException:TxImageComposer.kt$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:ComposeMainActivity.kt$ComposeMainActivity$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:ComposeMainActivity.kt$ComposeMainActivity.&lt;no name provided&gt;$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:QsoAutoSync.kt$QsoAutoSync$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ReceivedImageStore.kt$ReceivedImageStore$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:RxAutoSaveController.kt$RxAutoSaveController$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:SettingsBackup.kt$SettingsBackup$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SstvSignalListener.kt$SstvSignalListener$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:SstvTransmitter.kt$SstvTransmitter$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:TxImageComposer.kt$t: Throwable</ID>
+    <ID>TooGenericExceptionThrown:RxAutoSaveControllerTest.kt$RxAutoSaveControllerTest$throw RuntimeException("disk full")</ID>
+  </CurrentIssues>
+</SmellBaseline>
