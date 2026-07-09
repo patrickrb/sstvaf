@@ -3,10 +3,13 @@
 > **This repo is SSTVAF** — an SSTV app built from the FT8AF codebase. The
 > transformation is complete: the FT8 engine is gone, replaced by the
 > clean-room SSTV codec in `cpp/sstv_lib/` (RX/Gallery/TX/Waterfall/Log/
-> Settings tabs). The Android module still lives under `ft8af/` — the
-> heritage directory name is kept deliberately so history, CI, and tooling
-> stay intact — and the instructions below (build, test, deploy, debug-log
-> paths) apply as written.
+> Settings tabs). The Android module lives under `sstvaf/` (renamed from
+> `ft8af/` in #17). Two heritage names are kept deliberately because they
+> are tied to JNI symbol resolution and must not change: the
+> `com.k1af.ft8af` package namespace (referenced by `FindClass` strings)
+> and the `libft8af.so` native library (`System.loadLibrary("ft8af")`).
+> The instructions below (build, test, deploy, debug-log paths) apply as
+> written.
 
 > **Placeholders.** This file is written for any contributor's machine.
 > Substitute your own values wherever you see `<…>`. The recurring ones:
@@ -60,10 +63,10 @@ git worktree add ../<checkout-dir-name>-<short-task-name> -b feat/<task>
 
 Notes for a fresh worktree:
 
-- The `ft8af/app/src/main/cpp/` native sources (`sstv_lib`, `sstvaf_glue`,
+- The `sstvaf/app/src/main/cpp/` native sources (`sstv_lib`, `sstvaf_glue`,
   the FFT/resampler glue in `ft8af_glue`, `libusb`, `kissfft`) are
   **tracked** in git, so a fresh worktree builds with no manual copying.
-- Build/install from inside the worktree's `ft8af` dir: Windows uses the wrapper
+- Build/install from inside the worktree's `sstvaf` dir: Windows uses the wrapper
   (`cmd.exe /c "gradlew.bat installDebug"`); macOS uses `./gradlew` (see Build &
   Deploy for the JDK 17 requirement). Both can install to an attached device.
 
@@ -83,13 +86,13 @@ extract the decision/geometry logic into a plain top-level `internal` function
 or class (e.g. `buildQsoLog`, `QsoPathProjection`) and test that. Keep the
 Composable a thin wrapper that just calls the extracted logic.
 
-Tests live in `ft8af/app/src/test/` (Kotlin under `.../kotlin`, Java under
+Tests live in `sstvaf/app/src/test/` (Kotlin under `.../kotlin`, Java under
 `.../java`), use JUnit4 + Truth (`assertThat`), and add
 `@RunWith(RobolectricTestRunner::class)` when the code under test touches
 Android/Play-Services types (e.g. anything reaching `MaidenheadGrid`,
 `GeneralVariables`, `LatLng`). Pure math/logic needs no runner.
 
-Run from the `ft8af` dir.
+Run from the `sstvaf` dir.
 
 **Windows:**
 
@@ -108,6 +111,22 @@ export JAVA_HOME=<jdk17-home>
 ./gradlew testDebugUnitTest --tests <fully.qualified.ClassName>
 ```
 
+### UI / responsive-layout testing
+
+Unit tests don't catch layout that breaks by *shape*. Whenever you touch a
+screen's layout, add a tab, or change the app shell, run the full
+**tab × device × orientation** sweep in **`docs/ui-testing.md`**: for each device
+class (compact phone, the Redmi Redpad 2 tablet, a ≥600dp landscape phone, a
+resizable Chromebook/desktop window), in **both portrait and landscape**, open
+**every** tab (RX/Gallery/TX/Waterfall/Logbook/Settings) and confirm its primary
+control isn't pushed off-screen or hidden behind the TX strip. On the emulator,
+force each cell with `adb shell wm size 2400x1080` (landscape) / `wm size reset`
+rather than trusting portrait alone. The adaptive shell reflows navigation but
+not each screen's own content, and a control looks fine in portrait while sitting
+past the fold in landscape — that's how the TX pick-image button regressed on
+tablets (issue #20). Real hardware (a physical Redmi Redpad 2 on Android 16 at
+minimum) is still required before closing a responsive-layout issue.
+
 ## Build & Deploy
 
 After making code changes, always build and install on the connected device
@@ -118,7 +137,7 @@ when one is attached.
 Studio JBR automatically:
 
 ```
-cd ft8af && cmd.exe /c "gradlew.bat installDebug"
+cd sstvaf && cmd.exe /c "gradlew.bat installDebug"
 ```
 
 **macOS:** AGP 8.7.3 / Gradle 8.9 need **JDK 17**; if your system JDK is older,
@@ -130,7 +149,7 @@ emulator); to target only the phone, build the APK and push it with an explicit
 serial:
 
 ```
-cd ft8af && JAVA_HOME=<jdk17-home> ./gradlew assembleDebug
+cd sstvaf && JAVA_HOME=<jdk17-home> ./gradlew assembleDebug
 adb -s <phone-serial> install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
@@ -167,7 +186,7 @@ crashes), use `adb logcat`. Useful tags: `NativeSstvCodec`, `MicRecorder`,
 `UsbAlsaManager`, `ComposeMainActivity`. (The Kotlin SSTV pipeline —
 `SstvSignalListener`, `SstvTransmitter` — logs through `fileLog()` into
 `debug.log` rather than logcat.) The app's `applicationId` is `radio.ks3ckc.sstvaf` (the same
-for every contributor — it's set in `ft8af/app/build.gradle`) — pid-filter with
+for every contributor — it's set in `sstvaf/app/build.gradle`) — pid-filter with
 `adb -s <phone-serial> logcat --pid=$(adb -s <phone-serial> shell pidof radio.ks3ckc.sstvaf)`
 when you only want app-internal lines.
 

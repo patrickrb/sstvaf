@@ -38,4 +38,4 @@ jobs:
         run: clang --version
 
       - name: Build & run SSTV host test suites
-        run: bash ft8af/app/src/main/cpp/sstvaf_glue/run_sstv_host_tests.sh
+        run: bash sstvaf/app/src/main/cpp/sstvaf_glue/run_sstv_host_tests.sh

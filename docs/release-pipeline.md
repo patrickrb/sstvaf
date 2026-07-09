@@ -4,7 +4,7 @@ Three platforms (Android, desktop, iOS) build and release **independently** —
 each has its own workflow, its own path filter, its own tag namespace, and its
 own required status-check gate. A change to one platform never rebuilds the
 others (except a change to the shared native C core under
-`ft8af/app/src/main/cpp/**`, which all three depend on).
+`sstvaf/app/src/main/cpp/**`, which all three depend on).
 
 ## Branch lifecycle
 

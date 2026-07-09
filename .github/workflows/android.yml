@@ -1,6 +1,6 @@
 name: Android CI & Release
 
-# Android pipeline for the ft8af/ app: unit tests + coverage, instrumented
+# Android pipeline for the sstvaf/ app: unit tests + coverage, instrumented
 # emulator tests, static analysis (lint/detekt/ktlint), and the signed
 # APK/AAB build + GitHub Release + Play publish (internal track on staging,
 # production track on main / android-v* tags — see the Release lifecycle below).
@@ -16,8 +16,8 @@ name: Android CI & Release
 # merges, and production only when staging -> main merges.
 #
 # PATH-FILTERED: on pull requests and dev pushes this whole pipeline only runs
-# when Android-relevant files change (ft8af/** — which includes the shared
-# native C core at ft8af/app/src/main/cpp/ — or this workflow file). Pushes to
+# when Android-relevant files change (sstvaf/** — which includes the shared
+# native C core at sstvaf/app/src/main/cpp/ — or this workflow file). Pushes to
 # staging/main and android-v* tags always build (a full release snapshot,
 # regardless of what changed). The always-run `android-gate` job is the single
 # required status check so branch protection never gets stuck "pending" when the
@@ -69,7 +69,7 @@ jobs:
         with:
           filters: |
             android:
-              - 'ft8af/**'
+              - 'sstvaf/**'
               - '.github/workflows/android.yml'
 
       - name: Decide whether to run
@@ -111,12 +111,12 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('ft8af/**/*.gradle*', 'ft8af/gradle/wrapper/gradle-wrapper.properties') }}
+          key: gradle-${{ runner.os }}-${{ hashFiles('sstvaf/**/*.gradle*', 'sstvaf/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
             gradle-${{ runner.os }}-
 
       - name: Grant execute permission for gradlew
-        run: chmod +x ft8af/gradlew
+        run: chmod +x sstvaf/gradlew
 
       - name: Pre-install NDK (retry around flaky SDK downloads)
         run: |
@@ -140,11 +140,11 @@ jobs:
           exit 1
 
       - name: Run unit tests
-        working-directory: ft8af
+        working-directory: sstvaf
         run: ./gradlew testDebugUnitTest --stacktrace
 
       - name: Generate coverage report
-        working-directory: ft8af
+        working-directory: sstvaf
         run: ./gradlew jacocoTestReport --stacktrace
 
       - name: Upload coverage to Codecov
@@ -153,7 +153,7 @@ jobs:
         uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ft8af/app/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
+          files: sstvaf/app/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
           # Tag this upload so Codecov reports the Android JVM suite as its own
           # component instead of merging it into one undifferentiated total.
           flags: android
@@ -164,9 +164,9 @@ jobs:
         with:
           name: unit-test-reports
           path: |
-            ft8af/app/build/reports/tests/
-            ft8af/app/build/test-results/
-            ft8af/app/build/reports/jacoco/
+            sstvaf/app/build/reports/tests/
+            sstvaf/app/build/test-results/
+            sstvaf/app/build/reports/jacoco/
 
   instrumented:
     name: Instrumented tests (emulator)
@@ -196,12 +196,12 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('ft8af/**/*.gradle*', 'ft8af/gradle/wrapper/gradle-wrapper.properties') }}
+          key: gradle-${{ runner.os }}-${{ hashFiles('sstvaf/**/*.gradle*', 'sstvaf/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
             gradle-${{ runner.os }}-
 
       - name: Grant execute permission for gradlew
-        run: chmod +x ft8af/gradlew
+        run: chmod +x sstvaf/gradlew
 
       # Hardware acceleration (KVM) is required for a usable x86_64 emulator on
       # the GitHub-hosted Ubuntu runners; without it the AVD falls back to slow
@@ -219,7 +219,7 @@ jobs:
       # 429 is retried cheaply instead of wasting a full emulator boot; the
       # emulator step then runs against already-cached dependencies.
       - name: Assemble instrumented test APKs
-        working-directory: ft8af
+        working-directory: sstvaf
         run: |
           set -euo pipefail
           for attempt in 1 2 3; do
@@ -242,7 +242,7 @@ jobs:
           arch: x86_64
           target: google_apis
           profile: Nexus 6
-          working-directory: ft8af
+          working-directory: sstvaf
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           # Stream test progress into the job log. By default
@@ -270,8 +270,8 @@ jobs:
         with:
           name: instrumented-test-reports
           path: |
-            ft8af/app/build/reports/androidTests/
-            ft8af/app/build/outputs/androidTest-results/
+            sstvaf/app/build/reports/androidTests/
+            sstvaf/app/build/outputs/androidTest-results/
 
   static-analysis:
     name: lint / detekt / ktlint
@@ -307,31 +307,31 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('ft8af/**/*.gradle*', 'ft8af/gradle/wrapper/gradle-wrapper.properties') }}
+          key: gradle-${{ runner.os }}-${{ hashFiles('sstvaf/**/*.gradle*', 'sstvaf/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
             gradle-${{ runner.os }}-
 
       - name: Grant execute permission for gradlew
-        run: chmod +x ft8af/gradlew
+        run: chmod +x sstvaf/gradlew
 
       # --- WARN-ONLY during rollout: remove continue-on-error to make blocking ---
 
       - name: Android lint (debug)
         id: lint
         continue-on-error: true
-        working-directory: ft8af
+        working-directory: sstvaf
         run: ./gradlew lintDebug --stacktrace
 
       - name: detekt
         id: detekt
         continue-on-error: true
-        working-directory: ft8af
+        working-directory: sstvaf
         run: ./gradlew detekt --stacktrace
 
       - name: ktlint
         id: ktlint
         continue-on-error: true
-        working-directory: ft8af
+        working-directory: sstvaf
         run: ./gradlew ktlintCheck --stacktrace
 
       - name: Upload analysis reports
@@ -340,10 +340,10 @@ jobs:
         with:
           name: static-analysis-reports
           path: |
-            ft8af/app/build/reports/lint-results-debug.html
-            ft8af/app/build/reports/lint-results-debug.xml
-            ft8af/app/build/reports/detekt/
-            ft8af/app/build/reports/ktlint/
+            sstvaf/app/build/reports/lint-results-debug.html
+            sstvaf/app/build/reports/lint-results-debug.xml
+            sstvaf/app/build/reports/detekt/
+            sstvaf/app/build/reports/ktlint/
           if-no-files-found: ignore
 
   build:
@@ -448,12 +448,12 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('ft8af/**/*.gradle*', 'ft8af/gradle/wrapper/gradle-wrapper.properties') }}
+          key: gradle-${{ runner.os }}-${{ hashFiles('sstvaf/**/*.gradle*', 'sstvaf/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
             gradle-${{ runner.os }}-
 
       - name: Grant execute permission for gradlew
-        run: chmod +x ft8af/gradlew
+        run: chmod +x sstvaf/gradlew
 
       - name: Pre-install NDK (retry around flaky SDK downloads)
         run: |
@@ -498,7 +498,7 @@ jobs:
           echo "RELEASE_STORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
 
       - name: Build APK & AAB
-        working-directory: ft8af
+        working-directory: sstvaf
         env:
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
@@ -528,7 +528,7 @@ jobs:
         if: steps.tag.outputs.should_release == 'true'
         run: |
           set -euo pipefail
-          cd ft8af/app/build/outputs/apk/release
+          cd sstvaf/app/build/outputs/apk/release
           # Signed builds emit app-release.apk; unsigned emit app-release-unsigned.apk.
           # Keep the fallback so the rename works either way.
           if [[ -f app-release.apk ]]; then
@@ -540,20 +540,20 @@ jobs:
             ls -la >&2
             exit 1
           fi
-          mv "$src" "FT8AF-${{ steps.tag.outputs.release_tag }}.apk"
+          mv "$src" "SSTVAF-${{ steps.tag.outputs.release_tag }}.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v7
         with:
           name: ft8af-release
-          path: ft8af/app/build/outputs/apk/release/*.apk
+          path: sstvaf/app/build/outputs/apk/release/*.apk
 
       - name: Upload AAB artifact
         if: steps.tag.outputs.should_release == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: ft8af-release-aab
-          path: ft8af/app/build/outputs/bundle/release/*.aab
+          path: sstvaf/app/build/outputs/bundle/release/*.aab
 
       # R8 mapping for the bundle. Kept as an artifact so a given release's
       # deobfuscation file is recoverable independently of Play Console.
@@ -562,7 +562,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ft8af-release-mapping
-          path: ft8af/app/build/outputs/mapping/release/mapping.txt
+          path: sstvaf/app/build/outputs/mapping/release/mapping.txt
 
       - name: Create GitHub Release
         if: steps.tag.outputs.should_release == 'true'
@@ -576,7 +576,7 @@ jobs:
           # releases got tagged on main's HEAD and sorted under its old date on
           # the Releases page.
           target_commitish: ${{ github.sha }}
-          files: ft8af/app/build/outputs/apk/release/FT8AF-*.apk
+          files: sstvaf/app/build/outputs/apk/release/SSTVAF-*.apk
           generate_release_notes: true
           # android-dev.* releases are flagged as prerelease so they sort under
           # the latest android-v* and don't get picked up by downstream tooling
@@ -608,10 +608,10 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: radio.ks3ckc.sstvaf
-          releaseFiles: ft8af/app/build/outputs/bundle/release/app-release.aab
+          releaseFiles: sstvaf/app/build/outputs/bundle/release/app-release.aab
           # R8 deobfuscation mapping — clears the Play Console "no deobfuscation
           # file" warning and makes crash/ANR stack traces readable.
-          mappingFile: ft8af/app/build/outputs/mapping/release/mapping.txt
+          mappingFile: sstvaf/app/build/outputs/mapping/release/mapping.txt
           # staging -> internal track; main / android-v* tag -> production track.
           track: ${{ steps.tag.outputs.play_track }}
           status: completed
