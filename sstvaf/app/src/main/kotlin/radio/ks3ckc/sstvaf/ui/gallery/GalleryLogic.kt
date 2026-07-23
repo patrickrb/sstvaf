@@ -32,6 +32,36 @@ internal fun filterGalleryImages(
 }
 
 /**
+ * How many images each filter would show, for the chip-row count badges. A
+ * single pass over the (unfiltered) list; ALL is the sum so it always equals
+ * RX + TX. Every filter is present in the map even when its count is 0.
+ */
+internal fun galleryFilterCounts(images: List<SavedImage>): Map<GalleryFilter, Int> {
+    var rx = 0
+    var tx = 0
+    for (image in images) {
+        when (image.direction) {
+            ImageDirection.RX -> rx++
+            ImageDirection.TX -> tx++
+        }
+    }
+    return mapOf(
+        GalleryFilter.ALL to rx + tx,
+        GalleryFilter.RX to rx,
+        GalleryFilter.TX to tx,
+    )
+}
+
+/**
+ * Chip label with a trailing count badge, e.g. "Received 9". The count is shown
+ * even when 0 ("Sent 0") so the row reads as a stable at-a-glance history
+ * summary rather than hiding empty categories. The number is a plain digit
+ * string (locale-neutral, like the frequency/quality readouts elsewhere).
+ */
+internal fun galleryFilterChipLabel(baseLabel: String, count: Int): String =
+    "$baseLabel $count"
+
+/**
  * Newest first, matching the store's list order (utcMillis desc, id as the
  * tiebreak for two images finishing in the same millisecond).
  */

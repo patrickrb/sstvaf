@@ -68,6 +68,64 @@ class GalleryLogicTest {
         }
     }
 
+    // ----- filter counts / chip labels ---------------------------------------
+
+    @Test
+    fun filterCounts_splitsRxTxAndSumsAll() {
+        val images = listOf(
+            image(id = 1, direction = ImageDirection.RX),
+            image(id = 2, direction = ImageDirection.TX),
+            image(id = 3, direction = ImageDirection.RX),
+            image(id = 4, direction = ImageDirection.RX),
+        )
+        val counts = galleryFilterCounts(images)
+        assertThat(counts[GalleryFilter.RX]).isEqualTo(3)
+        assertThat(counts[GalleryFilter.TX]).isEqualTo(1)
+        assertThat(counts[GalleryFilter.ALL]).isEqualTo(4)
+    }
+
+    @Test
+    fun filterCounts_emptyInput_allZeroButPresent() {
+        val counts = galleryFilterCounts(emptyList())
+        for (filter in GalleryFilter.entries) {
+            assertThat(counts[filter]).isEqualTo(0)
+        }
+    }
+
+    @Test
+    fun filterCounts_allEqualsSumOfRxAndTx() {
+        val images = listOf(
+            image(id = 1, direction = ImageDirection.TX),
+            image(id = 2, direction = ImageDirection.TX),
+        )
+        val counts = galleryFilterCounts(images)
+        assertThat(counts[GalleryFilter.ALL])
+            .isEqualTo((counts[GalleryFilter.RX] ?: 0) + (counts[GalleryFilter.TX] ?: 0))
+    }
+
+    @Test
+    fun filterChipLabel_appendsCountIncludingZero() {
+        assertThat(galleryFilterChipLabel("Received", 9)).isEqualTo("Received 9")
+        assertThat(galleryFilterChipLabel("Sent", 0)).isEqualTo("Sent 0")
+        assertThat(galleryFilterChipLabel("All", 12)).isEqualTo("All 12")
+    }
+
+    @Test
+    fun filterChipLabels_areUniquePerFilterEvenWhenCountsCollide() {
+        // rx == all when there are no TX images; the base label keeps chips distinct
+        // so the screen's label→filter reverse lookup stays unambiguous.
+        val counts = galleryFilterCounts(
+            listOf(
+                image(id = 1, direction = ImageDirection.RX),
+                image(id = 2, direction = ImageDirection.RX),
+            ),
+        )
+        val labels = GalleryFilter.entries.map {
+            galleryFilterChipLabel(it.name, counts[it] ?: 0)
+        }
+        assertThat(labels.toSet()).hasSize(GalleryFilter.entries.size)
+    }
+
     // ----- sorting -----------------------------------------------------------
 
     @Test

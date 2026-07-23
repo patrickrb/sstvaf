@@ -103,7 +103,12 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
     var viewerVisible by remember { mutableStateOf(false) }
     var viewerEntry by remember { mutableStateOf<SavedImage?>(null) }
 
-    val filterLabels = GalleryFilter.entries.associateWith { stringResource(it.labelRes()) }
+    // Chip labels carry a count badge ("Received 9"); counts come from the full
+    // unfiltered list so every chip shows its own total, not the shown subset.
+    val filterCounts = galleryFilterCounts(images)
+    val filterLabels = GalleryFilter.entries.associateWith { f ->
+        galleryFilterChipLabel(stringResource(f.labelRes()), filterCounts[f] ?: 0)
+    }
 
     Column(
         modifier = Modifier
