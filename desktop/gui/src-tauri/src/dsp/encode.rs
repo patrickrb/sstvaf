@@ -26,8 +26,8 @@ pub fn num_samples(mode: &ModeInfo, sample_rate: u32) -> Result<usize, SstvError
 }
 
 /// Encode a full transmission. `argb` is 0xAARRGGBB, row-major, exactly the
-/// mode's native dimensions — the codec rejects anything else, and we check it
-/// here too so the error names the actual mismatch.
+/// mode's native dimensions. The C codec validates width/height; this wrapper
+/// validates the slice length so mismatches get a clear error.
 pub fn encode(
     mode: &ModeInfo,
     argb: &[u32],

@@ -24,8 +24,8 @@ export function txDurationSeconds(
   sampleRate: number,
 ): Promise<number> {
   return invoke<number>("tx_duration_seconds", {
-    modeId,
-    sampleRate,
+    mode_id: modeId,
+    sample_rate: sampleRate,
   });
 }
 
