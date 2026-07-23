@@ -175,6 +175,7 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
                 context,
                 store.imageFile(entry),
                 context.getString(R.string.gallery_share_chooser_title),
+                buildImageShareCaption(entry),
             )
         },
         onSaveToPhotos = { entry ->

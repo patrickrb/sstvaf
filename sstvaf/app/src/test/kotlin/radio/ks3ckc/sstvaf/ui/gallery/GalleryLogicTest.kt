@@ -256,6 +256,38 @@ class GalleryLogicTest {
         assertThat(viewerAspectRatio(320, 0)).isWithin(1e-6f).of(4f / 3f)
     }
 
+    // ----- share caption -----------------------------------------------------
+
+    @Test
+    fun shareUtc_minutePrecision() {
+        assertThat(formatShareUtc(goldenUtc)).isEqualTo("2026-07-04 15:30 UTC")
+    }
+
+    @Test
+    fun shareUtc_isUtcRegardlessOfDefaultZone() {
+        val zone = java.util.TimeZone.getDefault()
+        try {
+            java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("America/New_York"))
+            assertThat(formatShareUtc(goldenUtc)).isEqualTo("2026-07-04 15:30 UTC")
+        } finally {
+            java.util.TimeZone.setDefault(zone)
+        }
+    }
+
+    @Test
+    fun shareCaption_combinesModeFreqAndTime() {
+        val entry = image(mode = "Scottie 1", freqHz = 14_230_000L, utcMillis = goldenUtc)
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV Scottie 1 · 14.230 MHz · 2026-07-04 15:30 UTC")
+    }
+
+    @Test
+    fun shareCaption_usesStoredModeNameVerbatim() {
+        val entry = image(mode = "AVT 90", freqHz = 7_171_000L, utcMillis = goldenUtc)
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV AVT 90 · 7.171 MHz · 2026-07-04 15:30 UTC")
+    }
+
     // ----- filter chip labels ------------------------------------------------
 
     @Test

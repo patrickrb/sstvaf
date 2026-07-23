@@ -65,4 +65,29 @@ class ImageShareIntentTest {
         assertThat(intent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION)
             .isEqualTo(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
+
+    @Test
+    fun shareIntent_carriesCaptionAsTextAndSubject() {
+        val caption = "SSTV Scottie 1 · 14.230 MHz · 2026-07-04 15:30 UTC"
+        val intent = buildImageShareIntent(uri, caption)
+
+        assertThat(intent.getStringExtra(Intent.EXTRA_TEXT)).isEqualTo(caption)
+        assertThat(intent.getStringExtra(Intent.EXTRA_SUBJECT)).isEqualTo(caption)
+    }
+
+    @Test
+    fun shareIntent_withoutCaption_hasNoTextExtras() {
+        val intent = buildImageShareIntent(uri)
+
+        assertThat(intent.hasExtra(Intent.EXTRA_TEXT)).isFalse()
+        assertThat(intent.hasExtra(Intent.EXTRA_SUBJECT)).isFalse()
+    }
+
+    @Test
+    fun shareIntent_blankCaption_hasNoTextExtras() {
+        val intent = buildImageShareIntent(uri, "   ")
+
+        assertThat(intent.hasExtra(Intent.EXTRA_TEXT)).isFalse()
+        assertThat(intent.hasExtra(Intent.EXTRA_SUBJECT)).isFalse()
+    }
 }

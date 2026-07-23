@@ -147,6 +147,29 @@ internal fun viewerDirectionRes(direction: ImageDirection): Int = when (directio
     ImageDirection.TX -> R.string.gallery_meta_direction_tx
 }
 
+// ---------------------------------------------------------------------------
+// Share caption
+// ---------------------------------------------------------------------------
+
+/** UTC timestamp to the minute for a share caption, e.g. "2026-07-04 15:30 UTC". */
+internal fun formatShareUtc(utcMillis: Long): String {
+    val fmt = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }
+    return "${fmt.format(Date(utcMillis))} UTC"
+}
+
+/**
+ * Human-readable caption attached to a shared image (ACTION_SEND EXTRA_TEXT /
+ * EXTRA_SUBJECT) so a picture arriving in a chat or on social media carries its
+ * SSTV context: "SSTV Scottie 1 · 14.230 MHz · 2026-07-04 15:30 UTC". Mode name
+ * comes from the store verbatim (an unknown/hand-edited name is used as-is).
+ */
+internal fun buildImageShareCaption(entry: SavedImage): String {
+    val freq = formatViewerFrequency(entry.freqHz)
+    return "SSTV ${entry.mode} · $freq · ${formatShareUtc(entry.utcMillis)}"
+}
+
 /** Completeness → viewer label resource (Complete / Partial). */
 internal fun viewerCompletenessRes(complete: Boolean): Int =
     if (complete) R.string.gallery_meta_complete else R.string.gallery_meta_partial
