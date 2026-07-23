@@ -188,6 +188,16 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
                 ).show()
             }
         },
+        onSaveNote = { entry, note ->
+            scope.launch {
+                withContext(Dispatchers.IO) { store.updateNotes(entry.id, note) }
+                // Keep the open sheet (share caption, save-button gate) and the
+                // grid's list in sync with the just-saved note.
+                viewerEntry = entry.copy(notes = note)
+                refreshKey++
+                Toast.makeText(context, R.string.gallery_note_saved, Toast.LENGTH_SHORT).show()
+            }
+        },
         onDelete = { entry ->
             scope.launch {
                 withContext(Dispatchers.IO) { store.delete(entry.id) }

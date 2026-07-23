@@ -27,7 +27,8 @@ class GalleryLogicTest {
         height: Int = 256,
         complete: Boolean = true,
         quality: Float = 0.87f,
-    ) = SavedImage(id, "f$id.png", direction, mode, freqHz, utcMillis, width, height, complete, quality, "")
+        notes: String = "",
+    ) = SavedImage(id, "f$id.png", direction, mode, freqHz, utcMillis, width, height, complete, quality, notes)
 
     // ----- filtering ---------------------------------------------------------
 
@@ -286,6 +287,56 @@ class GalleryLogicTest {
         val entry = image(mode = "AVT 90", freqHz = 7_171_000L, utcMillis = goldenUtc)
         assertThat(buildImageShareCaption(entry))
             .isEqualTo("SSTV AVT 90 · 7.171 MHz · 2026-07-04 15:30 UTC")
+    }
+
+    @Test
+    fun shareCaption_appendsNoteWhenPresent() {
+        val entry = image(mode = "Scottie 1", freqHz = 14_230_000L, utcMillis = goldenUtc, notes = "W1AW")
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV Scottie 1 · 14.230 MHz · 2026-07-04 15:30 UTC · W1AW")
+    }
+
+    @Test
+    fun shareCaption_blankOrWhitespaceNoteOmitted() {
+        val blank = image(notes = "")
+        val spaces = image(notes = "   ")
+        val base = "SSTV Scottie 1 · 14.230 MHz · 2026-07-04 15:30 UTC"
+        assertThat(buildImageShareCaption(blank)).isEqualTo(base)
+        assertThat(buildImageShareCaption(spaces)).isEqualTo(base)
+    }
+
+    @Test
+    fun shareCaption_normalizesMultilineNote() {
+        val entry = image(notes = "  de W1AW\n  73  ")
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV Scottie 1 · 14.230 MHz · 2026-07-04 15:30 UTC · de W1AW 73")
+    }
+
+    // ----- note normalization / edit gate ------------------------------------
+
+    @Test
+    fun normalizeNote_trimsCollapsesAndSingleLines() {
+        assertThat(normalizeNote("  W1AW  ")).isEqualTo("W1AW")
+        assertThat(normalizeNote("de   W1AW")).isEqualTo("de W1AW")
+        assertThat(normalizeNote("line1\nline2\tX")).isEqualTo("line1 line2 X")
+        assertThat(normalizeNote("   ")).isEmpty()
+        assertThat(normalizeNote("")).isEmpty()
+    }
+
+    @Test
+    fun normalizeNote_capsLength() {
+        val long = "A".repeat(MAX_NOTE_LENGTH + 40)
+        assertThat(normalizeNote(long)).hasLength(MAX_NOTE_LENGTH)
+    }
+
+    @Test
+    fun noteEdited_ignoresWhitespaceOnlyChurn() {
+        assertThat(noteEdited("W1AW", "W1AW")).isFalse()
+        assertThat(noteEdited("  W1AW ", "W1AW")).isFalse() // trailing space, not a change
+        assertThat(noteEdited("de W1AW", "W1AW")).isTrue()
+        assertThat(noteEdited("", "W1AW")).isTrue() // clearing a note is an edit
+        assertThat(noteEdited("W1AW", "")).isTrue() // adding a note is an edit
+        assertThat(noteEdited("", "")).isFalse()
     }
 
     // ----- filter chip labels ------------------------------------------------

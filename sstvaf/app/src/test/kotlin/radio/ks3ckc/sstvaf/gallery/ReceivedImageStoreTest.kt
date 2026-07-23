@@ -197,6 +197,34 @@ class ReceivedImageStoreTest {
         assertThat(store().list()).hasSize(1)
     }
 
+    // ----- updateNotes ---------------------------------------------------------
+
+    @Test
+    fun updateNotes_persistsNoteOnRow() {
+        val saved = saveOne()
+        assertThat(store().list()[0].notes).isEmpty()
+
+        assertThat(store().updateNotes(saved.id, "de W1AW")).isTrue()
+
+        assertThat(store().list()[0].notes).isEqualTo("de W1AW")
+    }
+
+    @Test
+    fun updateNotes_overwritesAndClears() {
+        val saved = saveOne()
+        store().updateNotes(saved.id, "first")
+        assertThat(store().list()[0].notes).isEqualTo("first")
+
+        store().updateNotes(saved.id, "")
+        assertThat(store().list()[0].notes).isEmpty()
+    }
+
+    @Test
+    fun updateNotes_unknownId_returnsFalse() {
+        saveOne()
+        assertThat(store().updateNotes(9999L, "nope")).isFalse()
+    }
+
     // ----- MediaStore (Photos) export -----------------------------------------
 
     @Test

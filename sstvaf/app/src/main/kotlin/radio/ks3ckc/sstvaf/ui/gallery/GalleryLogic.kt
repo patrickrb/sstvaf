@@ -164,12 +164,49 @@ internal fun formatShareUtc(utcMillis: Long): String {
  * EXTRA_SUBJECT) so a picture arriving in a chat or on social media carries its
  * SSTV context: "SSTV Scottie 1 · 14.230 MHz · 2026-07-04 15:30 UTC". Mode name
  * comes from the store verbatim (an unknown/hand-edited name is used as-is).
+ * When the image carries a user note (e.g. the sender's callsign) it is
+ * appended as a final "· note" segment; a blank note leaves the caption
+ * unchanged.
  */
 internal fun buildImageShareCaption(entry: SavedImage): String {
     val freq = formatViewerFrequency(entry.freqHz)
-    return "SSTV ${entry.mode} · $freq · ${formatShareUtc(entry.utcMillis)}"
+    val base = "SSTV ${entry.mode} · $freq · ${formatShareUtc(entry.utcMillis)}"
+    val note = normalizeNote(entry.notes)
+    return if (note.isEmpty()) base else "$base · $note"
 }
 
 /** Completeness → viewer label resource (Complete / Partial). */
 internal fun viewerCompletenessRes(complete: Boolean): Int =
     if (complete) R.string.gallery_meta_complete else R.string.gallery_meta_partial
+
+// ---------------------------------------------------------------------------
+// User note / caption editing
+// ---------------------------------------------------------------------------
+
+/**
+ * Longest note stored on a saved image. A note is a short, single-line caption
+ * (the sender's callsign, a comment) that rides along in the share text, so it
+ * is capped well under the length of a shared caption line.
+ */
+internal const val MAX_NOTE_LENGTH = 120
+
+/**
+ * Canonical form of a user-entered note before it is persisted or compared:
+ * newlines/tabs collapse to spaces so it stays a single line, runs of
+ * whitespace collapse to one space, surrounding whitespace is trimmed, and the
+ * result is capped at [MAX_NOTE_LENGTH]. An all-whitespace note becomes "".
+ * Applied both on save (what the DB holds) and defensively when a note is read
+ * back, so the two are always directly comparable.
+ */
+internal fun normalizeNote(raw: String): String =
+    raw.replace(Regex("\\s+"), " ").trim().take(MAX_NOTE_LENGTH)
+
+/**
+ * Whether an in-progress note edit differs from what is stored, i.e. whether a
+ * "Save" affordance should be offered. Both sides are normalized so pure
+ * whitespace churn (a trailing space, a pasted newline) doesn't count as a
+ * change. The stored value is assumed already normalized but is re-normalized
+ * for safety against a hand-edited DB row.
+ */
+internal fun noteEdited(draft: String, stored: String): Boolean =
+    normalizeNote(draft) != normalizeNote(stored)

@@ -225,6 +225,18 @@ class ReceivedImageStore @JvmOverloads constructor(
     }
 
     /**
+     * Update the free-text note on one saved image (the sender's callsign, a
+     * comment). The caller passes the note already normalized (single-line,
+     * length-capped — see `normalizeNote`); the store just writes it. Returns
+     * true if a row was updated — a false means the id no longer exists (e.g.
+     * the image was deleted from another screen), which the caller can ignore.
+     */
+    fun updateNotes(id: Long, notes: String): Boolean {
+        val values = ContentValues().apply { put("notes", notes) }
+        return db.update(SSTV_IMAGES_TABLE, values, "id = ?", arrayOf(id.toString())) > 0
+    }
+
+    /**
      * Delete one image: the metadata row first (committed), THEN the file —
      * so a crash between the two leaves an orphan file (harmless) rather than
      * a metadata row pointing at nothing. A missing file is tolerated.

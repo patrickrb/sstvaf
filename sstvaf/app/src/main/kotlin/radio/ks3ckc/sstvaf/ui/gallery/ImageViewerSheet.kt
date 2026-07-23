@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,11 +64,21 @@ fun ImageViewerSheet(
     onDismiss: () -> Unit,
     onShare: (SavedImage) -> Unit,
     onSaveToPhotos: (SavedImage) -> Unit,
+    onSaveNote: (SavedImage, String) -> Unit,
     onDelete: (SavedImage) -> Unit,
 ) {
     var confirmDelete by remember { mutableStateOf(false) }
-    // A reopened sheet must never start on a stale confirm dialog.
-    LaunchedEffect(visible) { if (!visible) confirmDelete = false }
+    // The note editor's draft text. Re-seeded whenever a different image opens
+    // (keyed on id) so switching images doesn't carry the previous note over.
+    var noteDraft by remember(entry?.id) { mutableStateOf(entry?.notes ?: "") }
+    // A reopened sheet must never start on a stale confirm dialog or a
+    // half-typed, unsaved note — reset both once it's fully hidden.
+    LaunchedEffect(visible) {
+        if (!visible) {
+            confirmDelete = false
+            noteDraft = entry?.notes ?: ""
+        }
+    }
 
     SstvAfBottomSheet(visible = visible, onDismiss = onDismiss) {
         if (entry != null && imageFile != null) {
@@ -114,6 +126,35 @@ fun ImageViewerSheet(
                     stringResource(R.string.gallery_meta_status),
                     stringResource(viewerCompletenessRes(entry.complete)),
                 )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Free-text note (sender's callsign, a comment). Saved on demand
+                // via the button below, which only appears once the draft differs
+                // from what's stored. The note rides along in the share caption.
+                OutlinedTextField(
+                    value = noteDraft,
+                    onValueChange = { noteDraft = it.take(MAX_NOTE_LENGTH) },
+                    label = { Text(stringResource(R.string.gallery_note_label)) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Accent,
+                        focusedLabelColor = Accent,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                if (noteEdited(noteDraft, entry.notes)) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    ViewerActionButton(
+                        label = stringResource(R.string.gallery_note_save),
+                        modifier = Modifier.fillMaxWidth(),
+                        background = AccentSoft,
+                        borderColor = BorderAmber,
+                        textColor = Accent,
+                        onClick = { onSaveNote(entry, normalizeNote(noteDraft)) },
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(18.dp))
 

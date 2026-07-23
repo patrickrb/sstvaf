@@ -670,6 +670,9 @@
     <string name="gallery_meta_status">Status</string>
     <string name="gallery_meta_complete">Complete</string>
     <string name="gallery_meta_partial">Partial</string>
+    <string name="gallery_note_label">Note (callsign, comment)</string>
+    <string name="gallery_note_save">Save note</string>
+    <string name="gallery_note_saved">Note saved</string>
     <string name="rx_view_in_gallery">View in Gallery</string>
 
     <!-- ===== TX composer tab (PR 8) ===== -->
