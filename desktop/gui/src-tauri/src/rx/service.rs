@@ -142,13 +142,19 @@ mod tests {
     use crate::rx::RxState;
 
     /// Drive `run_loop` with a hand-fed queue — no audio hardware involved.
-    fn spawn_loop() -> (
+    /// `capacity` is explicit because a test that feeds a whole transmission
+    /// must be able to hold it: with a small queue, drop-oldest would discard
+    /// audio whenever the machine is slow (CI under coverage instrumentation,
+    /// for one), making the decode outcome depend on timing.
+    fn spawn_loop(
+        capacity: usize,
+    ) -> (
         Arc<AudioQueue>,
         Arc<AtomicBool>,
         std::sync::mpsc::Receiver<RxEvent>,
         JoinHandle<()>,
     ) {
-        let queue = Arc::new(AudioQueue::new(8));
+        let queue = Arc::new(AudioQueue::new(capacity));
         let stop = Arc::new(AtomicBool::new(false));
         let (tx, rx) = channel();
         let (q, s) = (queue.clone(), stop.clone());
@@ -161,7 +167,7 @@ mod tests {
 
     #[test]
     fn announces_itself_then_stops_cleanly() {
-        let (queue, stop, rx, t) = spawn_loop();
+        let (queue, stop, rx, t) = spawn_loop(8);
         match rx.recv_timeout(Duration::from_secs(5)) {
             Ok(RxEvent::Info(m)) => assert!(m.contains("12000"), "got {m}"),
             other => panic!("expected the startup Info, got {other:?}"),
@@ -180,17 +186,20 @@ mod tests {
         let image = vec![0xFF20A0FFu32; mode.pixel_count()];
         let samples = encode::encode(mode, &image, SAMPLE_RATE, ENCODE_AMPLITUDE).expect("encode");
 
-        let (queue, stop, rx, t) = spawn_loop();
-        // Feed the whole transmission plus trailing silence, in the 200 ms
-        // blocks the capture worker produces. The queue holds 8 blocks and the
-        // loop drains continuously; a slow drain just exercises drop-oldest.
+        // A queue large enough for the whole transmission (~37 s in 200 ms
+        // blocks) so nothing is ever dropped and the result is independent of
+        // how fast the decode loop happens to run.
+        let (queue, stop, rx, t) = spawn_loop(512);
+        // Feed it in the 200 ms blocks the capture worker produces.
         for block in samples.chunks(2400) {
             queue.push(block.to_vec());
-            std::thread::sleep(Duration::from_millis(1));
         }
+        // Trailing silence: the decoder only reports DONE once audio arrives
+        // past the final scan line.
         for _ in 0..5 {
             queue.push(vec![0.0; 2400]);
         }
+        assert_eq!(queue.dropped(), 0, "test queue was too small");
 
         // Collect until the image completes or we run out of patience.
         let mut got_rows = false;

@@ -192,7 +192,7 @@ mod tests {
     #[test]
     fn a_partial_trailing_frame_is_ignored() {
         let rb = HeapRb::<f32>::new(16);
-        let (mut prod, mut cons) = rb.split();
+        let (mut prod, cons) = rb.split();
         // Three samples on a stereo stream: one whole frame plus a stray.
         push_mono(&[1.0f32, 1.0, 0.5], 2, &mut prod);
         assert_eq!(cons.occupied_len(), 1);
@@ -201,7 +201,7 @@ mod tests {
     #[test]
     fn zero_channels_is_a_no_op_rather_than_a_divide_by_zero() {
         let rb = HeapRb::<f32>::new(16);
-        let (mut prod, mut cons) = rb.split();
+        let (mut prod, cons) = rb.split();
         push_mono(&[1.0f32, 2.0], 0, &mut prod);
         assert_eq!(cons.occupied_len(), 0);
     }
