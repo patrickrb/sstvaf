@@ -13,6 +13,11 @@ path = "src/lib.rs"
 tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+anyhow = "1"
+# audio capture + resampling to the codec's 12 kHz rate
+cpal = "0.15"
+rubato = "0.15"
+ringbuf = "0.4"
 
 # The clean-room SSTV codec (cpp/sstv_lib) is compiled from source in build.rs
 # via the `cc` crate — the same C the Android app runs through JNI, with no

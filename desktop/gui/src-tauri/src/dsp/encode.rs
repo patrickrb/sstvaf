@@ -45,9 +45,12 @@ pub fn encode_with_flags(
     amplitude: f32,
     flags: c_int,
 ) -> Result<Vec<f32>, SstvError> {
-    if argb.len() < mode.pixel_count() {
+    // The codec reads exactly width*height pixels. Reject any other length,
+    // including an oversized slice: silently encoding its first w*h pixels
+    // would hide an upstream image-sizing bug rather than surface it.
+    if argb.len() != mode.pixel_count() {
         return Err(SstvError::Invalid(format!(
-            "{} needs {}x{} = {} pixels, got {}",
+            "{} needs exactly {}x{} = {} pixels, got {}",
             mode.name,
             mode.width,
             mode.height,
@@ -148,6 +151,16 @@ mod tests {
     fn encode_rejects_an_undersized_image() {
         let m = &MODES[0];
         let err = encode(m, &vec![0u32; 10], 12000, ENCODE_AMPLITUDE).unwrap_err();
+        assert!(matches!(err, SstvError::Invalid(_)), "got {err:?}");
+    }
+
+    #[test]
+    fn encode_rejects_an_oversized_image() {
+        // An oversized buffer is a sizing bug upstream; encoding its first w*h
+        // pixels would hide that, so it must be rejected too.
+        let m = &MODES[0];
+        let err = encode(m, &vec![0u32; m.pixel_count() + 1], 12000, ENCODE_AMPLITUDE)
+            .unwrap_err();
         assert!(matches!(err, SstvError::Invalid(_)), "got {err:?}");
     }
 
