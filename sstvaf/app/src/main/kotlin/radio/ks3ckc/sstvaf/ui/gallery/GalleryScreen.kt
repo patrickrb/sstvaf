@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -93,6 +94,10 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
         }
     }
 
+    // Newest-day-first sections for the grid's date headers; recomputed when the
+    // list/filter changes, and when the UTC day rolls over (not every minute tick).
+    val todayIdx = Math.floorDiv(nowMs, 86_400_000L)
+    val sections = remember(shown, todayIdx) { buildGallerySections(shown, nowMs) }
     // Viewer sheet: entry outlives visibility so the slide-out animation still
     // has content to draw after dismiss.
     var viewerVisible by remember { mutableStateOf(false) }
@@ -150,16 +155,24 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(shown, key = { it.id }) { entry ->
-                    GalleryCell(
-                        entry = entry,
-                        imageFile = store.imageFile(entry),
-                        nowMs = nowMs,
-                        onClick = {
-                            viewerEntry = entry
-                            viewerVisible = true
-                        },
-                    )
+                sections.forEach { section ->
+                    item(
+                        key = "hdr:${gallerySectionKey(section.header)}",
+                        span = { GridItemSpan(maxLineSpan) },
+                    ) {
+                        GallerySectionTitle(section.header)
+                    }
+                    items(section.images, key = { it.id }) { entry ->
+                        GalleryCell(
+                            entry = entry,
+                            imageFile = store.imageFile(entry),
+                            nowMs = nowMs,
+                            onClick = {
+                                viewerEntry = entry
+                                viewerVisible = true
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -203,6 +216,29 @@ internal fun GalleryFilter.labelRes(): Int = when (this) {
     GalleryFilter.ALL -> R.string.gallery_filter_all
     GalleryFilter.RX -> R.string.gallery_filter_rx
     GalleryFilter.TX -> R.string.gallery_filter_tx
+}
+
+/** Full-width date header above a run of same-day cells (Today / Yesterday / date). */
+@Composable
+private fun GallerySectionTitle(header: GallerySectionHeader) {
+    val text = when (header) {
+        GallerySectionHeader.Today -> stringResource(R.string.gallery_section_today)
+        GallerySectionHeader.Yesterday -> stringResource(R.string.gallery_section_yesterday)
+        is GallerySectionHeader.Earlier -> header.dateLabel
+    }
+    Text(
+        text = text,
+        // The grid's contentPadding already insets 16dp horizontally, so the
+        // header only needs vertical breathing room to align with the cells.
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp, bottom = 2.dp),
+        color = TextMuted,
+        fontFamily = GeistMonoFamily,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.06.sp,
+    )
 }
 
 /** One grid cell: cropped thumbnail + RX/TX chip overlay + mode/date line. */

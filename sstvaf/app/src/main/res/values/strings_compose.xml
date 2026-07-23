@@ -651,6 +651,8 @@
     <string name="gallery_filter_tx">Sent</string>
     <string name="gallery_empty_rx">Received images will appear here</string>
     <string name="gallery_empty_tx">Sent images will appear here</string>
+    <string name="gallery_section_today">Today</string>
+    <string name="gallery_section_yesterday">Yesterday</string>
     <string name="gallery_share">Share</string>
     <string name="gallery_save_photos">Save to Photos</string>
     <string name="gallery_delete">Delete</string>

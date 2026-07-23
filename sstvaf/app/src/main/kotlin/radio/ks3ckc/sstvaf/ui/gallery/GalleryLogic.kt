@@ -76,6 +76,91 @@ internal fun formatGalleryDate(utcMillis: Long, nowMillis: Long): String {
 internal fun galleryCellMeta(entry: SavedImage, nowMillis: Long): String =
     "${galleryModeShort(entry.mode)} · ${formatGalleryDate(entry.utcMillis, nowMillis)}"
 
+// ---------------------------------------------------------------------------
+// Date grouping (section headers) for the gallery grid
+// ---------------------------------------------------------------------------
+
+/**
+ * A gallery section header. Grouping is by UTC calendar day (consistent with
+ * the app's UTC date display elsewhere), so the buckets are deterministic
+ * regardless of the device time zone.
+ */
+internal sealed interface GallerySectionHeader {
+    /** Same UTC day as "now". */
+    data object Today : GallerySectionHeader
+
+    /** The UTC day immediately before "now". */
+    data object Yesterday : GallerySectionHeader
+
+    /** An older UTC day, carrying its absolute date label, e.g. "2026-07-04". */
+    data class Earlier(val dateLabel: String) : GallerySectionHeader
+}
+
+/** One contiguous run of images sharing a UTC day, with its header. */
+internal data class GallerySection(
+    val header: GallerySectionHeader,
+    val images: List<SavedImage>,
+)
+
+/** UTC calendar-day index (days since the epoch); [Math.floorDiv] handles skew. */
+private fun utcDayIndex(utcMillis: Long): Long = Math.floorDiv(utcMillis, 86_400_000L)
+
+/**
+ * Groups [images] into date sections for the grid, newest day first and newest
+ * image first within each day. Input order is not trusted — the list is sorted
+ * with [sortGalleryImages] first, so callers can pass a raw or a pre-filtered
+ * list. A timestamp ahead of [nowMillis] (clock skew) is clamped into the
+ * Today bucket rather than forming a spurious future day. Returns an empty list
+ * for empty input.
+ */
+internal fun buildGallerySections(
+    images: List<SavedImage>,
+    nowMillis: Long,
+): List<GallerySection> {
+    val sorted = sortGalleryImages(images)
+    if (sorted.isEmpty()) return emptyList()
+
+    val todayIdx = utcDayIndex(nowMillis)
+    val dateFmt = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }
+
+    val sections = mutableListOf<GallerySection>()
+    var currentIdx: Long? = null
+    var bucket = mutableListOf<SavedImage>()
+
+    fun flush() {
+        val idx = currentIdx ?: return
+        val header = when (todayIdx - idx) {
+            0L -> GallerySectionHeader.Today
+            1L -> GallerySectionHeader.Yesterday
+            // Label from that day's UTC midnight so it never depends on which
+            // image in the bucket happened to be formatted.
+            else -> GallerySectionHeader.Earlier(dateFmt.format(Date(idx * 86_400_000L)))
+        }
+        sections.add(GallerySection(header, bucket))
+    }
+
+    for (image in sorted) {
+        val idx = minOf(utcDayIndex(image.utcMillis), todayIdx)
+        if (idx != currentIdx) {
+            flush()
+            currentIdx = idx
+            bucket = mutableListOf()
+        }
+        bucket.add(image)
+    }
+    flush()
+    return sections
+}
+
+/** Stable LazyGrid key for a section header (Today/Yesterday collapse to a slug). */
+internal fun gallerySectionKey(header: GallerySectionHeader): String = when (header) {
+    GallerySectionHeader.Today -> "today"
+    GallerySectionHeader.Yesterday -> "yesterday"
+    is GallerySectionHeader.Earlier -> header.dateLabel
+}
+
 /**
  * Empty-state copy for the active filter. TX images only exist from PR 8, so
  * the Sent filter gets its own line; All and Received both point at receiving.
