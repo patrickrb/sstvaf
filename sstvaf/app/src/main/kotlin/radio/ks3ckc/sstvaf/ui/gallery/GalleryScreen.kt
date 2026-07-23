@@ -94,10 +94,10 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
         }
     }
 
-    // Newest-day-first sections for the grid's date headers; recomputed as the
-    // list, filter, or minute clock changes.
-    val sections = buildGallerySections(shown, nowMs)
-
+    // Newest-day-first sections for the grid's date headers; recomputed when the
+    // list/filter changes, and when the UTC day rolls over (not every minute tick).
+    val todayIdx = Math.floorDiv(nowMs, 86_400_000L)
+    val sections = remember(shown, todayIdx) { buildGallerySections(shown, nowMs) }
     // Viewer sheet: entry outlives visibility so the slide-out animation still
     // has content to draw after dismiss.
     var viewerVisible by remember { mutableStateOf(false) }
