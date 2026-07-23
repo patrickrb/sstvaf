@@ -264,4 +264,79 @@ class GalleryLogicTest {
         assertThat(GalleryFilter.RX.labelRes()).isEqualTo(R.string.gallery_filter_rx)
         assertThat(GalleryFilter.TX.labelRes()).isEqualTo(R.string.gallery_filter_tx)
     }
+
+    // ----- date grouping (section headers) -----------------------------------
+
+    /** golden day is 2026-07-04; use a "now" a couple of hours after it. */
+    private val nowSameDay = goldenUtc + 2 * 3_600_000L
+    private val oneDay = 86_400_000L
+
+    @Test
+    fun sections_emptyInput_isEmpty() {
+        assertThat(buildGallerySections(emptyList(), nowSameDay)).isEmpty()
+    }
+
+    @Test
+    fun sections_groupsTodayYesterdayEarlier() {
+        val images = listOf(
+            image(id = 1, utcMillis = goldenUtc), // today
+            image(id = 2, utcMillis = goldenUtc - oneDay), // yesterday
+            image(id = 3, utcMillis = goldenUtc - 3 * oneDay), // 2026-07-01
+        )
+        val sections = buildGallerySections(images, nowSameDay)
+
+        assertThat(sections.map { it.header }).containsExactly(
+            GallerySectionHeader.Today,
+            GallerySectionHeader.Yesterday,
+            GallerySectionHeader.Earlier("2026-07-01"),
+        ).inOrder()
+        assertThat(sections.map { it.images.map { img -> img.id } })
+            .containsExactly(listOf(1L), listOf(2L), listOf(3L)).inOrder()
+    }
+
+    @Test
+    fun sections_sameDayImagesShareOneHeader_newestFirst() {
+        val images = listOf(
+            image(id = 1, utcMillis = goldenUtc - 3_600_000L), // 14:30
+            image(id = 2, utcMillis = goldenUtc), // 15:30 (newer)
+        )
+        val sections = buildGallerySections(images, nowSameDay)
+
+        assertThat(sections).hasSize(1)
+        assertThat(sections.single().header).isEqualTo(GallerySectionHeader.Today)
+        // Sorted newest-first within the day, regardless of input order.
+        assertThat(sections.single().images.map { it.id }).containsExactly(2L, 1L).inOrder()
+    }
+
+    @Test
+    fun sections_futureSkewClampsIntoToday() {
+        val images = listOf(
+            image(id = 1, utcMillis = nowSameDay + oneDay), // ahead of the clock
+            image(id = 2, utcMillis = goldenUtc), // real today image
+        )
+        val sections = buildGallerySections(images, nowSameDay)
+
+        // Both land under a single Today header — no spurious future day.
+        assertThat(sections).hasSize(1)
+        assertThat(sections.single().header).isEqualTo(GallerySectionHeader.Today)
+        assertThat(sections.single().images.map { it.id }).containsExactly(1L, 2L).inOrder()
+    }
+
+    @Test
+    fun sections_dayBoundaryIsUtcNotElapsedHours() {
+        // 40 hours before "now" but only the day *before* yesterday by UTC date.
+        val images = listOf(image(id = 1, utcMillis = goldenUtc - 40 * 3_600_000L))
+        val sections = buildGallerySections(images, nowSameDay)
+        // goldenUtc - 40h = 2026-07-02 23:30Z → "2026-07-02", i.e. Earlier.
+        assertThat(sections.single().header)
+            .isEqualTo(GallerySectionHeader.Earlier("2026-07-02"))
+    }
+
+    @Test
+    fun sectionKey_isStablePerHeader() {
+        assertThat(gallerySectionKey(GallerySectionHeader.Today)).isEqualTo("today")
+        assertThat(gallerySectionKey(GallerySectionHeader.Yesterday)).isEqualTo("yesterday")
+        assertThat(gallerySectionKey(GallerySectionHeader.Earlier("2026-07-01")))
+            .isEqualTo("2026-07-01")
+    }
 }
