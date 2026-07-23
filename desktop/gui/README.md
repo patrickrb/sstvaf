@@ -19,6 +19,7 @@ See "Status" below for what has landed so far.
 desktop/gui/
   src/              React + TypeScript frontend (Vite)
     ipc.ts          typed command/event bridge to Rust
+    rx.ts           pure RX helpers (ARGB->RGBA, status formatting)
     App.tsx         the UI
   src-tauri/        Rust backend
     build.rs        compiles the C sstv_lib core (cc crate) + Tauri context
@@ -27,11 +28,40 @@ desktop/gui/
         ffi.rs      raw extern "C" declarations (cpp/sstv_lib/sstv.h)
         encode.rs   whole-transmission encoder
         decoder.rs  handle-based push-model decoder
+      audio/        cpal capture, mono downmix, resample to 12 kHz, queue
+      rx/           the receiver
+        engine.rs   the state machine (pure: samples in, events out)
+        session.rs  the decoder interface the engine drives
+        service.rs  the thread wiring capture to the engine
       modes.rs      the nine SSTV modes, mirrored from sstv_modes.c / SstvMode.kt
-      main.rs       Tauri commands
+      main.rs       Tauri commands + event forwarding
     tests/
       roundtrip.rs  encode -> decode -> compare, every mode
 ```
+
+## How receive works
+
+Audio is captured continuously with cpal at whatever rate the device offers,
+downmixed to mono, and resampled to **12 kHz** — the rate the Android pipeline
+uses (`SstvSignalListener.SAMPLE_RATE_HZ`), so both decoders run on identical
+numbers. Blocks of 200 ms go into a bounded queue with a **drop-oldest** policy:
+if the decoder falls behind, the freshest audio is what matters for finding the
+next leader, and drops are counted and reported rather than swallowed.
+
+One thread owns both capture and decode, because `cpal::Stream` is `!Send` on
+Windows and has to be created and dropped on the thread that owns it. It drains
+the queue, feeds `RxEngine`, and forwards the resulting events to the webview on
+the `rx-event` channel.
+
+`RxEngine` itself is pure — samples in, events out, no threads or IPC — so every
+transition is unit-tested against a fake session. Two behaviours matter to the
+UI:
+
+- **Rows stream incrementally.** Each poll emits only the rows decoded since the
+  last one, so the image paints line by line as it arrives.
+- **Terminal states are held.** After DONE/ABORTED the decoder is reset back to
+  hunting, but the resulting IDLE must not overwrite the Complete/Aborted the
+  operator is looking at — the next transmission clears it.
 
 ## Prerequisites
 
@@ -105,6 +135,8 @@ Landed:
 - Tauri + Vite scaffold, 3-OS CI, release lane.
 - The codec bound and unit-tested: mode table, encoder, push-model decoder,
   and an encode→decode round trip over all nine modes.
+- Live receive: audio device picker, continuous capture, incremental image
+  paint, and mode/progress/quality/slant status.
 
-Next, in order: audio capture + live RX, gallery + SQLite, TX composer,
-Hamlib rig control, waterfall, log/ADIF, settings.
+Next, in order: gallery + SQLite, TX composer, Hamlib rig control, waterfall,
+log/ADIF, settings.

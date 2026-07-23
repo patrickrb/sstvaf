@@ -7,9 +7,11 @@
 //! uses, so a drift between the C table, the Kotlin enum and this one fails the
 //! build on whichever side moved.
 
-use serde::{Deserialize, Serialize};
+// Serialize only: the table is a compile-time constant that travels outward to
+// the UI, and its &'static str fields can't be deserialized into.
+use serde::Serialize;
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct ModeInfo {
     pub id: i32,
     pub name: &'static str,
