@@ -30,7 +30,16 @@ pub struct AudioInput {
 }
 
 impl AudioInput {
-    pub fn start(device_name: Option<&str>, queue: Arc<AudioQueue>) -> anyhow::Result<AudioInput> {
+    /// Open the device and start capturing. `on_error` is called with a
+    /// human-readable message when the audio stream reports a runtime error
+    /// (e.g. the device is unplugged mid-receive). cpal fires it on its own
+    /// thread, and the app configures no logger, so the caller wires this to
+    /// surface the error in the UI instead of dropping it.
+    pub fn start(
+        device_name: Option<&str>,
+        queue: Arc<AudioQueue>,
+        on_error: impl Fn(String) + Send + 'static,
+    ) -> anyhow::Result<AudioInput> {
         let device = find_input_device(device_name)
             .ok_or_else(|| anyhow::anyhow!("no input audio device available"))?;
         let dev_name = device.name().unwrap_or_else(|_| "unknown".into());
@@ -40,12 +49,22 @@ impl AudioInput {
         let channels = config.channels as usize;
         let device_rate = config.sample_rate.0;
 
+        // Build the resampler before opening the stream: its rate is known now,
+        // and if the device rate can't be converted to 12 kHz there is no point
+        // capturing audio nothing can decode. A failure here becomes a visible
+        // "can't start" error rather than a stream that silently drops
+        // everything (see MonoResampler::new).
+        let resampler = MonoResampler::new(device_rate, SAMPLE_RATE)
+            .map_err(|e| anyhow::anyhow!(e))?;
+
         // Ring buffer between the realtime callback and the resampling worker.
         // The callback must never block or allocate, so it only pushes here.
         let rb = HeapRb::<f32>::new(device_rate as usize * 2); // ~2 s headroom
         let (mut prod, mut cons) = rb.split();
 
-        let err_fn = |e| log::error!("audio input stream error: {e}");
+        // cpal calls this on its own thread when the stream faults. Report it
+        // upward instead of logging into the void.
+        let err_fn = move |e| on_error(format!("audio input stream error: {e}"));
 
         // One arm per sample format cpal may hand us; each downmixes
         // interleaved frames to mono f32.
@@ -78,7 +97,7 @@ impl AudioInput {
         let worker = std::thread::Builder::new()
             .name("sstvaf-audio-resample".into())
             .spawn(move || {
-                let mut resampler = MonoResampler::new(device_rate, SAMPLE_RATE);
+                let mut resampler = resampler;
                 let mut scratch = vec![0.0f32; 4096];
                 let mut block: Vec<f32> = Vec::with_capacity(BLOCK_SAMPLES);
                 while !stop_w.load(Ordering::Relaxed) {

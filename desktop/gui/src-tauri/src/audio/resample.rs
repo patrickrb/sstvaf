@@ -21,45 +21,42 @@ pub struct MonoResampler {
 }
 
 impl MonoResampler {
-    pub fn new(in_rate: u32, out_rate: u32) -> Self {
+    /// Build a resampler from `in_rate` to `out_rate`. Returns `Err` when the
+    /// rates differ but the FFT resampler can't be constructed for them —
+    /// caught here rather than swallowed so the caller can refuse to start
+    /// capture with a visible error, instead of silently dropping all audio and
+    /// leaving RX stuck hunting. `in_rate == out_rate` is always `Ok` (identity
+    /// pass-through, no resampler needed).
+    pub fn new(in_rate: u32, out_rate: u32) -> Result<Self, String> {
         let inner = if in_rate == out_rate {
             None
         } else {
-            match FftFixedIn::<f32>::new(
+            let r = FftFixedIn::<f32>::new(
                 in_rate as usize,
                 out_rate as usize,
                 CHUNK_IN,
                 SUB_CHUNKS,
                 1,
-            ) {
-                Ok(r) => Some(r),
-                Err(e) => {
-                    log::error!("failed to create resampler ({in_rate} -> {out_rate}): {e}");
-                    None
-                }
-            }
+            )
+            .map_err(|e| format!("cannot resample {in_rate} Hz -> {out_rate} Hz: {e}"))?;
+            Some(r)
         };
-        MonoResampler {
+        Ok(MonoResampler {
             inner,
             pending: Vec::with_capacity(CHUNK_IN * 2),
             in_rate,
             out_rate,
-        }
+        })
     }
 
     /// Push mono input samples at `in_rate`; returns whatever output the
     /// resampler could produce (it buffers a partial chunk internally).
     pub fn process(&mut self, input: &[f32]) -> Vec<f32> {
         if self.inner.is_none() {
-            // Rates match — legitimate identity pass-through.
-            if self.in_rate == self.out_rate {
-                return input.to_vec();
-            }
-            // Rates differ but the resampler failed to initialise. Passing the
-            // samples through un-resampled would feed wrong-rate audio to the
-            // decoder, which reads as a slanted/garbled image rather than an
-            // obvious failure. Fail closed instead.
-            return Vec::new();
+            // `new` only leaves `inner` empty when the rates match, so this is
+            // the identity pass-through — a construction failure would have been
+            // an `Err` from `new`, never a silently-empty resampler.
+            return input.to_vec();
         }
         self.pending.extend_from_slice(input);
         let resampler = self.inner.as_mut().unwrap();
@@ -109,7 +106,7 @@ mod tests {
 
     #[test]
     fn matching_rates_pass_through_untouched() {
-        let mut r = MonoResampler::new(12000, 12000);
+        let mut r = MonoResampler::new(12000, 12000).expect("identity never fails");
         let input = vec![0.1, -0.2, 0.3];
         assert_eq!(r.process(&input), input);
         assert_eq!(r.in_rate(), 12000);
@@ -117,8 +114,21 @@ mod tests {
     }
 
     #[test]
+    fn a_valid_downsample_ratio_constructs() {
+        assert!(MonoResampler::new(48000, 12000).is_ok());
+        assert!(MonoResampler::new(44100, 12000).is_ok());
+    }
+
+    #[test]
+    fn an_impossible_rate_is_an_error_not_a_silent_drop() {
+        // A zero input rate can't yield a resampler; new() must report it so the
+        // caller can refuse to start rather than swallow every sample.
+        assert!(MonoResampler::new(0, 12000).is_err());
+    }
+
+    #[test]
     fn downsamples_48k_to_12k_at_the_right_length() {
-        let out = run(MonoResampler::new(48000, 12000), 48000, 1.0);
+        let out = run(MonoResampler::new(48000, 12000).unwrap(), 48000, 1.0);
         // One second in, one second out (minus the resampler's internal
         // buffering of at most one chunk).
         assert!(
@@ -131,7 +141,7 @@ mod tests {
     #[test]
     fn downsamples_44k1_to_12k_at_the_right_length() {
         // The awkward rate: 44100 -> 12000 is not an integer ratio.
-        let out = run(MonoResampler::new(44100, 12000), 44100, 1.0);
+        let out = run(MonoResampler::new(44100, 12000).unwrap(), 44100, 1.0);
         assert!(
             (out.len() as i64 - 12000).abs() < 1200,
             "44.1k->12k produced {} samples for 1 s",
@@ -141,7 +151,7 @@ mod tests {
 
     #[test]
     fn preserves_signal_amplitude() {
-        let out = run(MonoResampler::new(48000, 12000), 48000, 0.5);
+        let out = run(MonoResampler::new(48000, 12000).unwrap(), 48000, 0.5);
         // A 1 kHz tone is far below the 6 kHz Nyquist of the output rate, so it
         // must survive the conversion at roughly full amplitude.
         let peak = out.iter().fold(0.0f32, |a, s| a.max(s.abs()));
@@ -150,7 +160,7 @@ mod tests {
 
     #[test]
     fn buffers_partial_chunks_instead_of_dropping_them() {
-        let mut r = MonoResampler::new(48000, 12000);
+        let mut r = MonoResampler::new(48000, 12000).unwrap();
         // Less than one input chunk: nothing out yet, but nothing lost either.
         assert!(r.process(&vec![0.0; 10]).is_empty());
         let out = r.process(&vec![0.5; 8192]);

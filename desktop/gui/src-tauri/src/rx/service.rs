@@ -44,18 +44,25 @@ impl RxService {
         let thread = std::thread::Builder::new()
             .name("sstvaf-rx".into())
             .spawn(move || {
+                // Report async audio-stream faults to the UI on the same event
+                // channel decode status uses.
+                let err_events = events.clone();
+                let on_error = move |msg: String| {
+                    let _ = err_events.send(RxEvent::Error(msg));
+                };
                 // AudioInput owns the cpal stream and must live and die on this
                 // thread; it stops capture when dropped at the end of the loop.
-                let input = match AudioInput::start(device_name.as_deref(), queue_t.clone()) {
-                    Ok(i) => {
-                        let _ = ready_tx.send(Ok((i.device_name.clone(), i.device_rate)));
-                        i
-                    }
-                    Err(e) => {
-                        let _ = ready_tx.send(Err(e.to_string()));
-                        return;
-                    }
-                };
+                let input =
+                    match AudioInput::start(device_name.as_deref(), queue_t.clone(), on_error) {
+                        Ok(i) => {
+                            let _ = ready_tx.send(Ok((i.device_name.clone(), i.device_rate)));
+                            i
+                        }
+                        Err(e) => {
+                            let _ = ready_tx.send(Err(e.to_string()));
+                            return;
+                        }
+                    };
                 run_loop(decoder, queue_t, stop_t, &events);
                 drop(input);
             })?;

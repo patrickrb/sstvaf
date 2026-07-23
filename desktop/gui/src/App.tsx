@@ -62,6 +62,11 @@ export default function App() {
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
+    // onRxEvent resolves asynchronously. If the effect is cleaned up before it
+    // does, `unlisten` is still undefined, so the cleanup below can't detach
+    // the listener — it would leak and keep calling setState after unmount.
+    // Track that and detach as soon as the handle arrives.
+    let cancelled = false;
     onRxEvent((e: RxEvent) => {
       switch (e.event) {
         case "state":
@@ -79,10 +84,17 @@ export default function App() {
       }
     })
       .then((fn) => {
-        unlisten = fn;
+        if (cancelled) {
+          fn();
+        } else {
+          unlisten = fn;
+        }
       })
       .catch((e) => setError(String(e)));
-    return () => unlisten?.();
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
   }, [appendLog, paintRows]);
 
   // Size the canvas to the locked mode. Clearing on a mode change is
