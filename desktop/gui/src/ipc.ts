@@ -42,6 +42,7 @@ export function txDurationSeconds(
   modeId: number,
   sampleRate: number,
 ): Promise<number> {
+  // Tauri v2 converts camelCase JS arg keys to the snake_case Rust params.
   return invoke<number>("tx_duration_seconds", { modeId, sampleRate });
 }
 
