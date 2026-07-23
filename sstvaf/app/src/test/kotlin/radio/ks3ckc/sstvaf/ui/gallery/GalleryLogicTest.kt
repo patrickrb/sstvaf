@@ -275,17 +275,60 @@ class GalleryLogicTest {
     }
 
     @Test
-    fun shareCaption_combinesModeFreqAndTime() {
+    fun shareCaption_combinesModeFreqBandAndTime() {
         val entry = image(mode = "Scottie 1", freqHz = 14_230_000L, utcMillis = goldenUtc)
         assertThat(buildImageShareCaption(entry))
-            .isEqualTo("SSTV Scottie 1 · 14.230 MHz · 2026-07-04 15:30 UTC")
+            .isEqualTo("SSTV Scottie 1 · 14.230 MHz · 20m · 2026-07-04 15:30 UTC")
     }
 
     @Test
     fun shareCaption_usesStoredModeNameVerbatim() {
         val entry = image(mode = "AVT 90", freqHz = 7_171_000L, utcMillis = goldenUtc)
         assertThat(buildImageShareCaption(entry))
-            .isEqualTo("SSTV AVT 90 · 7.171 MHz · 2026-07-04 15:30 UTC")
+            .isEqualTo("SSTV AVT 90 · 7.171 MHz · 40m · 2026-07-04 15:30 UTC")
+    }
+
+    @Test
+    fun shareCaption_dropsBandSegmentWhenOutOfBand() {
+        // 27.265 MHz (CB) is not an amateur band — no band segment.
+        val entry = image(mode = "Scottie 1", freqHz = 27_265_000L, utcMillis = goldenUtc)
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV Scottie 1 · 27.265 MHz · 2026-07-04 15:30 UTC")
+    }
+
+    // ----- amateur band lookup -----------------------------------------------
+
+    @Test
+    fun amateurBand_mapsCommonSstvFrequencies() {
+        val cases = mapOf(
+            3_730_000L to "80m",
+            7_171_000L to "40m",
+            10_140_000L to "30m",
+            14_230_000L to "20m",
+            21_340_000L to "15m",
+            28_680_000L to "10m",
+            50_680_000L to "6m",
+            144_500_000L to "2m",
+        )
+        for ((freq, band) in cases) {
+            assertThat(amateurBand(freq)).isEqualTo(band)
+        }
+    }
+
+    @Test
+    fun amateurBand_isInclusiveAtEdges() {
+        assertThat(amateurBand(14_000_000L)).isEqualTo("20m")
+        assertThat(amateurBand(14_350_000L)).isEqualTo("20m")
+        assertThat(amateurBand(13_999_999L)).isNull()
+        assertThat(amateurBand(14_350_001L)).isNull()
+    }
+
+    @Test
+    fun amateurBand_nullOutsideAnyAllocation() {
+        assertThat(amateurBand(0L)).isNull()
+        assertThat(amateurBand(27_265_000L)).isNull() // CB 11m, not amateur
+        assertThat(amateurBand(-1L)).isNull()
+        assertThat(amateurBand(500_000_000L)).isNull()
     }
 
     // ----- filter chip labels ------------------------------------------------

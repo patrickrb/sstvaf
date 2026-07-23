@@ -226,6 +226,52 @@ internal fun formatViewerQuality(quality: Float): String =
 internal fun formatViewerFrequency(freqHz: Long): String =
     "${formatGalleryFreqMhz(freqHz)} MHz"
 
+// ---------------------------------------------------------------------------
+// Amateur band lookup
+// ---------------------------------------------------------------------------
+
+/** One amateur band: its inclusive Hz range and short wavelength label. */
+private data class AmateurBand(val loHz: Long, val hiHz: Long, val label: String)
+
+/**
+ * IARU amateur allocations, ascending and non-overlapping. Ranges mirror the
+ * ones the app already uses in
+ * [com.k1af.ft8af.rigs.BaseRigOperation.getMeterFromFreq] so a frequency shows
+ * the same band label wherever the app names it; the CB "11m" segment and the
+ * computed out-of-band fallback are intentionally left out — see [amateurBand].
+ */
+private val AMATEUR_BANDS = listOf(
+    AmateurBand(135_700L, 137_800L, "2200m"),
+    AmateurBand(472_000L, 479_000L, "630m"),
+    AmateurBand(1_800_000L, 2_000_000L, "160m"),
+    AmateurBand(3_500_000L, 4_000_000L, "80m"),
+    AmateurBand(5_351_500L, 5_366_500L, "60m"),
+    AmateurBand(7_000_000L, 7_300_000L, "40m"),
+    AmateurBand(10_100_000L, 10_150_000L, "30m"),
+    AmateurBand(14_000_000L, 14_350_000L, "20m"),
+    AmateurBand(18_068_000L, 18_168_000L, "17m"),
+    AmateurBand(21_000_000L, 21_450_000L, "15m"),
+    AmateurBand(24_890_000L, 24_990_000L, "12m"),
+    AmateurBand(28_000_000L, 29_700_000L, "10m"),
+    AmateurBand(50_000_000L, 54_000_000L, "6m"),
+    AmateurBand(70_000_000L, 70_500_000L, "4m"),
+    AmateurBand(144_000_000L, 148_000_000L, "2m"),
+    AmateurBand(222_000_000L, 225_000_000L, "1.25m"),
+    AmateurBand(420_000_000L, 450_000_000L, "70cm"),
+    AmateurBand(902_000_000L, 928_000_000L, "33cm"),
+    AmateurBand(1_240_000_000L, 1_300_000_000L, "23cm"),
+)
+
+/**
+ * The amateur-radio band a dial frequency falls in ("20m", "40m", …), or null
+ * when the frequency is outside every known amateur allocation — 0, a
+ * hand-edited row, or an out-of-band capture (e.g. CB 27 MHz). Ranges are
+ * inclusive. Surfaced next to the raw MHz so an operator recognises the band
+ * at a glance without reading the digits.
+ */
+internal fun amateurBand(freqHz: Long): String? =
+    AMATEUR_BANDS.firstOrNull { freqHz in it.loHz..it.hiHz }?.label
+
 /** Direction → viewer label resource (Received / Sent). */
 internal fun viewerDirectionRes(direction: ImageDirection): Int = when (direction) {
     ImageDirection.RX -> R.string.gallery_meta_direction_rx
@@ -247,12 +293,16 @@ internal fun formatShareUtc(utcMillis: Long): String {
 /**
  * Human-readable caption attached to a shared image (ACTION_SEND EXTRA_TEXT /
  * EXTRA_SUBJECT) so a picture arriving in a chat or on social media carries its
- * SSTV context: "SSTV Scottie 1 · 14.230 MHz · 2026-07-04 15:30 UTC". Mode name
- * comes from the store verbatim (an unknown/hand-edited name is used as-is).
+ * SSTV context: "SSTV Scottie 1 · 14.230 MHz · 20m · 2026-07-04 15:30 UTC". The
+ * band segment is only present when the frequency maps to a known amateur band
+ * (see [amateurBand]); an out-of-band capture drops it rather than showing a
+ * blank. Mode name comes from the store verbatim (an unknown/hand-edited name
+ * is used as-is).
  */
 internal fun buildImageShareCaption(entry: SavedImage): String {
     val freq = formatViewerFrequency(entry.freqHz)
-    return "SSTV ${entry.mode} · $freq · ${formatShareUtc(entry.utcMillis)}"
+    val bandSegment = amateurBand(entry.freqHz)?.let { " · $it" } ?: ""
+    return "SSTV ${entry.mode} · $freq$bandSegment · ${formatShareUtc(entry.utcMillis)}"
 }
 
 /** Completeness → viewer label resource (Complete / Partial). */
