@@ -108,6 +108,30 @@ class TxScreenLogicTest {
     }
 
     @Test
+    fun `total tx duration adds the cw id tail`() {
+        assertThat(totalTxDurationSeconds(SstvMode.ROBOT_36, 0.0)).isWithin(1e-9).of(36.91)
+        assertThat(totalTxDurationSeconds(SstvMode.ROBOT_36, 5.0)).isWithin(1e-9).of(41.91)
+    }
+
+    @Test
+    fun `total tx duration ignores a negative tail`() {
+        assertThat(totalTxDurationSeconds(SstvMode.ROBOT_36, -3.0)).isWithin(1e-9).of(36.91)
+    }
+
+    @Test
+    fun `confirm line with no cw id is unchanged`() {
+        assertThat(confirmDurationLine(SstvMode.ROBOT_36, 0.0))
+            .isEqualTo("Robot 36 — 320×240 — 37 seconds")
+    }
+
+    @Test
+    fun `confirm line folds in and flags the cw id tail`() {
+        // 36.91 s image + 5.2 s CW = 42.11 → 42 s, flagged as including the ID.
+        assertThat(confirmDurationLine(SstvMode.ROBOT_36, 5.2))
+            .isEqualTo("Robot 36 — 320×240 — 42 seconds (incl. CW ID)")
+    }
+
+    @Test
     fun `formatMinSec goldens`() {
         assertThat(formatMinSec(0)).isEqualTo("0:00")
         assertThat(formatMinSec(7)).isEqualTo("0:07")
