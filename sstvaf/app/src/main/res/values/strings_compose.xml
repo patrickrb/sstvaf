@@ -704,4 +704,8 @@
     <string name="tx_confirm_cancel">Cancel</string>
     <string name="tx_confirm_go">Transmit</string>
     <string name="tx_cancel_button">CANCEL TX</string>
+    <!-- TX progress: estimated time left in the current transmission.
+         %1$s is a preformatted m:ss countdown (e.g. "1:09"). Mirrors
+         rx_eta_format on the receive side. -->
+    <string name="tx_remaining_format">%1$s left</string>
 </resources>

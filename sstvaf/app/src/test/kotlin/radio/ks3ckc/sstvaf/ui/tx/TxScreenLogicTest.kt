@@ -5,6 +5,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import radio.ks3ckc.sstvaf.sstv.SstvMode
+import kotlin.math.roundToInt
 
 /**
  * [TxScreenLogic]: transmit gating precedence, label/duration formatting
@@ -121,6 +122,59 @@ class TxScreenLogicTest {
     fun `elapsed label clamps progress outside 0 to 1`() {
         assertThat(txElapsedLabel(-0.5f, 36.91)).isEqualTo("0:00 / 0:37")
         assertThat(txElapsedLabel(1.5f, 36.91)).isEqualTo("0:37 / 0:37")
+    }
+
+    // -- txRemaining -------------------------------------------------------------
+
+    @Test
+    fun `remaining seconds is total minus elapsed`() {
+        // Scottie 1 rounds to 111 s total.
+        assertThat(txRemainingSeconds(0f, 110.54332)).isEqualTo(111)
+        assertThat(txRemainingSeconds(1f, 110.54332)).isEqualTo(0)
+        // Robot 36 rounds to 37 s; halfway elapses 19 (round 18.5) → 18 left.
+        assertThat(txRemainingSeconds(0.5f, 36.91)).isEqualTo(18)
+    }
+
+    @Test
+    fun `remaining seconds stays in bounds for out-of-range progress`() {
+        assertThat(txRemainingSeconds(-0.5f, 36.91)).isEqualTo(37)
+        assertThat(txRemainingSeconds(1.5f, 36.91)).isEqualTo(0)
+    }
+
+    @Test
+    fun `remaining seconds is zero for a non-positive duration`() {
+        assertThat(txRemainingSeconds(0f, 0.0)).isEqualTo(0)
+        assertThat(txRemainingSeconds(0f, -5.0)).isEqualTo(0)
+    }
+
+    @Test
+    fun `remaining stays within zero and the rounded total for every mode`() {
+        // The countdown must never disagree with the elapsed/total line by
+        // going negative or exceeding the whole-second total shown there.
+        for (mode in SstvMode.entries) {
+            val total = mode.txDurationSeconds.roundToInt()
+            for (p in listOf(0f, 0.1f, 0.37f, 0.5f, 0.8f, 1f)) {
+                assertThat(txRemainingSeconds(p, mode.txDurationSeconds)).isIn(0..total)
+            }
+        }
+    }
+
+    @Test
+    fun `remaining shrinks monotonically as progress advances`() {
+        val total = SstvMode.SCOTTIE_1.txDurationSeconds
+        var previous = txRemainingSeconds(0f, total)
+        for (p in listOf(0.1f, 0.25f, 0.5f, 0.75f, 0.9f, 1f)) {
+            val current = txRemainingSeconds(p, total)
+            assertThat(current).isAtMost(previous)
+            previous = current
+        }
+    }
+
+    @Test
+    fun `remaining label is a bare m ss countdown`() {
+        assertThat(txRemainingLabel(0f, 110.54332)).isEqualTo("1:51")
+        assertThat(txRemainingLabel(1f, 110.54332)).isEqualTo("0:00")
+        assertThat(txRemainingLabel(0.5f, 36.91)).isEqualTo("0:18")
     }
 
     // -- initialTxMode ---------------------------------------------------------------
