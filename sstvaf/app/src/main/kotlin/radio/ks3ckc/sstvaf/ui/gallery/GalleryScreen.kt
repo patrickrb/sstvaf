@@ -35,6 +35,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -357,6 +358,10 @@ internal fun PartialChip(modifier: Modifier = Modifier) {
         fontSize = 9.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 0.08.sp,
+        // Localized label: keep it to one line so a longer translation clips
+        // rather than wrapping and shoving the overlay out of the cell corner.
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
     )
 }
 

@@ -125,9 +125,10 @@ internal fun galleryCellMeta(entry: SavedImage, nowMillis: Long): String =
  * the operator stopping RX mid-picture — so the thumbnail is only partly filled.
  * The viewer sheet already labels this (Complete / Partial); surfacing it on the
  * grid lets an operator spot interrupted decodes at a glance without opening
- * each one. Keyed on completeness alone, so it is direction-agnostic: TX images
- * are generated whole and are always complete, so this only ever fires for
- * interrupted receives.
+ * each one. Keyed on completeness alone, so it is direction-agnostic — it fires
+ * for any incomplete image. In practice that is typically only interrupted
+ * receives, since TX images are generated whole; but a TX row flagged
+ * incomplete would show the badge too.
  */
 internal fun galleryShowPartialBadge(entry: SavedImage): Boolean = !entry.complete
 
