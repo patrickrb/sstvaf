@@ -234,11 +234,14 @@ internal fun formatViewerFrequency(freqHz: Long): String =
 private data class AmateurBand(val loHz: Long, val hiHz: Long, val label: String)
 
 /**
- * IARU amateur allocations, ascending and non-overlapping. Ranges mirror the
- * ones the app already uses in
- * [com.k1af.ft8af.rigs.BaseRigOperation.getMeterFromFreq] so a frequency shows
- * the same band label wherever the app names it; the CB "11m" segment and the
- * computed out-of-band fallback are intentionally left out — see [amateurBand].
+ * IARU amateur allocations, ascending and non-overlapping. These are the same
+ * explicit band branches [com.k1af.ft8af.rigs.BaseRigOperation.getMeterFromFreq]
+ * enumerates, so a frequency shows the same label wherever the app names it,
+ * with two deliberate departures: the CB "11m" segment (26.965–27.405 MHz) and
+ * that helper's computed out-of-band fallback (`calculationMeterFromFreq`) are
+ * both omitted here — an out-of-band frequency yields null rather than a guessed
+ * label (see [amateurBand]) — and the 4m allocation (70.0–70.5 MHz), which the
+ * rig helper does not list, is included. Not a blanket mirror of every branch.
  */
 private val AMATEUR_BANDS = listOf(
     AmateurBand(135_700L, 137_800L, "2200m"),
