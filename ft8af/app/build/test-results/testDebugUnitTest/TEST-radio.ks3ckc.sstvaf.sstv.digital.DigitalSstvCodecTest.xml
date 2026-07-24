@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvCodecTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-07-09T01:47:53" hostname="JIGGLEBILLY" time="0.158">
+  <properties/>
+  <testcase name="receiver accumulates blocks across partial retransmissions" classname="radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvCodecTest" time="0.069"/>
+  <testcase name="new image resets receiver accumulation" classname="radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvCodecTest" time="0.02"/>
+  <testcase name="single-block and tiny payloads round trip" classname="radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvCodecTest" time="0.014"/>
+  <testcase name="encoded waveform stays within headroom" classname="radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvCodecTest" time="0.009"/>
+  <testcase name="clean round trip recovers every block and the payload" classname="radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvCodecTest" time="0.009"/>
+  <testcase name="burst that destroys the payload keeps the header and drives a full retransmit" classname="radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvCodecTest" time="0.015"/>
+  <testcase name="pure noise never reassembles into a valid image" classname="radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvCodecTest" time="0.003"/>
+  <testcase name="all robustness modes carry an image end to end" classname="radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvCodecTest" time="0.018"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

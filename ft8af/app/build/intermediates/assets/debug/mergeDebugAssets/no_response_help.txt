@@ -1,0 +1,2 @@
+About No-Response Limit for Interrupting Calls
+  During a contact, the other party may not respond to your call for various reasons. FT8CN will repeatedly call with the current message until the other party responds, then proceed to the next stage. When the no-response count is set and the number of repeated calls reaches the specified value, the auto-caller will stop contacting that target and move on to the next one.

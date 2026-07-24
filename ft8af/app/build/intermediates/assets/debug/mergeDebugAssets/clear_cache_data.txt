@@ -1,0 +1,9 @@
+About Clear Cache
+
+FT8CN stores your followed callsigns and contact messages in the database (viewable through the web interface). You can use the clear cache function to permanently delete this temporary data.
+
+Clearing the cache does not delete QSO data.
+
+Clear "Followed Callsigns": Followed callsigns are callsigns you followed during contacts. When these callsigns appear, they are automatically added to the call list for convenient auto-calling. Clearing followed callsigns removes all followed callsigns.
+
+Clear "Decoded Messages": FT8CN can save all decoded messages. These messages are not currently displayed in the FT8CN interface but can be viewed and queried through the web interface.
