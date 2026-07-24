@@ -255,6 +255,32 @@ class GalleryLogicTest {
         assertThat(galleryCellMeta(entry, goldenUtc)).isEqualTo("PD120 · 2026-06-24")
     }
 
+    // ----- partial-decode badge ----------------------------------------------
+
+    @Test
+    fun partialBadge_shownForIncompleteImage() {
+        val entry = image(complete = false)
+        assertThat(galleryShowPartialBadge(entry)).isTrue()
+    }
+
+    @Test
+    fun partialBadge_hiddenForCompleteImage() {
+        val entry = image(complete = true)
+        assertThat(galleryShowPartialBadge(entry)).isFalse()
+    }
+
+    @Test
+    fun partialBadge_dependsOnlyOnCompleteness_notDirection() {
+        // TX images are generated whole, so they are always complete; the badge
+        // keys off completeness alone, so an (unexpected) partial TX still flags.
+        assertThat(galleryShowPartialBadge(image(direction = ImageDirection.TX, complete = true)))
+            .isFalse()
+        assertThat(galleryShowPartialBadge(image(direction = ImageDirection.RX, complete = false)))
+            .isTrue()
+        assertThat(galleryShowPartialBadge(image(direction = ImageDirection.TX, complete = false)))
+            .isTrue()
+    }
+
     // ----- empty state -------------------------------------------------------
 
     @Test

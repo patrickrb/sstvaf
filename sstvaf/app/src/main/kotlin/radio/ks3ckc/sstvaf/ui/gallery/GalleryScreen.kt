@@ -53,6 +53,7 @@ import radio.ks3ckc.sstvaf.theme.BgSurface
 import radio.ks3ckc.sstvaf.theme.GeistMonoFamily
 import radio.ks3ckc.sstvaf.theme.Signal
 import radio.ks3ckc.sstvaf.theme.SignalSoft
+import radio.ks3ckc.sstvaf.theme.StatusWarn
 import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
 import radio.ks3ckc.sstvaf.ui.components.EmptyStateWaves
@@ -277,6 +278,13 @@ private fun GalleryCell(
                     .align(Alignment.TopStart)
                     .padding(5.dp),
             )
+            if (galleryShowPartialBadge(entry)) {
+                PartialChip(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(5.dp),
+                )
+            }
         }
         Spacer(modifier = Modifier.height(4.dp))
         Text(
@@ -304,6 +312,27 @@ internal fun DirectionChip(direction: ImageDirection, modifier: Modifier = Modif
             .background(bg)
             .padding(horizontal = 5.dp, vertical = 1.dp),
         color = fg,
+        fontSize = 9.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.08.sp,
+    )
+}
+
+/**
+ * Small "Partial" badge for an incomplete decode, mirroring [DirectionChip] but
+ * in the warning palette. The label doubles as its accessibility text, so a
+ * screen reader announces the partial state that colour alone would convey.
+ */
+@Composable
+internal fun PartialChip(modifier: Modifier = Modifier) {
+    Text(
+        text = stringResource(R.string.gallery_meta_partial),
+        modifier = modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(BgApp.copy(alpha = 0.72f))
+            .background(StatusWarn.copy(alpha = 0.2f))
+            .padding(horizontal = 5.dp, vertical = 1.dp),
+        color = StatusWarn,
         fontSize = 9.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 0.08.sp,

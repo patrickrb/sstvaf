@@ -118,6 +118,18 @@ internal fun formatGalleryDate(utcMillis: Long, nowMillis: Long): String {
 internal fun galleryCellMeta(entry: SavedImage, nowMillis: Long): String =
     "${galleryModeShort(entry.mode)} · ${formatGalleryDate(entry.utcMillis, nowMillis)}"
 
+/**
+ * Whether the grid cell should show the "Partial" badge. An incomplete image is
+ * one whose SSTV stream was cut off before the last scan line — fading, QRM, or
+ * the operator stopping RX mid-picture — so the thumbnail is only partly filled.
+ * The viewer sheet already labels this (Complete / Partial); surfacing it on the
+ * grid lets an operator spot interrupted decodes at a glance without opening
+ * each one. Keyed on completeness alone, so it is direction-agnostic: TX images
+ * are generated whole and are always complete, so this only ever fires for
+ * interrupted receives.
+ */
+internal fun galleryShowPartialBadge(entry: SavedImage): Boolean = !entry.complete
+
 // ---------------------------------------------------------------------------
 // Date grouping (section headers) for the gallery grid
 // ---------------------------------------------------------------------------
