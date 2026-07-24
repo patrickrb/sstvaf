@@ -17,6 +17,9 @@ class GalleryLogicTest {
     /** 2026-07-04T15:30:12Z. */
     private val goldenUtc = 1_783_179_012_000L
 
+    /** Mirror of the `gallery_filter_chip_label` resource ("%1$s %2$d"). */
+    private val CHIP_PATTERN = "%1\$s %2\$d"
+
     private fun image(
         id: Long = 1L,
         direction: ImageDirection = ImageDirection.RX,
@@ -66,6 +69,74 @@ class GalleryLogicTest {
         for (filter in GalleryFilter.entries) {
             assertThat(filterGalleryImages(emptyList(), filter)).isEmpty()
         }
+    }
+
+    // ----- filter counts / chip labels ---------------------------------------
+
+    @Test
+    fun filterCounts_splitsRxTxAndSumsAll() {
+        val images = listOf(
+            image(id = 1, direction = ImageDirection.RX),
+            image(id = 2, direction = ImageDirection.TX),
+            image(id = 3, direction = ImageDirection.RX),
+            image(id = 4, direction = ImageDirection.RX),
+        )
+        val counts = galleryFilterCounts(images)
+        assertThat(counts[GalleryFilter.RX]).isEqualTo(3)
+        assertThat(counts[GalleryFilter.TX]).isEqualTo(1)
+        assertThat(counts[GalleryFilter.ALL]).isEqualTo(4)
+    }
+
+    @Test
+    fun filterCounts_emptyInput_allZeroButPresent() {
+        val counts = galleryFilterCounts(emptyList())
+        for (filter in GalleryFilter.entries) {
+            assertThat(counts[filter]).isEqualTo(0)
+        }
+    }
+
+    @Test
+    fun filterCounts_allEqualsSumOfRxAndTx() {
+        val images = listOf(
+            image(id = 1, direction = ImageDirection.TX),
+            image(id = 2, direction = ImageDirection.TX),
+        )
+        val counts = galleryFilterCounts(images)
+        assertThat(counts[GalleryFilter.ALL])
+            .isEqualTo((counts[GalleryFilter.RX] ?: 0) + (counts[GalleryFilter.TX] ?: 0))
+    }
+
+    @Test
+    fun filterCounts_hasEntryForEveryFilter() {
+        // The count map must cover every GalleryFilter (the require() contract):
+        // a new filter value with no count would fail here rather than shipping a
+        // blank badge.
+        assertThat(galleryFilterCounts(emptyList()).keys)
+            .isEqualTo(GalleryFilter.entries.toSet())
+    }
+
+    @Test
+    fun filterChipLabel_appendsCountIncludingZero() {
+        assertThat(galleryFilterChipLabel(CHIP_PATTERN, "Received", 9)).isEqualTo("Received 9")
+        assertThat(galleryFilterChipLabel(CHIP_PATTERN, "Sent", 0)).isEqualTo("Sent 0")
+        assertThat(galleryFilterChipLabel(CHIP_PATTERN, "All", 12)).isEqualTo("All 12")
+    }
+
+    @Test
+    fun filterChipLabels_areUniquePerFilterEvenWhenCountsCollide() {
+        // rx == all when there are no TX images; the base label keeps the chips
+        // reading distinctly even though they're now keyed by GalleryFilter (not
+        // by their rendered text).
+        val counts = galleryFilterCounts(
+            listOf(
+                image(id = 1, direction = ImageDirection.RX),
+                image(id = 2, direction = ImageDirection.RX),
+            ),
+        )
+        val labels = GalleryFilter.entries.map {
+            galleryFilterChipLabel(CHIP_PATTERN, it.name, counts[it] ?: 0)
+        }
+        assertThat(labels.toSet()).hasSize(GalleryFilter.entries.size)
     }
 
     // ----- sorting -----------------------------------------------------------
@@ -275,17 +346,60 @@ class GalleryLogicTest {
     }
 
     @Test
-    fun shareCaption_combinesModeFreqAndTime() {
+    fun shareCaption_combinesModeFreqBandAndTime() {
         val entry = image(mode = "Scottie 1", freqHz = 14_230_000L, utcMillis = goldenUtc)
         assertThat(buildImageShareCaption(entry))
-            .isEqualTo("SSTV Scottie 1 · 14.230 MHz · 2026-07-04 15:30 UTC")
+            .isEqualTo("SSTV Scottie 1 · 14.230 MHz · 20m · 2026-07-04 15:30 UTC")
     }
 
     @Test
     fun shareCaption_usesStoredModeNameVerbatim() {
         val entry = image(mode = "AVT 90", freqHz = 7_171_000L, utcMillis = goldenUtc)
         assertThat(buildImageShareCaption(entry))
-            .isEqualTo("SSTV AVT 90 · 7.171 MHz · 2026-07-04 15:30 UTC")
+            .isEqualTo("SSTV AVT 90 · 7.171 MHz · 40m · 2026-07-04 15:30 UTC")
+    }
+
+    @Test
+    fun shareCaption_dropsBandSegmentWhenOutOfBand() {
+        // 27.265 MHz (CB) is not an amateur band — no band segment.
+        val entry = image(mode = "Scottie 1", freqHz = 27_265_000L, utcMillis = goldenUtc)
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV Scottie 1 · 27.265 MHz · 2026-07-04 15:30 UTC")
+    }
+
+    // ----- amateur band lookup -----------------------------------------------
+
+    @Test
+    fun amateurBand_mapsCommonSstvFrequencies() {
+        val cases = mapOf(
+            3_730_000L to "80m",
+            7_171_000L to "40m",
+            10_140_000L to "30m",
+            14_230_000L to "20m",
+            21_340_000L to "15m",
+            28_680_000L to "10m",
+            50_680_000L to "6m",
+            144_500_000L to "2m",
+        )
+        for ((freq, band) in cases) {
+            assertThat(amateurBand(freq)).isEqualTo(band)
+        }
+    }
+
+    @Test
+    fun amateurBand_isInclusiveAtEdges() {
+        assertThat(amateurBand(14_000_000L)).isEqualTo("20m")
+        assertThat(amateurBand(14_350_000L)).isEqualTo("20m")
+        assertThat(amateurBand(13_999_999L)).isNull()
+        assertThat(amateurBand(14_350_001L)).isNull()
+    }
+
+    @Test
+    fun amateurBand_nullOutsideAnyAllocation() {
+        assertThat(amateurBand(0L)).isNull()
+        assertThat(amateurBand(27_265_000L)).isNull() // CB 11m, not amateur
+        assertThat(amateurBand(-1L)).isNull()
+        assertThat(amateurBand(500_000_000L)).isNull()
     }
 
     // ----- filter chip labels ------------------------------------------------

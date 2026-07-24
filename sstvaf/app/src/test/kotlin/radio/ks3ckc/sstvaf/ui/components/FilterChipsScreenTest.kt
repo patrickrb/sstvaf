@@ -30,7 +30,7 @@ class FilterChipsScreenTest {
     @Test
     fun rendersAllOptionLabels() {
         composeRule.setContent {
-            FilterChips(options = options, selected = "All", onSelected = {})
+            FilterChips(options = options, selected = "All", label = { it }, onSelected = {})
         }
 
         options.forEach { label ->
@@ -45,6 +45,7 @@ class FilterChipsScreenTest {
             FilterChips(
                 options = options,
                 selected = "All",
+                label = { it },
                 onSelected = { picked = it },
             )
         }
@@ -63,6 +64,7 @@ class FilterChipsScreenTest {
             FilterChips(
                 options = options,
                 selected = "All",
+                label = { it },
                 onSelected = { picked = it },
             )
         }

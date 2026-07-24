@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.k1af.ft8af.GeneralVariables
@@ -192,8 +193,10 @@ fun RxScreen(
                             modeName = s.mode.displayName,
                             rowsReady = s.rowsReady,
                             totalRows = s.totalRows,
+                            txDurationSeconds = s.mode.txDurationSeconds,
                             quality = s.quality,
                             slantPpm = s.slantPpm,
+                            etaLabel = rxEtaLabel(s.mode, s.rowsReady, s.totalRows),
                         )
                     }
                 }
@@ -324,14 +327,16 @@ private fun RxImageView(image: ImageBitmap?, aspect: Float, modifier: Modifier =
     }
 }
 
-/** Status strip under the forming image: mode, progress, quality, slant. */
+/** Status strip under the forming image: mode, progress, ETA, quality, slant. */
 @Composable
 private fun RxStatusStrip(
     modeName: String,
     rowsReady: Int,
     totalRows: Int,
+    txDurationSeconds: Double,
     quality: Float,
     slantPpm: Float,
+    etaLabel: String,
 ) {
     Row(
         modifier = Modifier
@@ -346,6 +351,8 @@ private fun RxStatusStrip(
             color = TextPrimary,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
 
         Spacer(modifier = Modifier.width(10.dp))
@@ -359,11 +366,29 @@ private fun RxStatusStrip(
 
         Spacer(modifier = Modifier.width(6.dp))
 
+        // Estimated time until the picture completes (replaces the raw row
+        // count, which duplicated the percentage). Row bookkeeping still drives
+        // both readouts; this one is the operator-facing countdown.
         Text(
-            text = stringResource(R.string.rx_rows_format, rowsReady, totalRows),
+            text = etaLabel,
             color = TextMuted,
             fontFamily = GeistMonoFamily,
             fontSize = 10.sp,
+        )
+
+        Spacer(modifier = Modifier.width(6.dp))
+
+        // Estimated scan time left, derived from rows-done vs the mode's TX
+        // duration (image scan rate is constant), e.g. "1:23 left".
+        Text(
+            text = stringResource(
+                R.string.rx_eta_format,
+                formatRxEta(rxSecondsRemaining(rowsReady, totalRows, txDurationSeconds)),
+            ),
+            color = TextMuted,
+            fontFamily = GeistMonoFamily,
+            fontSize = 10.sp,
+            maxLines = 1,
         )
 
         Spacer(modifier = Modifier.weight(1f))

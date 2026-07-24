@@ -94,6 +94,11 @@ fun ImageViewerSheet(
                     stringResource(R.string.gallery_meta_frequency),
                     formatViewerFrequency(entry.freqHz),
                 )
+                // Only when the dial frequency lands in a known amateur band —
+                // an out-of-band or hand-edited row simply omits the row.
+                amateurBand(entry.freqHz)?.let { band ->
+                    MetaRow(stringResource(R.string.gallery_meta_band), band)
+                }
                 MetaRow(
                     stringResource(R.string.gallery_meta_time),
                     formatViewerUtc(entry.utcMillis),
