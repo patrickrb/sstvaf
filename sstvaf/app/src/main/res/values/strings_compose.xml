@@ -681,6 +681,12 @@
     <string name="gallery_meta_time">Time</string>
     <string name="gallery_meta_size">Size</string>
     <string name="gallery_meta_quality">Quality</string>
+    <!-- Quality meta value: raw percentage + plain-language grade, e.g. "87% · Excellent". -->
+    <string name="gallery_quality_value">%1$s · %2$s</string>
+    <string name="gallery_quality_grade_excellent">Excellent</string>
+    <string name="gallery_quality_grade_good">Good</string>
+    <string name="gallery_quality_grade_fair">Fair</string>
+    <string name="gallery_quality_grade_poor">Poor</string>
     <string name="gallery_meta_direction">Direction</string>
     <string name="gallery_meta_direction_rx">Received</string>
     <string name="gallery_meta_direction_tx">Sent</string>

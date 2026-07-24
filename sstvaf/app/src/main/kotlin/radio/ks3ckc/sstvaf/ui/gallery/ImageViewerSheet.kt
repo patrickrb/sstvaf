@@ -119,7 +119,11 @@ fun ImageViewerSheet(
                 )
                 MetaRow(
                     stringResource(R.string.gallery_meta_quality),
-                    formatViewerQuality(entry.quality),
+                    stringResource(
+                        R.string.gallery_quality_value,
+                        formatViewerQuality(entry.quality),
+                        stringResource(qualityGrade(entry.quality).labelRes),
+                    ),
                 )
                 MetaRow(
                     stringResource(R.string.gallery_meta_direction),
