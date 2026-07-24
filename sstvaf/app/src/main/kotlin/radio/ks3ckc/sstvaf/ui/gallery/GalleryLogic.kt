@@ -1,5 +1,6 @@
 package radio.ks3ckc.sstvaf.ui.gallery
 
+import androidx.annotation.StringRes
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.k1af.ft8af.R
@@ -263,6 +264,34 @@ internal fun formatViewerDimensions(width: Int, height: Int): String = "$width �
 /** Engine quality (0..1) as a whole percent, clamped, e.g. "87%". */
 internal fun formatViewerQuality(quality: Float): String =
     "${(quality.coerceIn(0f, 1f) * 100f).roundToInt()}%"
+
+/**
+ * A plain-language grade for a decode's 0..1 quality score. The raw percentage
+ * is precise but opaque — a user who doesn't know whether "62%" is a good copy
+ * gets no read on it. The grade turns the number into words next to it.
+ */
+internal enum class QualityGrade(@StringRes val labelRes: Int) {
+    EXCELLENT(R.string.gallery_quality_grade_excellent),
+    GOOD(R.string.gallery_quality_grade_good),
+    FAIR(R.string.gallery_quality_grade_fair),
+    POOR(R.string.gallery_quality_grade_poor),
+}
+
+/**
+ * Maps the engine's 0..1 quality score to a [QualityGrade]. Thresholds
+ * (inclusive lower bounds): ≥0.85 Excellent, ≥0.65 Good, ≥0.40 Fair, else Poor.
+ * A NaN or out-of-range score is clamped first (NaN → Poor), so a corrupt or
+ * hand-edited value grades rather than throwing.
+ */
+internal fun qualityGrade(quality: Float): QualityGrade {
+    val q = if (quality.isNaN()) 0f else quality.coerceIn(0f, 1f)
+    return when {
+        q >= 0.85f -> QualityGrade.EXCELLENT
+        q >= 0.65f -> QualityGrade.GOOD
+        q >= 0.40f -> QualityGrade.FAIR
+        else -> QualityGrade.POOR
+    }
+}
 
 /** Frequency line for the viewer, e.g. "14.230 MHz". */
 internal fun formatViewerFrequency(freqHz: Long): String =

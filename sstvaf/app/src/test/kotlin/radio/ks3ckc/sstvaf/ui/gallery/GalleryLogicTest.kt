@@ -310,6 +310,33 @@ class GalleryLogicTest {
     }
 
     @Test
+    fun qualityGrade_mapsThresholds() {
+        // Inclusive lower bounds: ≥0.85 Excellent, ≥0.65 Good, ≥0.40 Fair, else Poor.
+        assertThat(qualityGrade(1f)).isEqualTo(QualityGrade.EXCELLENT)
+        assertThat(qualityGrade(0.85f)).isEqualTo(QualityGrade.EXCELLENT) // boundary
+        assertThat(qualityGrade(0.84f)).isEqualTo(QualityGrade.GOOD)
+        assertThat(qualityGrade(0.65f)).isEqualTo(QualityGrade.GOOD) // boundary
+        assertThat(qualityGrade(0.64f)).isEqualTo(QualityGrade.FAIR)
+        assertThat(qualityGrade(0.40f)).isEqualTo(QualityGrade.FAIR) // boundary
+        assertThat(qualityGrade(0.39f)).isEqualTo(QualityGrade.POOR)
+        assertThat(qualityGrade(0f)).isEqualTo(QualityGrade.POOR)
+    }
+
+    @Test
+    fun qualityGrade_clampsOutOfRangeAndNaN() {
+        assertThat(qualityGrade(1.5f)).isEqualTo(QualityGrade.EXCELLENT) // clamped to 1
+        assertThat(qualityGrade(-0.3f)).isEqualTo(QualityGrade.POOR) // clamped to 0
+        assertThat(qualityGrade(Float.NaN)).isEqualTo(QualityGrade.POOR) // NaN → 0
+    }
+
+    @Test
+    fun qualityGrade_everyValueHasADistinctLabelRes() {
+        val labels = QualityGrade.entries.map { it.labelRes }
+        assertThat(labels).containsNoDuplicates()
+        assertThat(labels).hasSize(QualityGrade.entries.size)
+    }
+
+    @Test
     fun viewerDirectionAndCompletenessLabels() {
         assertThat(viewerDirectionRes(ImageDirection.RX))
             .isEqualTo(R.string.gallery_meta_direction_rx)
