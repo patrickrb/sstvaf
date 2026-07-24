@@ -83,7 +83,6 @@ import com.k1af.ft8af.MainViewModel
 import com.k1af.ft8af.count.CountDbOpr
 import com.k1af.ft8af.log.QSLCallsignRecord
 import com.k1af.ft8af.log.ThirdPartyService
-import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -1137,21 +1136,25 @@ internal fun filterQsosByQuery(
     records: List<QSLCallsignRecord>,
     query: String,
 ): List<QSLCallsignRecord> {
-    val needle = query.trim().uppercase(Locale.US)
+    val needle = query.trim()
     if (needle.isEmpty()) return records
     return records.filter { qsoMatchesQuery(it, needle) }
 }
 
 /**
- * Whether one QSO matches an already-normalized (trimmed, uppercased) needle.
- * Each searchable field is tested individually rather than against a
- * concatenation, so a needle can never match by straddling a field boundary.
+ * Whether one QSO matches an already-trimmed needle. Each searchable field is
+ * tested individually (via case-insensitive [String.contains]) rather than
+ * against a concatenation, so a needle can never match by straddling a field
+ * boundary. Matching is allocation-free — no per-field uppercasing or list
+ * construction — which matters because this runs once per row per keystroke.
  * An empty needle matches everything (the caller's blank-query fast path).
  */
-internal fun qsoMatchesQuery(record: QSLCallsignRecord, upperNeedle: String): Boolean {
-    if (upperNeedle.isEmpty()) return true
-    val fields = listOf(record.callsign, record.grid, record.band, record.dxccStr)
-    return fields.any { it != null && it.uppercase(Locale.US).contains(upperNeedle) }
+internal fun qsoMatchesQuery(record: QSLCallsignRecord, needle: String): Boolean {
+    if (needle.isEmpty()) return true
+    return record.callsign?.contains(needle, ignoreCase = true) == true ||
+        record.grid?.contains(needle, ignoreCase = true) == true ||
+        record.band?.contains(needle, ignoreCase = true) == true ||
+        record.dxccStr?.contains(needle, ignoreCase = true) == true
 }
 
 @Composable
