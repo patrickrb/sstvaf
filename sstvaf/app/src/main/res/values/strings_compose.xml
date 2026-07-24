@@ -662,6 +662,7 @@
     <string name="gallery_save_photos_failed">Couldn\'t save to Photos</string>
     <string name="gallery_meta_mode">Mode</string>
     <string name="gallery_meta_frequency">Frequency</string>
+    <string name="gallery_meta_band">Band</string>
     <string name="gallery_meta_time">Time</string>
     <string name="gallery_meta_size">Size</string>
     <string name="gallery_meta_quality">Quality</string>
