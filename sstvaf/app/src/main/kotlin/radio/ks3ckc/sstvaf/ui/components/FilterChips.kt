@@ -20,11 +20,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import radio.ks3ckc.sstvaf.theme.*
 
+/**
+ * A horizontal row of selectable pill chips, keyed by an arbitrary [options]
+ * value [T] (an enum, a domain object, …). The chip's visible text comes from
+ * [label] and selection is compared by value equality, so callers keep the
+ * typed key end to end — [onSelected] hands back the chosen [T] directly rather
+ * than its rendered label, avoiding a fragile text→key reverse lookup that
+ * localization or a formatting change (e.g. appended counts) could break.
+ */
 @Composable
-fun FilterChips(
-    options: List<String>,
-    selected: String,
-    onSelected: (String) -> Unit,
+fun <T> FilterChips(
+    options: List<T>,
+    selected: T,
+    label: (T) -> String,
+    onSelected: (T) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
@@ -53,7 +62,7 @@ fun FilterChips(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = option,
+                    text = label(option),
                     color = textColor,
                     fontSize = 12.sp,
                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,

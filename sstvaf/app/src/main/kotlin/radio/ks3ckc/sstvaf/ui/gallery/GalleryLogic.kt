@@ -32,6 +32,48 @@ internal fun filterGalleryImages(
 }
 
 /**
+ * How many images each filter would show, for the chip-row count badges. A
+ * single pass over the (unfiltered) list; ALL is the sum so it always equals
+ * RX + TX. Every filter is present in the map even when its count is 0 — the
+ * [require] below guards that contract so a future [GalleryFilter] value can't
+ * silently ship a chip with no count (it would fail here and in the unit test
+ * rather than rendering a blank/0 badge).
+ */
+internal fun galleryFilterCounts(images: List<SavedImage>): Map<GalleryFilter, Int> {
+    var rx = 0
+    var tx = 0
+    for (image in images) {
+        when (image.direction) {
+            ImageDirection.RX -> rx++
+            ImageDirection.TX -> tx++
+        }
+    }
+    val counts = mapOf(
+        GalleryFilter.ALL to rx + tx,
+        GalleryFilter.RX to rx,
+        GalleryFilter.TX to tx,
+    )
+    require(counts.keys == GalleryFilter.entries.toSet()) {
+        "galleryFilterCounts missing entries for ${GalleryFilter.entries - counts.keys}"
+    }
+    return counts
+}
+
+/**
+ * Chip label with a trailing count badge, e.g. "Received 9". The count is shown
+ * even when 0 ("Sent 0") so the row reads as a stable at-a-glance history
+ * summary rather than hiding empty categories.
+ *
+ * [pattern] is the `gallery_filter_chip_label` resource (`"%1$s %2$d"`) so the
+ * base-label/number ordering and spacing live in a string resource a translator
+ * can reorder (e.g. for RTL) rather than being hard-coded here. Formatted with
+ * [Locale.US] so the digits stay Western, matching the frequency/quality
+ * readouts elsewhere in the gallery.
+ */
+internal fun galleryFilterChipLabel(pattern: String, baseLabel: String, count: Int): String =
+    String.format(Locale.US, pattern, baseLabel, count)
+
+/**
  * Newest first, matching the store's list order (utcMillis desc, id as the
  * tiebreak for two images finishing in the same millisecond).
  */
