@@ -1,6 +1,7 @@
 package radio.ks3ckc.sstvaf.ui.tx
 
 import radio.ks3ckc.sstvaf.sstv.SstvMode
+import java.util.Locale
 
 /**
  * The TX composer's editable state: which photo, how it is cropped into the
@@ -103,9 +104,11 @@ val OVERLAY_COLOR_SWATCHES: List<Int> = listOf(
  * The grid is trimmed and uppercased to match the callsign styling and the
  * all-caps SSTV overlay convention; a blank grid is omitted so the bar reads
  * exactly as before. [call] is assumed already trimmed/uppercased by the caller.
+ * Uppercasing is locale-stable ([Locale.ROOT]) — grid locators and callsigns are
+ * ASCII, so a device locale like Turkish (where 'i' → 'İ') must not mangle them.
  */
 internal fun cqBarText(call: String, grid: String): String {
-    val loc = grid.trim().uppercase()
+    val loc = grid.trim().uppercase(Locale.ROOT)
     return if (loc.isEmpty()) "CQ SSTV de $call" else "CQ SSTV de $call $loc"
 }
 
@@ -118,7 +121,7 @@ internal fun cqBarText(call: String, grid: String): String {
  * lone grid line carries no identity.
  */
 fun defaultTxComposition(callsign: String, mode: SstvMode, grid: String = ""): TxComposition {
-    val call = callsign.trim().uppercase()
+    val call = callsign.trim().uppercase(Locale.ROOT)
     val overlays = if (call.isEmpty()) {
         emptyList()
     } else {

@@ -3,6 +3,7 @@ package radio.ks3ckc.sstvaf.ui.tx
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import radio.ks3ckc.sstvaf.sstv.SstvMode
+import java.util.Locale
 
 /**
  * [TxComposition] model layer: default seeding from the operator callsign,
@@ -78,6 +79,24 @@ class TxCompositionTest {
     fun `cqBarText omits a blank grid`() {
         assertThat(cqBarText("KS3CKC", "")).isEqualTo("CQ SSTV de KS3CKC")
         assertThat(cqBarText("KS3CKC", "   ")).isEqualTo("CQ SSTV de KS3CKC")
+    }
+
+    @Test
+    fun `cqBarText grid uppercasing is locale-stable under a Turkish locale`() {
+        // Under the Turkish locale a default uppercase() turns 'i' into the
+        // dotted 'İ'; grid subsquares are ASCII, so Locale.ROOT must keep them
+        // plain (e.g. "fn31ip" → "FN31IP", not "FN31İP"). The call is passed
+        // already-uppercased, as cqBarText's contract expects.
+        val previous = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr"))
+            assertThat(cqBarText("KI1U", "fn31ip")).isEqualTo("CQ SSTV de KI1U FN31IP")
+            // And the callsign path through defaultTxComposition stays ASCII too.
+            val comp = defaultTxComposition("ki1u", SstvMode.SCOTTIE_1)
+            assertThat(comp.overlays.any { it.text.contains("KI1U") }).isTrue()
+        } finally {
+            Locale.setDefault(previous)
+        }
     }
 
     @Test
