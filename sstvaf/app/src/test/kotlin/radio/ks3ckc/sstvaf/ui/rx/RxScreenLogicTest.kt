@@ -129,4 +129,57 @@ class RxScreenLogicTest {
     fun aborted_withNoMode_showsNoPartial() {
         assertThat(showsPartialImage(SstvRxState.Aborted(10, null))).isFalse()
     }
+
+    // ----- rxRemainingSeconds -------------------------------------------------
+
+    @Test
+    fun eta_atStart_isFullScanTime() {
+        // Scottie 1: 110.54332 s total − 0.91 s header ≈ 109.63 s of scan.
+        assertThat(rxRemainingSeconds(SstvMode.SCOTTIE_1, 0, 256)).isEqualTo(110)
+    }
+
+    @Test
+    fun eta_halfway_isHalfScanTime() {
+        assertThat(rxRemainingSeconds(SstvMode.SCOTTIE_1, 128, 256)).isEqualTo(55)
+    }
+
+    @Test
+    fun eta_atEnd_isZero() {
+        assertThat(rxRemainingSeconds(SstvMode.SCOTTIE_1, 256, 256)).isEqualTo(0)
+    }
+
+    @Test
+    fun eta_overrun_clampsToZero() {
+        // Engine publishing rowsReady > totalRows must never read as negative time.
+        assertThat(rxRemainingSeconds(SstvMode.SCOTTIE_1, 300, 256)).isEqualTo(0)
+    }
+
+    @Test
+    fun eta_negativeRows_clampToStart() {
+        assertThat(rxRemainingSeconds(SstvMode.SCOTTIE_1, -5, 256)).isEqualTo(110)
+    }
+
+    @Test
+    fun eta_degenerateTotal_isZero() {
+        assertThat(rxRemainingSeconds(SstvMode.SCOTTIE_1, 10, 0)).isEqualTo(0)
+        assertThat(rxRemainingSeconds(SstvMode.SCOTTIE_1, 10, -1)).isEqualTo(0)
+    }
+
+    // ----- formatRxEta --------------------------------------------------------
+
+    @Test
+    fun formatEta_underAMinute_hasZeroMinutes() {
+        // Robot 36: 36.91 s − 0.91 s header = 36.0 s of scan.
+        assertThat(formatRxEta(SstvMode.ROBOT_36, 0, 240)).isEqualTo("0:36")
+    }
+
+    @Test
+    fun formatEta_overAMinute_showsMinutesAndPaddedSeconds() {
+        assertThat(formatRxEta(SstvMode.SCOTTIE_1, 0, 256)).isEqualTo("1:50")
+    }
+
+    @Test
+    fun formatEta_atEnd_isZeroClock() {
+        assertThat(formatRxEta(SstvMode.SCOTTIE_1, 256, 256)).isEqualTo("0:00")
+    }
 }

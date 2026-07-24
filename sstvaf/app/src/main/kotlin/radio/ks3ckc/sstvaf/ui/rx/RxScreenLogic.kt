@@ -1,5 +1,6 @@
 package radio.ks3ckc.sstvaf.ui.rx
 
+import radio.ks3ckc.sstvaf.sstv.SstvMode
 import radio.ks3ckc.sstvaf.sstv.SstvRxState
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -64,3 +65,36 @@ internal fun formatDialFrequency(freqHz: Long): String =
  */
 internal fun showsPartialImage(state: SstvRxState.Aborted): Boolean =
     state.partialRows > 0 && state.mode != null
+
+// ---------------------------------------------------------------------------
+// Estimated time remaining (ETA) for the forming image
+// ---------------------------------------------------------------------------
+
+/**
+ * The fixed calibration-header portion of every [SstvMode.txDurationSeconds]
+ * budget (leader + 1200 Hz break + VIS). Documented on [SstvMode]; subtracting
+ * it leaves the image-scan time, which is what the RX progress ETA counts down.
+ */
+private const val SSTV_CALIBRATION_HEADER_SECONDS = 0.91
+
+/**
+ * Estimated seconds of image scan still to arrive, for the ETA label under the
+ * forming image. An image scans top-to-bottom at a constant line rate, so the
+ * remaining time is the per-row scan time times the rows not yet decoded, where
+ * the total scan time is the mode's transmission budget minus the fixed
+ * calibration header. [rowsReady] is clamped into 0..[totalRows] so an engine
+ * overrun (rowsReady > totalRows) or a pre-lock negative can't produce a bogus
+ * (negative or oversized) estimate; a degenerate row count yields 0.
+ */
+internal fun rxRemainingSeconds(mode: SstvMode, rowsReady: Int, totalRows: Int): Int {
+    if (totalRows <= 0) return 0
+    val scanSeconds = (mode.txDurationSeconds - SSTV_CALIBRATION_HEADER_SECONDS).coerceAtLeast(0.0)
+    val remainingRows = (totalRows - rowsReady.coerceIn(0, totalRows)).toDouble()
+    return (scanSeconds * remainingRows / totalRows).roundToInt()
+}
+
+/** Remaining scan time as a "m:ss" clock, e.g. "0:34" — the ETA label body. */
+internal fun formatRxEta(mode: SstvMode, rowsReady: Int, totalRows: Int): String {
+    val total = rxRemainingSeconds(mode, rowsReady, totalRows)
+    return String.format(Locale.US, "%d:%02d", total / 60, total % 60)
+}

@@ -640,6 +640,7 @@
     <string name="rx_progress_format" translatable="false">%1$d%%</string>
     <string name="rx_rows_format" translatable="false">%1$d/%2$d</string>
     <string name="rx_slant_format" translatable="false">%1$s ppm</string>
+    <string name="rx_eta_format">~%1$s left</string>
     <string name="settings_save_rx_photos">Save received images to Photos</string>
     <string name="settings_save_rx_photos_desc">Completed SSTV images also appear in the Photos app under Pictures/SSTVAF (Android 10+)</string>
 

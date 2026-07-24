@@ -192,6 +192,7 @@ fun RxScreen(
                             modeName = s.mode.displayName,
                             rowsReady = s.rowsReady,
                             totalRows = s.totalRows,
+                            etaLabel = formatRxEta(s.mode, s.rowsReady, s.totalRows),
                             quality = s.quality,
                             slantPpm = s.slantPpm,
                         )
@@ -330,6 +331,7 @@ private fun RxStatusStrip(
     modeName: String,
     rowsReady: Int,
     totalRows: Int,
+    etaLabel: String,
     quality: Float,
     slantPpm: Float,
 ) {
@@ -361,6 +363,16 @@ private fun RxStatusStrip(
 
         Text(
             text = stringResource(R.string.rx_rows_format, rowsReady, totalRows),
+            color = TextMuted,
+            fontFamily = GeistMonoFamily,
+            fontSize = 10.sp,
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Estimated time until the image finishes scanning in.
+        Text(
+            text = stringResource(R.string.rx_eta_format, etaLabel),
             color = TextMuted,
             fontFamily = GeistMonoFamily,
             fontSize = 10.sp,
