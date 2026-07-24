@@ -1,5 +1,6 @@
 package radio.ks3ckc.sstvaf.ui.rx
 
+import radio.ks3ckc.sstvaf.sstv.SstvMode
 import radio.ks3ckc.sstvaf.sstv.SstvRxState
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -59,24 +60,17 @@ internal fun formatDialFrequency(freqHz: Long): String =
     String.format(Locale.US, "%.3f MHz", freqHz / 1_000_000.0)
 
 /**
- * Calibration-header seconds baked into every mode's `txDurationSeconds` (the
- * 0.91 s leader / VIS preamble documented on [radio.ks3ckc.sstvaf.sstv.SstvMode]).
- * Header time has already elapsed by the time rows arrive, so the ETA below
- * subtracts it to work from the image-scan portion alone.
- */
-private const val SSTV_HEADER_SECONDS = 0.91
-
-/**
  * Estimated seconds of image scan still to receive. SSTV scans rows at a
  * constant rate, so the time left is the fraction of rows not yet decoded
  * scaled by the mode's image-scan time (its total TX duration minus the fixed
- * calibration header). Clamped to ≥0; returns 0 for a degenerate/empty total
- * and for an overrun (rowsReady ≥ totalRows).
+ * calibration header, [SstvMode.CALIBRATION_HEADER_SECONDS], which has already
+ * elapsed by the time rows arrive). Clamped to ≥0; returns 0 for a
+ * degenerate/empty total and for an overrun (rowsReady ≥ totalRows).
  */
 internal fun rxSecondsRemaining(rowsReady: Int, totalRows: Int, txDurationSeconds: Double): Int {
     if (totalRows <= 0) return 0
     val done = rowsReady.coerceIn(0, totalRows)
-    val imageSeconds = (txDurationSeconds - SSTV_HEADER_SECONDS).coerceAtLeast(0.0)
+    val imageSeconds = (txDurationSeconds - SstvMode.CALIBRATION_HEADER_SECONDS).coerceAtLeast(0.0)
     val remainingFraction = (totalRows - done).toDouble() / totalRows
     return (remainingFraction * imageSeconds).roundToInt().coerceAtLeast(0)
 }

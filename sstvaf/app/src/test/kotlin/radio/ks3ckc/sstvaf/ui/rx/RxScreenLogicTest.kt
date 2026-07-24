@@ -117,8 +117,18 @@ class RxScreenLogicTest {
 
     @Test
     fun eta_atStart_isNearlyFullImageTime() {
-        // Scottie 1: 110.54332 s total − 0.91 s header ≈ 109.63 s of scan.
+        // Scottie 1: 110.54332 s total − 0.91 s header ≈ 109.63 s of scan, which
+        // rounds to 110 (roundToInt) at the start when all rows are still to come.
         assertThat(rxSecondsRemaining(0, 256, SstvMode.SCOTTIE_1.txDurationSeconds)).isEqualTo(110)
+    }
+
+    @Test
+    fun eta_header_isSharedSourceOfTruth() {
+        // The header the ETA subtracts is the same 0.91 s baked into every mode's
+        // txDurationSeconds, sourced from SstvMode rather than duplicated here.
+        assertThat(SstvMode.CALIBRATION_HEADER_SECONDS).isEqualTo(0.91)
+        assertThat(SstvMode.ROBOT_36.txDurationSeconds - SstvMode.CALIBRATION_HEADER_SECONDS)
+            .isWithin(1e-9).of(36.0)
     }
 
     @Test
