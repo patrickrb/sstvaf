@@ -123,6 +123,44 @@ class TxScreenLogicTest {
         assertThat(txElapsedLabel(1.5f, 36.91)).isEqualTo("0:37 / 0:37")
     }
 
+    @Test
+    fun `remaining seconds count down as progress advances`() {
+        assertThat(txRemainingSeconds(0f, 110.54332)).isEqualTo(111)
+        assertThat(txRemainingSeconds(0.5f, 36.91)).isEqualTo(18)
+        assertThat(txRemainingSeconds(1f, 110.54332)).isEqualTo(0)
+    }
+
+    @Test
+    fun `remaining seconds clamp progress outside 0 to 1`() {
+        assertThat(txRemainingSeconds(-0.5f, 36.91)).isEqualTo(37)
+        assertThat(txRemainingSeconds(1.5f, 36.91)).isEqualTo(0)
+    }
+
+    @Test
+    fun `remaining seconds are zero for a degenerate duration`() {
+        assertThat(txRemainingSeconds(0f, 0.0)).isEqualTo(0)
+        assertThat(txRemainingSeconds(0.5f, -10.0)).isEqualTo(0)
+    }
+
+    @Test
+    fun `elapsed plus remaining always equals the total`() {
+        // The countdown and the elapsed/total line must never disagree.
+        val duration = 110.54332
+        val total = 111
+        for (p in intArrayOf(0, 13, 27, 50, 74, 99, 100)) {
+            val progress = p / 100f
+            val elapsed = (progress.coerceIn(0f, 1f) * total).let { Math.round(it) }
+            assertThat(elapsed + txRemainingSeconds(progress, duration)).isEqualTo(total)
+        }
+    }
+
+    @Test
+    fun `remaining label formats as m colon ss`() {
+        assertThat(txRemainingLabel(0f, 110.54332)).isEqualTo("1:51")
+        assertThat(txRemainingLabel(0.5f, 36.91)).isEqualTo("0:18")
+        assertThat(txRemainingLabel(1f, 110.54332)).isEqualTo("0:00")
+    }
+
     // -- initialTxMode ---------------------------------------------------------------
 
     @Test

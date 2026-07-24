@@ -527,6 +527,18 @@ private fun TxProgressPanel(progress: Float, mode: SstvMode, onCancel: () -> Uni
             fontSize = 13.sp,
             fontFamily = GeistMonoFamily,
         )
+        Spacer(Modifier.height(2.dp))
+        // Live time-on-air countdown, mirroring the RX decode ETA — tells the
+        // operator how long the rig stays keyed, e.g. "1:09 left".
+        Text(
+            text = stringResource(
+                R.string.tx_remaining_format,
+                txRemainingLabel(progress, mode.txDurationSeconds),
+            ),
+            color = TextMuted,
+            fontSize = 11.sp,
+            fontFamily = GeistMonoFamily,
+        )
         Spacer(Modifier.height(10.dp))
         OutlinedButton(onClick = onCancel) {
             Text(stringResource(R.string.tx_cancel_button), color = StatusWarn)

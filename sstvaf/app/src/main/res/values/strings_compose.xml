@@ -704,4 +704,5 @@
     <string name="tx_confirm_cancel">Cancel</string>
     <string name="tx_confirm_go">Transmit</string>
     <string name="tx_cancel_button">CANCEL TX</string>
+    <string name="tx_remaining_format">%1$s left</string>
 </resources>

@@ -72,6 +72,28 @@ internal fun txElapsedLabel(progress: Float, durationSeconds: Double): String {
     return "${formatMinSec(elapsed)} / ${formatMinSec(total)}"
 }
 
+/**
+ * Whole seconds of transmission still to go, from the transmitter's 0..1
+ * progress fraction and the mode's total on-air duration. Defined as
+ * `total - elapsed` using the same rounding as [txElapsedLabel], so the
+ * countdown and the elapsed/total line never disagree (elapsed + remaining ==
+ * total at every progress value). Clamped so an out-of-range progress and a
+ * degenerate duration both yield 0.
+ */
+internal fun txRemainingSeconds(progress: Float, durationSeconds: Double): Int {
+    val total = durationSeconds.roundToInt().coerceAtLeast(0)
+    val elapsed = (progress.coerceIn(0f, 1f) * total).roundToInt().coerceIn(0, total)
+    return total - elapsed
+}
+
+/**
+ * Remaining time-on-air as a short "m:ss" label (e.g. 69 → "1:09"), mirroring
+ * the RX decode ETA so the operator sees how long the rig stays keyed. The
+ * caller wraps it with the `tx_remaining_format` "%s left" string.
+ */
+internal fun txRemainingLabel(progress: Float, durationSeconds: Double): String =
+    formatMinSec(txRemainingSeconds(progress, durationSeconds))
+
 // ---------------------------------------------------------------------------
 // Last-used-mode persistence (config key "sstvTxMode")
 // ---------------------------------------------------------------------------
