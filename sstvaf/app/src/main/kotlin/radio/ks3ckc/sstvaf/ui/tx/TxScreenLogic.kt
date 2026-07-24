@@ -47,13 +47,21 @@ internal fun transmitGate(hasImage: Boolean, isTransmitting: Boolean, tuneActive
 // Labels
 // ---------------------------------------------------------------------------
 
-/** Mode selector chip label, e.g. "Scottie 1 · 111 s" (duration rounded to whole seconds). */
-internal fun modeChipLabel(mode: SstvMode): String =
-    "${mode.displayName} · ${mode.txDurationSeconds.roundToInt()} s"
+/**
+ * The mode's picture resolution as a compact "width×height" label, e.g.
+ * "320×256". Surfaced next to the duration so an operator picking among the
+ * (now 16) modes sees the picture-quality half of the trade-off — Robot 36 is
+ * 320×240 in 37 s, PD 290 is 800×616 but takes 290 s — not just the airtime.
+ */
+internal fun modeResolutionLabel(mode: SstvMode): String = "${mode.width}×${mode.height}"
 
-/** Confirm-sheet duration line, e.g. "Robot 36 — 37 seconds". */
+/** Mode selector chip label, e.g. "Scottie 1 · 320×256 · 111 s" (duration rounded to whole seconds). */
+internal fun modeChipLabel(mode: SstvMode): String =
+    "${mode.displayName} · ${modeResolutionLabel(mode)} · ${mode.txDurationSeconds.roundToInt()} s"
+
+/** Confirm-sheet duration line, e.g. "Robot 36 — 320×240 — 37 seconds". */
 internal fun confirmDurationLine(mode: SstvMode): String =
-    "${mode.displayName} — ${mode.txDurationSeconds.roundToInt()} seconds"
+    "${mode.displayName} — ${modeResolutionLabel(mode)} — ${mode.txDurationSeconds.roundToInt()} seconds"
 
 /** Seconds → "m:ss". */
 internal fun formatMinSec(totalSeconds: Int): String {
