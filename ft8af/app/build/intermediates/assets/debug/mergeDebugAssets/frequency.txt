@@ -1,0 +1,4 @@
+The FT8 signal transmission frequency refers to the audio frequency produced on the current band, typically ranging between 10-3000 Hz.
+Same-frequency transmission: The audio frequency uses the frequency of your call target. In this case, the default frequency value is ignored.
+Split-frequency transmission: Your audio frequency uses the set default frequency. In split-frequency mode, you can also change the default frequency by tapping on the waterfall display in the spectrum view.
+Regarding transmission frequency: To prevent your transmission frequency from overlapping with other stations, it is recommended to observe the frequencies of currently received signals on the spectrum, then choose a frequency that does not overlap with any received signals.

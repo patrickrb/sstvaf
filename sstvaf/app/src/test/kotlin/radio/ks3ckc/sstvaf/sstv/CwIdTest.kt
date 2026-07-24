@@ -119,6 +119,45 @@ class CwIdTest {
         assertThat(fast.size).isEqualTo(capped.size)
     }
 
+    // ----- tail length (TX duration estimates) -----
+
+    @Test
+    fun tailSampleCountMatchesTailSize() {
+        // The no-allocation sample count must equal the real tail buffer length
+        // for every keyable callsign, so the TX duration estimate is exact.
+        for (call in listOf("E", "K", "K1ABC", "K1ABC/P", "W1AW", "N0RC")) {
+            val settings = CwIdSettings(enabled = true, text = call, wpm = 20)
+            assertThat(CwId.tailSampleCount(settings, 8000))
+                .isEqualTo(CwId.tail(settings, 8000).size)
+        }
+    }
+
+    @Test
+    fun tailSampleCountIsZeroWhenNothingIsKeyed() {
+        assertThat(CwId.tailSampleCount(CwIdSettings(enabled = false, text = "K1ABC", wpm = 20), 8000))
+            .isEqualTo(0)
+        assertThat(CwId.tailSampleCount(CwIdSettings(enabled = true, text = "   ", wpm = 20), 8000))
+            .isEqualTo(0)
+        assertThat(CwId.tailSampleCount(CwIdSettings(enabled = true, text = "K1ABC", wpm = 20), 0))
+            .isEqualTo(0)
+    }
+
+    @Test
+    fun tailDurationSecondsMatchesSampleCount() {
+        // 'E' at 20 WPM, 8000 Hz: 5600-sample gap + 480-sample dot = 6080.
+        val settings = CwIdSettings(enabled = true, text = "E", wpm = 20)
+        assertThat(CwId.tailDurationSeconds(settings, 8000))
+            .isWithin(1e-9).of(6080.0 / 8000.0)
+    }
+
+    @Test
+    fun tailDurationSecondsIsZeroWhenDisabled() {
+        assertThat(CwId.tailDurationSeconds(CwIdSettings(enabled = false, text = "E", wpm = 20), 8000))
+            .isWithin(1e-9).of(0.0)
+        assertThat(CwId.tailDurationSeconds(CwIdSettings(enabled = true, text = "E", wpm = 20), 0))
+            .isWithin(1e-9).of(0.0)
+    }
+
     // ----- appendTo -----
 
     @Test

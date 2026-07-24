@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="radio.ks3ckc.sstvaf.sstv.digital.Gf256Test" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-07-09T01:47:53" hostname="JIGGLEBILLY" time="0.093">
+  <properties/>
+  <testcase name="mul is commutative" classname="radio.ks3ckc.sstvaf.sstv.digital.Gf256Test" time="0.052"/>
+  <testcase name="mul by zero and one" classname="radio.ks3ckc.sstvaf.sstv.digital.Gf256Test" time="0.004"/>
+  <testcase name="division inverts multiplication" classname="radio.ks3ckc.sstvaf.sstv.digital.Gf256Test" time="0.022"/>
+  <testcase name="pow matches repeated multiplication" classname="radio.ks3ckc.sstvaf.sstv.digital.Gf256Test" time="0.005"/>
+  <testcase name="generator powers cycle with period 255" classname="radio.ks3ckc.sstvaf.sstv.digital.Gf256Test" time="0.007"/>
+  <testcase name="inverse and division" classname="radio.ks3ckc.sstvaf.sstv.digital.Gf256Test" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

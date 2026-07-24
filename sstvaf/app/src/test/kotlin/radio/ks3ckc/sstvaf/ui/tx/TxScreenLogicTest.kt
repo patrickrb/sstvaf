@@ -5,6 +5,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import radio.ks3ckc.sstvaf.sstv.SstvMode
+import kotlin.math.roundToInt
 
 /**
  * [TxScreenLogic]: transmit gating precedence, label/duration formatting
@@ -84,16 +85,50 @@ class TxScreenLogicTest {
     // -- labels ------------------------------------------------------------------
 
     @Test
-    fun `mode chip label rounds the duration to whole seconds`() {
-        assertThat(modeChipLabel(SstvMode.SCOTTIE_1)).isEqualTo("Scottie 1 · 111 s")
-        assertThat(modeChipLabel(SstvMode.ROBOT_36)).isEqualTo("Robot 36 · 37 s")
-        assertThat(modeChipLabel(SstvMode.PD_120)).isEqualTo("PD 120 · 127 s")
+    fun `mode resolution label is the mode's pixel dimensions`() {
+        assertThat(modeResolutionLabel(SstvMode.SCOTTIE_1)).isEqualTo("320×256")
+        assertThat(modeResolutionLabel(SstvMode.ROBOT_36)).isEqualTo("320×240")
+        assertThat(modeResolutionLabel(SstvMode.MARTIN_4)).isEqualTo("320×128")
+        assertThat(modeResolutionLabel(SstvMode.PD_290)).isEqualTo("800×616")
+    }
+
+    @Test
+    fun `mode chip label carries resolution and duration`() {
+        assertThat(modeChipLabel(SstvMode.SCOTTIE_1)).isEqualTo("Scottie 1 · 320×256 · 111 s")
+        assertThat(modeChipLabel(SstvMode.ROBOT_36)).isEqualTo("Robot 36 · 320×240 · 37 s")
+        assertThat(modeChipLabel(SstvMode.PD_120)).isEqualTo("PD 120 · 640×496 · 127 s")
     }
 
     @Test
     fun `confirm sheet duration line golden`() {
-        assertThat(confirmDurationLine(SstvMode.ROBOT_36)).isEqualTo("Robot 36 — 37 seconds")
-        assertThat(confirmDurationLine(SstvMode.SCOTTIE_1)).isEqualTo("Scottie 1 — 111 seconds")
+        assertThat(confirmDurationLine(SstvMode.ROBOT_36))
+            .isEqualTo("Robot 36 — 320×240 — 37 seconds")
+        assertThat(confirmDurationLine(SstvMode.SCOTTIE_1))
+            .isEqualTo("Scottie 1 — 320×256 — 111 seconds")
+    }
+
+    @Test
+    fun `total tx duration adds the cw id tail`() {
+        assertThat(totalTxDurationSeconds(SstvMode.ROBOT_36, 0.0)).isWithin(1e-9).of(36.91)
+        assertThat(totalTxDurationSeconds(SstvMode.ROBOT_36, 5.0)).isWithin(1e-9).of(41.91)
+    }
+
+    @Test
+    fun `total tx duration ignores a negative tail`() {
+        assertThat(totalTxDurationSeconds(SstvMode.ROBOT_36, -3.0)).isWithin(1e-9).of(36.91)
+    }
+
+    @Test
+    fun `confirm line with no cw id is unchanged`() {
+        assertThat(confirmDurationLine(SstvMode.ROBOT_36, 0.0))
+            .isEqualTo("Robot 36 — 320×240 — 37 seconds")
+    }
+
+    @Test
+    fun `confirm line folds in and flags the cw id tail`() {
+        // 36.91 s image + 5.2 s CW = 42.11 → 42 s, flagged as including the ID.
+        assertThat(confirmDurationLine(SstvMode.ROBOT_36, 5.2))
+            .isEqualTo("Robot 36 — 320×240 — 42 seconds (incl. CW ID)")
     }
 
     @Test
@@ -121,6 +156,59 @@ class TxScreenLogicTest {
     fun `elapsed label clamps progress outside 0 to 1`() {
         assertThat(txElapsedLabel(-0.5f, 36.91)).isEqualTo("0:00 / 0:37")
         assertThat(txElapsedLabel(1.5f, 36.91)).isEqualTo("0:37 / 0:37")
+    }
+
+    // -- txRemaining -------------------------------------------------------------
+
+    @Test
+    fun `remaining seconds is total minus elapsed`() {
+        // Scottie 1 rounds to 111 s total.
+        assertThat(txRemainingSeconds(0f, 110.54332)).isEqualTo(111)
+        assertThat(txRemainingSeconds(1f, 110.54332)).isEqualTo(0)
+        // Robot 36 rounds to 37 s; halfway elapses 19 (round 18.5) → 18 left.
+        assertThat(txRemainingSeconds(0.5f, 36.91)).isEqualTo(18)
+    }
+
+    @Test
+    fun `remaining seconds stays in bounds for out-of-range progress`() {
+        assertThat(txRemainingSeconds(-0.5f, 36.91)).isEqualTo(37)
+        assertThat(txRemainingSeconds(1.5f, 36.91)).isEqualTo(0)
+    }
+
+    @Test
+    fun `remaining seconds is zero for a non-positive duration`() {
+        assertThat(txRemainingSeconds(0f, 0.0)).isEqualTo(0)
+        assertThat(txRemainingSeconds(0f, -5.0)).isEqualTo(0)
+    }
+
+    @Test
+    fun `remaining stays within zero and the rounded total for every mode`() {
+        // The countdown must never disagree with the elapsed/total line by
+        // going negative or exceeding the whole-second total shown there.
+        for (mode in SstvMode.entries) {
+            val total = mode.txDurationSeconds.roundToInt()
+            for (p in listOf(0f, 0.1f, 0.37f, 0.5f, 0.8f, 1f)) {
+                assertThat(txRemainingSeconds(p, mode.txDurationSeconds)).isIn(0..total)
+            }
+        }
+    }
+
+    @Test
+    fun `remaining shrinks monotonically as progress advances`() {
+        val total = SstvMode.SCOTTIE_1.txDurationSeconds
+        var previous = txRemainingSeconds(0f, total)
+        for (p in listOf(0.1f, 0.25f, 0.5f, 0.75f, 0.9f, 1f)) {
+            val current = txRemainingSeconds(p, total)
+            assertThat(current).isAtMost(previous)
+            previous = current
+        }
+    }
+
+    @Test
+    fun `remaining label is a bare m ss countdown`() {
+        assertThat(txRemainingLabel(0f, 110.54332)).isEqualTo("1:51")
+        assertThat(txRemainingLabel(1f, 110.54332)).isEqualTo("0:00")
+        assertThat(txRemainingLabel(0.5f, 36.91)).isEqualTo("0:18")
     }
 
     // -- initialTxMode ---------------------------------------------------------------

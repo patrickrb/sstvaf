@@ -1,0 +1,5 @@
+Please enter your callsign.
+Your callsign is a basic requirement for making FT8 calls with this app. Please comply with your local amateur radio regulations, and do not make any illegal transmissions.
+
+About Modifiers
+CQ may be followed by a modifier of three decimal digits or one to four letters, typically 000-999 or A-Z or AA-ZZ or AAA-ZZZ or AAAA-ZZZZ. For example: CQ POTA callsign grid.

@@ -1,0 +1,3 @@
+About Transmission Supervision
+  Unlike protocols like JT65 with their 1-minute contact sequences where users have about 10 seconds to decide whether to continue, FT8 and FT4's shorter sequences require faster responses. In practice, some degree of built-in automation is needed, which is why FT8CN uses an auto-caller.
+  FT8CN agrees with Joe Taylor's philosophy and opposes the use of bots for FT8 operations. Automation should only be used in a limited manner, which is why FT8CN supervises the auto-caller. When there is no user interaction beyond the transmission supervision time limit, the transmission will automatically stop.

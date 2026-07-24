@@ -1,0 +1,7 @@
+Setting the transmission delay (in milliseconds) allows time for decoding after the previous listening cycle ends.
+Setting a delay allows the app to know the other party's response from the previous cycle before transmitting, and react accordingly in the current cycle.
+The delay setting depends on the device's processing capability - the delay must not be shorter than the time needed for decoding.
+If the delay is too short, the app may not be able to react to signals from the previous cycle.
+If the delay is too long, other stations may not be able to properly decode your signal.
+In practice, since the radio has a response time after receiving the PTT command (FT8CN assumes 100 milliseconds), the actual audio signal transmission time is the transmission delay plus 100 milliseconds. For example, with a 500 ms transmission delay, the actual signal transmission starts at 500 + 100 = 600 milliseconds.
+The actual FT8 signal cycle length is 12.64 seconds. It is recommended that the maximum delay not exceed 1.08 seconds.

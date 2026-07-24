@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,6 +34,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.k1af.ft8af.R
+import radio.ks3ckc.sstvaf.gallery.IMAGE_NOTES_MAX_LENGTH
 import radio.ks3ckc.sstvaf.gallery.SavedImage
 import radio.ks3ckc.sstvaf.theme.Accent
 import radio.ks3ckc.sstvaf.theme.AccentSoft
@@ -63,10 +66,17 @@ fun ImageViewerSheet(
     onShare: (SavedImage) -> Unit,
     onSaveToPhotos: (SavedImage) -> Unit,
     onDelete: (SavedImage) -> Unit,
+    onSaveNote: (SavedImage, String) -> Unit,
 ) {
     var confirmDelete by remember { mutableStateOf(false) }
-    // A reopened sheet must never start on a stale confirm dialog.
-    LaunchedEffect(visible) { if (!visible) confirmDelete = false }
+    var editingNote by remember { mutableStateOf(false) }
+    // A reopened sheet must never start on a stale confirm/edit dialog.
+    LaunchedEffect(visible) {
+        if (!visible) {
+            confirmDelete = false
+            editingNote = false
+        }
+    }
 
     SstvAfBottomSheet(visible = visible, onDismiss = onDismiss) {
         if (entry != null && imageFile != null) {
@@ -123,6 +133,9 @@ fun ImageViewerSheet(
                     stringResource(R.string.gallery_meta_status),
                     stringResource(viewerCompletenessRes(entry.complete)),
                 )
+                // Tap to add or edit a free-text note (callsign, QTH, comment)
+                // that persists and rides along in the share caption.
+                NoteRow(note = entry.notes, onEdit = { editingNote = true })
 
                 Spacer(modifier = Modifier.height(18.dp))
 
@@ -168,6 +181,137 @@ fun ImageViewerSheet(
                 onDelete(entry)
             },
         )
+    }
+
+    if (editingNote && entry != null) {
+        NoteEditDialog(
+            initial = entry.notes,
+            onCancel = { editingNote = false },
+            onSave = { text ->
+                editingNote = false
+                onSaveNote(entry, text)
+            },
+        )
+    }
+}
+
+/**
+ * Metadata row for the free-text note. Shows the note when set, or an "Add a
+ * note" prompt (accent-colored) when empty; the whole row is clickable to open
+ * the editor.
+ */
+@Composable
+private fun NoteRow(note: String, onEdit: () -> Unit) {
+    val hasNote = note.isNotBlank()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(6.dp))
+            .clickable(onClick = onEdit)
+            .padding(vertical = 3.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.gallery_meta_note),
+            modifier = Modifier.fillMaxWidth(0.4f),
+            color = TextMuted,
+            fontSize = 12.sp,
+        )
+        Text(
+            text = if (hasNote) note else stringResource(R.string.gallery_note_add),
+            color = if (hasNote) TextPrimary else Accent,
+            fontFamily = GeistMonoFamily,
+            fontSize = 12.sp,
+        )
+    }
+}
+
+/** Centered modal to add/edit an image note (style matches DeleteConfirmDialog). */
+@Composable
+private fun NoteEditDialog(
+    initial: String,
+    onCancel: () -> Unit,
+    onSave: (String) -> Unit,
+) {
+    // The field caps the typed length to the persisted maximum so the live
+    // character counter matches the stored cap. It does NOT trim, though — the
+    // store's sanitizeImageNotes() also strips surrounding whitespace, so a
+    // value with leading/trailing spaces persists shorter than what was typed.
+    var text by remember { mutableStateOf(initial) }
+    Dialog(
+        onDismissRequest = onCancel,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+        ),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(BgSurface2)
+                .padding(horizontal = 20.dp, vertical = 20.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.gallery_note_title),
+                color = TextPrimary,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = GeistMonoFamily,
+                letterSpacing = 0.06.sp,
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it.take(IMAGE_NOTES_MAX_LENGTH) },
+                label = { Text(stringResource(R.string.gallery_note_hint)) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Accent,
+                    focusedLabelColor = Accent,
+                ),
+                maxLines = 3,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(46.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(BgSurface3)
+                        .border(1.dp, Border, RoundedCornerShape(12.dp))
+                        .clickable(onClick = onCancel),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.action_cancel),
+                        color = TextPrimary,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(46.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Accent)
+                        .clickable(onClick = { onSave(text) }),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.gallery_note_save),
+                        color = BgApp,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                    )
+                }
+            }
+        }
     }
 }
 

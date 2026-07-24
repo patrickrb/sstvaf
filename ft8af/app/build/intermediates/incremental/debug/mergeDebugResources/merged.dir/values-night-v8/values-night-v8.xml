@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bar_text_view_color">#B1B1B1</color>
+    <color name="button_end_color">#442C78</color>
+    <color name="button_start_color">#4E1DBC</color>
+    <color name="button_tracker_button_color">#8F5FFA</color>
+    <color name="calling_list0_end_color">#34C9E5FC</color>
+    <color name="calling_list0_start_color">#00C9E5FC</color>
+    <color name="calling_list1_end_color">#8D41749F</color>
+    <color name="calling_list1_start_color">#8D6B94B6</color>
+    <color name="calling_list2_end_color">#8DA8A7A7</color>
+    <color name="calling_list2_start_color">#00FFFFFF</color>
+    <color name="calling_list3_end_color">#1B607D96</color>
+    <color name="calling_list3_start_color">#8D4CA8FB</color>
+    <color name="fromcall_is_qso_text_color">#A3BCFB</color>
+    <color name="is_not_qsl_text_color">#D60000</color>
+    <color name="is_qsl_text_color">#1DBD00</color>
+    <color name="message_in_my_call_text_color">#FA9E9E</color>
+    <color name="message_text_color">#FAF6D2</color>
+    <color name="osm_grid_out_line_color">#7FFFFFFF</color>
+    <color name="power_progress_radar_value">#B552AEF8</color>
+    <color name="power_progress_value">#ff00ffff</color>
+    <color name="purple_500">#220053</color>
+    <color name="text_view_color">#DBDBDB</color>
+    <color name="textview_cq_color">#AB975A01</color>
+    <color name="tracker_calling_list_background_color">#94000000</color>
+    <color name="tracker_config_bar_end_color">#805E5E5E</color>
+    <color name="tracker_config_bar_start_color">#94070707</color>
+    <color name="tracker_cq_marker_is_qso_color">#949494</color>
+    <color name="tracker_cq_marker_other_is_qso_color">#25FFED</color>
+    <color name="tracker_cq_marker_un_qso_color">#FF6161</color>
+    <color name="tracker_in_my_line_color">#ffFF1E27</color>
+    <color name="tracker_info_win_end_color">#805E5E5E</color>
+    <color name="tracker_info_win_start_color">#AB070707</color>
+    <color name="tracker_line_color">#FFFFFFFF</color>
+    <color name="tracker_sample_cq_bar_end_color">#C100076A</color>
+    <color name="tracker_sample_cq_bar_start_color">#000105</color>
+    <color name="tracker_sample_cq_bar_text_color">#7C000000</color>
+    <color name="tracker_sample_qsl_color">#7fff0000</color>
+    <color name="tracker_sample_qsl_text_color">#36DFCB</color>
+    <color name="tracker_sample_qso_color">#7fffff00</color>
+    <color name="tracker_sample_qso_text_color">#022D83</color>
+    <color name="tracker_sample_qsx_color">#7f0000ff</color>
+    <color name="tracker_sample_qsx_text_color">#36DFCB</color>
+    <color name="tracker_select_line_color">#FFFDBE00</color>
+    <color name="tracker_tips_start_color">#94070707</color>
+    <color name="tracker_tips_win_end_color">#805E5E5E</color>
+    <color name="transmitLayout_background">#C65000C0</color>
+    <color name="welcome_layout_ground_color">#000000</color>
+    <color name="welcome_layout_text_color">#B6B6B6</color>
+    <color name="welcome_logo_text_color">#DBC1FF</color>
+    <color name="xiegu_icon_end_color">#DF1E1E1E</color>
+    <color name="xiegu_icon_start_color">#E6606060</color>
+    <string name="map_name" translatable="false">nightUSGS4Layer.sqlite</string>
+    <style name="Theme.AppCompat.DayNight" parent="Theme.AppCompat"/>
+    <style name="Theme.AppCompat.DayNight.DarkActionBar" parent="Theme.AppCompat"/>
+    <style name="Theme.AppCompat.DayNight.Dialog" parent="Theme.AppCompat.Dialog"/>
+    <style name="Theme.AppCompat.DayNight.Dialog.Alert" parent="Theme.AppCompat.Dialog.Alert"/>
+    <style name="Theme.AppCompat.DayNight.Dialog.MinWidth" parent="Theme.AppCompat.Dialog.MinWidth"/>
+    <style name="Theme.AppCompat.DayNight.DialogWhenLarge" parent="Theme.AppCompat.DialogWhenLarge"/>
+    <style name="Theme.AppCompat.DayNight.NoActionBar" parent="Theme.AppCompat.NoActionBar"/>
+    <style name="Theme.Material3.DayNight" parent="Theme.Material3.Dark"/>
+    <style name="Theme.Material3.DayNight.BottomSheetDialog" parent="Theme.Material3.Dark.BottomSheetDialog"/>
+    <style name="Theme.Material3.DayNight.Dialog" parent="Theme.Material3.Dark.Dialog"/>
+    <style name="Theme.Material3.DayNight.Dialog.Alert" parent="Theme.Material3.Dark.Dialog.Alert"/>
+    <style name="Theme.Material3.DayNight.Dialog.MinWidth" parent="Theme.Material3.Dark.Dialog.MinWidth"/>
+    <style name="Theme.Material3.DayNight.DialogWhenLarge" parent="Theme.Material3.Dark.DialogWhenLarge"/>
+    <style name="Theme.Material3.DayNight.NoActionBar" parent="Theme.Material3.Dark.NoActionBar"/>
+    <style name="Theme.Material3.DayNight.SideSheetDialog" parent="Theme.Material3.Dark.SideSheetDialog"/>
+    <style name="Theme.Material3.DynamicColors.DayNight" parent="Theme.Material3.DynamicColors.Dark"/>
+    <style name="Theme.Material3.DynamicColors.DayNight.NoActionBar" parent="Theme.Material3.DynamicColors.Dark.NoActionBar"/>
+    <style name="Theme.MaterialComponents.DayNight" parent="Theme.MaterialComponents"/>
+    <style name="Theme.MaterialComponents.DayNight.BottomSheetDialog" parent="Theme.MaterialComponents.BottomSheetDialog"/>
+    <style name="Theme.MaterialComponents.DayNight.Bridge" parent="Theme.MaterialComponents.Bridge"/>
+    <style name="Theme.MaterialComponents.DayNight.DarkActionBar" parent="Theme.MaterialComponents"/>
+    <style name="Theme.MaterialComponents.DayNight.DarkActionBar.Bridge" parent="Theme.MaterialComponents.Bridge"/>
+    <style name="Theme.MaterialComponents.DayNight.Dialog" parent="Theme.MaterialComponents.Dialog"/>
+    <style name="Theme.MaterialComponents.DayNight.Dialog.Alert" parent="Theme.MaterialComponents.Dialog.Alert"/>
+    <style name="Theme.MaterialComponents.DayNight.Dialog.Alert.Bridge" parent="Theme.MaterialComponents.Dialog.Alert.Bridge"/>
+    <style name="Theme.MaterialComponents.DayNight.Dialog.Bridge" parent="Theme.MaterialComponents.Dialog.Bridge"/>
+    <style name="Theme.MaterialComponents.DayNight.Dialog.FixedSize" parent="Theme.MaterialComponents.Dialog.FixedSize"/>
+    <style name="Theme.MaterialComponents.DayNight.Dialog.FixedSize.Bridge" parent="Theme.MaterialComponents.Dialog.FixedSize.Bridge"/>
+    <style name="Theme.MaterialComponents.DayNight.Dialog.MinWidth" parent="Theme.MaterialComponents.Dialog.MinWidth"/>
+    <style name="Theme.MaterialComponents.DayNight.Dialog.MinWidth.Bridge" parent="Theme.MaterialComponents.Dialog.MinWidth.Bridge"/>
+    <style name="Theme.MaterialComponents.DayNight.DialogWhenLarge" parent="Theme.MaterialComponents.DialogWhenLarge"/>
+    <style name="Theme.MaterialComponents.DayNight.NoActionBar" parent="Theme.MaterialComponents.NoActionBar"/>
+    <style name="Theme.MaterialComponents.DayNight.NoActionBar.Bridge" parent="Theme.MaterialComponents.NoActionBar.Bridge"/>
+    <style name="Theme.SstvAf" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        
+        <item name="colorPrimary">@color/splash_window_bg</item>
+        <item name="colorPrimaryVariant">@color/splash_window_bg</item>
+        <item name="colorOnPrimary">@color/white</item>
+        
+        <item name="colorSecondary">@color/teal_200</item>
+        <item name="colorSecondaryVariant">@color/teal_200</item>
+        <item name="colorOnSecondary">@color/black</item>
+        
+        <item name="android:windowBackground">@color/splash_window_bg</item>
+        
+    </style>
+    <style name="ThemeOverlay.AppCompat.DayNight" parent="ThemeOverlay.AppCompat.Dark"/>
+    <style name="ThemeOverlay.Material3.DynamicColors.DayNight" parent="ThemeOverlay.Material3.DynamicColors.Dark"/>
+    <style name="Widget.MaterialComponents.ActionBar.PrimarySurface" parent="Widget.MaterialComponents.ActionBar.Surface"/>
+    <style name="Widget.MaterialComponents.AppBarLayout.PrimarySurface" parent="Widget.MaterialComponents.AppBarLayout.Surface"/>
+    <style name="Widget.MaterialComponents.BottomAppBar.PrimarySurface" parent="Widget.MaterialComponents.BottomAppBar"/>
+    <style name="Widget.MaterialComponents.BottomNavigationView.PrimarySurface" parent="Widget.MaterialComponents.BottomNavigationView"/>
+    <style name="Widget.MaterialComponents.NavigationRailView.PrimarySurface" parent="Widget.MaterialComponents.NavigationRailView"/>
+    <style name="Widget.MaterialComponents.TabLayout.PrimarySurface" parent="Widget.MaterialComponents.TabLayout"/>
+    <style name="Widget.MaterialComponents.Toolbar.PrimarySurface" parent="Widget.MaterialComponents.Toolbar.Surface"/>
+</resources>
