@@ -196,6 +196,20 @@ internal fun buildGallerySections(
     return sections
 }
 
+/**
+ * Date-section header label with a trailing count of that day's images, e.g.
+ * "Today · 3". The count is the size of the section's image list, so it always
+ * matches exactly what renders beneath the header.
+ *
+ * [pattern] is the `gallery_section_count_label` resource (`"%1$s · %2$d"`) so
+ * the day-label/count ordering and separator live in a string resource a
+ * translator can reorder (mirroring [galleryFilterChipLabel] for the filter
+ * chips). Formatted with [Locale.US] so the digits stay Western, matching the
+ * rest of the gallery's numeric readouts.
+ */
+internal fun gallerySectionCountLabel(pattern: String, baseLabel: String, count: Int): String =
+    String.format(Locale.US, pattern, baseLabel, count)
+
 /** Stable LazyGrid key for a section header (Today/Yesterday collapse to a slug). */
 internal fun gallerySectionKey(header: GallerySectionHeader): String = when (header) {
     GallerySectionHeader.Today -> "today"

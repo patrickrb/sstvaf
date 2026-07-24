@@ -72,6 +72,28 @@ internal fun txElapsedLabel(progress: Float, durationSeconds: Double): String {
     return "${formatMinSec(elapsed)} / ${formatMinSec(total)}"
 }
 
+/**
+ * Whole seconds of transmission still to play, the mirror of the elapsed value
+ * inside [txElapsedLabel] (total − elapsed) so the countdown and the elapsed/
+ * total line never disagree by a rounding tick. Clamped to 0..total, so a
+ * finished (progress ≥ 1f) or degenerate (duration ≤ 0) transmission reads 0
+ * rather than going negative.
+ */
+internal fun txRemainingSeconds(progress: Float, durationSeconds: Double): Int {
+    val total = durationSeconds.roundToInt().coerceAtLeast(0)
+    val elapsed = (progress.coerceIn(0f, 1f) * total).roundToInt().coerceIn(0, total)
+    return total - elapsed
+}
+
+/**
+ * Preformatted "m:ss" countdown of transmit time left, e.g. "1:09". Fed into
+ * the `tx_remaining_format` resource ("%1$s left") for display under the TX
+ * progress bar, mirroring the RX decode ETA so both directions surface a
+ * plain-language "how much longer" readout.
+ */
+internal fun txRemainingLabel(progress: Float, durationSeconds: Double): String =
+    formatMinSec(txRemainingSeconds(progress, durationSeconds))
+
 // ---------------------------------------------------------------------------
 // Last-used-mode persistence (config key "sstvTxMode")
 // ---------------------------------------------------------------------------
