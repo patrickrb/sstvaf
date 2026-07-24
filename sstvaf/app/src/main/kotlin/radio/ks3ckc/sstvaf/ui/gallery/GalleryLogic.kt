@@ -196,6 +196,20 @@ internal fun buildGallerySections(
     return sections
 }
 
+/**
+ * Date-section header label with a trailing count of that day's images, e.g.
+ * "Today · 3". The count is the size of the section's image list, so it always
+ * matches exactly what renders beneath the header.
+ *
+ * [pattern] is the `gallery_section_count_label` resource (`"%1$s · %2$d"`) so
+ * the day-label/count ordering and separator live in a string resource a
+ * translator can reorder (mirroring [galleryFilterChipLabel] for the filter
+ * chips). Formatted with [Locale.US] so the digits stay Western, matching the
+ * rest of the gallery's numeric readouts.
+ */
+internal fun gallerySectionCountLabel(pattern: String, baseLabel: String, count: Int): String =
+    String.format(Locale.US, pattern, baseLabel, count)
+
 /** Stable LazyGrid key for a section header (Today/Yesterday collapse to a slug). */
 internal fun gallerySectionKey(header: GallerySectionHeader): String = when (header) {
     GallerySectionHeader.Today -> "today"
@@ -343,11 +357,18 @@ internal fun formatShareUtc(utcMillis: Long): String {
  * (see [amateurBand]); an out-of-band capture drops it rather than showing a
  * blank. Mode name comes from the store verbatim (an unknown/hand-edited name
  * is used as-is).
+ *
+ * A user note ([SavedImage.notes]), when present, is appended as a final
+ * segment so the operator's callsign/comment travels with the picture. Any
+ * interior line breaks are flattened to single spaces so the caption stays one
+ * line; a blank note adds nothing.
  */
 internal fun buildImageShareCaption(entry: SavedImage): String {
     val freq = formatViewerFrequency(entry.freqHz)
     val bandSegment = amateurBand(entry.freqHz)?.let { " · $it" } ?: ""
-    return "SSTV ${entry.mode} · $freq$bandSegment · ${formatShareUtc(entry.utcMillis)}"
+    val base = "SSTV ${entry.mode} · $freq$bandSegment · ${formatShareUtc(entry.utcMillis)}"
+    val note = entry.notes.replace(Regex("\\s+"), " ").trim()
+    return if (note.isEmpty()) base else "$base · $note"
 }
 
 /** Completeness → viewer label resource (Complete / Partial). */

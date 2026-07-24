@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <external-cache-path path="." name="files_path" />
+    <!-- Debug screen shares debug.log out of getExternalFilesDir(null). -->
+    <external-files-path path="." name="external_files" />
+    <!-- Saved SSTV images (gallery sharing lands in PR 7). -->
+    <files-path path="sstv_images/" name="sstv_images" />
+</paths>
+

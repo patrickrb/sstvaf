@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<QRZDatabase version="1.34">
+    <Session>
+        <Key>SESSION-OK-1234567890ABCDEF</Key>
+        <Count>1</Count>
+        <SubExp>Sun Jan 1 12:34:03 2027</SubExp>
+    </Session>
+</QRZDatabase>
