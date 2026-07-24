@@ -395,7 +395,7 @@ private fun CornerAffordance(text: String, enabled: Boolean, onClick: () -> Unit
     )
 }
 
-/** Horizontal mode selector, labels like "Scottie 1 · 111 s". */
+/** Horizontal mode selector, labels like "Scottie 1 · 320×256 · 111 s". */
 @Composable
 private fun ModeChipRow(
     selected: SstvMode,
