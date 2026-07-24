@@ -105,9 +105,15 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
 
     // Chip labels carry a count badge ("Received 9"); counts come from the full
     // unfiltered list so every chip shows its own total, not the shown subset.
-    val filterCounts = galleryFilterCounts(images)
-    val filterLabels = GalleryFilter.entries.associateWith { f ->
-        galleryFilterChipLabel(stringResource(f.labelRes()), filterCounts[f] ?: 0)
+    // Memoized on `images` so the per-item count pass and label build only rerun
+    // when the list actually changes, not on every minute-tick recomposition.
+    val filterCounts = remember(images) { galleryFilterCounts(images) }
+    val chipPattern = stringResource(R.string.gallery_filter_chip_label)
+    val baseLabels = GalleryFilter.entries.associateWith { stringResource(it.labelRes()) }
+    val filterLabels = remember(filterCounts, baseLabels, chipPattern) {
+        baseLabels.mapValues { (f, base) ->
+            galleryFilterChipLabel(chipPattern, base, filterCounts[f] ?: 0)
+        }
     }
 
     Column(
@@ -118,11 +124,10 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
         TopBar(title = stringResource(R.string.gallery_title))
 
         FilterChips(
-            options = GalleryFilter.entries.map { filterLabels.getValue(it) },
-            selected = filterLabels.getValue(filter),
-            onSelected = { label ->
-                filter = GalleryFilter.entries.first { filterLabels.getValue(it) == label }
-            },
+            options = GalleryFilter.entries,
+            selected = filter,
+            label = { filterLabels.getValue(it) },
+            onSelected = { filter = it },
         )
 
         Spacer(modifier = Modifier.height(10.dp))

@@ -17,6 +17,9 @@ class GalleryLogicTest {
     /** 2026-07-04T15:30:12Z. */
     private val goldenUtc = 1_783_179_012_000L
 
+    /** Mirror of the `gallery_filter_chip_label` resource ("%1$s %2$d"). */
+    private val CHIP_PATTERN = "%1\$s %2\$d"
+
     private fun image(
         id: Long = 1L,
         direction: ImageDirection = ImageDirection.RX,
@@ -104,16 +107,26 @@ class GalleryLogicTest {
     }
 
     @Test
+    fun filterCounts_hasEntryForEveryFilter() {
+        // The count map must cover every GalleryFilter (the require() contract):
+        // a new filter value with no count would fail here rather than shipping a
+        // blank badge.
+        assertThat(galleryFilterCounts(emptyList()).keys)
+            .isEqualTo(GalleryFilter.entries.toSet())
+    }
+
+    @Test
     fun filterChipLabel_appendsCountIncludingZero() {
-        assertThat(galleryFilterChipLabel("Received", 9)).isEqualTo("Received 9")
-        assertThat(galleryFilterChipLabel("Sent", 0)).isEqualTo("Sent 0")
-        assertThat(galleryFilterChipLabel("All", 12)).isEqualTo("All 12")
+        assertThat(galleryFilterChipLabel(CHIP_PATTERN, "Received", 9)).isEqualTo("Received 9")
+        assertThat(galleryFilterChipLabel(CHIP_PATTERN, "Sent", 0)).isEqualTo("Sent 0")
+        assertThat(galleryFilterChipLabel(CHIP_PATTERN, "All", 12)).isEqualTo("All 12")
     }
 
     @Test
     fun filterChipLabels_areUniquePerFilterEvenWhenCountsCollide() {
-        // rx == all when there are no TX images; the base label keeps chips distinct
-        // so the screen's label→filter reverse lookup stays unambiguous.
+        // rx == all when there are no TX images; the base label keeps the chips
+        // reading distinctly even though they're now keyed by GalleryFilter (not
+        // by their rendered text).
         val counts = galleryFilterCounts(
             listOf(
                 image(id = 1, direction = ImageDirection.RX),
@@ -121,7 +134,7 @@ class GalleryLogicTest {
             ),
         )
         val labels = GalleryFilter.entries.map {
-            galleryFilterChipLabel(it.name, counts[it] ?: 0)
+            galleryFilterChipLabel(CHIP_PATTERN, it.name, counts[it] ?: 0)
         }
         assertThat(labels.toSet()).hasSize(GalleryFilter.entries.size)
     }
