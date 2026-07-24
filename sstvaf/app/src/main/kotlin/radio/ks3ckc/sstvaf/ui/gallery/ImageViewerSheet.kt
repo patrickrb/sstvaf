@@ -117,6 +117,11 @@ fun ImageViewerSheet(
                     stringResource(R.string.gallery_meta_size),
                     formatViewerDimensions(entry.width, entry.height),
                 )
+                // The mode's nominal on-air length; omitted for an unknown /
+                // hand-edited mode name that maps to no SstvMode.
+                formatViewerAirTime(entry.mode)?.let { airTime ->
+                    MetaRow(stringResource(R.string.gallery_meta_airtime), airTime)
+                }
                 MetaRow(
                     stringResource(R.string.gallery_meta_quality),
                     stringResource(

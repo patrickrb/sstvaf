@@ -288,6 +288,27 @@ internal fun formatViewerUtc(utcMillis: Long): String {
 /** Image dimensions, e.g. "320 × 256". */
 internal fun formatViewerDimensions(width: Int, height: Int): String = "$width × $height"
 
+/**
+ * The image's SSTV mode → its nominal on-air transmission length as "m:ss"
+ * (e.g. "Scottie 1" → "1:51"), for the viewer's "Air time" row. This is the
+ * mode's full-frame duration (calibration header + image scan), so it is the
+ * same length a partial RX capture would have taken had it completed — hence
+ * it is shown for incomplete images too, as a property of the mode rather than
+ * the individual capture. The store persists the mode's display name, so map
+ * back through [SstvMode]; an unknown/hand-edited name yields null and the
+ * caller omits the row (matching the band row's behaviour). Rounded to whole
+ * seconds to match the TX mode-chip/confirm-sheet durations.
+ */
+internal fun formatViewerAirTime(modeName: String): String? {
+    val seconds = SstvMode.entries
+        .firstOrNull { it.displayName == modeName }
+        ?.txDurationSeconds
+        ?.roundToInt()
+        ?.coerceAtLeast(0)
+        ?: return null
+    return String.format(Locale.US, "%d:%02d", seconds / 60, seconds % 60)
+}
+
 /** Engine quality (0..1) as a whole percent, clamped, e.g. "87%". */
 internal fun formatViewerQuality(quality: Float): String =
     "${(quality.coerceIn(0f, 1f) * 100f).roundToInt()}%"
