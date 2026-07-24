@@ -1,5 +1,7 @@
 package radio.ks3ckc.sstvaf.ui.tx
 
+import androidx.annotation.StringRes
+import com.k1af.ft8af.R
 import radio.ks3ckc.sstvaf.sstv.SstvMode
 import java.io.IOException
 import java.util.Locale
@@ -81,6 +83,43 @@ internal fun confirmDurationLine(mode: SstvMode, cwTailSeconds: Double = 0.0): S
     val total = totalTxDurationSeconds(mode, cwTailSeconds).roundToInt()
     val idNote = if (cwTailSeconds > 0.0) " (incl. CW ID)" else ""
     return "${mode.displayName} — ${modeResolutionLabel(mode)} — $total seconds$idNote"
+}
+
+/**
+ * A plain-language class for how long the rig will be keyed, so the confirm
+ * sheet can tell an operator whether they are committing to a quick or a
+ * multi-minute transmission before they tie up the frequency. It is purely a
+ * function of the *total* airtime (image scan + optional CW ID tail — see
+ * [totalTxDurationSeconds]); the picture-quality half of the trade-off is
+ * already carried by the resolution in [confirmDurationLine]/[modeChipLabel].
+ */
+internal enum class TxAirtimeClass(@StringRes val labelRes: Int) {
+    QUICK(R.string.tx_airtime_quick),
+    MODERATE(R.string.tx_airtime_moderate),
+    LONG(R.string.tx_airtime_long),
+    VERY_LONG(R.string.tx_airtime_very_long),
+}
+
+/**
+ * Classify a transmission's total airtime into a [TxAirtimeClass]. Thresholds
+ * (inclusive lower bounds), chosen around the practical SSTV airtime spread the
+ * app supports (Martin 4 ≈ 30 s … PD 290 ≈ 290 s) so every class is actually
+ * reachable — each of the 16 modes falls into one of these buckets:
+ *   < 60 s   → QUICK       (Robot 36, Martin 2/3/4, PD 50, …)
+ *   < 120 s  → MODERATE    (Robot 72, Scottie 1/2, Martin 1, PD 90, …)
+ *   < 240 s  → LONG        (PD 120/160/180)
+ *   ≥ 240 s  → VERY_LONG   (Scottie DX, PD 240/290)
+ * Folds in the CW ID tail via [totalTxDurationSeconds], so enabling the ID can
+ * bump a mode into the next class up when it nudges the total past a boundary.
+ */
+internal fun txAirtimeClass(mode: SstvMode, cwTailSeconds: Double = 0.0): TxAirtimeClass {
+    val total = totalTxDurationSeconds(mode, cwTailSeconds)
+    return when {
+        total < 60.0 -> TxAirtimeClass.QUICK
+        total < 120.0 -> TxAirtimeClass.MODERATE
+        total < 240.0 -> TxAirtimeClass.LONG
+        else -> TxAirtimeClass.VERY_LONG
+    }
 }
 
 /** Seconds → "m:ss". */

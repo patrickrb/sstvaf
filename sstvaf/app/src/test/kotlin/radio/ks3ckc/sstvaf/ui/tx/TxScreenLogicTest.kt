@@ -131,6 +131,51 @@ class TxScreenLogicTest {
             .isEqualTo("Robot 36 — 320×240 — 42 seconds (incl. CW ID)")
     }
 
+    // -- txAirtimeClass ----------------------------------------------------------
+
+    @Test
+    fun `airtime class buckets representative modes`() {
+        // Martin 4 ≈ 30 s, Robot 36 ≈ 37 s → QUICK
+        assertThat(txAirtimeClass(SstvMode.MARTIN_4)).isEqualTo(TxAirtimeClass.QUICK)
+        assertThat(txAirtimeClass(SstvMode.ROBOT_36)).isEqualTo(TxAirtimeClass.QUICK)
+        // Robot 72 ≈ 73 s, Scottie 1 ≈ 111 s → MODERATE
+        assertThat(txAirtimeClass(SstvMode.ROBOT_72)).isEqualTo(TxAirtimeClass.MODERATE)
+        assertThat(txAirtimeClass(SstvMode.SCOTTIE_1)).isEqualTo(TxAirtimeClass.MODERATE)
+        // PD 120 ≈ 127 s, PD 180 ≈ 188 s → LONG
+        assertThat(txAirtimeClass(SstvMode.PD_120)).isEqualTo(TxAirtimeClass.LONG)
+        assertThat(txAirtimeClass(SstvMode.PD_180)).isEqualTo(TxAirtimeClass.LONG)
+        // Scottie DX ≈ 270 s, PD 290 ≈ 290 s → VERY_LONG
+        assertThat(txAirtimeClass(SstvMode.SCOTTIE_DX)).isEqualTo(TxAirtimeClass.VERY_LONG)
+        assertThat(txAirtimeClass(SstvMode.PD_290)).isEqualTo(TxAirtimeClass.VERY_LONG)
+    }
+
+    @Test
+    fun `airtime class thresholds are inclusive lower bounds`() {
+        // PD 50 ≈ 50.59 s sits just under the 60 s QUICK/MODERATE line.
+        assertThat(txAirtimeClass(SstvMode.PD_50)).isEqualTo(TxAirtimeClass.QUICK)
+        // A CW tail that pushes PD 50 past 60 s bumps it to MODERATE.
+        assertThat(txAirtimeClass(SstvMode.PD_50, cwTailSeconds = 12.0))
+            .isEqualTo(TxAirtimeClass.MODERATE)
+    }
+
+    @Test
+    fun `airtime class folds in the cw id tail`() {
+        // PD 120 ≈ 127 s is LONG; a long CW tail can carry it into VERY_LONG.
+        assertThat(txAirtimeClass(SstvMode.PD_120)).isEqualTo(TxAirtimeClass.LONG)
+        assertThat(txAirtimeClass(SstvMode.PD_120, cwTailSeconds = 200.0))
+            .isEqualTo(TxAirtimeClass.VERY_LONG)
+        // A negative tail is treated as 0 (see totalTxDurationSeconds), so the
+        // class never drops below the bare-mode class.
+        assertThat(txAirtimeClass(SstvMode.ROBOT_36, cwTailSeconds = -50.0))
+            .isEqualTo(TxAirtimeClass.QUICK)
+    }
+
+    @Test
+    fun `every mode maps to a class and all four classes are reachable`() {
+        val classes = SstvMode.entries.map { txAirtimeClass(it) }.toSet()
+        assertThat(classes).isEqualTo(TxAirtimeClass.entries.toSet())
+    }
+
     @Test
     fun `formatMinSec goldens`() {
         assertThat(formatMinSec(0)).isEqualTo("0:00")
