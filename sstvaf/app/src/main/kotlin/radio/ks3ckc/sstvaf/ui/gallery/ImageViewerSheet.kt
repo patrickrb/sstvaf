@@ -228,8 +228,10 @@ private fun NoteEditDialog(
     onCancel: () -> Unit,
     onSave: (String) -> Unit,
 ) {
-    // The field caps the typed length to the persisted maximum so the counter
-    // and the stored value can never disagree; the store re-sanitizes anyway.
+    // The field caps the typed length to the persisted maximum so the live
+    // character counter matches the stored cap. It does NOT trim, though — the
+    // store's sanitizeImageNotes() also strips surrounding whitespace, so a
+    // value with leading/trailing spaces persists shorter than what was typed.
     var text by remember { mutableStateOf(initial) }
     Dialog(
         onDismissRequest = onCancel,

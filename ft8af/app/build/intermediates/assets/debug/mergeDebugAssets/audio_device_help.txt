@@ -1,0 +1,7 @@
+Audio Device Selection
+
+Audio Input: Select the audio input device for receiving and decoding FT8 signals. Select "Default" to use the system default microphone, or select a specific device such as a USB sound card connected to your radio.
+
+Audio Output: Select the audio output device for transmitting FT8 signals. Select "Default" to use the system default audio output, or select a specific device such as a USB sound card connected to your radio.
+
+Note: If a previously selected device is no longer available (e.g., unplugged), the selection will automatically fall back to "Default."

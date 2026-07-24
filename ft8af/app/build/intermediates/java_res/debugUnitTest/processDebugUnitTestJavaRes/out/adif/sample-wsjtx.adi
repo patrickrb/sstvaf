@@ -1,0 +1,7 @@
+ADIF Export from FT8AF test fixture
+<adif_ver:5>3.1.0
+<programid:6>FT8CN
+<eoh>
+<call:5>K1ABC<gridsquare:4>FN42<mode:3>FT8<rst_sent:3>-08<rst_rcvd:3>-12<qso_date:8>20260518<time_on:6>120000<qso_date_off:8>20260518<time_off:6>120100<band:3>20m<freq:8>14.07415<station_callsign:5>W1AW<my_gridsquare:4>FN31<eor>
+<call:5>VE3XY<gridsquare:4>FN03<mode:3>FT8<rst_sent:3>+05<rst_rcvd:3>-03<qso_date:8>20260518<time_on:6>120300<qso_date_off:8>20260518<time_off:6>120400<band:3>20m<freq:8>14.07415<station_callsign:5>W1AW<my_gridsquare:4>FN31<eor>
+<call:5>DL1AA<gridsquare:4>JO62<mode:3>FT8<rst_sent:3>-15<rst_rcvd:3>-09<qso_date:8>20260518<time_on:6>120600<qso_date_off:8>20260518<time_off:6>120700<band:3>20m<freq:8>14.07415<station_callsign:5>W1AW<my_gridsquare:4>FN31<eor>

@@ -225,8 +225,9 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
                 }
                 // Keep the open sheet showing the saved note, and reload the
                 // list so the change survives a re-open. A null result means the
-                // row vanished (deleted elsewhere) — just refresh.
-                if (updated != null) viewerEntry = updated
+                // row vanished (deleted elsewhere) — dismiss the now-stale sheet
+                // so Share/Save/Delete can't act on a missing entry.
+                if (updated != null) viewerEntry = updated else viewerVisible = false
                 refreshKey++
             }
         },
