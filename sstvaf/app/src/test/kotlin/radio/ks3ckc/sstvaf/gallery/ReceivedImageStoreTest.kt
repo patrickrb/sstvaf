@@ -197,6 +197,63 @@ class ReceivedImageStoreTest {
         assertThat(store().list()).hasSize(1)
     }
 
+    // ----- notes -------------------------------------------------------------
+
+    @Test
+    fun updateNotes_setsAndPersistsNote() {
+        val saved = saveOne()
+        assertThat(saved.notes).isEmpty()
+
+        val updated = store().updateNotes(saved.id, "K1AF great signal")
+
+        assertThat(updated).isNotNull()
+        assertThat(updated!!.notes).isEqualTo("K1AF great signal")
+        // Round-trips through the DB, not just the returned copy.
+        assertThat(store().list()[0].notes).isEqualTo("K1AF great signal")
+    }
+
+    @Test
+    fun updateNotes_trimsAndLengthCaps() {
+        val saved = saveOne()
+        val longNote = "x".repeat(IMAGE_NOTES_MAX_LENGTH + 50)
+
+        val updated = store().updateNotes(saved.id, "   $longNote   ")
+
+        assertThat(updated!!.notes).isEqualTo("x".repeat(IMAGE_NOTES_MAX_LENGTH))
+        assertThat(updated.notes.length).isEqualTo(IMAGE_NOTES_MAX_LENGTH)
+    }
+
+    @Test
+    fun updateNotes_blankClearsExistingNote() {
+        val saved = saveOne()
+        store().updateNotes(saved.id, "temporary")
+        assertThat(store().list()[0].notes).isEqualTo("temporary")
+
+        val cleared = store().updateNotes(saved.id, "   ")
+
+        assertThat(cleared!!.notes).isEmpty()
+        assertThat(store().list()[0].notes).isEmpty()
+    }
+
+    @Test
+    fun updateNotes_unknownId_returnsNull() {
+        saveOne()
+        assertThat(store().updateNotes(9999L, "no such row")).isNull()
+        // The existing row is untouched.
+        assertThat(store().list()[0].notes).isEmpty()
+    }
+
+    @Test
+    fun sanitizeImageNotes_trimsCapsAndBlankToEmpty() {
+        assertThat(sanitizeImageNotes("  hello  ")).isEqualTo("hello")
+        assertThat(sanitizeImageNotes("   ")).isEmpty()
+        assertThat(sanitizeImageNotes("")).isEmpty()
+        assertThat(sanitizeImageNotes("a".repeat(IMAGE_NOTES_MAX_LENGTH + 10)))
+            .isEqualTo("a".repeat(IMAGE_NOTES_MAX_LENGTH))
+        // Interior line breaks are preserved (only the ends are trimmed).
+        assertThat(sanitizeImageNotes("line1\nline2")).isEqualTo("line1\nline2")
+    }
+
     // ----- MediaStore (Photos) export -----------------------------------------
 
     @Test

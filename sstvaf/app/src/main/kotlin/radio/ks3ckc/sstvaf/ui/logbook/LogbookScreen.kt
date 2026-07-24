@@ -47,10 +47,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.ui.Alignment
@@ -1118,6 +1120,43 @@ internal fun normalizeTimeOn(timeOn: String?): String {
     return evened.padEnd(6, '0').substring(0, 6)
 }
 
+/**
+ * Filter the recent-QSO list by a free-text query so an operator with a long
+ * logbook can find a station instead of scrolling. The match is
+ * case-insensitive and spans the fields a user is most likely to search by —
+ * callsign, grid locator, and the packed band+frequency column ("20M(14.230
+ * MHz)"), plus the DXCC/country string. That means a partial callsign ("K1"), a
+ * grid ("FN31"), a band ("20M"), a frequency ("14.230"), or a country all
+ * narrow the list. A blank/whitespace query returns every record unchanged
+ * (same list instance), so the no-search path costs nothing.
+ *
+ * Extracted from [RecentTab] so it is unit-testable.
+ */
+internal fun filterQsosByQuery(
+    records: List<QSLCallsignRecord>,
+    query: String,
+): List<QSLCallsignRecord> {
+    val needle = query.trim()
+    if (needle.isEmpty()) return records
+    return records.filter { qsoMatchesQuery(it, needle) }
+}
+
+/**
+ * Whether one QSO matches an already-trimmed needle. Each searchable field is
+ * tested individually (via case-insensitive [String.contains]) rather than
+ * against a concatenation, so a needle can never match by straddling a field
+ * boundary. Matching is allocation-free — no per-field uppercasing or list
+ * construction — which matters because this runs once per row per keystroke.
+ * An empty needle matches everything (the caller's blank-query fast path).
+ */
+internal fun qsoMatchesQuery(record: QSLCallsignRecord, needle: String): Boolean {
+    if (needle.isEmpty()) return true
+    return record.callsign?.contains(needle, ignoreCase = true) == true ||
+        record.grid?.contains(needle, ignoreCase = true) == true ||
+        record.band?.contains(needle, ignoreCase = true) == true ||
+        record.dxccStr?.contains(needle, ignoreCase = true) == true
+}
+
 @Composable
 private fun RecentTab(
     records: List<QSLCallsignRecord>,
@@ -1141,14 +1180,66 @@ private fun RecentTab(
         return
     }
 
+    var query by rememberSaveable { mutableStateOf("") }
+    val visible = remember(records, query) {
+        sortQsosByDateTimeDesc(filterQsosByQuery(records, query))
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        QsoSearchField(
+            query = query,
+            onQueryChange = { query = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 8.dp),
+        )
+        RecentQsoResults(
+            visible = visible,
+            query = query,
+            onEdit = onEdit,
+            onDelete = onDelete,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+        )
+    }
+}
+
+/**
+ * The list (or the no-matches note) below the Recent-tab search field. Split
+ * out of [RecentTab] so each Composable stays small.
+ */
+@Composable
+private fun RecentQsoResults(
+    visible: List<QSLCallsignRecord>,
+    query: String,
+    onEdit: (QSLCallsignRecord) -> Unit,
+    onDelete: (QSLCallsignRecord) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (visible.isEmpty()) {
+        // Records exist but nothing matched the query — the search field stays
+        // above so the user can refine; explain the empty list here.
+        Column(
+            modifier = modifier,
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = stringResource(R.string.log_search_no_matches, query.trim()),
+                color = TextFaint,
+                fontSize = 13.sp,
+            )
+        }
+        return
+    }
+
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 18.dp),
+        modifier = modifier.padding(horizontal = 18.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         items(
-            items = sortQsosByDateTimeDesc(records),
+            items = visible,
             // Include id so an edit that changes other fields still maps to a stable key,
             // and so two grouped rows with otherwise identical display fields don't collide.
             key = { "${it.id}_${it.callsign}_${it.lastTime}_${it.band}" },
@@ -1163,6 +1254,61 @@ private fun RecentTab(
         // Bottom spacer for safe area
         item { Spacer(modifier = Modifier.height(16.dp)) }
     }
+}
+
+/**
+ * The Recent-tab search box: a compact single-line field with a leading search
+ * glyph and, once text is entered, a trailing clear button.
+ */
+@Composable
+private fun QsoSearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        singleLine = true,
+        placeholder = {
+            Text(
+                text = stringResource(R.string.log_search_placeholder),
+                color = TextFaint,
+                fontSize = 14.sp,
+            )
+        },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Filled.Search,
+                contentDescription = stringResource(R.string.log_cd_search),
+                tint = TextMuted,
+            )
+        },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(
+                        imageVector = Icons.Filled.Clear,
+                        contentDescription = stringResource(R.string.log_cd_clear_search),
+                        tint = TextMuted,
+                    )
+                }
+            }
+        },
+        textStyle = TextStyle(
+            fontFamily = GeistMonoFamily,
+            fontSize = 15.sp,
+        ),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = TextPrimary,
+            unfocusedTextColor = TextPrimary,
+            cursorColor = Accent,
+            focusedBorderColor = Accent,
+            unfocusedBorderColor = BorderStrong,
+        ),
+        shape = RoundedCornerShape(12.dp),
+        modifier = modifier,
+    )
 }
 
 // ---------------------------------------------------------------------------

@@ -1,0 +1,624 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:ns1="urn:oasis:names:tc:xliff:document:1.2" xmlns:ns2="http://schemas.android.com/tools">
+    <plurals name="mtrl_badge_content_description">
+    <item quantity="one">%d notificación nueva</item>
+    <item quantity="other">%d notificaciones nuevas</item>
+  </plurals>
+    <string msgid="5976598919945601918" name="abc_action_bar_home_description">"Ir a inicio"</string>
+    <string msgid="8388173803310557296" name="abc_action_bar_up_description">"Desplazarse hacia arriba"</string>
+    <string msgid="3937310113216875497" name="abc_action_menu_overflow_description">"Más opciones"</string>
+    <string msgid="4692188335987374352" name="abc_action_mode_done">"Hecho"</string>
+    <string msgid="1189761859438369441" name="abc_activity_chooser_view_see_all">"Ver todo"</string>
+    <string msgid="2165779757652331008" name="abc_activitychooserview_choose_application">"Seleccionar una aplicación"</string>
+    <string msgid="4215997306490295099" name="abc_capital_off">"DESACTIVADO"</string>
+    <string msgid="884982626291842264" name="abc_capital_on">"ACTIVADO"</string>
+    <string msgid="8833365367933412986" name="abc_menu_alt_shortcut_label">"Alt +"</string>
+    <string msgid="2223301931652355242" name="abc_menu_ctrl_shortcut_label">"Ctrl +"</string>
+    <string msgid="838001238306846836" name="abc_menu_delete_shortcut_label">"Suprimir"</string>
+    <string msgid="7986526966204849475" name="abc_menu_enter_shortcut_label">"Intro"</string>
+    <string msgid="375214403600139847" name="abc_menu_function_shortcut_label">"Función +"</string>
+    <string msgid="4192209724446364286" name="abc_menu_meta_shortcut_label">"Meta +"</string>
+    <string msgid="4741552369836443843" name="abc_menu_shift_shortcut_label">"Mayús +"</string>
+    <string msgid="5473865519181928982" name="abc_menu_space_shortcut_label">"Espacio"</string>
+    <string msgid="6180552449598693998" name="abc_menu_sym_shortcut_label">"Sym +"</string>
+    <string msgid="5520303668377388990" name="abc_prepend_shortcut_label">"Menú +"</string>
+    <string msgid="7208076849092622260" name="abc_search_hint">"Buscar…"</string>
+    <string msgid="3741173234950517107" name="abc_searchview_description_clear">"Borrar consulta"</string>
+    <string msgid="693312494995508443" name="abc_searchview_description_query">"Consulta de búsqueda"</string>
+    <string msgid="3417662926640357176" name="abc_searchview_description_search">"Buscar"</string>
+    <string msgid="1486535517437947103" name="abc_searchview_description_submit">"Enviar consulta"</string>
+    <string msgid="2293578557972875415" name="abc_searchview_description_voice">"Búsqueda por voz"</string>
+    <string msgid="8875138169939072951" name="abc_shareactionprovider_share_with">"Compartir con"</string>
+    <string msgid="9055268688411532828" name="abc_shareactionprovider_share_with_application">"Compartir con <ns1:g id="APPLICATION_NAME">%s</ns1:g>"</string>
+    <string msgid="1656852541809559762" name="abc_toolbar_collapse_description">"Ocultar"</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_done">Listo</string>
+    <string name="action_exit">Salir</string>
+    <string name="action_ok">OK</string>
+    <string name="action_save">Guardar</string>
+    <string name="app_hunt_off">Caza desactivada — llamando CQ, solo trabajando respuestas</string>
+    <string name="app_hunt_on">Caza activada — respondiendo CQ automáticamente</string>
+    <string name="app_set_callsign_first">Configura tu indicativo en Ajustes antes de llamar CQ</string>
+    <string name="bottomsheet_action_collapse">Ocultar la hoja inferior</string>
+    <string name="bottomsheet_action_expand">Mostrar la hoja inferior</string>
+    <string name="bottomsheet_action_expand_halfway">Desplegar hasta la mitad</string>
+    <string name="bottomsheet_drag_handle_clicked">Controlador de arrastre tocado dos veces</string>
+    <string name="bottomsheet_drag_handle_content_description">Controlador de arrastre</string>
+    <string name="bug_report_description_hint">Describe qué salió mal…</string>
+    <string name="bug_report_no_email_app">No se encontró ninguna app de correo para enviar el informe</string>
+    <string name="bug_report_open_github">Abrir incidencia en GitHub</string>
+    <string name="bug_report_send_email">Enviar correo</string>
+    <string msgid="881409763997275156" name="call_notification_answer_action">"Responder"</string>
+    <string msgid="8793775615905189152" name="call_notification_answer_video_action">"Vídeo"</string>
+    <string msgid="3229508546291798546" name="call_notification_decline_action">"Rechazar"</string>
+    <string msgid="2659457946726154263" name="call_notification_hang_up_action">"Colgar"</string>
+    <string msgid="6107532579223922871" name="call_notification_incoming_text">"Llamada entrante"</string>
+    <string msgid="8623827134497363134" name="call_notification_ongoing_text">"Llamada en curso"</string>
+    <string msgid="59049573811482460" name="call_notification_screening_text">"Filtrando una llamada entrante"</string>
+    <string name="cat_status_chip_label">CAT</string>
+    <string name="cat_status_connected">CAT conectado — toca para reconectar</string>
+    <string name="cat_status_connecting">Conectando CAT…</string>
+    <string name="cat_status_disconnected">CAT desconectado — toca para conectar</string>
+    <string name="cat_status_error">Error de conexión CAT — toca para reintentar</string>
+    <string name="character_counter_content_description">Caracteres introducidos: %1$d de %2$d</string>
+    <string name="character_counter_overflowed_content_description">Límite de caracteres superado (%1$d de %2$d)</string>
+    <string name="clear_text_end_icon_content_description">Borrar texto</string>
+    <string msgid="406453423630273620" name="close_drawer">"Cerrar menú de navegación"</string>
+    <string msgid="7573152094250666567" name="close_sheet">"Cerrar hoja"</string>
+    <string name="common_fail">Fallo</string>
+    <string name="common_none">Ninguno</string>
+    <string name="common_not_configured">Sin configurar</string>
+    <string name="common_not_connected">Sin conexión</string>
+    <string name="common_off">Apagado</string>
+    <string name="common_pass">Correcto</string>
+    <string name="common_test_connection">Probar conexión</string>
+    <string name="continent_af">África</string>
+    <string name="continent_an">Antártida</string>
+    <string name="continent_as">Asia</string>
+    <string name="continent_eu">Europa</string>
+    <string name="continent_na">América del Norte</string>
+    <string name="continent_oc">Oceanía</string>
+    <string name="continent_sa">América del Sur</string>
+    <string name="cq_offset_moved">Desplazamiento de CQ movido a un hueco libre: %1$d Hz</string>
+    <string name="debug_clear">Borrar</string>
+    <string name="debug_close">Cerrar</string>
+    <string name="debug_line_count">%1$d líneas</string>
+    <string name="debug_log_cleared">registro borrado</string>
+    <string name="debug_logcat_off">Logcat: OFF</string>
+    <string name="debug_logcat_on">Logcat: ON</string>
+    <string name="debug_logcat_on_suffix">" · logcat ON"</string>
+    <string name="debug_no_log_file">sin archivo de registro</string>
+    <string name="debug_share">Compartir</string>
+    <string name="debug_share_chooser_title">Compartir debug.log</string>
+    <string name="debug_title">Depuración</string>
+    <string name="decode_clear_list">Borrar lista de decodificación</string>
+    <string name="decode_empty_cq_body">Ninguna estación está llamando CQ en esta banda ahora mismo.</string>
+    <string name="decode_empty_cq_title">Sin llamadas CQ</string>
+    <string name="decode_empty_default_body">Esperando que aparezcan señales %1$s...</string>
+    <string name="decode_empty_default_title">Sin señales decodificadas</string>
+    <string name="decode_empty_dxcc_body">Aún no se han decodificado entidades DXCC sin trabajar.</string>
+    <string name="decode_empty_dxcc_title">Sin nuevos DXCC</string>
+    <string name="decode_empty_forme_body">Ninguna estación está llamando a tu indicativo ahora mismo.</string>
+    <string name="decode_empty_forme_title">Sin llamadas para ti</string>
+    <string name="decode_empty_needed_body">No se encontraron estaciones que necesiten confirmación.</string>
+    <string name="decode_empty_needed_title">Nada necesario</string>
+    <string name="decode_filter_all">Todos</string>
+    <string name="decode_filter_cq_calls">Llamadas CQ</string>
+    <string name="decode_filter_cq_pota">CQ POTA</string>
+    <string name="decode_filter_for_me">Para mí</string>
+    <string name="decode_filter_needed">Necesarios</string>
+    <string name="decode_filter_new_dxcc">Nuevo DXCC</string>
+    <string name="decode_label_calling">→ LLAMANDO</string>
+    <string name="decode_label_cq">CQ</string>
+    <string name="decode_label_to_you">↓ PARA TI</string>
+    <string name="decode_subtitle">"%1$s  •  %2$d decodificados este ciclo"</string>
+    <string name="decode_time_group_utc">%1$s UTC</string>
+    <string name="decode_title">Decodificar</string>
+    <string name="decode_utc_placeholder">UTC : --:--:--</string>
+    <string msgid="8038256446254964252" name="default_error_message">"Entrada no válida"</string>
+    <string msgid="6312721426453364202" name="default_popup_window_title">"Ventana emergente"</string>
+    <string msgid="1890207353314751437" name="dropdown_menu">"Menú desplegable"</string>
+    <string name="error_a11y_label">Error: no válida</string>
+    <string name="error_icon_content_description">Error</string>
+    <string name="exit_message">¿Seguro que quieres cerrar la app? Cualquier QSO activo se cancelará.</string>
+    <string name="exit_title">¿SALIR DE SSTVAF?</string>
+    <string name="export_date_from_placeholder">"Desde  AAAAMMDD"</string>
+    <string name="export_date_range">RANGO DE FECHAS</string>
+    <string name="export_date_to_placeholder">"Hasta  AAAAMMDD"</string>
+    <string name="export_filter_confirmed">solo confirmados</string>
+    <string name="export_filter_unconfirmed">solo sin confirmar</string>
+    <string name="export_preparing">Preparando…</string>
+    <string name="export_record_plural">registros</string>
+    <string name="export_record_singular">registro</string>
+    <string name="export_save_failed">Error al guardar en Descargas</string>
+    <string name="export_saved_to">Guardado en %1$s</string>
+    <string name="export_share">Compartir</string>
+    <string name="export_share_chooser_title">Compartir diarios de QSO</string>
+    <string name="export_summary">%1$d %2$s que coinciden con %3$s%4$s</string>
+    <string name="export_summary_all">todos</string>
+    <string name="export_summary_key">\'%1$s\'</string>
+    <string name="export_summary_suffix">" · %1$s"</string>
+    <string name="export_temp_file_failed">No se pudo crear el archivo temporal</string>
+    <string name="export_title">EXPORTAR QSOS</string>
+    <string name="exposed_dropdown_menu_content_description">Mostrar menú desplegable</string>
+    <string name="freq_alt_prefix">"ALT "</string>
+    <string name="freq_hide_alternates">OCULTAR ALTERNATIVAS</string>
+    <string name="freq_select_title">SELECCIONAR FRECUENCIA</string>
+    <string name="freq_show_alternates">MOSTRAR ALTERNATIVAS</string>
+    <string name="hound_call_frequency">Frecuencia de llamada (Hz, 1000–4000)</string>
+    <string name="hound_fox_callsign">Indicativo del Fox</string>
+    <string name="hound_help">Primero sintoniza el equipo en la frecuencia de dial publicada del Fox. Tú llamas alto (1000–4000 Hz); la app te hace QSY automáticamente a donde responde el Fox y envía tu informe.</string>
+    <string name="hound_start">Iniciar</string>
+    <string name="hound_title">Trabajar una DXpedición (Hound)</string>
+    <string name="icon_content_description">Icono del cuadro de diálogo</string>
+    <string msgid="6827826412747255547" name="in_progress">"En curso"</string>
+    <string msgid="7933458017204019916" name="indeterminate">"Marcado parcialmente"</string>
+    <string name="input_level_clipping">Recorte</string>
+    <string name="input_level_good">Bien</string>
+    <string name="input_level_too_high">Alto</string>
+    <string name="input_level_too_low">Bajo</string>
+    <string name="item_view_role_description">Pestaña</string>
+    <string name="log_action_delete">Eliminar</string>
+    <string name="log_action_edit">Editar</string>
+    <string name="log_award_dxcc_challenge">DXCC Challenge</string>
+    <string name="log_award_dxcc_mixed">DXCC Mixto</string>
+    <string name="log_award_dxcc_mixed_desc">Trabaja y confirma 100 entidades DXCC en cualquier banda/modo</string>
+    <string name="log_award_iota">IOTA</string>
+    <string name="log_award_iota_desc">Islands on the Air -- trabaja estaciones en islas designadas</string>
+    <string name="log_award_vucc">VUCC</string>
+    <string name="log_award_vucc_desc">VHF/UHF Century Club -- 100 cuadrículas en una sola banda</string>
+    <string name="log_award_vucc_grid_squares">Cuadrículas VUCC</string>
+    <string name="log_award_was">WAS</string>
+    <string name="log_award_was_desc">Trabaja y confirma los 50 estados de US</string>
+    <string name="log_award_waz">WAZ</string>
+    <string name="log_award_waz_desc">Trabaja y confirma las 40 zonas CQ</string>
+    <string name="log_cd_export_qsos">Exportar QSOs</string>
+    <string name="log_cd_qso_actions">Acciones de QSO</string>
+    <string name="log_cd_sync_to_logging_services">Sincronizar con servicios de registro</string>
+    <string name="log_delete_qso_body">¿Quitar este QSO del diario? Esto no se puede deshacer.</string>
+    <string name="log_delete_qso_body_callsign">¿Quitar el QSO con %1$s del diario? Esto no se puede deshacer.</string>
+    <string name="log_delete_qso_title">¿ELIMINAR QSO?</string>
+    <string name="log_edit_qso">Editar QSO</string>
+    <string name="log_field_callsign">Indicativo</string>
+    <string name="log_field_grid_locator">Localizador grid</string>
+    <string name="log_field_mode">Modo</string>
+    <string name="log_no_qsos_recorded_yet">Aún no se han registrado QSOs</string>
+    <string name="log_no_qsos_yet">Aún no hay QSOs</string>
+    <string name="log_section_award_progress">Progreso de diplomas</string>
+    <string name="log_section_band_distribution">Distribución por banda</string>
+    <string name="log_section_grid_coverage">Cobertura de grid</string>
+    <string name="log_section_signal_trend">Tendencia de señal</string>
+    <string name="log_stat_cq_zones">Zonas CQ</string>
+    <string name="log_stat_dxcc_entities">Entidades DXCC</string>
+    <string name="log_stat_itu_zones">Zonas ITU</string>
+    <string name="log_stat_total_qsos">QSOs totales</string>
+    <string name="log_state_usa">%1$s, USA</string>
+    <string name="log_subtitle_qsos_all_bands">%1$d QSOs · Todas las bandas</string>
+    <string name="log_sync_cloudlog_accepted">Cloudlog / Wavelog / Nextlog: %1$d aceptados</string>
+    <string name="log_sync_enable_services">Activa Cloudlog/Wavelog/Nextlog o QRZ en Ajustes e inténtalo de nuevo.</string>
+    <string name="log_sync_nothing_to_upload">Aún no hay QSOs en el diario para subir.</string>
+    <string name="log_sync_progress_count">%1$d de %2$d QSOs</string>
+    <string name="log_sync_title_complete">SINCRONIZACIÓN COMPLETA</string>
+    <string name="log_sync_title_no_services">SIN SERVICIOS ACTIVADOS</string>
+    <string name="log_sync_title_syncing">SINCRONIZANDO…</string>
+    <string name="log_sync_working">Trabajando…</string>
+    <string name="log_tab_awards">Diplomas</string>
+    <string name="log_tab_recent">Recientes</string>
+    <string name="log_tab_stats">Estadísticas</string>
+    <string name="log_title">Diario</string>
+    <string msgid="2988463736136100848" name="m3c_bottom_sheet_collapse_description">"Contrae la hoja inferior"</string>
+    <string msgid="1555567894577437024" name="m3c_bottom_sheet_dismiss_description">"Cierra la hoja inferior"</string>
+    <string msgid="8403354765404029791" name="m3c_bottom_sheet_drag_handle_description">"Controlador de arrastre"</string>
+    <string msgid="6670819569745899763" name="m3c_bottom_sheet_expand_description">"Despliega la hoja inferior"</string>
+    <string msgid="3010635850035863127" name="m3c_bottom_sheet_pane_title">"Hoja inferior"</string>
+    <string msgid="8166741421776570875" name="m3c_date_input_headline">"Fecha introducida"</string>
+    <string msgid="229313757840775812" name="m3c_date_input_headline_description">"Fecha introducida: %1$s"</string>
+    <string msgid="6116910750161463197" name="m3c_date_input_invalid_for_pattern">"La fecha no coincide con el patrón esperado: %1$s"</string>
+    <string msgid="2521768508935305279" name="m3c_date_input_invalid_not_allowed">"Fecha no permitida: %1$s"</string>
+    <string msgid="7052898923934555305" name="m3c_date_input_invalid_year_range">"Fecha fuera del intervalo de años previsto: %1$s - %2$s"</string>
+    <string msgid="2895559812010326913" name="m3c_date_input_label">"Fecha"</string>
+    <string msgid="1237013946323089826" name="m3c_date_input_no_input_description">"No hay datos"</string>
+    <string msgid="7306227249789210568" name="m3c_date_input_title">"Seleccionar fecha"</string>
+    <string msgid="7605002211875882969" name="m3c_date_picker_headline">"Fecha seleccionada"</string>
+    <string msgid="3664277305226978227" name="m3c_date_picker_headline_description">"Seleccionado: %1$s"</string>
+    <string msgid="8436650776581492840" name="m3c_date_picker_navigate_to_year_description">"Ir al año %1$s"</string>
+    <string msgid="5811000998184572395" name="m3c_date_picker_no_selection_description">"No hay datos"</string>
+    <string msgid="7813882352367152251" name="m3c_date_picker_scroll_to_earlier_years">"Desplázate para ver los años anteriores"</string>
+    <string msgid="5727367015496556177" name="m3c_date_picker_scroll_to_later_years">"Desplázate para ver los años posteriores"</string>
+    <string msgid="1804346892470238807" name="m3c_date_picker_switch_to_calendar_mode">"Cambiar al modo de introducción de calendario"</string>
+    <string msgid="395627960681594326" name="m3c_date_picker_switch_to_day_selection">"Desliza para seleccionar un año o toca para volver a seleccionar un día"</string>
+    <string msgid="2219746470065162704" name="m3c_date_picker_switch_to_input_mode">"Cambiar al modo de introducción de texto"</string>
+    <string msgid="7142101321095356500" name="m3c_date_picker_switch_to_next_month">"Cambiar al mes siguiente"</string>
+    <string msgid="228438865139394590" name="m3c_date_picker_switch_to_previous_month">"Cambiar al mes anterior"</string>
+    <string msgid="791651718641787594" name="m3c_date_picker_switch_to_year_selection">"Cambiar para seleccionar un año"</string>
+    <string msgid="7430790972741451689" name="m3c_date_picker_title">"Seleccionar fecha"</string>
+    <string msgid="3199387177749801575" name="m3c_date_picker_today_description">"Hoy"</string>
+    <string msgid="2068382232816991922" name="m3c_date_picker_year_picker_pane_title">"Selector de año visible"</string>
+    <string msgid="3190049423327661366" name="m3c_date_range_input_invalid_range_input">"El intervalo de fechas no es válido"</string>
+    <string msgid="3148384720560189467" name="m3c_date_range_input_title">"Introducir fechas"</string>
+    <string msgid="2138321128465719402" name="m3c_date_range_picker_day_in_range">"Dentro del intervalo"</string>
+    <string msgid="4947636797751277713" name="m3c_date_range_picker_end_headline">"Fecha de finalización"</string>
+    <string msgid="602077859540990149" name="m3c_date_range_picker_scroll_to_next_month">"Desplázate para ver el mes siguiente"</string>
+    <string msgid="4592174524846109496" name="m3c_date_range_picker_scroll_to_previous_month">"Desplázate para ver el mes anterior"</string>
+    <string msgid="4665981448952749820" name="m3c_date_range_picker_start_headline">"Fecha de inicio"</string>
+    <string msgid="3134165431120340385" name="m3c_date_range_picker_title">"Seleccionar fechas"</string>
+    <string msgid="7617233117134790350" name="m3c_dialog">"Cuadro de diálogo"</string>
+    <string msgid="3177828188723359358" name="m3c_dropdown_menu_collapsed">"Contraído"</string>
+    <string msgid="2360841780724299882" name="m3c_dropdown_menu_expanded">"Desplegado"</string>
+    <string msgid="6152806324422087846" name="m3c_search_bar_search">"Buscar"</string>
+    <string msgid="6152755701819882931" name="m3c_snackbar_dismiss">"Cerrar"</string>
+    <string msgid="7655536806087401899" name="m3c_suggestions_available">"Sugerencias a continuación"</string>
+    <string msgid="2786685010796619560" name="m3c_time_picker_am">"a. m."</string>
+    <string msgid="2349193472625211372" name="m3c_time_picker_hour">"Hora"</string>
+    <string msgid="9179527532316922345" name="m3c_time_picker_hour_24h_suffix">"%1$d horas"</string>
+    <string msgid="8876759303332837035" name="m3c_time_picker_hour_selection">"Seleccionar hora"</string>
+    <string msgid="3458167507790628988" name="m3c_time_picker_hour_suffix">"%1$d en punto"</string>
+    <string msgid="6973808109666874069" name="m3c_time_picker_hour_text_field">"para la hora"</string>
+    <string msgid="4313071914266462005" name="m3c_time_picker_minute">"Minutos"</string>
+    <string msgid="4699133535056739733" name="m3c_time_picker_minute_selection">"Seleccionar minutos"</string>
+    <string msgid="5064177921781937179" name="m3c_time_picker_minute_suffix">"%1$d minutos"</string>
+    <string msgid="7661234488295443182" name="m3c_time_picker_minute_text_field">"para los minutos"</string>
+    <string msgid="5865171949528594571" name="m3c_time_picker_period_toggle_description">"Selecciona AM o PM"</string>
+    <string msgid="6616362054113087709" name="m3c_time_picker_pm">"p. m."</string>
+    <string msgid="1805687647081129904" name="m3c_tooltip_long_press_label">"Mostrar descripción emergente"</string>
+    <string msgid="5460405025248574620" name="m3c_tooltip_pane_description">"Descripción emergente"</string>
+    <string name="main_tx_volume">Volumen TX: %1$d%%</string>
+    <string name="map_info_bearing">Rumbo</string>
+    <string name="map_info_distance">Distancia</string>
+    <string name="map_info_snr">SNR</string>
+    <string name="map_mode_azimuthal">AZ</string>
+    <string name="map_mode_standard">STD</string>
+    <string name="map_no_grid_set">Sin grid definido</string>
+    <string name="map_overlay_psk">PSK</string>
+    <string name="map_projection_azimuthal">Azimutal equidistante</string>
+    <string name="map_projection_equirectangular">Equirectangular</string>
+    <string name="map_station_count">%1$d estaciones</string>
+    <string name="map_station_count_with_heard">%1$d estaciones · %2$d escuchadas</string>
+    <string name="map_title">Mapa</string>
+    <string name="material_clock_toggle_content_description">Selecciona AM o PM</string>
+    <string name="material_hour_24h_suffix">%1$s horas</string>
+    <string name="material_hour_selection">Seleccionar hora</string>
+    <string name="material_hour_suffix">%1$s en punto</string>
+    <string name="material_minute_selection">Seleccionar minutos</string>
+    <string name="material_minute_suffix">%1$s minutos</string>
+    <string name="material_timepicker_am">a. m.</string>
+    <string name="material_timepicker_clock_mode_description">Cambia al modo de reloj para escribir la hora.</string>
+    <string name="material_timepicker_hour">Hora</string>
+    <string name="material_timepicker_minute">Minuto</string>
+    <string name="material_timepicker_pm">p. m.</string>
+    <string name="material_timepicker_select_time">Seleccionar la hora</string>
+    <string name="material_timepicker_text_input_mode_description">Cambia al modo de introducción de texto para escribir la hora.</string>
+    <string name="mtrl_badge_numberless_content_description">Notificación nueva</string>
+    <string name="mtrl_checkbox_state_description_checked">Marcada</string>
+    <string name="mtrl_checkbox_state_description_indeterminate">Marcada parcialmente</string>
+    <string name="mtrl_checkbox_state_description_unchecked">Sin marcar</string>
+    <string name="mtrl_chip_close_icon_content_description">Retirar %1$s</string>
+    <string name="mtrl_exceed_max_badge_number_content_description" ns2:ignore="PluralsCandidate">Más de %1$d notificaciones nuevas</string>
+    <string name="mtrl_picker_a11y_next_month">Cambiar al mes siguiente</string>
+    <string name="mtrl_picker_a11y_prev_month">Cambiar al mes anterior</string>
+    <string name="mtrl_picker_announce_current_range_selection">Selección de fecha de inicio: %1$s – Selección de fecha de finalización: %2$s</string>
+    <string name="mtrl_picker_announce_current_selection">Selección actual: %1$s</string>
+    <string name="mtrl_picker_announce_current_selection_none">ninguna</string>
+    <string name="mtrl_picker_cancel">Cancelar</string>
+    <string name="mtrl_picker_confirm">Aceptar</string>
+    <string name="mtrl_picker_date_header_selected">%1$s</string>
+    <string name="mtrl_picker_date_header_title">Selecciona una fecha</string>
+    <string name="mtrl_picker_date_header_unselected">Fecha seleccionada</string>
+    <string name="mtrl_picker_day_of_week_column_header">%1$s</string>
+    <string name="mtrl_picker_end_date_description">Fecha de finalización: %1$s</string>
+    <string name="mtrl_picker_invalid_format">Formato no válido.</string>
+    <string name="mtrl_picker_invalid_format_example">Ejemplo: %1$s</string>
+    <string name="mtrl_picker_invalid_format_use">Usar: %1$s</string>
+    <string name="mtrl_picker_invalid_range">El periodo no es válido.</string>
+    <string name="mtrl_picker_navigate_to_current_year_description">Ir al año actual, %1$d</string>
+    <string name="mtrl_picker_navigate_to_year_description">Ir al año %1$d</string>
+    <string name="mtrl_picker_out_of_range">Fuera del periodo válido: %1$s</string>
+    <string name="mtrl_picker_range_header_only_end_selected">Fecha de inicio–%1$s</string>
+    <string name="mtrl_picker_range_header_only_start_selected">%1$s–Fecha de finalización</string>
+    <string name="mtrl_picker_range_header_selected">%1$s – %2$s</string>
+    <string name="mtrl_picker_range_header_title">Selecciona un periodo</string>
+    <string name="mtrl_picker_range_header_unselected">Fecha de inicio–Fecha de finalización</string>
+    <string name="mtrl_picker_save">Guardar</string>
+    <string name="mtrl_picker_start_date_description">Fecha de inicio: %1$s</string>
+    <string name="mtrl_picker_text_input_date_hint">Fecha</string>
+    <string name="mtrl_picker_text_input_date_range_end_hint">Fecha de finalización</string>
+    <string name="mtrl_picker_text_input_date_range_start_hint">Fecha de inicio</string>
+    <string name="mtrl_picker_text_input_day_abbr">d</string>
+    <string name="mtrl_picker_text_input_month_abbr">m</string>
+    <string name="mtrl_picker_text_input_year_abbr">a</string>
+    <string name="mtrl_picker_today_description">Hoy, %1$s</string>
+    <string name="mtrl_picker_toggle_to_calendar_input_mode">Cambiar al modo de introducción Calendario</string>
+    <string name="mtrl_picker_toggle_to_day_selection">Toca para cambiar a la vista de calendario</string>
+    <string name="mtrl_picker_toggle_to_text_input_mode">Cambiar al modo de introducción Texto</string>
+    <string name="mtrl_picker_toggle_to_year_selection">Toca para cambiar a la vista de año</string>
+    <string name="mtrl_timepicker_cancel">Cancelar</string>
+    <string name="mtrl_timepicker_confirm">Aceptar</string>
+    <string msgid="6301633601645100427" name="nav_app_bar_navigate_up_description">"Desplazarse hacia arriba"</string>
+    <string msgid="7456070600745802113" name="nav_app_bar_open_drawer_description">"Abrir panel de navegación"</string>
+    <string msgid="542007171693138492" name="navigation_menu">"Menú de navegación"</string>
+    <string msgid="6610465462668679431" name="not_selected">"No seleccionado"</string>
+    <string msgid="875452955155264703" name="off">"Desactivado"</string>
+    <string msgid="8655164131929253426" name="on">"Activado"</string>
+    <string name="op_no_call">SIN INDICATIVO</string>
+    <string name="op_no_grid">Sin grid definido</string>
+    <string name="op_stat_antenna">ANTENNA</string>
+    <string name="op_stat_power">POWER</string>
+    <string name="op_stat_rig">RIG</string>
+    <string name="op_tap_to_edit">Toca para editar</string>
+    <string name="password_toggle_content_description">Mostrar contraseña</string>
+    <string name="pota_activating">Activando %1$s</string>
+    <string name="pota_activation_ended">Activación finalizada</string>
+    <string name="pota_active_park">ACTIVO — %1$s</string>
+    <string name="pota_active_spots">%1$d spots FT8 activos</string>
+    <string name="pota_back">Atrás</string>
+    <string name="pota_contacts_map">Mapa de contactos</string>
+    <string name="pota_elapsed">Transcurrido</string>
+    <string name="pota_end_activation">Finalizar activación</string>
+    <string name="pota_enter_park_reference_first">Introduce primero una referencia de parque</string>
+    <string name="pota_export_failed">Error al exportar — revisa el registro</string>
+    <string name="pota_no_browser_available">No hay navegador disponible</string>
+    <string name="pota_no_past_activations">Aún no hay activaciones anteriores.</string>
+    <string name="pota_no_spots">No hay spots FT8 POTA ahora mismo.</string>
+    <string name="pota_notes_optional_label">Notas (opcional)</string>
+    <string name="pota_notes_quote">“%1$s”</string>
+    <string name="pota_open_pota_app">Abrir pota.app</string>
+    <string name="pota_park_reference_label">Referencia del parque (p. ej. K-1234)</string>
+    <string name="pota_qso_count">%1$d QSO</string>
+    <string name="pota_qsos">QSOs</string>
+    <string name="pota_self_spot">Auto-spot</string>
+    <string name="pota_self_spot_failed">Error en el auto-spot — revisa el registro</string>
+    <string name="pota_self_spot_posted">Auto-spot publicado</string>
+    <string name="pota_set_callsign_first">Configura primero tu indicativo en Ajustes</string>
+    <string name="pota_share_adif">Compartir ADIF</string>
+    <string name="pota_since_start">desde el inicio</string>
+    <string name="pota_start_activation">Iniciar activación</string>
+    <string name="pota_status_active">activo</string>
+    <string name="pota_tab_activate">Activar</string>
+    <string name="pota_tab_history">Historial</string>
+    <string name="pota_tab_hunt">Cazar</string>
+    <string name="pota_targeting">Apuntando a %1$s @ %2$s kHz (%3$s) — cambia a Decodificar para llamar</string>
+    <string name="pota_to_valid">%1$d para válida</string>
+    <string name="pota_tx_cq_preview">El TX CQ se enviará como “CQ POTA %1$s %2$s”.</string>
+    <string name="pota_valid_activation">activación válida</string>
+    <string name="qso_call_action">Llamar a %1$s</string>
+    <string name="qso_complete">QSO completado</string>
+    <string name="qso_live_sending">QSO con %1$s — Enviando %2$s</string>
+    <string name="qso_live_step_fallback">mensaje</string>
+    <string name="qso_live_transmitting">Transmitiendo…</string>
+    <string name="qso_live_waiting">Esperando respuesta de %1$s…</string>
+    <string name="qso_qrz_link">QRZ ↗</string>
+    <string name="qso_sequence_header">SECUENCIA DEL QSO</string>
+    <string name="qso_stat_azimuth">Azimut</string>
+    <string name="qso_stat_band">Banda</string>
+    <string name="qso_stat_signal">Señal</string>
+    <string name="qso_step_confirm">Confirmar</string>
+    <string name="qso_step_logged">Registrado</string>
+    <string name="qso_step_report_sent">Reporte enviado</string>
+    <string name="qso_step_roger">Roger</string>
+    <string name="qso_step_send_call">Enviar indicativo</string>
+    <string name="qso_tx_next">TX SIGUIENTE</string>
+    <string name="qso_tx_now">TX AHORA</string>
+    <string name="qsopanel_calling_cq">Llamando CQ</string>
+    <string name="qsopanel_log_action">LOG</string>
+    <string name="qsopanel_qsoing_with">QSO con %1$s</string>
+    <string name="qsopanel_queue">COLA</string>
+    <string name="qsopanel_searching">Buscando...</string>
+    <string name="qsopanel_tap_to_view">toca para ver ↗</string>
+    <string name="qsopanel_tx_message">TX: %1$s</string>
+    <string name="qsopanel_waiting_for">Esperando a %1$s</string>
+    <string name="qsopanel_waiting_messages">Esperando mensajes...</string>
+    <string msgid="5941395253238309765" name="range_end">"Fin del intervalo"</string>
+    <string msgid="7097486360902471446" name="range_start">"Inicio del intervalo"</string>
+    <string msgid="6264217191555673260" name="search_menu_title">"Buscar"</string>
+    <string name="searchview_clear_text_content_description">Borrar texto</string>
+    <string name="searchview_navigation_content_description">Atrás</string>
+    <string msgid="6043586758067023" name="selected">"Seleccionado"</string>
+    <string name="settings_about_body">Versión %1$s (compilación %2$s)\nFecha de compilación %3$s\n\nFT8, fácil.\n\nUna app de transceptor FT8 independiente para Android. Control de RIG por USB, Bluetooth y red con secuenciado y registro automáticos.</string>
+    <string name="settings_api_key">Clave API</string>
+    <string name="settings_api_key_hint">Tu clave API de Cloudlog</string>
+    <string name="settings_audio_frequency">Frecuencia de audio</string>
+    <string name="settings_audio_input">Entrada de audio</string>
+    <string name="settings_audio_output">Salida de audio</string>
+    <string name="settings_auto_call_followed">Auto-llamar a seguidos</string>
+    <string name="settings_auto_call_followed_desc">Seguir llamando automáticamente a los indicativos seguidos</string>
+    <string name="settings_auto_clear_tx">Offset de TX libre automático</string>
+    <string name="settings_auto_clear_tx_desc">Al llamar CQ, elige un hueco libre según la actividad reciente de la banda y se aparta si se ocupa</string>
+    <string name="settings_auto_cq_after_qso">Auto-CQ después del QSO</string>
+    <string name="settings_auto_cq_after_qso_desc">Seguir llamando CQ automáticamente tras cada contacto completado — sin volver a tocar. Permanece en tu frecuencia (ignora la Caza). Funciona hasta que lo detengas o el Watchdog de TX expire sin respuestas.</string>
+    <string name="settings_auto_update_grid">Actualizar grid automáticamente (GPS)</string>
+    <string name="settings_auto_update_grid_desc">Usa el GPS del dispositivo para mantener tu grid Maidenhead actualizado</string>
+    <string name="settings_band_frequency">Banda y frecuencia</string>
+    <string name="settings_bands_enabled_format">%1$d de %2$d activadas</string>
+    <string name="settings_baud_rate">Velocidad en baudios</string>
+    <string name="settings_block_exact_desc">Coincidencia de indicativo completo. Separados por comas o espacios, p. ej. W1AW, K1ABC.</string>
+    <string name="settings_block_exact_title">Bloquear indicativos exactos</string>
+    <string name="settings_block_keyword_desc">Coincidencia por subcadena en el indicativo y el texto del mensaje, p. ej. POTA, /P, QRP.</string>
+    <string name="settings_block_keyword_title">Bloquear palabras clave</string>
+    <string name="settings_block_prefix_desc">Coincidencia por prefijo, p. ej. RA bloquea RA0AA..RA9ZZ. Separados por comas o espacios.</string>
+    <string name="settings_block_prefix_title">Bloquear prefijos de indicativo</string>
+    <string name="settings_blocklist_hint">p. ej. W1AW, RA, /P</string>
+    <string name="settings_build_date_format">Compilación %1$s</string>
+    <string name="settings_built_by">Creado por</string>
+    <string name="settings_callsign">Indicativo</string>
+    <string name="settings_callsign_hint">p. ej. W1AW</string>
+    <string name="settings_cat_about">Acerca de</string>
+    <string name="settings_cat_advanced">Avanzado</string>
+    <string name="settings_cat_decode_filters">Decodificación y filtros</string>
+    <string name="settings_cat_logging">Registro y diplomas</string>
+    <string name="settings_cat_radio_audio">Radio y audio</string>
+    <string name="settings_cat_time_sync">Sincronización de hora</string>
+    <string name="settings_cat_time_sync_desc">Corrección manual del reloj para operar sin conexión</string>
+    <string name="settings_cat_transmission">Transmisión</string>
+    <string name="settings_choose_from_server">Elegir del servidor</string>
+    <string name="settings_cloudlog">Cloudlog / Wavelog / Nextlog</string>
+    <string name="settings_cloudlog_desc">Subir QSOs automáticamente a una instancia de Cloudlog, Wavelog o Nextlog</string>
+    <string name="settings_community">Comunidad</string>
+    <string name="settings_conn_bluetooth">Bluetooth</string>
+    <string name="settings_conn_network">Red</string>
+    <string name="settings_conn_usb_cable">Cable USB</string>
+    <string name="settings_connection_mode">Modo de conexión</string>
+    <string name="settings_continent">Continente</string>
+    <string name="settings_control_mode">Modo de control</string>
+    <string name="settings_debug">Depuración</string>
+    <string name="settings_debug_desc">Ver / compartir debug.log</string>
+    <string name="settings_debug_mode_disabled">Modo de depuración desactivado</string>
+    <string name="settings_debug_mode_enabled">Modo de depuración activado</string>
+    <string name="settings_distance_unit">Distancia en millas</string>
+    <string name="settings_distance_unit_desc">Mostrar distancias en millas en lugar de kilómetros</string>
+    <string name="settings_dx_only">Solo DX</string>
+    <string name="settings_dx_only_desc">Mostrar solo estaciones fuera de tu propio continente</string>
+    <string name="settings_edit_operator_identity">Editar identidad del operador</string>
+    <string name="settings_enabled_bands">Bandas activadas</string>
+    <string name="settings_enabled_bands_dialog_desc">Las bandas ocultas no aparecerán en los selectores de frecuencia.</string>
+    <string name="settings_enter_manually">Introducir manualmente</string>
+    <string name="settings_exact_callsigns">Indicativos exactos</string>
+    <string name="settings_exact_callsigns_desc">Bloquea coincidencias de indicativo completo</string>
+    <string name="settings_faq_support">FAQ y soporte</string>
+    <string name="settings_fast_turnaround">Respuesta rápida</string>
+    <string name="settings_fast_turnaround_desc">Decodifica ~1s antes para que puedas responder un CQ en el siguiente slot en vez de esperar. Puede perder estaciones con un gran desfase de reloj.</string>
+    <string name="settings_filter_by_continent">Filtrar por continente</string>
+    <string name="settings_filter_by_continent_desc">Mostrar solo estaciones de un continente elegido</string>
+    <string name="settings_filter_continent_title">Filtrar continente</string>
+    <string name="settings_grid_locator">Localizador grid</string>
+    <string name="settings_grid_locator_hint">p. ej. FN31pr</string>
+    <string name="settings_hide_directional_cq">Ocultar CQ direccionales que no son para mí</string>
+    <string name="settings_hide_directional_cq_desc">Oculta los CQ dirigidos a una región que no apuntan a tu DXCC</string>
+    <string name="settings_highlight_new_band">Nueva banda</string>
+    <string name="settings_highlight_new_band_desc">Resalta estaciones trabajadas solo en otras bandas</string>
+    <string name="settings_highlight_new_dxcc">Nuevo DXCC</string>
+    <string name="settings_highlight_new_dxcc_desc">Resalta estaciones de una entidad DXCC sin trabajar</string>
+    <string name="settings_highlight_new_grid">Nuevo grid</string>
+    <string name="settings_highlight_new_grid_desc">Resalta grids Maidenhead aún no trabajados</string>
+    <string name="settings_highlight_worked">Trabajado antes</string>
+    <string name="settings_highlight_worked_desc">Marca estaciones que ya están en tu diario</string>
+    <string name="settings_hunt">Caza (responder CQ automáticamente)</string>
+    <string name="settings_hunt_cq">Hunt + CQ</string>
+    <string name="settings_hunt_cq_desc">Call CQ when Hunt is idle (no stations heard). When a CQ is detected, automatically stop CQ and answer it.</string>
+    <string name="settings_hunt_desc">Llama de forma proactiva a estaciones que llaman CQ. Igual que el botón HUNT en la barra de TX. Apagado = llama CQ y trabaja solo a las estaciones que te respondan.</string>
+    <string name="settings_hz_format">%1$d Hz</string>
+    <string name="settings_hz_str_format">%1$s Hz</string>
+    <string name="settings_input_volume">Volumen de entrada</string>
+    <string name="settings_input_volume_advice">Se aplica al audio entrante antes de decodificar. Observa el medidor de nivel RX en la cascada y apunta a la zona verde; el rojo indica recorte.</string>
+    <string formatted="false" name="settings_input_volume_desc">Ganancia del audio RX aplicada antes de decodificar (100% = sin cambios)</string>
+    <string name="settings_keywords">Palabras clave</string>
+    <string name="settings_keywords_desc">Bloquea por subcadena en el indicativo o mensaje (p. ej. POTA, /P)</string>
+    <string name="settings_language">Idioma</string>
+    <string name="settings_language_desc">Idioma de visualización de la app</string>
+    <string name="settings_language_system">Predeterminado del sistema</string>
+    <string name="settings_late_start_tolerance">Tolerancia de inicio tardío</string>
+    <string name="settings_late_start_tolerance_desc">Permite iniciar el TX hasta N ms dentro de un ciclo; el audio inicial se recorta para que el TX termine en el límite del ciclo</string>
+    <string name="settings_loading_stations">Cargando estaciones...</string>
+    <string name="settings_logging_server">Servidor de registro</string>
+    <string name="settings_logging_server_desc">Cloudlog, Wavelog y Nextlog aceptan las mismas subidas.</string>
+    <string name="settings_milliseconds_format">%1$d ms</string>
+    <string name="settings_min_max_suffix">%1$d–%2$d %3$s</string>
+    <string name="settings_minutes_format">%1$d min</string>
+    <string name="settings_needed_only">Solo necesarios</string>
+    <string name="settings_needed_only_desc">Mostrar solo estaciones aún no confirmadas (QSL)</string>
+    <string name="settings_no_usb_serial">No se detectaron dispositivos serie USB. Conecta un cable USB a tu radio e inténtalo de nuevo.</string>
+    <string name="settings_password">Contraseña</string>
+    <string name="settings_percent_format">%1$d%%</string>
+    <string name="settings_prefixes">Prefijos</string>
+    <string name="settings_prefixes_desc">Bloquea por prefijo de indicativo (p. ej. RA)</string>
+    <string name="settings_ptt_delay">Retardo de PTT</string>
+    <string name="settings_ptt_delay_desc">Retardo tras el PTT antes de que comience el audio de transmisión</string>
+    <string name="settings_report_bug">Informar de un error</string>
+    <string name="settings_rig_model">Modelo de RIG</string>
+    <string name="settings_save_swl_decodes">Guardar decodificaciones SWL</string>
+    <string name="settings_save_swl_decodes_desc">Registrar todos los mensajes decodificados en la base de datos</string>
+    <string name="settings_save_swl_qsos">Guardar QSOs SWL</string>
+    <string name="settings_save_swl_qsos_desc">Registrar los QSOs detectados entre otras estaciones</string>
+    <string name="settings_section_about">ACERCA DE</string>
+    <string name="settings_section_advanced">AVANZADO</string>
+    <string name="settings_section_audio">AUDIO</string>
+    <string name="settings_section_auto_sequence">AUTO-SECUENCIA</string>
+    <string name="settings_section_callsign_blocklist">LISTA DE BLOQUEO DE INDICATIVOS</string>
+    <string name="settings_section_decode_filters">FILTROS DE DECODIFICACIÓN</string>
+    <string name="settings_section_decode_highlights">RESALTES DE DECODIFICACIÓN</string>
+    <string name="settings_section_language">IDIOMA</string>
+    <string name="settings_section_logging_awards">REGISTRO Y DIPLOMAS</string>
+    <string name="settings_section_operator_identity">IDENTIDAD DEL OPERADOR</string>
+    <string name="settings_section_radio">RADIO</string>
+    <string name="settings_section_transmission">TRANSMISIÓN</string>
+    <string name="settings_select_a_station">Selecciona una estación</string>
+    <string name="settings_select_serial_port">Seleccionar puerto serie</string>
+    <string name="settings_server_address">Dirección del servidor</string>
+    <string name="settings_show_only_cq">Mostrar solo CQ</string>
+    <string name="settings_show_only_cq_desc">Oculta todo excepto los mensajes de tipo CQ</string>
+    <string name="settings_show_volume_slider">Show Volume Slider</string>
+    <string name="settings_show_volume_slider_desc">Display TX volume slider on main screen</string>
+    <string name="settings_skip_directional_cq">Omitir CQ direccionales (auto-respuesta)</string>
+    <string name="settings_skip_directional_cq_desc">No responder automáticamente CQ DX/EU/JA… dirigidos a otro DXCC</string>
+    <string name="settings_spectrum_width">Ancho del espectro</string>
+    <string name="settings_station_id">ID de estación</string>
+    <string name="settings_station_id_hint">p. ej. 1</string>
+    <string name="settings_station_profile">Perfil de estación</string>
+    <string name="settings_stop_after">Detener tras</string>
+    <string name="settings_stop_after_desc">Dejar de llamar tras N intentos sin respuesta</string>
+    <string name="settings_time_correction_desc">Ajusta el reloj de la app cuando no tienes internet para sincronizar. FT8 necesita UTC con una precisión de aproximadamente 1 segundo. Ajusta hasta que la columna DT de las estaciones decodificadas se centre cerca de 0.</string>
+    <string name="settings_time_correction_reset">Restablecer a 0</string>
+    <string name="settings_time_correction_section">Corrección manual</string>
+    <string name="settings_time_current_label">Corrección actual</string>
+    <string name="settings_time_suggest_apply">Aplicar corrección sugerida</string>
+    <string name="settings_time_suggest_label">DT promedio reciente: %1$s</string>
+    <string name="settings_time_suggest_none">Aún no hay decodificaciones — empieza a recibir para obtener una sugerencia.</string>
+    <string name="settings_time_suggest_section">Sugerido a partir de decodificaciones</string>
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_tries_format">%1$d intentos</string>
+    <string name="settings_tx_delay">Retardo de TX</string>
+    <string name="settings_tx_delay_desc">Retardo antes de transmitir para permitir decodificar el ciclo anterior</string>
+    <string name="settings_tx_rx_split">Split TX/RX</string>
+    <string name="settings_tx_rx_split_desc">Transmitir en una frecuencia distinta a la de recepción</string>
+    <string name="settings_tx_volume">Volumen TX</string>
+    <string name="settings_tx_volume_advice">Ajústalo en vivo — tu próximo TX usa este nivel. Vigila el ALC de tu radio y bájalo hasta que apenas roce la línea.</string>
+    <string formatted="false" name="settings_tx_volume_desc">Nivel de audio de transmisión (botones físicos ±5%)</string>
+    <string name="settings_tx_watchdog">Watchdog de TX</string>
+    <string name="settings_tx_watchdog_desc">Detener la transmisión automáticamente tras un tiempo límite</string>
+    <string name="settings_username">Usuario</string>
+    <string name="settings_username_hint">Tu usuario de QRZ.com</string>
+    <string name="settings_version_value">v%1$s</string>
+    <string name="settings_website">Sitio web</string>
+    <string name="side_sheet_accessibility_pane_title">Hoja lateral</string>
+    <string name="splash_initializing">INICIANDO RADIO</string>
+    <string name="splash_tagline">FT8 · COMPAÑERO MÓVIL</string>
+    <string name="splash_version">v%1$s · compilación %2$s</string>
+    <string msgid="6277540029070332960" name="status_bar_notification_info_overflow">"999+"</string>
+    <string name="status_confirmed">CONFIRMADO</string>
+    <string name="status_cq">CQ</string>
+    <string name="status_needed">NECESARIO</string>
+    <string name="status_new_band">NUEVA BANDA</string>
+    <string name="status_new_dxcc">NUEVO DXCC</string>
+    <string name="status_new_grid">NUEVO GRID</string>
+    <string name="status_pending">PENDIENTE</string>
+    <string name="status_sota">SOTA</string>
+    <string name="status_worked">TRABAJADO</string>
+    <string msgid="2561197295334830845" name="switch_role">"Interruptor"</string>
+    <string name="swr_lockout_body">Verifique la antena / línea de alimentación antes de transmitir.</string>
+    <string name="swr_lockout_dismiss">DESCARTAR</string>
+    <string name="swr_lockout_title">TX DETENIDO — SWR alto detectado (%1$s)</string>
+    <string name="swr_lockout_toast">TX bloqueado — bloqueo por SWR activo. Descarte el aviso primero.</string>
+    <string msgid="1672349317127674378" name="tab">"Pestaña"</string>
+    <string name="tab_decode">Decodificar</string>
+    <string name="tab_logbook">Diario</string>
+    <string name="tab_settings">Ajustes</string>
+    <string name="tab_waterfall">Cascada</string>
+    <string msgid="5946805113151406391" name="template_percent">"<ns1:g id="PERCENTAGE">%1$d</ns1:g> por cien."</string>
+    <string msgid="3765533235322692011" name="tooltip_description">"descripción emergente"</string>
+    <string msgid="3124740595719787496" name="tooltip_label">"mostrar descripción emergente"</string>
+    <string name="tune_blocked_tx">Detén el CQ/QSO antes de usar Tune</string>
+    <string name="tune_content_description">Tune: transmite una portadora continua para ajustar la antena</string>
+    <string name="tune_stopped_timeout">Tune detenido tras %1$d s</string>
+    <string name="tune_unavailable_route">Tune aún no está disponible en esta ruta de audio</string>
+    <string name="tx_audio_dropped">Falló el audio de TX — no se transmitió señal en este ciclo (error de audio USB)</string>
+    <string name="tx_call_cq">Llamar CQ</string>
+    <string name="tx_hunt">Caza</string>
+    <string name="tx_listening">ESCUCHANDO</string>
+    <string name="tx_stop">Detener</string>
+    <string name="tx_transmitting">TRANSMITIENDO</string>
+    <string name="tx_volume_decrease">Decrease TX volume</string>
+    <string name="tx_volume_increase">Increase TX volume</string>
+    <string name="waterfall_status_live">EN VIVO</string>
+    <string name="waterfall_title">Cascada</string>
+    <string name="waterfall_toggle_msg">MSG</string>
+    <string name="waterfall_toggle_nr">NR</string>
+</resources>

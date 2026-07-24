@@ -1,0 +1,194 @@
+[
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/mipmap-xhdpi_ic_launcher_round.webp.flat",
+        "source": "com.k1af.ft8af.app-main-79:/mipmap-xhdpi/ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/drawable_ic_baseline_visibility_24.xml.flat",
+        "source": "com.k1af.ft8af.app-main-79:/drawable/ic_baseline_visibility_24.xml"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/anim_click_button.xml.flat",
+        "source": "com.k1af.ft8af.app-main-79:/anim/click_button.xml"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/font_geist_medium.ttf.flat",
+        "source": "com.k1af.ft8af.app-main-79:/font/geist_medium.ttf"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/layout_bau_rate_spinner_item.xml.flat",
+        "source": "com.k1af.ft8af.app-main-79:/layout/bau_rate_spinner_item.xml"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/raw_us_states.json.flat",
+        "source": "com.k1af.ft8af.app-main-79:/raw/us_states.json"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/mipmap-xxhdpi_ic_launcher.webp.flat",
+        "source": "com.k1af.ft8af.app-main-79:/mipmap-xxhdpi/ic_launcher.webp"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.k1af.ft8af.app-main-79:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/xml_device_filter.xml.flat",
+        "source": "com.k1af.ft8af.app-main-79:/xml/device_filter.xml"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/drawable-xxxhdpi_ic_launcher_foreground.png.flat",
+        "source": "com.k1af.ft8af.app-pngs-73:/drawable-xxxhdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/xml_locales_config.xml.flat",
+        "source": "com.k1af.ft8af.app-main-79:/xml/locales_config.xml"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/drawable-mdpi_ic_launcher_foreground.png.flat",
+        "source": "com.k1af.ft8af.app-pngs-73:/drawable-mdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/drawable-xxxhdpi_ic_launcher_background.png.flat",
+        "source": "com.k1af.ft8af.app-pngs-73:/drawable-xxxhdpi/ic_launcher_background.png"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/drawable-mdpi_ic_launcher_background.png.flat",
+        "source": "com.k1af.ft8af.app-pngs-73:/drawable-mdpi/ic_launcher_background.png"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/mipmap-mdpi_ic_launcher_round.webp.flat",
+        "source": "com.k1af.ft8af.app-main-79:/mipmap-mdpi/ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/drawable-anydpi-v24_ic_launcher_background.xml.flat",
+        "source": "com.k1af.ft8af.app-pngs-73:/drawable-anydpi-v24/ic_launcher_background.xml"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/drawable-ldpi_ic_launcher_background.png.flat",
+        "source": "com.k1af.ft8af.app-pngs-73:/drawable-ldpi/ic_launcher_background.png"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/drawable-hdpi_ic_launcher_foreground.png.flat",
+        "source": "com.k1af.ft8af.app-pngs-73:/drawable-hdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/drawable-xhdpi_ic_launcher_foreground.png.flat",
+        "source": "com.k1af.ft8af.app-pngs-73:/drawable-xhdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/raw_world_land.json.flat",
+        "source": "com.k1af.ft8af.app-main-79:/raw/world_land.json"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/color_switch_color_style.xml.flat",
+        "source": "com.k1af.ft8af.app-main-79:/color/switch_color_style.xml"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/mipmap-xxhdpi_ic_launcher_round.webp.flat",
+        "source": "com.k1af.ft8af.app-main-79:/mipmap-xxhdpi/ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/anim_view_blink.xml.flat",
+        "source": "com.k1af.ft8af.app-main-79:/anim/view_blink.xml"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/drawable-xxhdpi_ic_launcher_background.png.flat",
+        "source": "com.k1af.ft8af.app-pngs-73:/drawable-xxhdpi/ic_launcher_background.png"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/font_geist_semibold.ttf.flat",
+        "source": "com.k1af.ft8af.app-main-79:/font/geist_semibold.ttf"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/font_geist_mono_medium.ttf.flat",
+        "source": "com.k1af.ft8af.app-main-79:/font/geist_mono_medium.ttf"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/drawable-hdpi_ic_launcher_background.png.flat",
+        "source": "com.k1af.ft8af.app-pngs-73:/drawable-hdpi/ic_launcher_background.png"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/font_geist_mono_bold.ttf.flat",
+        "source": "com.k1af.ft8af.app-main-79:/font/geist_mono_bold.ttf"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/xml_data_extraction_rules.xml.flat",
+        "source": "com.k1af.ft8af.app-main-79:/xml/data_extraction_rules.xml"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.k1af.ft8af.app-main-79:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/drawable-xhdpi_ic_launcher_background.png.flat",
+        "source": "com.k1af.ft8af.app-pngs-73:/drawable-xhdpi/ic_launcher_background.png"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/drawable_ic_visibility_off.xml.flat",
+        "source": "com.k1af.ft8af.app-main-79:/drawable/ic_visibility_off.xml"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/font_geist_bold.ttf.flat",
+        "source": "com.k1af.ft8af.app-main-79:/font/geist_bold.ttf"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/xml_filepaths.xml.flat",
+        "source": "com.k1af.ft8af.app-main-79:/xml/filepaths.xml"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/color_imagebutton_click_selector.xml.flat",
+        "source": "com.k1af.ft8af.app-main-79:/color/imagebutton_click_selector.xml"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/mipmap-xxxhdpi_ic_launcher_round.webp.flat",
+        "source": "com.k1af.ft8af.app-main-79:/mipmap-xxxhdpi/ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/mipmap-xhdpi_ic_launcher.webp.flat",
+        "source": "com.k1af.ft8af.app-main-79:/mipmap-xhdpi/ic_launcher.webp"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/font_geist_mono_regular.ttf.flat",
+        "source": "com.k1af.ft8af.app-main-79:/font/geist_mono_regular.ttf"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/mipmap-mdpi_ic_launcher.webp.flat",
+        "source": "com.k1af.ft8af.app-main-79:/mipmap-mdpi/ic_launcher.webp"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/font_geist_mono_semibold.ttf.flat",
+        "source": "com.k1af.ft8af.app-main-79:/font/geist_mono_semibold.ttf"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/mipmap-hdpi_ic_launcher.webp.flat",
+        "source": "com.k1af.ft8af.app-main-79:/mipmap-hdpi/ic_launcher.webp"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/mipmap-xxxhdpi_ic_launcher.webp.flat",
+        "source": "com.k1af.ft8af.app-main-79:/mipmap-xxxhdpi/ic_launcher.webp"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/xml_network_security_config.xml.flat",
+        "source": "com.k1af.ft8af.app-main-79:/xml/network_security_config.xml"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/drawable-ldpi_ic_launcher_foreground.png.flat",
+        "source": "com.k1af.ft8af.app-pngs-73:/drawable-ldpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/drawable-anydpi-v24_ic_launcher_foreground.xml.flat",
+        "source": "com.k1af.ft8af.app-pngs-73:/drawable-anydpi-v24/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/mipmap-hdpi_ic_launcher_round.webp.flat",
+        "source": "com.k1af.ft8af.app-main-79:/mipmap-hdpi/ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/drawable-xxhdpi_ic_launcher_foreground.png.flat",
+        "source": "com.k1af.ft8af.app-pngs-73:/drawable-xxhdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.k1af.ft8af.app-debug-77:/font_geist_regular.ttf.flat",
+        "source": "com.k1af.ft8af.app-main-79:/font/geist_regular.ttf"
+    }
+]

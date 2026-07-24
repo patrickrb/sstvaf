@@ -367,6 +367,27 @@ class GalleryLogicTest {
             .isEqualTo("SSTV Scottie 1 · 27.265 MHz · 2026-07-04 15:30 UTC")
     }
 
+    @Test
+    fun shareCaption_appendsNoteWhenPresent() {
+        val entry = image(freqHz = 14_230_000L, utcMillis = goldenUtc).copy(notes = "de K1AF")
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV Scottie 1 · 14.230 MHz · 20m · 2026-07-04 15:30 UTC · de K1AF")
+    }
+
+    @Test
+    fun shareCaption_flattensNoteWhitespaceToSingleLine() {
+        val entry = image(freqHz = 14_230_000L, utcMillis = goldenUtc).copy(notes = "  line1\n line2  ")
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV Scottie 1 · 14.230 MHz · 20m · 2026-07-04 15:30 UTC · line1 line2")
+    }
+
+    @Test
+    fun shareCaption_blankNoteAddsNothing() {
+        val entry = image(freqHz = 14_230_000L, utcMillis = goldenUtc).copy(notes = "   ")
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV Scottie 1 · 14.230 MHz · 20m · 2026-07-04 15:30 UTC")
+    }
+
     // ----- amateur band lookup -----------------------------------------------
 
     @Test
@@ -484,5 +505,36 @@ class GalleryLogicTest {
         assertThat(gallerySectionKey(GallerySectionHeader.Yesterday)).isEqualTo("yesterday")
         assertThat(gallerySectionKey(GallerySectionHeader.Earlier("2026-07-01")))
             .isEqualTo("2026-07-01")
+    }
+
+    // ----- section count label -----------------------------------------------
+
+    /** Mirror of the `gallery_section_count_label` resource ("%1$s · %2$d"). */
+    private val SECTION_PATTERN = "%1\$s · %2\$d"
+
+    @Test
+    fun sectionCountLabel_appendsCount() {
+        assertThat(gallerySectionCountLabel(SECTION_PATTERN, "Today", 3))
+            .isEqualTo("Today · 3")
+        assertThat(gallerySectionCountLabel(SECTION_PATTERN, "Yesterday", 12))
+            .isEqualTo("Yesterday · 12")
+        assertThat(gallerySectionCountLabel(SECTION_PATTERN, "2026-07-01", 1))
+            .isEqualTo("2026-07-01 · 1")
+    }
+
+    @Test
+    fun sectionCountLabel_matchesSectionImageCounts() {
+        // The header count is the section's own list size, so it always agrees
+        // with the cells rendered beneath it (including a single-image day).
+        val images = listOf(
+            image(id = 1, utcMillis = goldenUtc), // today
+            image(id = 2, utcMillis = goldenUtc - 3_600_000L), // today
+            image(id = 3, utcMillis = goldenUtc - oneDay), // yesterday
+        )
+        val sections = buildGallerySections(images, nowSameDay)
+        val labels = sections.map {
+            gallerySectionCountLabel(SECTION_PATTERN, "D", it.images.size)
+        }
+        assertThat(labels).containsExactly("D · 2", "D · 1").inOrder()
     }
 }
