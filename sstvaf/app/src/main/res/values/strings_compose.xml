@@ -639,6 +639,9 @@
     <string name="rx_quality_label">Quality</string>
     <string name="rx_progress_format" translatable="false">%1$d%%</string>
     <string name="rx_slant_format" translatable="false">%1$s ppm</string>
+    <!-- RX decode status: estimated time left in the current image.
+         %1$s is a preformatted m:ss ETA (e.g. "1:23"). -->
+    <string name="rx_eta_format">%1$s left</string>
     <string name="settings_save_rx_photos">Save received images to Photos</string>
     <string name="settings_save_rx_photos_desc">Completed SSTV images also appear in the Photos app under Pictures/SSTVAF (Android 10+)</string>
 

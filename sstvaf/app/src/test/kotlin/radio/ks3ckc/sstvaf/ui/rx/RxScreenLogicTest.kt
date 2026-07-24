@@ -182,6 +182,72 @@ class RxScreenLogicTest {
         assertThat(formatDialFrequency(7_171_500L)).isEqualTo("7.172 MHz")
     }
 
+    // ----- rxSecondsRemaining -----------------------------------------------
+
+    @Test
+    fun eta_atStart_isNearlyFullImageTime() {
+        // Scottie 1: 110.54332 s total − 0.91 s header ≈ 109.63 s of scan, which
+        // rounds to 110 (roundToInt) at the start when all rows are still to come.
+        assertThat(rxSecondsRemaining(0, 256, SstvMode.SCOTTIE_1.txDurationSeconds)).isEqualTo(110)
+    }
+
+    @Test
+    fun eta_header_isSharedSourceOfTruth() {
+        // The header the ETA subtracts is the same 0.91 s baked into every mode's
+        // txDurationSeconds, sourced from SstvMode rather than duplicated here.
+        assertThat(SstvMode.CALIBRATION_HEADER_SECONDS).isEqualTo(0.91)
+        assertThat(SstvMode.ROBOT_36.txDurationSeconds - SstvMode.CALIBRATION_HEADER_SECONDS)
+            .isWithin(1e-9).of(36.0)
+    }
+
+    @Test
+    fun eta_halfway_isAboutHalfTheScanTime() {
+        assertThat(rxSecondsRemaining(128, 256, SstvMode.SCOTTIE_1.txDurationSeconds)).isEqualTo(55)
+    }
+
+    @Test
+    fun eta_complete_isZero() {
+        assertThat(rxSecondsRemaining(256, 256, SstvMode.SCOTTIE_1.txDurationSeconds)).isEqualTo(0)
+    }
+
+    @Test
+    fun eta_overrun_clampsToZero() {
+        // Defensive: engine publishing rowsReady > totalRows must not go negative.
+        assertThat(rxSecondsRemaining(300, 256, SstvMode.SCOTTIE_1.txDurationSeconds)).isEqualTo(0)
+    }
+
+    @Test
+    fun eta_degenerateTotal_isZero() {
+        assertThat(rxSecondsRemaining(10, 0, SstvMode.SCOTTIE_1.txDurationSeconds)).isEqualTo(0)
+        assertThat(rxSecondsRemaining(10, -1, SstvMode.SCOTTIE_1.txDurationSeconds)).isEqualTo(0)
+    }
+
+    @Test
+    fun eta_negativeDuration_clampsToZero() {
+        // A malformed duration shorter than the header must never yield a negative ETA.
+        assertThat(rxSecondsRemaining(0, 256, 0.5)).isEqualTo(0)
+    }
+
+    // ----- formatRxEta ------------------------------------------------------
+
+    @Test
+    fun formatEta_underOneMinute_padsSeconds() {
+        assertThat(formatRxEta(55)).isEqualTo("0:55")
+        assertThat(formatRxEta(5)).isEqualTo("0:05")
+    }
+
+    @Test
+    fun formatEta_overOneMinute_splitsMinutesAndSeconds() {
+        assertThat(formatRxEta(110)).isEqualTo("1:50")
+        assertThat(formatRxEta(605)).isEqualTo("10:05")
+    }
+
+    @Test
+    fun formatEta_zeroAndNegative_areZeroZero() {
+        assertThat(formatRxEta(0)).isEqualTo("0:00")
+        assertThat(formatRxEta(-9)).isEqualTo("0:00")
+    }
+
     // ----- showsPartialImage --------------------------------------------------
 
     @Test

@@ -98,6 +98,28 @@ internal fun formatDialFrequency(freqHz: Long): String =
     String.format(Locale.US, "%.3f MHz", freqHz / 1_000_000.0)
 
 /**
+ * Estimated seconds of image scan still to receive. SSTV scans rows at a
+ * constant rate, so the time left is the fraction of rows not yet decoded
+ * scaled by the mode's image-scan time (its total TX duration minus the fixed
+ * calibration header, [SstvMode.CALIBRATION_HEADER_SECONDS], which has already
+ * elapsed by the time rows arrive). Clamped to ≥0; returns 0 for a
+ * degenerate/empty total and for an overrun (rowsReady ≥ totalRows).
+ */
+internal fun rxSecondsRemaining(rowsReady: Int, totalRows: Int, txDurationSeconds: Double): Int {
+    if (totalRows <= 0) return 0
+    val done = rowsReady.coerceIn(0, totalRows)
+    val imageSeconds = (txDurationSeconds - SstvMode.CALIBRATION_HEADER_SECONDS).coerceAtLeast(0.0)
+    val remainingFraction = (totalRows - done).toDouble() / totalRows
+    return (remainingFraction * imageSeconds).roundToInt().coerceAtLeast(0)
+}
+
+/** ETA label for the RX strip in "m:ss" (e.g. 110 → "1:50", 0 → "0:00"). */
+internal fun formatRxEta(secondsRemaining: Int): String {
+    val s = secondsRemaining.coerceAtLeast(0)
+    return String.format(Locale.US, "%d:%02d", s / 60, s % 60)
+}
+
+/**
  * Whether an Aborted state has a partial image worth showing (some rows
  * decoded under a known mode); otherwise the empty state is shown instead.
  */
