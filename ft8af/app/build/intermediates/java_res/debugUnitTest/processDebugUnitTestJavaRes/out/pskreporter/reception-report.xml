@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<receptionReports currentSeconds="1747756800">
+    <activeReceiver callsign="VE3XY" locator="FN03" frequency="14076000"/>
+    <receptionReport
+        receiverCallsign="VE3XY"
+        receiverLocator="FN03ab"
+        senderCallsign="W1AW"
+        senderLocator="FN31"
+        frequency="14076234"
+        flowStartSeconds="1747756700"
+        mode="FT8"
+        isSender="0"
+        sNR="-08"/>
+    <receptionReport
+        receiverCallsign="DL1AA"
+        receiverLocator="JO62"
+        senderCallsign="W1AW"
+        senderLocator="FN31"
+        frequency="14076150"
+        flowStartSeconds="1747756500"
+        mode="FT8"
+        isSender="0"
+        sNR="-15"/>
+    <receptionReport
+        receiverCallsign="JA1XX"
+        receiverLocator=""
+        senderCallsign="W1AW"
+        senderLocator="FN31"
+        frequency="14076000"
+        flowStartSeconds="1747756400"
+        mode="FT8"
+        isSender="0"
+        sNR="-20"/>
+    <receptionReport
+        receiverCallsign="VK2YY"
+        receiverLocator="QF56"
+        senderCallsign="W1AW"
+        senderLocator="FN31"
+        frequency="not-a-number"
+        flowStartSeconds="1747756300"
+        mode="FT8"
+        isSender="0"
+        sNR="-22"/>
+</receptionReports>

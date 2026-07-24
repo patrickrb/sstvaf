@@ -255,6 +255,32 @@ class GalleryLogicTest {
         assertThat(galleryCellMeta(entry, goldenUtc)).isEqualTo("PD120 · 2026-06-24")
     }
 
+    // ----- partial-decode badge ----------------------------------------------
+
+    @Test
+    fun partialBadge_shownForIncompleteImage() {
+        val entry = image(complete = false)
+        assertThat(galleryShowPartialBadge(entry)).isTrue()
+    }
+
+    @Test
+    fun partialBadge_hiddenForCompleteImage() {
+        val entry = image(complete = true)
+        assertThat(galleryShowPartialBadge(entry)).isFalse()
+    }
+
+    @Test
+    fun partialBadge_dependsOnlyOnCompleteness_notDirection() {
+        // TX images are generated whole, so they are always complete; the badge
+        // keys off completeness alone, so an (unexpected) partial TX still flags.
+        assertThat(galleryShowPartialBadge(image(direction = ImageDirection.TX, complete = true)))
+            .isFalse()
+        assertThat(galleryShowPartialBadge(image(direction = ImageDirection.RX, complete = false)))
+            .isTrue()
+        assertThat(galleryShowPartialBadge(image(direction = ImageDirection.TX, complete = false)))
+            .isTrue()
+    }
+
     // ----- empty state -------------------------------------------------------
 
     @Test
@@ -327,6 +353,33 @@ class GalleryLogicTest {
     }
 
     @Test
+    fun qualityGrade_mapsThresholds() {
+        // Inclusive lower bounds: ≥0.85 Excellent, ≥0.65 Good, ≥0.40 Fair, else Poor.
+        assertThat(qualityGrade(1f)).isEqualTo(QualityGrade.EXCELLENT)
+        assertThat(qualityGrade(0.85f)).isEqualTo(QualityGrade.EXCELLENT) // boundary
+        assertThat(qualityGrade(0.84f)).isEqualTo(QualityGrade.GOOD)
+        assertThat(qualityGrade(0.65f)).isEqualTo(QualityGrade.GOOD) // boundary
+        assertThat(qualityGrade(0.64f)).isEqualTo(QualityGrade.FAIR)
+        assertThat(qualityGrade(0.40f)).isEqualTo(QualityGrade.FAIR) // boundary
+        assertThat(qualityGrade(0.39f)).isEqualTo(QualityGrade.POOR)
+        assertThat(qualityGrade(0f)).isEqualTo(QualityGrade.POOR)
+    }
+
+    @Test
+    fun qualityGrade_clampsOutOfRangeAndNaN() {
+        assertThat(qualityGrade(1.5f)).isEqualTo(QualityGrade.EXCELLENT) // clamped to 1
+        assertThat(qualityGrade(-0.3f)).isEqualTo(QualityGrade.POOR) // clamped to 0
+        assertThat(qualityGrade(Float.NaN)).isEqualTo(QualityGrade.POOR) // NaN → 0
+    }
+
+    @Test
+    fun qualityGrade_everyValueHasADistinctLabelRes() {
+        val labels = QualityGrade.entries.map { it.labelRes }
+        assertThat(labels).containsNoDuplicates()
+        assertThat(labels).hasSize(QualityGrade.entries.size)
+    }
+
+    @Test
     fun viewerDirectionAndCompletenessLabels() {
         assertThat(viewerDirectionRes(ImageDirection.RX))
             .isEqualTo(R.string.gallery_meta_direction_rx)
@@ -382,6 +435,27 @@ class GalleryLogicTest {
         val entry = image(mode = "Scottie 1", freqHz = 27_265_000L, utcMillis = goldenUtc)
         assertThat(buildImageShareCaption(entry))
             .isEqualTo("SSTV Scottie 1 · 27.265 MHz · 2026-07-04 15:30 UTC")
+    }
+
+    @Test
+    fun shareCaption_appendsNoteWhenPresent() {
+        val entry = image(freqHz = 14_230_000L, utcMillis = goldenUtc).copy(notes = "de K1AF")
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV Scottie 1 · 14.230 MHz · 20m · 2026-07-04 15:30 UTC · de K1AF")
+    }
+
+    @Test
+    fun shareCaption_flattensNoteWhitespaceToSingleLine() {
+        val entry = image(freqHz = 14_230_000L, utcMillis = goldenUtc).copy(notes = "  line1\n line2  ")
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV Scottie 1 · 14.230 MHz · 20m · 2026-07-04 15:30 UTC · line1 line2")
+    }
+
+    @Test
+    fun shareCaption_blankNoteAddsNothing() {
+        val entry = image(freqHz = 14_230_000L, utcMillis = goldenUtc).copy(notes = "   ")
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV Scottie 1 · 14.230 MHz · 20m · 2026-07-04 15:30 UTC")
     }
 
     // ----- amateur band lookup -----------------------------------------------
@@ -501,5 +575,36 @@ class GalleryLogicTest {
         assertThat(gallerySectionKey(GallerySectionHeader.Yesterday)).isEqualTo("yesterday")
         assertThat(gallerySectionKey(GallerySectionHeader.Earlier("2026-07-01")))
             .isEqualTo("2026-07-01")
+    }
+
+    // ----- section count label -----------------------------------------------
+
+    /** Mirror of the `gallery_section_count_label` resource ("%1$s · %2$d"). */
+    private val SECTION_PATTERN = "%1\$s · %2\$d"
+
+    @Test
+    fun sectionCountLabel_appendsCount() {
+        assertThat(gallerySectionCountLabel(SECTION_PATTERN, "Today", 3))
+            .isEqualTo("Today · 3")
+        assertThat(gallerySectionCountLabel(SECTION_PATTERN, "Yesterday", 12))
+            .isEqualTo("Yesterday · 12")
+        assertThat(gallerySectionCountLabel(SECTION_PATTERN, "2026-07-01", 1))
+            .isEqualTo("2026-07-01 · 1")
+    }
+
+    @Test
+    fun sectionCountLabel_matchesSectionImageCounts() {
+        // The header count is the section's own list size, so it always agrees
+        // with the cells rendered beneath it (including a single-image day).
+        val images = listOf(
+            image(id = 1, utcMillis = goldenUtc), // today
+            image(id = 2, utcMillis = goldenUtc - 3_600_000L), // today
+            image(id = 3, utcMillis = goldenUtc - oneDay), // yesterday
+        )
+        val sections = buildGallerySections(images, nowSameDay)
+        val labels = sections.map {
+            gallerySectionCountLabel(SECTION_PATTERN, "D", it.images.size)
+        }
+        assertThat(labels).containsExactly("D · 2", "D · 1").inOrder()
     }
 }

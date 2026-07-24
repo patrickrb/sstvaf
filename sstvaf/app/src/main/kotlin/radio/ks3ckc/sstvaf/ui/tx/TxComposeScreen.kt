@@ -59,6 +59,8 @@ import com.k1af.ft8af.GeneralVariables
 import com.k1af.ft8af.MainViewModel
 import com.k1af.ft8af.R
 import radio.ks3ckc.sstvaf.gallery.ImageDirection
+import radio.ks3ckc.sstvaf.sstv.CwId
+import radio.ks3ckc.sstvaf.sstv.CwIdSettings
 import radio.ks3ckc.sstvaf.sstv.SstvMode
 import radio.ks3ckc.sstvaf.theme.Accent
 import radio.ks3ckc.sstvaf.theme.BgApp
@@ -88,6 +90,7 @@ fun TxComposeScreen(mainViewModel: MainViewModel) {
             defaultTxComposition(
                 GeneralVariables.myCallsign,
                 initialTxMode(GeneralVariables.sstvTxMode),
+                GeneralVariables.getMyMaidenheadGrid() ?: "",
             ),
         )
     }
@@ -161,6 +164,19 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
         tuneActive = isTuning,
     )
 
+    // Airtime the optional CW station-ID tail adds after the image (issue #14),
+    // so the confirm sheet and progress readout report the true on-air duration
+    // rather than the image-only mode length. Read from GeneralVariables (the
+    // same source SstvTransmitter uses); 0 when the ID is off or unkeyable.
+    val cwTailSeconds = CwId.tailDurationSeconds(
+        CwIdSettings(
+            enabled = GeneralVariables.cwIdEnabled,
+            text = GeneralVariables.myCallsign,
+            wpm = GeneralVariables.cwIdWpm,
+        ),
+        GeneralVariables.audioSampleRate,
+    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -219,7 +235,7 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
             if (isTransmitting) {
                 TxProgressPanel(
                     progress = txProgress,
-                    mode = composition.mode,
+                    totalSeconds = totalTxDurationSeconds(composition.mode, cwTailSeconds),
                     onCancel = { mainViewModel.sstvTransmitter.cancel() },
                 )
             } else {
@@ -252,6 +268,7 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
     TxConfirmSheet(
         visible = showConfirmSheet,
         mode = composition.mode,
+        cwTailSeconds = cwTailSeconds,
         onDismiss = { showConfirmSheet = false },
         onConfirm = {
             showConfirmSheet = false
@@ -395,7 +412,7 @@ private fun CornerAffordance(text: String, enabled: Boolean, onClick: () -> Unit
     )
 }
 
-/** Horizontal mode selector, labels like "Scottie 1 · 111 s". */
+/** Horizontal mode selector, labels like "Scottie 1 · 320×256 · 111 s". */
 @Composable
 private fun ModeChipRow(
     selected: SstvMode,
@@ -508,9 +525,14 @@ private fun TransmitButton(gate: TxGate, onClick: () -> Unit) {
     }
 }
 
-/** Progress bar + elapsed/total + cancel, shown while the rig is keyed. */
+/**
+ * Progress bar + elapsed/total + cancel, shown while the rig is keyed.
+ * [totalSeconds] is the full on-air duration (image scan + any CW ID tail),
+ * matching the transmitter's progress ticker so elapsed/total stays accurate
+ * through the CW station-ID tail.
+ */
 @Composable
-private fun TxProgressPanel(progress: Float, mode: SstvMode, onCancel: () -> Unit) {
+private fun TxProgressPanel(progress: Float, totalSeconds: Double, onCancel: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -522,9 +544,21 @@ private fun TxProgressPanel(progress: Float, mode: SstvMode, onCancel: () -> Uni
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            text = txElapsedLabel(progress, mode.txDurationSeconds),
+            text = txElapsedLabel(progress, totalSeconds),
             color = TextPrimary,
             fontSize = 13.sp,
+            fontFamily = GeistMonoFamily,
+        )
+        Spacer(Modifier.height(2.dp))
+        // Plain-language countdown of transmit time left, mirroring the RX
+        // decode ETA — "how much longer is the rig keyed" at a glance.
+        Text(
+            text = stringResource(
+                R.string.tx_remaining_format,
+                txRemainingLabel(progress, totalSeconds),
+            ),
+            color = TextMuted,
+            fontSize = 11.sp,
             fontFamily = GeistMonoFamily,
         )
         Spacer(Modifier.height(10.dp))

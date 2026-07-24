@@ -35,6 +35,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -53,6 +54,7 @@ import radio.ks3ckc.sstvaf.theme.BgSurface
 import radio.ks3ckc.sstvaf.theme.GeistMonoFamily
 import radio.ks3ckc.sstvaf.theme.Signal
 import radio.ks3ckc.sstvaf.theme.SignalSoft
+import radio.ks3ckc.sstvaf.theme.StatusWarn
 import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
 import radio.ks3ckc.sstvaf.ui.components.EmptyStateWaves
@@ -170,7 +172,7 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
                         key = "hdr:${gallerySectionKey(section.header)}",
                         span = { GridItemSpan(maxLineSpan) },
                     ) {
-                        GallerySectionTitle(section.header)
+                        GallerySectionTitle(section.header, section.images.size)
                     }
                     items(section.images, key = { it.id }) { entry ->
                         GalleryCell(
@@ -218,6 +220,19 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
                 refreshKey++
             }
         },
+        onSaveNote = { entry, note ->
+            scope.launch {
+                val updated = withContext(Dispatchers.IO) {
+                    store.updateNotes(entry.id, note)
+                }
+                // Keep the open sheet showing the saved note, and reload the
+                // list so the change survives a re-open. A null result means the
+                // row vanished (deleted elsewhere) — dismiss the now-stale sheet
+                // so Share/Save/Delete can't act on a missing entry.
+                if (updated != null) viewerEntry = updated else viewerVisible = false
+                refreshKey++
+            }
+        },
     )
 }
 
@@ -228,14 +243,22 @@ internal fun GalleryFilter.labelRes(): Int = when (this) {
     GalleryFilter.TX -> R.string.gallery_filter_tx
 }
 
-/** Full-width date header above a run of same-day cells (Today / Yesterday / date). */
+/**
+ * Full-width date header above a run of same-day cells, with the day's image
+ * count (Today / Yesterday / date, each suffixed "· N").
+ */
 @Composable
-private fun GallerySectionTitle(header: GallerySectionHeader) {
-    val text = when (header) {
+private fun GallerySectionTitle(header: GallerySectionHeader, count: Int) {
+    val baseLabel = when (header) {
         GallerySectionHeader.Today -> stringResource(R.string.gallery_section_today)
         GallerySectionHeader.Yesterday -> stringResource(R.string.gallery_section_yesterday)
         is GallerySectionHeader.Earlier -> header.dateLabel
     }
+    val text = gallerySectionCountLabel(
+        stringResource(R.string.gallery_section_count_label),
+        baseLabel,
+        count,
+    )
     Text(
         text = text,
         // The grid's contentPadding already insets 16dp horizontally, so the
@@ -277,6 +300,13 @@ private fun GalleryCell(
                     .align(Alignment.TopStart)
                     .padding(5.dp),
             )
+            if (galleryShowPartialBadge(entry)) {
+                PartialChip(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(5.dp),
+                )
+            }
         }
         Spacer(modifier = Modifier.height(4.dp))
         Text(
@@ -307,6 +337,31 @@ internal fun DirectionChip(direction: ImageDirection, modifier: Modifier = Modif
         fontSize = 9.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 0.08.sp,
+    )
+}
+
+/**
+ * Small "Partial" badge for an incomplete decode, mirroring [DirectionChip] but
+ * in the warning palette. The label doubles as its accessibility text, so a
+ * screen reader announces the partial state that colour alone would convey.
+ */
+@Composable
+internal fun PartialChip(modifier: Modifier = Modifier) {
+    Text(
+        text = stringResource(R.string.gallery_meta_partial),
+        modifier = modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(BgApp.copy(alpha = 0.72f))
+            .background(StatusWarn.copy(alpha = 0.2f))
+            .padding(horizontal = 5.dp, vertical = 1.dp),
+        color = StatusWarn,
+        fontSize = 9.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.08.sp,
+        // Localized label: keep it to one line so a longer translation clips
+        // rather than wrapping and shoving the overlay out of the cell corner.
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
     )
 }
 

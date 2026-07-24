@@ -1,0 +1,2 @@
+PTT delay refers to the response time of the radio after receiving the PTT key-down command.
+After FT8CN sends the PTT key-down command, the radio typically responds with a slight delay. Setting this time ensures that FT8CN only sends audio after the radio is actually in transmit mode, preventing incomplete audio transmission due to PTT lag.

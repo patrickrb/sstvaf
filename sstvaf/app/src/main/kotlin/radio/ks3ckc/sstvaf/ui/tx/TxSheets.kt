@@ -48,12 +48,14 @@ import radio.ks3ckc.sstvaf.ui.rx.formatDialFrequency
 
 /**
  * Pre-transmit confirmation: mode, duration, dial frequency, and a reminder
- * that confirming keys the transmitter.
+ * that confirming keys the transmitter. [cwTailSeconds] is the airtime the
+ * optional CW station-ID tail adds (0 when off), folded into the duration line.
  */
 @Composable
 internal fun TxConfirmSheet(
     visible: Boolean,
     mode: SstvMode,
+    cwTailSeconds: Double,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
@@ -67,7 +69,7 @@ internal fun TxConfirmSheet(
             )
             Spacer(Modifier.height(12.dp))
             Text(
-                text = confirmDurationLine(mode),
+                text = confirmDurationLine(mode, cwTailSeconds),
                 color = TextPrimary,
                 fontSize = 14.sp,
                 fontFamily = GeistMonoFamily,
