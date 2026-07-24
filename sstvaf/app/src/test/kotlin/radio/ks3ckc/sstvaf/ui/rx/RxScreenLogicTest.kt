@@ -211,13 +211,13 @@ class RxScreenLogicTest {
     }
 
     @Test
-    fun eta_overrun_clampsToZero() {
+    fun secondsRemaining_overrun_clampsToZero() {
         // Defensive: engine publishing rowsReady > totalRows must not go negative.
         assertThat(rxSecondsRemaining(300, 256, SstvMode.SCOTTIE_1.txDurationSeconds)).isEqualTo(0)
     }
 
     @Test
-    fun eta_degenerateTotal_isZero() {
+    fun secondsRemaining_degenerateTotal_isZero() {
         assertThat(rxSecondsRemaining(10, 0, SstvMode.SCOTTIE_1.txDurationSeconds)).isEqualTo(0)
         assertThat(rxSecondsRemaining(10, -1, SstvMode.SCOTTIE_1.txDurationSeconds)).isEqualTo(0)
     }
