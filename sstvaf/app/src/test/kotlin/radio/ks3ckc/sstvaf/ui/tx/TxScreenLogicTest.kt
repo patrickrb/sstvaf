@@ -84,16 +84,26 @@ class TxScreenLogicTest {
     // -- labels ------------------------------------------------------------------
 
     @Test
-    fun `mode chip label rounds the duration to whole seconds`() {
-        assertThat(modeChipLabel(SstvMode.SCOTTIE_1)).isEqualTo("Scottie 1 · 111 s")
-        assertThat(modeChipLabel(SstvMode.ROBOT_36)).isEqualTo("Robot 36 · 37 s")
-        assertThat(modeChipLabel(SstvMode.PD_120)).isEqualTo("PD 120 · 127 s")
+    fun `mode resolution label is the mode's pixel dimensions`() {
+        assertThat(modeResolutionLabel(SstvMode.SCOTTIE_1)).isEqualTo("320×256")
+        assertThat(modeResolutionLabel(SstvMode.ROBOT_36)).isEqualTo("320×240")
+        assertThat(modeResolutionLabel(SstvMode.MARTIN_4)).isEqualTo("320×128")
+        assertThat(modeResolutionLabel(SstvMode.PD_290)).isEqualTo("800×616")
+    }
+
+    @Test
+    fun `mode chip label carries resolution and duration`() {
+        assertThat(modeChipLabel(SstvMode.SCOTTIE_1)).isEqualTo("Scottie 1 · 320×256 · 111 s")
+        assertThat(modeChipLabel(SstvMode.ROBOT_36)).isEqualTo("Robot 36 · 320×240 · 37 s")
+        assertThat(modeChipLabel(SstvMode.PD_120)).isEqualTo("PD 120 · 640×496 · 127 s")
     }
 
     @Test
     fun `confirm sheet duration line golden`() {
-        assertThat(confirmDurationLine(SstvMode.ROBOT_36)).isEqualTo("Robot 36 — 37 seconds")
-        assertThat(confirmDurationLine(SstvMode.SCOTTIE_1)).isEqualTo("Scottie 1 — 111 seconds")
+        assertThat(confirmDurationLine(SstvMode.ROBOT_36))
+            .isEqualTo("Robot 36 — 320×240 — 37 seconds")
+        assertThat(confirmDurationLine(SstvMode.SCOTTIE_1))
+            .isEqualTo("Scottie 1 — 320×256 — 111 seconds")
     }
 
     @Test
