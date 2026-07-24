@@ -47,9 +47,17 @@ internal fun transmitGate(hasImage: Boolean, isTransmitting: Boolean, tuneActive
 // Labels
 // ---------------------------------------------------------------------------
 
-/** Mode selector chip label, e.g. "Scottie 1 · 111 s" (duration rounded to whole seconds). */
+/**
+ * The mode's picture resolution as a compact "width×height" label, e.g.
+ * "320×256". Surfaced next to the duration so an operator picking among the
+ * (now 16) modes sees the picture-quality half of the trade-off — Robot 36 is
+ * 320×240 in 37 s, PD 290 is 800×616 but takes 290 s — not just the airtime.
+ */
+internal fun modeResolutionLabel(mode: SstvMode): String = "${mode.width}×${mode.height}"
+
+/** Mode selector chip label, e.g. "Scottie 1 · 320×256 · 111 s" (duration rounded to whole seconds). */
 internal fun modeChipLabel(mode: SstvMode): String =
-    "${mode.displayName} · ${mode.txDurationSeconds.roundToInt()} s"
+    "${mode.displayName} · ${modeResolutionLabel(mode)} · ${mode.txDurationSeconds.roundToInt()} s"
 
 /**
  * Total on-air seconds for a transmission: the [mode] image scan plus the
@@ -64,15 +72,15 @@ internal fun totalTxDurationSeconds(mode: SstvMode, cwTailSeconds: Double): Doub
     mode.txDurationSeconds + cwTailSeconds.coerceAtLeast(0.0)
 
 /**
- * Confirm-sheet duration line, e.g. "Robot 36 — 37 seconds". When a CW
- * station-ID tail is appended ([cwTailSeconds] > 0) the total airtime is shown
- * and flagged so the operator knows how long the rig will actually key, e.g.
- * "Robot 36 — 42 seconds (incl. CW ID)".
+ * Confirm-sheet duration line, e.g. "Robot 36 — 320×240 — 37 seconds". When a
+ * CW station-ID tail is appended ([cwTailSeconds] > 0) the total airtime is
+ * shown and flagged so the operator knows how long the rig will actually key,
+ * e.g. "Robot 36 — 320×240 — 42 seconds (incl. CW ID)".
  */
 internal fun confirmDurationLine(mode: SstvMode, cwTailSeconds: Double = 0.0): String {
     val total = totalTxDurationSeconds(mode, cwTailSeconds).roundToInt()
     val idNote = if (cwTailSeconds > 0.0) " (incl. CW ID)" else ""
-    return "${mode.displayName} — $total seconds$idNote"
+    return "${mode.displayName} — ${modeResolutionLabel(mode)} — $total seconds$idNote"
 }
 
 /** Seconds → "m:ss". */
@@ -91,6 +99,28 @@ internal fun txElapsedLabel(progress: Float, durationSeconds: Double): String {
     val elapsed = (progress.coerceIn(0f, 1f) * total).roundToInt().coerceAtMost(total)
     return "${formatMinSec(elapsed)} / ${formatMinSec(total)}"
 }
+
+/**
+ * Whole seconds of transmission still to play, the mirror of the elapsed value
+ * inside [txElapsedLabel] (total − elapsed) so the countdown and the elapsed/
+ * total line never disagree by a rounding tick. Clamped to 0..total, so a
+ * finished (progress ≥ 1f) or degenerate (duration ≤ 0) transmission reads 0
+ * rather than going negative.
+ */
+internal fun txRemainingSeconds(progress: Float, durationSeconds: Double): Int {
+    val total = durationSeconds.roundToInt().coerceAtLeast(0)
+    val elapsed = (progress.coerceIn(0f, 1f) * total).roundToInt().coerceIn(0, total)
+    return total - elapsed
+}
+
+/**
+ * Preformatted "m:ss" countdown of transmit time left, e.g. "1:09". Fed into
+ * the `tx_remaining_format` resource ("%1$s left") for display under the TX
+ * progress bar, mirroring the RX decode ETA so both directions surface a
+ * plain-language "how much longer" readout.
+ */
+internal fun txRemainingLabel(progress: Float, durationSeconds: Double): String =
+    formatMinSec(txRemainingSeconds(progress, durationSeconds))
 
 // ---------------------------------------------------------------------------
 // Last-used-mode persistence (config key "sstvTxMode")

@@ -411,7 +411,7 @@ private fun CornerAffordance(text: String, enabled: Boolean, onClick: () -> Unit
     )
 }
 
-/** Horizontal mode selector, labels like "Scottie 1 · 111 s". */
+/** Horizontal mode selector, labels like "Scottie 1 · 320×256 · 111 s". */
 @Composable
 private fun ModeChipRow(
     selected: SstvMode,
@@ -546,6 +546,18 @@ private fun TxProgressPanel(progress: Float, totalSeconds: Double, onCancel: () 
             text = txElapsedLabel(progress, totalSeconds),
             color = TextPrimary,
             fontSize = 13.sp,
+            fontFamily = GeistMonoFamily,
+        )
+        Spacer(Modifier.height(2.dp))
+        // Plain-language countdown of transmit time left, mirroring the RX
+        // decode ETA — "how much longer is the rig keyed" at a glance.
+        Text(
+            text = stringResource(
+                R.string.tx_remaining_format,
+                txRemainingLabel(progress, mode.txDurationSeconds),
+            ),
+            color = TextMuted,
+            fontSize = 11.sp,
             fontFamily = GeistMonoFamily,
         )
         Spacer(Modifier.height(10.dp))
