@@ -343,11 +343,18 @@ internal fun formatShareUtc(utcMillis: Long): String {
  * (see [amateurBand]); an out-of-band capture drops it rather than showing a
  * blank. Mode name comes from the store verbatim (an unknown/hand-edited name
  * is used as-is).
+ *
+ * A user note ([SavedImage.notes]), when present, is appended as a final
+ * segment so the operator's callsign/comment travels with the picture. Any
+ * interior line breaks are flattened to single spaces so the caption stays one
+ * line; a blank note adds nothing.
  */
 internal fun buildImageShareCaption(entry: SavedImage): String {
     val freq = formatViewerFrequency(entry.freqHz)
     val bandSegment = amateurBand(entry.freqHz)?.let { " · $it" } ?: ""
-    return "SSTV ${entry.mode} · $freq$bandSegment · ${formatShareUtc(entry.utcMillis)}"
+    val base = "SSTV ${entry.mode} · $freq$bandSegment · ${formatShareUtc(entry.utcMillis)}"
+    val note = entry.notes.replace(Regex("\\s+"), " ").trim()
+    return if (note.isEmpty()) base else "$base · $note"
 }
 
 /** Completeness → viewer label resource (Complete / Partial). */

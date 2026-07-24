@@ -218,6 +218,18 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
                 refreshKey++
             }
         },
+        onSaveNote = { entry, note ->
+            scope.launch {
+                val updated = withContext(Dispatchers.IO) {
+                    store.updateNotes(entry.id, note)
+                }
+                // Keep the open sheet showing the saved note, and reload the
+                // list so the change survives a re-open. A null result means the
+                // row vanished (deleted elsewhere) — just refresh.
+                if (updated != null) viewerEntry = updated
+                refreshKey++
+            }
+        },
     )
 }
 

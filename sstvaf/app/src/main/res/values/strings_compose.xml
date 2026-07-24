@@ -679,6 +679,11 @@
     <string name="gallery_meta_status">Status</string>
     <string name="gallery_meta_complete">Complete</string>
     <string name="gallery_meta_partial">Partial</string>
+    <string name="gallery_meta_note">Note</string>
+    <string name="gallery_note_add">Add a note</string>
+    <string name="gallery_note_title">Image note</string>
+    <string name="gallery_note_hint">Callsign, QTH, or comment</string>
+    <string name="gallery_note_save">Save</string>
     <string name="rx_view_in_gallery">View in Gallery</string>
 
     <!-- ===== TX composer tab (PR 8) ===== -->

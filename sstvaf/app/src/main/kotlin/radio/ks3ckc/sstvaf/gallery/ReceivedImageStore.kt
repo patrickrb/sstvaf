@@ -37,6 +37,24 @@ data class SavedImage(
 /** Subdirectory of `filesDir` holding saved SSTV PNGs (see res/xml/filepaths.xml). */
 internal const val SSTV_IMAGES_DIR = "sstv_images"
 
+/**
+ * Longest note kept for a saved image (characters). A note is a short label —
+ * the operator's callsign, a QTH, "great signal" — not an essay, so capping it
+ * keeps the metadata row and the share caption bounded even against a runaway
+ * paste.
+ */
+internal const val IMAGE_NOTES_MAX_LENGTH = 200
+
+/**
+ * Normalizes a user-entered note before it is persisted: surrounding
+ * whitespace is trimmed and the result is capped at [IMAGE_NOTES_MAX_LENGTH]
+ * characters. Interior characters (including line breaks a multi-line field
+ * might carry) are preserved. A blank or whitespace-only note collapses to the
+ * empty string, which reads everywhere as "no note".
+ */
+internal fun sanitizeImageNotes(raw: String): String =
+    raw.trim().take(IMAGE_NOTES_MAX_LENGTH)
+
 /** The `sstv_images` metadata table (created by DatabaseOpr at DB v19). */
 internal const val SSTV_IMAGES_TABLE = "sstv_images"
 
@@ -222,6 +240,34 @@ class ReceivedImageStore @JvmOverloads constructor(
             }
         }
         return result
+    }
+
+    /** The single row with [id], or null when no image has that id. */
+    private fun queryById(id: Long): SavedImage? {
+        db.query(
+            SSTV_IMAGES_TABLE, null, "id = ?", arrayOf(id.toString()),
+            null, null, null,
+        ).use { cursor ->
+            return if (cursor.moveToFirst()) savedImageFromCursor(cursor) else null
+        }
+    }
+
+    /**
+     * Attach (or replace) the free-text note on one saved image — a callsign,
+     * QTH, or reception comment shown in the viewer and appended to the share
+     * caption. The text is normalized with [sanitizeImageNotes] (trimmed and
+     * length-capped) before it is stored, so passing a blank string clears the
+     * note.
+     *
+     * @return the refreshed [SavedImage], or null when no row has [id] (the
+     *   image was deleted out from under the open viewer). Synchronous — the
+     *   caller picks the thread.
+     */
+    fun updateNotes(id: Long, notes: String): SavedImage? {
+        val clean = sanitizeImageNotes(notes)
+        val values = ContentValues().apply { put("notes", clean) }
+        db.update(SSTV_IMAGES_TABLE, values, "id = ?", arrayOf(id.toString()))
+        return queryById(id)
     }
 
     /**

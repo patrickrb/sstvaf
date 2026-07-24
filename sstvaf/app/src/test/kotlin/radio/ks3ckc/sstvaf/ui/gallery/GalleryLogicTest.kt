@@ -367,6 +367,27 @@ class GalleryLogicTest {
             .isEqualTo("SSTV Scottie 1 · 27.265 MHz · 2026-07-04 15:30 UTC")
     }
 
+    @Test
+    fun shareCaption_appendsNoteWhenPresent() {
+        val entry = image(freqHz = 14_230_000L, utcMillis = goldenUtc).copy(notes = "de K1AF")
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV Scottie 1 · 14.230 MHz · 20m · 2026-07-04 15:30 UTC · de K1AF")
+    }
+
+    @Test
+    fun shareCaption_flattensNoteWhitespaceToSingleLine() {
+        val entry = image(freqHz = 14_230_000L, utcMillis = goldenUtc).copy(notes = "  line1\n line2  ")
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV Scottie 1 · 14.230 MHz · 20m · 2026-07-04 15:30 UTC · line1 line2")
+    }
+
+    @Test
+    fun shareCaption_blankNoteAddsNothing() {
+        val entry = image(freqHz = 14_230_000L, utcMillis = goldenUtc).copy(notes = "   ")
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV Scottie 1 · 14.230 MHz · 20m · 2026-07-04 15:30 UTC")
+    }
+
     // ----- amateur band lookup -----------------------------------------------
 
     @Test
