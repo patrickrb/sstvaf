@@ -1,0 +1,6 @@
+Header without proper EOH
+<eoh>
+<call:5>K1ABC<mode:3>FT8<eor>
+this record has no tags at all, parser should skip it<eor>
+<call:notanumber>BADREC<mode:3>FT8<eor>
+<call:4>W1AW<mode:3>FT8<eor>

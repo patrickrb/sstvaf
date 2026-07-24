@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<QRZDatabase version="1.34">
+    <Callsign>
+        <call>K1ABC</call>
+        <image>https://cdn.qrz.com/k1abc/photo.jpg</image>
+    </Callsign>
+    <Session>
+        <Key>SESSION-OK-1234567890ABCDEF</Key>
+    </Session>
+</QRZDatabase>

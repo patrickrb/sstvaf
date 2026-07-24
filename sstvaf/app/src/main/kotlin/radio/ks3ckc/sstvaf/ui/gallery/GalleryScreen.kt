@@ -171,7 +171,7 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
                         key = "hdr:${gallerySectionKey(section.header)}",
                         span = { GridItemSpan(maxLineSpan) },
                     ) {
-                        GallerySectionTitle(section.header)
+                        GallerySectionTitle(section.header, section.images.size)
                     }
                     items(section.images, key = { it.id }) { entry ->
                         GalleryCell(
@@ -219,6 +219,19 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
                 refreshKey++
             }
         },
+        onSaveNote = { entry, note ->
+            scope.launch {
+                val updated = withContext(Dispatchers.IO) {
+                    store.updateNotes(entry.id, note)
+                }
+                // Keep the open sheet showing the saved note, and reload the
+                // list so the change survives a re-open. A null result means the
+                // row vanished (deleted elsewhere) — dismiss the now-stale sheet
+                // so Share/Save/Delete can't act on a missing entry.
+                if (updated != null) viewerEntry = updated else viewerVisible = false
+                refreshKey++
+            }
+        },
     )
 }
 
@@ -229,14 +242,22 @@ internal fun GalleryFilter.labelRes(): Int = when (this) {
     GalleryFilter.TX -> R.string.gallery_filter_tx
 }
 
-/** Full-width date header above a run of same-day cells (Today / Yesterday / date). */
+/**
+ * Full-width date header above a run of same-day cells, with the day's image
+ * count (Today / Yesterday / date, each suffixed "· N").
+ */
 @Composable
-private fun GallerySectionTitle(header: GallerySectionHeader) {
-    val text = when (header) {
+private fun GallerySectionTitle(header: GallerySectionHeader, count: Int) {
+    val baseLabel = when (header) {
         GallerySectionHeader.Today -> stringResource(R.string.gallery_section_today)
         GallerySectionHeader.Yesterday -> stringResource(R.string.gallery_section_yesterday)
         is GallerySectionHeader.Earlier -> header.dateLabel
     }
+    val text = gallerySectionCountLabel(
+        stringResource(R.string.gallery_section_count_label),
+        baseLabel,
+        count,
+    )
     Text(
         text = text,
         // The grid's contentPadding already insets 16dp horizontally, so the

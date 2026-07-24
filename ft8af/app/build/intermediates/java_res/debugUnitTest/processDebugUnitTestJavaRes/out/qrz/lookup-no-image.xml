@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<QRZDatabase version="1.34">
+    <Callsign>
+        <call>W1AW</call>
+    </Callsign>
+    <Session>
+        <Key>SESSION-OK-1234567890ABCDEF</Key>
+    </Session>
+</QRZDatabase>

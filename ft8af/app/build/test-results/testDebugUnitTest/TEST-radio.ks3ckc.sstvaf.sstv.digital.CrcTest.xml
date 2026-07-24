@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="radio.ks3ckc.sstvaf.sstv.digital.CrcTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-07-09T01:47:53" hostname="JIGGLEBILLY" time="0.009">
+  <properties/>
+  <testcase name="crc detects single-bit changes" classname="radio.ks3ckc.sstvaf.sstv.digital.CrcTest" time="0.007"/>
+  <testcase name="crc32 stays within 32 bits" classname="radio.ks3ckc.sstvaf.sstv.digital.CrcTest" time="0.001"/>
+  <testcase name="crc16 check vector" classname="radio.ks3ckc.sstvaf.sstv.digital.CrcTest" time="0.0"/>
+  <testcase name="range overload matches copy" classname="radio.ks3ckc.sstvaf.sstv.digital.CrcTest" time="0.001"/>
+  <testcase name="crc32 check vector" classname="radio.ks3ckc.sstvaf.sstv.digital.CrcTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -211,6 +211,10 @@
     <string name="log_section_signal_trend">Signal Trend</string>
     <string name="log_no_qsos_yet">No QSOs yet</string>
     <string name="log_no_qsos_recorded_yet">No QSOs recorded yet</string>
+    <string name="log_search_placeholder">Search callsign, grid, band…</string>
+    <string name="log_search_no_matches">No QSOs match “%1$s”</string>
+    <string name="log_cd_search">Search QSOs</string>
+    <string name="log_cd_clear_search">Clear search</string>
     <string name="log_state_usa">%1$s, USA</string>
     <string name="log_cd_qso_actions">QSO actions</string>
     <string name="log_action_edit">Edit</string>
@@ -659,6 +663,10 @@
     <string name="gallery_empty_tx">Sent images will appear here</string>
     <string name="gallery_section_today">Today</string>
     <string name="gallery_section_yesterday">Yesterday</string>
+    <!-- Date-section header = day label + that day's image count, e.g.
+         "Today · 3". %1$s is the day label (Today/Yesterday/date); %2$d is the
+         count. Reorder or change the separator if the target language needs it. -->
+    <string name="gallery_section_count_label">%1$s · %2$d</string>
     <string name="gallery_share">Share</string>
     <string name="gallery_save_photos">Save to Photos</string>
     <string name="gallery_delete">Delete</string>
@@ -673,12 +681,23 @@
     <string name="gallery_meta_time">Time</string>
     <string name="gallery_meta_size">Size</string>
     <string name="gallery_meta_quality">Quality</string>
+    <!-- Quality meta value: raw percentage + plain-language grade, e.g. "87% · Excellent". -->
+    <string name="gallery_quality_value">%1$s · %2$s</string>
+    <string name="gallery_quality_grade_excellent">Excellent</string>
+    <string name="gallery_quality_grade_good">Good</string>
+    <string name="gallery_quality_grade_fair">Fair</string>
+    <string name="gallery_quality_grade_poor">Poor</string>
     <string name="gallery_meta_direction">Direction</string>
     <string name="gallery_meta_direction_rx">Received</string>
     <string name="gallery_meta_direction_tx">Sent</string>
     <string name="gallery_meta_status">Status</string>
     <string name="gallery_meta_complete">Complete</string>
     <string name="gallery_meta_partial">Partial</string>
+    <string name="gallery_meta_note">Note</string>
+    <string name="gallery_note_add">Add a note</string>
+    <string name="gallery_note_title">Image note</string>
+    <string name="gallery_note_hint">Callsign, QTH, or comment</string>
+    <string name="gallery_note_save">Save</string>
     <string name="rx_view_in_gallery">View in Gallery</string>
 
     <!-- ===== TX composer tab (PR 8) ===== -->
@@ -704,4 +723,8 @@
     <string name="tx_confirm_cancel">Cancel</string>
     <string name="tx_confirm_go">Transmit</string>
     <string name="tx_cancel_button">CANCEL TX</string>
+    <!-- TX progress: estimated time left in the current transmission.
+         %1$s is a preformatted m:ss countdown (e.g. "1:09"). Mirrors
+         rx_eta_format on the receive side. -->
+    <string name="tx_remaining_format">%1$s left</string>
 </resources>

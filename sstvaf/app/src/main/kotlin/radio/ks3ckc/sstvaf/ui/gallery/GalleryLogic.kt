@@ -1,5 +1,6 @@
 package radio.ks3ckc.sstvaf.ui.gallery
 
+import androidx.annotation.StringRes
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.k1af.ft8af.R
@@ -208,6 +209,20 @@ internal fun buildGallerySections(
     return sections
 }
 
+/**
+ * Date-section header label with a trailing count of that day's images, e.g.
+ * "Today · 3". The count is the size of the section's image list, so it always
+ * matches exactly what renders beneath the header.
+ *
+ * [pattern] is the `gallery_section_count_label` resource (`"%1$s · %2$d"`) so
+ * the day-label/count ordering and separator live in a string resource a
+ * translator can reorder (mirroring [galleryFilterChipLabel] for the filter
+ * chips). Formatted with [Locale.US] so the digits stay Western, matching the
+ * rest of the gallery's numeric readouts.
+ */
+internal fun gallerySectionCountLabel(pattern: String, baseLabel: String, count: Int): String =
+    String.format(Locale.US, pattern, baseLabel, count)
+
 /** Stable LazyGrid key for a section header (Today/Yesterday collapse to a slug). */
 internal fun gallerySectionKey(header: GallerySectionHeader): String = when (header) {
     GallerySectionHeader.Today -> "today"
@@ -275,6 +290,34 @@ internal fun formatViewerDimensions(width: Int, height: Int): String = "$width �
 /** Engine quality (0..1) as a whole percent, clamped, e.g. "87%". */
 internal fun formatViewerQuality(quality: Float): String =
     "${(quality.coerceIn(0f, 1f) * 100f).roundToInt()}%"
+
+/**
+ * A plain-language grade for a decode's 0..1 quality score. The raw percentage
+ * is precise but opaque — a user who doesn't know whether "62%" is a good copy
+ * gets no read on it. The grade turns the number into words next to it.
+ */
+internal enum class QualityGrade(@StringRes val labelRes: Int) {
+    EXCELLENT(R.string.gallery_quality_grade_excellent),
+    GOOD(R.string.gallery_quality_grade_good),
+    FAIR(R.string.gallery_quality_grade_fair),
+    POOR(R.string.gallery_quality_grade_poor),
+}
+
+/**
+ * Maps the engine's 0..1 quality score to a [QualityGrade]. Thresholds
+ * (inclusive lower bounds): ≥0.85 Excellent, ≥0.65 Good, ≥0.40 Fair, else Poor.
+ * A NaN or out-of-range score is clamped first (NaN → Poor), so a corrupt or
+ * hand-edited value grades rather than throwing.
+ */
+internal fun qualityGrade(quality: Float): QualityGrade {
+    val q = if (quality.isNaN()) 0f else quality.coerceIn(0f, 1f)
+    return when {
+        q >= 0.85f -> QualityGrade.EXCELLENT
+        q >= 0.65f -> QualityGrade.GOOD
+        q >= 0.40f -> QualityGrade.FAIR
+        else -> QualityGrade.POOR
+    }
+}
 
 /** Frequency line for the viewer, e.g. "14.230 MHz". */
 internal fun formatViewerFrequency(freqHz: Long): String =
@@ -355,11 +398,18 @@ internal fun formatShareUtc(utcMillis: Long): String {
  * (see [amateurBand]); an out-of-band capture drops it rather than showing a
  * blank. Mode name comes from the store verbatim (an unknown/hand-edited name
  * is used as-is).
+ *
+ * A user note ([SavedImage.notes]), when present, is appended as a final
+ * segment so the operator's callsign/comment travels with the picture. Any
+ * interior line breaks are flattened to single spaces so the caption stays one
+ * line; a blank note adds nothing.
  */
 internal fun buildImageShareCaption(entry: SavedImage): String {
     val freq = formatViewerFrequency(entry.freqHz)
     val bandSegment = amateurBand(entry.freqHz)?.let { " · $it" } ?: ""
-    return "SSTV ${entry.mode} · $freq$bandSegment · ${formatShareUtc(entry.utcMillis)}"
+    val base = "SSTV ${entry.mode} · $freq$bandSegment · ${formatShareUtc(entry.utcMillis)}"
+    val note = entry.notes.replace(Regex("\\s+"), " ").trim()
+    return if (note.isEmpty()) base else "$base · $note"
 }
 
 /** Completeness → viewer label resource (Complete / Partial). */
