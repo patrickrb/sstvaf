@@ -18,6 +18,13 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,10 +59,12 @@ import radio.ks3ckc.sstvaf.theme.Accent
 import radio.ks3ckc.sstvaf.theme.AccentSoft
 import radio.ks3ckc.sstvaf.theme.BgApp
 import radio.ks3ckc.sstvaf.theme.BgSurface
+import radio.ks3ckc.sstvaf.theme.BorderStrong
 import radio.ks3ckc.sstvaf.theme.GeistMonoFamily
 import radio.ks3ckc.sstvaf.theme.Signal
 import radio.ks3ckc.sstvaf.theme.SignalSoft
 import radio.ks3ckc.sstvaf.theme.StatusWarn
+import radio.ks3ckc.sstvaf.theme.TextFaint
 import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
 import radio.ks3ckc.sstvaf.ui.components.EmptyStateWaves
@@ -84,7 +94,10 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
     }
 
     var filter by rememberSaveable { mutableStateOf(GalleryFilter.ALL) }
-    val shown = filterGalleryImages(images, filter)
+    var query by rememberSaveable { mutableStateOf("") }
+    // Direction filter first, then the free-text query narrows what remains.
+    val filtered = filterGalleryImages(images, filter)
+    val shown = remember(filtered, query) { searchGalleryImages(filtered, query) }
 
     // Clock for the cells' relative ages ("2 h ago"): ticks once a minute so
     // labels don't go stale while the screen stays open.
@@ -132,10 +145,30 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
             onSelected = { filter = it },
         )
 
+        // Search only makes sense once there is history to search; while the
+        // gallery is bare the field would just sit above the empty-state art.
+        if (images.isNotEmpty()) {
+            GallerySearchField(
+                query = query,
+                onQueryChange = { query = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
+
         Spacer(modifier = Modifier.height(10.dp))
 
         if (shown.isEmpty()) {
-            Box(
+            // A blank query means the direction filter emptied the grid (or the
+            // gallery is bare); a live query that matched nothing is a search miss.
+            val reason = if (images.isEmpty()) {
+                GalleryEmptyReason.NoImages(galleryEmptyStateRes(filter))
+            } else {
+                galleryEmptyReason(filter, query)
+            }
+            GalleryEmptyState(
+                reason = reason,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
@@ -145,18 +178,7 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
                     // later-composed TX strip draws over the spill. See
                     // emptyStateBottomPadding (#24).
                     .padding(bottom = emptyStateBottomPadding()),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    EmptyStateWaves()
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(galleryEmptyStateRes(filter)),
-                        color = TextMuted,
-                        fontSize = 13.sp,
-                    )
-                }
-            }
+            )
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(minSize = 110.dp),
@@ -241,6 +263,94 @@ internal fun GalleryFilter.labelRes(): Int = when (this) {
     GalleryFilter.ALL -> R.string.gallery_filter_all
     GalleryFilter.RX -> R.string.gallery_filter_rx
     GalleryFilter.TX -> R.string.gallery_filter_tx
+}
+
+/**
+ * The gallery search box: a compact single-line field with a leading search
+ * glyph and, once text is entered, a trailing clear button — mirroring the
+ * Logbook's Recent-tab search so the two histories search the same way.
+ */
+@Composable
+private fun GallerySearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        singleLine = true,
+        placeholder = {
+            Text(
+                text = stringResource(R.string.gallery_search_placeholder),
+                color = TextFaint,
+                fontSize = 14.sp,
+            )
+        },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Filled.Search,
+                contentDescription = stringResource(R.string.gallery_cd_search),
+                tint = TextMuted,
+            )
+        },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(
+                        imageVector = Icons.Filled.Clear,
+                        contentDescription = stringResource(R.string.gallery_cd_clear_search),
+                        tint = TextMuted,
+                    )
+                }
+            }
+        },
+        textStyle = TextStyle(
+            fontFamily = GeistMonoFamily,
+            fontSize = 15.sp,
+        ),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = TextPrimary,
+            unfocusedTextColor = TextPrimary,
+            cursorColor = Accent,
+            focusedBorderColor = Accent,
+            unfocusedBorderColor = BorderStrong,
+        ),
+        shape = RoundedCornerShape(12.dp),
+        modifier = modifier,
+    )
+}
+
+/**
+ * The centered message shown when the grid has no cells. A bare history (or a
+ * direction filter with no images) gets the illustrated empty state; a search
+ * that matched nothing gets a plain "no matches" note so the operator can see
+ * the query came up empty and clear it. See [GalleryEmptyReason].
+ */
+@Composable
+private fun GalleryEmptyState(reason: GalleryEmptyReason, modifier: Modifier = Modifier) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        when (reason) {
+            is GalleryEmptyReason.NoImages ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    EmptyStateWaves()
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(reason.messageRes),
+                        color = TextMuted,
+                        fontSize = 13.sp,
+                    )
+                }
+
+            is GalleryEmptyReason.NoSearchMatch ->
+                Text(
+                    text = stringResource(R.string.gallery_search_no_matches, reason.query),
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    color = TextMuted,
+                    fontSize = 13.sp,
+                )
+        }
+    }
 }
 
 /**

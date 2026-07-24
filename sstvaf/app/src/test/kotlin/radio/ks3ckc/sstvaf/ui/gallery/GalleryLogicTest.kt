@@ -30,7 +30,8 @@ class GalleryLogicTest {
         height: Int = 256,
         complete: Boolean = true,
         quality: Float = 0.87f,
-    ) = SavedImage(id, "f$id.png", direction, mode, freqHz, utcMillis, width, height, complete, quality, "")
+        notes: String = "",
+    ) = SavedImage(id, "f$id.png", direction, mode, freqHz, utcMillis, width, height, complete, quality, notes)
 
     // ----- filtering ---------------------------------------------------------
 
@@ -137,6 +138,142 @@ class GalleryLogicTest {
             galleryFilterChipLabel(CHIP_PATTERN, it.name, counts[it] ?: 0)
         }
         assertThat(labels.toSet()).hasSize(GalleryFilter.entries.size)
+    }
+
+    // ----- free-text search --------------------------------------------------
+
+    @Test
+    fun search_blankQuery_returnsSameInstance() {
+        val images = listOf(image(id = 1), image(id = 2))
+        for (q in listOf("", "   ", "\t\n")) {
+            assertThat(searchGalleryImages(images, q)).isSameInstanceAs(images)
+        }
+    }
+
+    @Test
+    fun search_matchesModeDisplayNameCaseInsensitive() {
+        val images = listOf(
+            image(id = 1, mode = "Scottie 1"),
+            image(id = 2, mode = "Martin 2"),
+        )
+        assertThat(searchGalleryImages(images, "scottie").map { it.id }).containsExactly(1L)
+        assertThat(searchGalleryImages(images, "MARTIN").map { it.id }).containsExactly(2L)
+    }
+
+    @Test
+    fun search_matchesModeShortCode() {
+        val images = listOf(
+            image(id = 1, mode = "Scottie 1"), // S1
+            image(id = 2, mode = "PD 120"), // PD120
+        )
+        assertThat(searchGalleryImages(images, "pd120").map { it.id }).containsExactly(2L)
+        assertThat(searchGalleryImages(images, "s1").map { it.id }).containsExactly(1L)
+    }
+
+    @Test
+    fun search_matchesBandLabel() {
+        val images = listOf(
+            image(id = 1, freqHz = 14_230_000L), // 20m
+            image(id = 2, freqHz = 7_040_000L), // 40m
+        )
+        assertThat(searchGalleryImages(images, "20m").map { it.id }).containsExactly(1L)
+        assertThat(searchGalleryImages(images, "40M").map { it.id }).containsExactly(2L)
+    }
+
+    @Test
+    fun search_matchesFrequencyMhzText() {
+        val images = listOf(
+            image(id = 1, freqHz = 14_230_000L), // 14.230
+            image(id = 2, freqHz = 7_040_000L), // 7.040
+        )
+        assertThat(searchGalleryImages(images, "14.230").map { it.id }).containsExactly(1L)
+    }
+
+    @Test
+    fun search_matchesDirectionEnumName() {
+        val images = listOf(
+            image(id = 1, direction = ImageDirection.RX),
+            image(id = 2, direction = ImageDirection.TX),
+        )
+        assertThat(searchGalleryImages(images, "tx").map { it.id }).containsExactly(2L)
+        assertThat(searchGalleryImages(images, "RX").map { it.id }).containsExactly(1L)
+    }
+
+    @Test
+    fun search_matchesNoteText() {
+        val images = listOf(
+            image(id = 1, notes = "QSO with W1AW"),
+            image(id = 2, notes = "great signal"),
+        )
+        assertThat(searchGalleryImages(images, "w1aw").map { it.id }).containsExactly(1L)
+        assertThat(searchGalleryImages(images, "SIGNAL").map { it.id }).containsExactly(2L)
+    }
+
+    @Test
+    fun search_multipleTokens_narrowByAll() {
+        val images = listOf(
+            image(id = 1, mode = "Scottie 1", freqHz = 14_230_000L), // Scottie + 20m
+            image(id = 2, mode = "Scottie 1", freqHz = 7_040_000L), // Scottie + 40m
+            image(id = 3, mode = "Martin 1", freqHz = 14_230_000L), // Martin + 20m
+        )
+        // Both tokens must match (mode AND band), so only image 1 survives.
+        assertThat(searchGalleryImages(images, "scottie 20m").map { it.id }).containsExactly(1L)
+    }
+
+    @Test
+    fun search_tokenMatchingNothing_dropsImage() {
+        val images = listOf(image(id = 1, mode = "Scottie 1", freqHz = 14_230_000L))
+        assertThat(searchGalleryImages(images, "scottie zzz")).isEmpty()
+    }
+
+    @Test
+    fun search_interiorWhitespaceCollapses() {
+        val images = listOf(image(id = 1, mode = "Scottie 1", freqHz = 14_230_000L))
+        // Extra spaces between tokens must not create empty tokens that match nothing.
+        assertThat(searchGalleryImages(images, "  scottie    20m  ").map { it.id })
+            .containsExactly(1L)
+    }
+
+    @Test
+    fun search_tokenDoesNotStraddleFacets() {
+        // "1martin" is a substring of neither the mode nor any other single facet,
+        // even though "Martin 1" ends in "1"; facets are matched individually.
+        val images = listOf(image(id = 1, mode = "Martin 1"))
+        assertThat(searchGalleryImages(images, "1martin")).isEmpty()
+    }
+
+    @Test
+    fun search_outOfBandFrequency_hasNoBandFacet() {
+        // 27 MHz CB is not an amateur band → amateurBand() is null → no NPE, no match.
+        val images = listOf(image(id = 1, freqHz = 27_205_000L, mode = "Scottie 1"))
+        assertThat(searchGalleryImages(images, "20m")).isEmpty()
+        assertThat(searchGalleryImages(images, "scottie").map { it.id }).containsExactly(1L)
+    }
+
+    // ----- empty-state reason ------------------------------------------------
+
+    @Test
+    fun emptyReason_blankQuery_isNoImagesForFilter() {
+        val reason = galleryEmptyReason(GalleryFilter.TX, "  ")
+        assertThat(reason).isInstanceOf(GalleryEmptyReason.NoImages::class.java)
+        assertThat((reason as GalleryEmptyReason.NoImages).messageRes)
+            .isEqualTo(R.string.gallery_empty_tx)
+    }
+
+    @Test
+    fun emptyReason_blankQueryNonTxFilter_pointsAtReceiving() {
+        for (filter in listOf(GalleryFilter.ALL, GalleryFilter.RX)) {
+            val reason = galleryEmptyReason(filter, "")
+            assertThat((reason as GalleryEmptyReason.NoImages).messageRes)
+                .isEqualTo(R.string.gallery_empty_rx)
+        }
+    }
+
+    @Test
+    fun emptyReason_nonBlankQuery_isSearchMissWithTrimmedQuery() {
+        val reason = galleryEmptyReason(GalleryFilter.ALL, "  w1aw  ")
+        assertThat(reason).isInstanceOf(GalleryEmptyReason.NoSearchMatch::class.java)
+        assertThat((reason as GalleryEmptyReason.NoSearchMatch).query).isEqualTo("w1aw")
     }
 
     // ----- sorting -----------------------------------------------------------
