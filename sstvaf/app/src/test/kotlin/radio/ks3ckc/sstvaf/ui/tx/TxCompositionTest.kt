@@ -46,6 +46,41 @@ class TxCompositionTest {
     }
 
     @Test
+    fun `blank callsign seeds no overlays even when a grid is set`() {
+        // A grid without a callsign bar makes no sense on air, so it stays empty.
+        assertThat(defaultTxComposition("", SstvMode.SCOTTIE_1, "FN31").overlays).isEmpty()
+    }
+
+    @Test
+    fun `default composition appends the grid to the CQ bottom bar`() {
+        val comp = defaultTxComposition("ks3ckc", SstvMode.ROBOT_36, "  en35 ")
+
+        // Top bar stays callsign-only; the CQ line carries the location.
+        assertThat(comp.overlays[0].text).isEqualTo("KS3CKC")
+        assertThat(comp.overlays[1].text).isEqualTo("CQ SSTV de KS3CKC EN35")
+    }
+
+    @Test
+    fun `blank grid leaves the CQ bottom bar unchanged`() {
+        assertThat(defaultTxComposition("KS3CKC", SstvMode.ROBOT_36, "   ").overlays[1].text)
+            .isEqualTo("CQ SSTV de KS3CKC")
+    }
+
+    // -- cqBarText ------------------------------------------------------------
+
+    @Test
+    fun `cqBarText appends an uppercased trimmed grid when present`() {
+        assertThat(cqBarText("KS3CKC", "en35ll")).isEqualTo("CQ SSTV de KS3CKC EN35LL")
+        assertThat(cqBarText("KS3CKC", "  FN31  ")).isEqualTo("CQ SSTV de KS3CKC FN31")
+    }
+
+    @Test
+    fun `cqBarText omits a blank grid`() {
+        assertThat(cqBarText("KS3CKC", "")).isEqualTo("CQ SSTV de KS3CKC")
+        assertThat(cqBarText("KS3CKC", "   ")).isEqualTo("CQ SSTV de KS3CKC")
+    }
+
+    @Test
     fun `default composition starts unzoomed and centered with no photo`() {
         val comp = defaultTxComposition("KS3CKC", SstvMode.PD_120)
         assertThat(comp.sourceUri).isNull()

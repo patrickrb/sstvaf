@@ -88,6 +88,7 @@ fun TxComposeScreen(mainViewModel: MainViewModel) {
             defaultTxComposition(
                 GeneralVariables.myCallsign,
                 initialTxMode(GeneralVariables.sstvTxMode),
+                GeneralVariables.getMyMaidenheadGrid() ?: "",
             ),
         )
     }

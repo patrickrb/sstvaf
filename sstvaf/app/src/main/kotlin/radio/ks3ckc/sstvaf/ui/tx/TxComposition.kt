@@ -98,12 +98,26 @@ val OVERLAY_COLOR_SWATCHES: List<Int> = listOf(
 // Factory + transformations ---------------------------------------------------
 
 /**
- * A fresh composition for [mode], pre-seeded with the SSTV-conventional text:
- * a TOP_BAR with the operator's callsign and a BOTTOM_BAR "CQ SSTV de CALL".
- * A blank/unset callsign seeds no overlays — transmitting a wrong or empty
- * callsign bar would be worse than none.
+ * The pre-seeded CQ bottom-bar text: "CQ SSTV de CALL", with the operator's
+ * Maidenhead grid locator appended ("CQ SSTV de CALL GRID") when [grid] is set.
+ * The grid is trimmed and uppercased to match the callsign styling and the
+ * all-caps SSTV overlay convention; a blank grid is omitted so the bar reads
+ * exactly as before. [call] is assumed already trimmed/uppercased by the caller.
  */
-fun defaultTxComposition(callsign: String, mode: SstvMode): TxComposition {
+internal fun cqBarText(call: String, grid: String): String {
+    val loc = grid.trim().uppercase()
+    return if (loc.isEmpty()) "CQ SSTV de $call" else "CQ SSTV de $call $loc"
+}
+
+/**
+ * A fresh composition for [mode], pre-seeded with the SSTV-conventional text:
+ * a TOP_BAR with the operator's callsign and a BOTTOM_BAR "CQ SSTV de CALL"
+ * (plus the operator's [grid] locator when one is set — see [cqBarText]).
+ * A blank/unset callsign seeds no overlays — transmitting a wrong or empty
+ * callsign bar would be worse than none — even if a grid is available, since a
+ * lone grid line carries no identity.
+ */
+fun defaultTxComposition(callsign: String, mode: SstvMode, grid: String = ""): TxComposition {
     val call = callsign.trim().uppercase()
     val overlays = if (call.isEmpty()) {
         emptyList()
@@ -117,7 +131,7 @@ fun defaultTxComposition(callsign: String, mode: SstvMode): TxComposition {
                 style = OverlayStyle.BAR,
             ),
             TextOverlay(
-                text = "CQ SSTV de $call",
+                text = cqBarText(call, grid),
                 colorArgb = OVERLAY_COLOR_WHITE,
                 sizeFraction = OVERLAY_SIZE_MEDIUM,
                 position = OverlayPosition.BOTTOM_BAR,
