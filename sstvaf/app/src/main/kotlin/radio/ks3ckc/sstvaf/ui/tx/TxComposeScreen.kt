@@ -554,7 +554,7 @@ private fun TxProgressPanel(progress: Float, totalSeconds: Double, onCancel: () 
         Text(
             text = stringResource(
                 R.string.tx_remaining_format,
-                txRemainingLabel(progress, mode.txDurationSeconds),
+                txRemainingLabel(progress, totalSeconds),
             ),
             color = TextMuted,
             fontSize = 11.sp,
