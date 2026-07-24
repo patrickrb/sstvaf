@@ -672,6 +672,7 @@
     <string name="gallery_meta_band">Band</string>
     <string name="gallery_meta_time">Time</string>
     <string name="gallery_meta_size">Size</string>
+    <string name="gallery_meta_airtime">Air time</string>
     <string name="gallery_meta_quality">Quality</string>
     <string name="gallery_meta_direction">Direction</string>
     <string name="gallery_meta_direction_rx">Received</string>

@@ -300,6 +300,23 @@ class GalleryLogicTest {
     }
 
     @Test
+    fun viewerAirTime_modeNominalDurationAsMinSec() {
+        // Scottie 1 = 110.54 s ≈ 111 s -> 1:51.
+        assertThat(formatViewerAirTime("Scottie 1")).isEqualTo("1:51")
+        // Robot 36 = 36.91 s ≈ 37 s -> 0:37 (under a minute).
+        assertThat(formatViewerAirTime("Robot 36")).isEqualTo("0:37")
+        // PD 290 = 289.59 s ≈ 290 s -> 4:50 (multi-minute).
+        assertThat(formatViewerAirTime("PD 290")).isEqualTo("4:50")
+    }
+
+    @Test
+    fun viewerAirTime_unknownModeIsNull() {
+        // A hand-edited / future mode name has no duration, so the row is omitted.
+        assertThat(formatViewerAirTime("Not A Mode")).isNull()
+        assertThat(formatViewerAirTime("")).isNull()
+    }
+
+    @Test
     fun viewerQuality_wholePercentClamped() {
         assertThat(formatViewerQuality(0.87f)).isEqualTo("87%")
         assertThat(formatViewerQuality(0f)).isEqualTo("0%")
