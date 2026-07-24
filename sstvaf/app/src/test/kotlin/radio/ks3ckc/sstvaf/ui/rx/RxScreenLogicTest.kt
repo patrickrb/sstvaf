@@ -77,6 +77,75 @@ class RxScreenLogicTest {
         assertThat(rxQualityFraction(1.7f)).isEqualTo(1f)
     }
 
+    // ----- rxEtaSeconds -----------------------------------------------------
+
+    @Test
+    fun eta_atStart_isFullImageScanTime() {
+        // Robot 36: 36.91 s total − 0.91 s header = 36.0 s of image; no rows in.
+        assertThat(rxEtaSeconds(SstvMode.ROBOT_36, 0, 240)).isWithin(1e-9).of(36.0)
+    }
+
+    @Test
+    fun eta_halfway_isHalfTheScanTime() {
+        assertThat(rxEtaSeconds(SstvMode.ROBOT_36, 120, 240)).isWithin(1e-9).of(18.0)
+    }
+
+    @Test
+    fun eta_lastRow_isNearlyZero() {
+        assertThat(rxEtaSeconds(SstvMode.ROBOT_36, 239, 240)).isWithin(1e-9).of(36.0 / 240)
+    }
+
+    @Test
+    fun eta_allRows_isZero() {
+        assertThat(rxEtaSeconds(SstvMode.ROBOT_36, 240, 240)).isEqualTo(0.0)
+    }
+
+    @Test
+    fun eta_overrun_clampsToZero() {
+        // Defensive: engine publishing rowsReady > totalRows must not go negative.
+        assertThat(rxEtaSeconds(SstvMode.ROBOT_36, 300, 240)).isEqualTo(0.0)
+    }
+
+    @Test
+    fun eta_degenerateTotal_isZero() {
+        assertThat(rxEtaSeconds(SstvMode.ROBOT_36, 10, 0)).isEqualTo(0.0)
+        assertThat(rxEtaSeconds(SstvMode.ROBOT_36, 10, -1)).isEqualTo(0.0)
+    }
+
+    // ----- formatRxEta ------------------------------------------------------
+
+    @Test
+    fun formatEta_roundsToWholeSeconds() {
+        assertThat(formatRxEta(12.4)).isEqualTo("~0:12")
+        assertThat(formatRxEta(11.6)).isEqualTo("~0:12")
+    }
+
+    @Test
+    fun formatEta_padsSecondsAndSplitsMinutes() {
+        assertThat(formatRxEta(0.0)).isEqualTo("~0:00")
+        assertThat(formatRxEta(9.0)).isEqualTo("~0:09")
+        assertThat(formatRxEta(75.0)).isEqualTo("~1:15")
+        assertThat(formatRxEta(600.0)).isEqualTo("~10:00")
+    }
+
+    @Test
+    fun formatEta_negative_clampsToZero() {
+        assertThat(formatRxEta(-5.0)).isEqualTo("~0:00")
+    }
+
+    // ----- rxEtaLabel -------------------------------------------------------
+
+    @Test
+    fun etaLabel_atStart_readsFullScanTime() {
+        // Scottie 1: 110.54332 − 0.91 = 109.63332 s → rounds to 110 s → 1:50.
+        assertThat(rxEtaLabel(SstvMode.SCOTTIE_1, 0, 256)).isEqualTo("~1:50")
+    }
+
+    @Test
+    fun etaLabel_complete_isZero() {
+        assertThat(rxEtaLabel(SstvMode.SCOTTIE_1, 256, 256)).isEqualTo("~0:00")
+    }
+
     // ----- formatSlantPpm ---------------------------------------------------
 
     @Test

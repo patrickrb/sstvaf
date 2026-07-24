@@ -1,5 +1,6 @@
 package radio.ks3ckc.sstvaf.ui.rx
 
+import radio.ks3ckc.sstvaf.sstv.SstvMode
 import radio.ks3ckc.sstvaf.sstv.SstvRxState
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -44,6 +45,44 @@ internal fun rxProgressPercent(rowsReady: Int, totalRows: Int): Int {
 
 /** Quality (engine's 0..1) as a 0..1 meter fill fraction, clamped. */
 internal fun rxQualityFraction(quality: Float): Float = quality.coerceIn(0f, 1f)
+
+/**
+ * The fixed calibration header (1900 Hz leader + VIS) every SSTV mode plays
+ * before the first image row. [SstvMode.txDurationSeconds] bundles it into the
+ * total transmission time (see the enum's kdoc); the ETA math removes it,
+ * because by the time rows are arriving in the Decoding state the header is
+ * already behind us.
+ */
+internal const val SSTV_HEADER_SECONDS = 0.91
+
+/**
+ * Estimated seconds of image left to receive: the mode's image-only scan time
+ * scaled by the fraction of rows still to come. The scan time is the mode's
+ * total [SstvMode.txDurationSeconds] minus the [SSTV_HEADER_SECONDS] header
+ * (SSTV timing is symmetric, so a mode receives in the same time it transmits).
+ * Clamped so a completed or overrun frame (rowsReady >= totalRows) and a
+ * degenerate total (<= 0) both yield 0.
+ */
+internal fun rxEtaSeconds(mode: SstvMode, rowsReady: Int, totalRows: Int): Double {
+    if (totalRows <= 0) return 0.0
+    val imageSeconds = (mode.txDurationSeconds - SSTV_HEADER_SECONDS).coerceAtLeast(0.0)
+    val remainingRows = (totalRows - rowsReady).coerceIn(0, totalRows)
+    return imageSeconds * remainingRows / totalRows
+}
+
+/**
+ * ETA as a short "~m:ss" label (e.g. "~0:12"), rounding to whole seconds and
+ * never going negative. Shown under the forming image so the operator knows
+ * roughly how long until the picture completes.
+ */
+internal fun formatRxEta(secondsRemaining: Double): String {
+    val total = secondsRemaining.roundToInt().coerceAtLeast(0)
+    return String.format(Locale.US, "~%d:%02d", total / 60, total % 60)
+}
+
+/** ETA "~m:ss" label straight from the live decode counters. */
+internal fun rxEtaLabel(mode: SstvMode, rowsReady: Int, totalRows: Int): String =
+    formatRxEta(rxEtaSeconds(mode, rowsReady, totalRows))
 
 /**
  * Slant in ppm as a short signed label, e.g. "+12", "-3", "0". Rounded to

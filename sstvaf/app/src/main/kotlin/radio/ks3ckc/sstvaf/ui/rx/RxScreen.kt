@@ -194,6 +194,7 @@ fun RxScreen(
                             totalRows = s.totalRows,
                             quality = s.quality,
                             slantPpm = s.slantPpm,
+                            etaLabel = rxEtaLabel(s.mode, s.rowsReady, s.totalRows),
                         )
                     }
                 }
@@ -324,7 +325,7 @@ private fun RxImageView(image: ImageBitmap?, aspect: Float, modifier: Modifier =
     }
 }
 
-/** Status strip under the forming image: mode, progress, quality, slant. */
+/** Status strip under the forming image: mode, progress, ETA, quality, slant. */
 @Composable
 private fun RxStatusStrip(
     modeName: String,
@@ -332,6 +333,7 @@ private fun RxStatusStrip(
     totalRows: Int,
     quality: Float,
     slantPpm: Float,
+    etaLabel: String,
 ) {
     Row(
         modifier = Modifier
@@ -359,8 +361,11 @@ private fun RxStatusStrip(
 
         Spacer(modifier = Modifier.width(6.dp))
 
+        // Estimated time until the picture completes (replaces the raw row
+        // count, which duplicated the percentage). Row bookkeeping still drives
+        // both readouts; this one is the operator-facing countdown.
         Text(
-            text = stringResource(R.string.rx_rows_format, rowsReady, totalRows),
+            text = etaLabel,
             color = TextMuted,
             fontFamily = GeistMonoFamily,
             fontSize = 10.sp,
