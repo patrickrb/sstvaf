@@ -69,8 +69,12 @@ object VoxPreTone {
         val out = FloatArray(n)
         val step = 2.0 * PI * TONE_HZ / sampleRate
         val ramp = minOf((RAMP_MS * sampleRate / 1000.0).toInt(), n)
+        // Denominator ramp-1 (clamped for the degenerate 1-sample ramp) so the
+        // LAST ramp sample lands exactly at full scale — no residual step when
+        // the envelope hands over to the constant 1.0 region.
+        val rampDenom = (ramp - 1).coerceAtLeast(1)
         for (i in 0 until n) {
-            val env = if (ramp > 0 && i < ramp) 0.5 * (1.0 - cos(PI * i / ramp)) else 1.0
+            val env = if (ramp > 0 && i < ramp) 0.5 * (1.0 - cos(PI * i / rampDenom)) else 1.0
             // Phase counts down to 0 at index n, meeting the encoder's phase-0
             // leader start.
             out[i] = (AMPLITUDE * env * sin(step * (i - n))).toFloat()

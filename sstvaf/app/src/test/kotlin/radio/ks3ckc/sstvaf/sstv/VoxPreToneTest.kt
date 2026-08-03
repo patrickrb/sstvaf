@@ -65,6 +65,19 @@ class VoxPreToneTest {
     }
 
     @Test
+    fun rampLandsExactlyAtFullScale() {
+        // Copilot review (PR #72): the raised-cosine envelope must reach
+        // exactly 1.0 on the LAST ramp sample, not step up to it afterwards.
+        // With a 5 ms ramp at 12 kHz the last ramp index is 59; at full
+        // envelope the sample equals the bare full-scale sine there.
+        val tone = VoxPreTone.samples(300, rate)
+        val lastRampIndex = (5.0 * rate / 1000.0).toInt() - 1
+        val step = 2.0 * PI * VoxPreTone.TONE_HZ / rate
+        val bareSine = (VoxPreTone.AMPLITUDE * sin(step * (lastRampIndex - tone.size))).toFloat()
+        assertThat(tone[lastRampIndex]).isWithin(1e-6f).of(bareSine)
+    }
+
+    @Test
     fun toneIs1900Hz() {
         val tone = VoxPreTone.samples(300, rate)
         var crossings = 0
