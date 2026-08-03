@@ -98,6 +98,21 @@ internal fun formatDialFrequency(freqHz: Long): String =
     String.format(Locale.US, "%.3f MHz", freqHz / 1_000_000.0)
 
 /**
+ * The RX tab's dial-frequency label, optionally suffixed with the amateur band
+ * ("14.230 MHz · 20m"). This mirrors the always-on TX strip pill in the app
+ * shell ([radio.ks3ckc.sstvaf.SstvAfApp]) — same " · " separator, same
+ * MHz-then-band ordering — so the two live-tuning readouts read identically and
+ * the operator sees at a glance which band they're monitoring. A null or blank
+ * [bandName] (an out-of-band dial, or a band the rig helper can't name) drops
+ * the suffix, leaving the plain "14.230 MHz" rather than a trailing separator.
+ */
+internal fun formatDialFrequencyWithBand(freqHz: Long, bandName: String?): String {
+    val base = formatDialFrequency(freqHz)
+    val trimmed = bandName?.trim().orEmpty()
+    return if (trimmed.isEmpty()) base else "$base · $trimmed"
+}
+
+/**
  * Estimated seconds of image scan still to receive. SSTV scans rows at a
  * constant rate, so the time left is the fraction of rows not yet decoded
  * scaled by the mode's image-scan time (its total TX duration minus the fixed

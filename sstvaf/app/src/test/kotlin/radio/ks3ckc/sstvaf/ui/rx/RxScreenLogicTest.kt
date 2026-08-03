@@ -182,6 +182,32 @@ class RxScreenLogicTest {
         assertThat(formatDialFrequency(7_171_500L)).isEqualTo("7.172 MHz")
     }
 
+    // ----- formatDialFrequencyWithBand --------------------------------------
+
+    @Test
+    fun frequencyWithBand_appendsBandAfterSeparator() {
+        assertThat(formatDialFrequencyWithBand(14_230_000L, "20m"))
+            .isEqualTo("14.230 MHz · 20m")
+    }
+
+    @Test
+    fun frequencyWithBand_nullBand_dropsSuffix() {
+        assertThat(formatDialFrequencyWithBand(14_230_000L, null))
+            .isEqualTo("14.230 MHz")
+    }
+
+    @Test
+    fun frequencyWithBand_blankBand_dropsSuffixWithNoTrailingSeparator() {
+        assertThat(formatDialFrequencyWithBand(14_230_000L, "   "))
+            .isEqualTo("14.230 MHz")
+    }
+
+    @Test
+    fun frequencyWithBand_trimsSurroundingWhitespace() {
+        assertThat(formatDialFrequencyWithBand(7_171_500L, " 40m "))
+            .isEqualTo("7.172 MHz · 40m")
+    }
+
     // ----- rxSecondsRemaining -----------------------------------------------
 
     @Test

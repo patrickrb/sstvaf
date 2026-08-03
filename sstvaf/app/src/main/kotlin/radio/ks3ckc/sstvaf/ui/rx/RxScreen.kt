@@ -41,6 +41,8 @@ import androidx.compose.ui.unit.sp
 import com.k1af.ft8af.GeneralVariables
 import com.k1af.ft8af.MainViewModel
 import com.k1af.ft8af.R
+import com.k1af.ft8af.database.OperationBand
+import com.k1af.ft8af.rigs.BaseRigOperation
 import radio.ks3ckc.sstvaf.sstv.LastDecodedImage
 import radio.ks3ckc.sstvaf.sstv.SstvRxState
 import radio.ks3ckc.sstvaf.theme.Accent
@@ -78,10 +80,15 @@ fun RxScreen(
 
     var rxEnabled by remember { mutableStateOf(listener.isEnabled()) }
 
-    // Dial frequency label — recomposes when the user retunes.
-    @Suppress("UNUSED_VARIABLE")
+    // Dial frequency label — recomposes when the user retunes. The band name is
+    // resolved the same three-tier way as the app-shell TX strip pill (list
+    // index → exact-frequency match → rig helper) so both readouts agree.
     val bandIndex by GeneralVariables.mutableBandChange.observeAsState(GeneralVariables.bandListIndex)
-    val frequencyLabel = formatDialFrequency(GeneralVariables.band)
+    val freq = GeneralVariables.band
+    val bandName = OperationBand.bandList.getOrNull(bandIndex)?.waveLength
+        ?: OperationBand.bandList.firstOrNull { it.band == freq }?.waveLength
+        ?: BaseRigOperation.getMeterFromFreq(freq)
+    val frequencyLabel = formatDialFrequencyWithBand(freq, bandName)
 
     val assembler = remember { RxImageAssembler() }
     var appliedRows by remember { mutableIntStateOf(0) }
