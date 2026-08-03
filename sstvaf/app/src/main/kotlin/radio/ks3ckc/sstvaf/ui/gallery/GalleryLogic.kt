@@ -74,6 +74,54 @@ internal fun galleryFilterCounts(images: List<SavedImage>): Map<GalleryFilter, I
 internal fun galleryFilterChipLabel(pattern: String, baseLabel: String, count: Int): String =
     String.format(Locale.US, pattern, baseLabel, count)
 
+// ---------------------------------------------------------------------------
+// Free-text search
+// ---------------------------------------------------------------------------
+
+/** Splits a query into whitespace-separated tokens (interior runs collapse). */
+private val GALLERY_QUERY_TOKENS = Regex("\\s+")
+
+/**
+ * Filter the gallery by a free-text query so an operator with a long history
+ * can find an image instead of scrolling. Matching is case-insensitive and
+ * spans the facets an operator recognises a saved image by:
+ *
+ *  - the SSTV mode, by both its display name ("Scottie 1") and short code
+ *    ("S1"), so either spelling narrows the list;
+ *  - the amateur band ("20m") the dial frequency falls in;
+ *  - the dial frequency itself as MHz text ("14.230");
+ *  - the direction ("RX" / "TX"); and
+ *  - the free-text note the operator attached in the viewer (callsign, QTH…).
+ *
+ * A query with several whitespace-separated tokens narrows by ALL of them (a
+ * token that matches no facet drops the image), so "scottie 20m" finds Scottie
+ * captures on 20 metres. A blank/whitespace query returns the list unchanged
+ * (the same instance), so the no-search path costs nothing. This composes on top
+ * of the direction filter — callers pass the already-filtered list.
+ */
+internal fun searchGalleryImages(images: List<SavedImage>, query: String): List<SavedImage> {
+    val tokens = query.trim().split(GALLERY_QUERY_TOKENS).filter { it.isNotEmpty() }
+    if (tokens.isEmpty()) return images
+    return images.filter { entry -> tokens.all { galleryImageMatchesToken(entry, it) } }
+}
+
+/**
+ * Whether one image matches a single already-non-blank query token. Each
+ * searchable facet is tested individually (case-insensitive [String.contains])
+ * rather than against a concatenation, so a token can never match by straddling
+ * two facets (a mode's tail running into the band). See [searchGalleryImages]
+ * for the facet list. The direction is matched by its stable enum name
+ * ("RX"/"TX"), not the localized viewer label, so the query behaves the same in
+ * every locale.
+ */
+internal fun galleryImageMatchesToken(entry: SavedImage, token: String): Boolean =
+    entry.mode.contains(token, ignoreCase = true) ||
+        galleryModeShort(entry.mode).contains(token, ignoreCase = true) ||
+        entry.notes.contains(token, ignoreCase = true) ||
+        entry.direction.name.contains(token, ignoreCase = true) ||
+        formatGalleryFreqMhz(entry.freqHz).contains(token, ignoreCase = true) ||
+        amateurBand(entry.freqHz)?.contains(token, ignoreCase = true) == true
+
 /**
  * Newest first, matching the store's list order (utcMillis desc, id as the
  * tiebreak for two images finishing in the same millisecond).
@@ -238,6 +286,35 @@ internal fun gallerySectionKey(header: GallerySectionHeader): String = when (hea
 internal fun galleryEmptyStateRes(filter: GalleryFilter): Int = when (filter) {
     GalleryFilter.TX -> R.string.gallery_empty_tx
     else -> R.string.gallery_empty_rx
+}
+
+/**
+ * Why the gallery grid is showing nothing, so the screen can explain it
+ * appropriately. A search that filtered everything out is a different situation
+ * from an empty history: the operator should see the search came up empty (and
+ * can clear it), not read "images will appear here" as if the gallery were bare.
+ */
+internal sealed interface GalleryEmptyReason {
+    /** No image exists for the active direction filter (no active search). */
+    data class NoImages(@StringRes val messageRes: Int) : GalleryEmptyReason
+
+    /** Images exist for the filter, but none matched the search [query]. */
+    data class NoSearchMatch(val query: String) : GalleryEmptyReason
+}
+
+/**
+ * Picks the empty-state reason for [filter] and [query] when the grid has no
+ * rows. A blank query means the grid is empty because nothing matches the
+ * direction filter (or the gallery is empty); a non-blank query that produced no
+ * rows is a search miss, carrying the trimmed query for the "no matches" message.
+ */
+internal fun galleryEmptyReason(filter: GalleryFilter, query: String): GalleryEmptyReason {
+    val needle = query.trim()
+    return if (needle.isEmpty()) {
+        GalleryEmptyReason.NoImages(galleryEmptyStateRes(filter))
+    } else {
+        GalleryEmptyReason.NoSearchMatch(needle)
+    }
 }
 
 /**
