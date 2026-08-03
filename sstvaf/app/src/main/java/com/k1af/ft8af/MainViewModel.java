@@ -100,6 +100,7 @@ import radio.ks3ckc.sstvaf.gallery.ReceivedImageStore;
 import radio.ks3ckc.sstvaf.gallery.RxAutoSaveController;
 import radio.ks3ckc.sstvaf.sstv.SstvSignalListener;
 import radio.ks3ckc.sstvaf.sstv.SstvTransmitter;
+import radio.ks3ckc.sstvaf.ui.tx.TxComposerState;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -144,6 +145,9 @@ public class MainViewModel extends ViewModel {
     // with the recorder, fed by the same fan-out, RxForegroundService unchanged.
     public SstvSignalListener sstvSignalListener;//continuous SSTV RX decode engine
     public SstvTransmitter sstvTransmitter;//SSTV image transmitter (PTT + audio sink)
+    //TX composer photo/crop/overlays — outlives the TX tab composable so the
+    //image survives tab switches/rotation; dropped only by the user's CLEAR
+    public final TxComposerState txComposerState = new TxComposerState();
 
     // Received-image persistence (PR 6): PNG + metadata row per completed decode.
     public ReceivedImageStore receivedImageStore;//saved SSTV images (app storage + Photos)
