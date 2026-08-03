@@ -52,17 +52,24 @@ class SstvTransmitterTest {
         player: FakePlayer,
         tuneActive: Boolean = false,
         cwId: CwIdSettings = CwIdSettings(enabled = false, text = "", wpm = 20),
+        // Defaults model an explicitly keyed rig (CAT/RTS/DTR), where the VOX
+        // pre-tone never applies; VOX-path tests override both.
+        controlsPtt: Boolean = true,
+        voxPreToneMs: Int = 0,
+        settleDelayMsSource: () -> Long = { 0L }, // no PTT settle sleep in tests
     ) = SstvTransmitter(
         codec,
         keyer,
         player,
         { tuneActive },
         { 12000 },
-        { 0L }, // no PTT settle sleep in tests
+        settleDelayMsSource,
         { logs += it },
         { 42L },
         { body -> body.run() }, // synchronous worker
         { cwId },
+        { controlsPtt },
+        { voxPreToneMs },
     )
 
     private val pixels = IntArray(SstvMode.ROBOT_36.width * SstvMode.ROBOT_36.height)
@@ -306,6 +313,7 @@ class SstvTransmitterTest {
             { logs += it },
             { 42L },
             { body -> body.run() },
+            keyerControlsPttSource = { true },
         )
 
         transmitRobot36(tx)
@@ -323,16 +331,12 @@ class SstvTransmitterTest {
     fun cancelDuringPttSettleSkipsPlayButUnkeys() {
         lateinit var tx: SstvTransmitter
         val player = FakePlayer(events)
-        tx = SstvTransmitter(
-            codec,
-            keyer,
+        // controlsPtt=true: the settle source is only consulted when the keyer
+        // actually commands PTT (VOX skips the settle entirely).
+        tx = newTransmitter(
             player,
-            { false },
-            { 12000 },
-            { tx.cancel(); 0L }, // cancel lands while PTT is settling
-            { logs += it },
-            { 42L },
-            { body -> body.run() },
+            controlsPtt = true,
+            settleDelayMsSource = { tx.cancel(); 0L }, // cancel lands while PTT is settling
         )
 
         transmitRobot36(tx)
@@ -340,6 +344,107 @@ class SstvTransmitterTest {
         assertThat(events).containsExactly("keyDown", "cancel", "keyUp").inOrder()
         assertThat(logs.any { it.contains("cancelled during PTT settle") }).isTrue()
         assertThat(tx.isTransmittingNow()).isFalse()
+    }
+
+    // ------------------------------------------------------------------
+    // VOX pre-tone: with nothing keying the rig (VOX / auto-PTT cable),
+    // sacrificial 1900 Hz leader is prepended and the PTT settle is skipped.
+
+    @Test
+    fun voxPrependsPreToneWhenNothingKeysPtt() {
+        codec.encodeSampleCount = 24000
+        val player = FakePlayer(events)
+        val tx = newTransmitter(player, controlsPtt = false, voxPreToneMs = 300)
+
+        assertThat(transmitRobot36(tx)).isTrue()
+
+        // 300 ms at 12 kHz = 3600 extra samples ahead of the image, in the
+        // SAME buffer — a separate play could open a gap that drops the key.
+        assertThat(playSampleCounts()).containsExactly(24000 + 3600)
+        assertThat(logs.any { it.contains("voxPreToneMs=300") }).isTrue()
+    }
+
+    @Test
+    fun rigKeyedTransmissionNeverGetsPreTone() {
+        codec.encodeSampleCount = 24000
+        val player = FakePlayer(events)
+        // CAT/RTS/DTR: PTT is commanded before audio, so no pre-tone even
+        // with a configured length.
+        val tx = newTransmitter(player, controlsPtt = true, voxPreToneMs = 300)
+
+        assertThat(transmitRobot36(tx)).isTrue()
+
+        assertThat(playSampleCounts()).containsExactly(24000)
+        assertThat(logs.none { it.contains("voxPreToneMs") }).isTrue()
+    }
+
+    @Test
+    fun voxPreToneZeroDisablesThePreTone() {
+        codec.encodeSampleCount = 24000
+        val player = FakePlayer(events)
+        val tx = newTransmitter(player, controlsPtt = false, voxPreToneMs = 0)
+
+        assertThat(transmitRobot36(tx)).isTrue()
+
+        assertThat(playSampleCounts()).containsExactly(24000)
+        assertThat(logs.none { it.contains("voxPreToneMs") }).isTrue()
+    }
+
+    @Test
+    fun voxSkipsThePttSettleDelay() {
+        codec.encodeSampleCount = 24000
+        val player = FakePlayer(events)
+        var settleReads = 0
+        // Nothing was keyed, so sleeping the settle delay would only push the
+        // audio (and the pre-tone) later — the source must not be consulted.
+        val tx = newTransmitter(
+            player,
+            controlsPtt = false,
+            voxPreToneMs = 300,
+            settleDelayMsSource = { settleReads++; 100L },
+        )
+
+        assertThat(transmitRobot36(tx)).isTrue()
+
+        assertThat(settleReads).isEqualTo(0)
+        assertThat(events.first()).isEqualTo("keyDown")
+        assertThat(events.last()).isEqualTo("keyUp")
+    }
+
+    @Test
+    fun rigKeyedTransmissionStillReadsSettleDelay() {
+        codec.encodeSampleCount = 24000
+        val player = FakePlayer(events)
+        var settleReads = 0
+        val tx = newTransmitter(
+            player,
+            controlsPtt = true,
+            settleDelayMsSource = { settleReads++; 0L },
+        )
+
+        assertThat(transmitRobot36(tx)).isTrue()
+
+        assertThat(settleReads).isEqualTo(1)
+    }
+
+    @Test
+    fun voxPreToneAndCwIdComposeAroundTheImage() {
+        codec.encodeSampleCount = 24000
+        val player = FakePlayer(events)
+        val tx = newTransmitter(
+            player,
+            cwId = CwIdSettings(enabled = true, text = "K1ABC", wpm = 20),
+            controlsPtt = false,
+            voxPreToneMs = 300,
+        )
+
+        assertThat(transmitRobot36(tx)).isTrue()
+
+        // Pre-tone fused ahead of the image; CW ID still its own tail buffer.
+        val plays = playSampleCounts()
+        assertThat(plays).hasSize(2)
+        assertThat(plays[0]).isEqualTo(24000 + 3600)
+        assertThat(plays[1]).isGreaterThan(0)
     }
 
     @Test

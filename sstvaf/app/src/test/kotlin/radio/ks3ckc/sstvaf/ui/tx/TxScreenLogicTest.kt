@@ -119,6 +119,28 @@ class TxScreenLogicTest {
     }
 
     @Test
+    fun `total tx duration adds the vox pre-tone`() {
+        assertThat(totalTxDurationSeconds(SstvMode.ROBOT_36, 0.0, 0.3))
+            .isWithin(1e-9).of(37.21)
+        assertThat(totalTxDurationSeconds(SstvMode.ROBOT_36, 5.0, 0.3))
+            .isWithin(1e-9).of(42.21)
+    }
+
+    @Test
+    fun `total tx duration ignores a negative pre-tone`() {
+        assertThat(totalTxDurationSeconds(SstvMode.ROBOT_36, 0.0, -0.3))
+            .isWithin(1e-9).of(36.91)
+    }
+
+    @Test
+    fun `confirm line folds in the pre-tone without a cw flag`() {
+        // 36.91 s image + 0.8 s pre-tone = 37.71 → 38 s; sub-second leader is
+        // not called out as a separate segment.
+        assertThat(confirmDurationLine(SstvMode.ROBOT_36, 0.0, 0.8))
+            .isEqualTo("Robot 36 — 320×240 — 38 seconds")
+    }
+
+    @Test
     fun `confirm line with no cw id is unchanged`() {
         assertThat(confirmDurationLine(SstvMode.ROBOT_36, 0.0))
             .isEqualTo("Robot 36 — 320×240 — 37 seconds")

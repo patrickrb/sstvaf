@@ -49,13 +49,16 @@ import radio.ks3ckc.sstvaf.ui.rx.formatDialFrequency
 /**
  * Pre-transmit confirmation: mode, duration, dial frequency, and a reminder
  * that confirming keys the transmitter. [cwTailSeconds] is the airtime the
- * optional CW station-ID tail adds (0 when off), folded into the duration line.
+ * optional CW station-ID tail adds (0 when off) and [voxPreToneSeconds] the
+ * VOX pre-tone prepended in VOX control mode (0 otherwise), both folded into
+ * the duration line.
  */
 @Composable
 internal fun TxConfirmSheet(
     visible: Boolean,
     mode: SstvMode,
     cwTailSeconds: Double,
+    voxPreToneSeconds: Double = 0.0,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
@@ -69,7 +72,7 @@ internal fun TxConfirmSheet(
             )
             Spacer(Modifier.height(12.dp))
             Text(
-                text = confirmDurationLine(mode, cwTailSeconds),
+                text = confirmDurationLine(mode, cwTailSeconds, voxPreToneSeconds),
                 color = TextPrimary,
                 fontSize = 14.sp,
                 fontFamily = GeistMonoFamily,
