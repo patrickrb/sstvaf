@@ -3,6 +3,7 @@ package radio.ks3ckc.sstvaf.sstv
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.k1af.ft8af.GeneralVariables
+import com.k1af.ft8af.transmit.PttController
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -41,6 +42,18 @@ class SstvTransmitter @JvmOverloads constructor(
             wpm = GeneralVariables.cwIdWpm,
         )
     },
+    /**
+     * Whether the keyer actually commands PTT (CAT/RTS/DTR). When it does
+     * not (VOX — the audio itself keys the rig, either via the radio's VOX
+     * or an auto-PTT audio cable), the PTT settle sleep is pointless and a
+     * [VoxPreTone] is prepended instead so the keying chain's attack time
+     * eats sacrificial leader, not the calibration header.
+     */
+    private val keyerControlsPttSource: () -> Boolean = {
+        PttController.controlsPtt(GeneralVariables.controlMode)
+    },
+    /** VOX pre-tone length in milliseconds (0 disables). */
+    private val voxPreToneMsSource: () -> Int = { GeneralVariables.voxPreToneMs },
 ) {
 
     /** Rig keying surface (MainViewModel adapts PttController). */
@@ -128,7 +141,17 @@ class SstvTransmitter @JvmOverloads constructor(
         try {
             val sampleRate = sampleRateSource()
             // Encode BEFORE keying: a bad image/mode must never key the rig.
-            val imageAudio = codec.encode(pixels, width, height, mode, sampleRate)
+            val encoded = codec.encode(pixels, width, height, mode, sampleRate)
+            // Read once so a mid-TX settings change can't split behavior
+            // between the pre-tone and the settle sleep below.
+            val controlsPtt = keyerControlsPttSource()
+            // With no explicit PTT (VOX / auto-PTT cable) the audio itself
+            // keys the rig, so prepend sacrificial 1900 Hz leader for the
+            // keying chain's attack time to consume. Strictly additive — the
+            // encoder output is never trimmed (CLAUDE.md "Never clip the
+            // leading audio").
+            val preToneMs = if (controlsPtt) 0 else voxPreToneMsSource()
+            val imageAudio = VoxPreTone.prependTo(encoded, preToneMs, sampleRate)
             // Optional CW station-ID tail (issue #14) kept as its own buffer so
             // it can still be keyed after a user-cancelled image (the operator
             // must identify). The image itself is untouched, so the leading
@@ -139,6 +162,7 @@ class SstvTransmitter @JvmOverloads constructor(
             log(
                 "SSTV TX: start — mode=${mode.displayName} ${width}x$height" +
                     " samples=${imageAudio.size} rate=$sampleRate durationMs=$durationMs" +
+                    (if (imageAudio.size > encoded.size) " voxPreToneMs=$preToneMs" else "") +
                     if (cwTail.isNotEmpty()) " cwId=${cwId.text} wpm=${cwId.wpm}" else "",
             )
 
@@ -152,8 +176,13 @@ class SstvTransmitter @JvmOverloads constructor(
 
             keyer.keyDown()
             keyed = true
-            val settleMs = settleDelayMsSource()
-            if (settleMs > 0) Thread.sleep(settleMs)
+            // The settle delay exists to let a commanded rig switch over after
+            // the PTT command; with nothing keyed (VOX) it would only push the
+            // pre-tone/leader later for no benefit.
+            if (controlsPtt) {
+                val settleMs = settleDelayMsSource()
+                if (settleMs > 0) Thread.sleep(settleMs)
+            }
 
             val ticker = startProgressTicker(durationMs)
             try {

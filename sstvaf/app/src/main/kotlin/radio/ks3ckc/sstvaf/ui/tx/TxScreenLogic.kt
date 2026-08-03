@@ -61,24 +61,36 @@ internal fun modeChipLabel(mode: SstvMode): String =
 
 /**
  * Total on-air seconds for a transmission: the [mode] image scan plus the
- * optional CW station-ID tail ([cwTailSeconds], 0 when the ID is off; a
- * negative value is treated as 0). This is the duration the transmitter's
- * progress ticker actually measures (image + CW — see SstvTransmitter), so the
- * confirm sheet and the progress readout use it rather than the bare
- * [SstvMode.txDurationSeconds], which under-reports airtime whenever the CW ID
- * is enabled.
+ * optional CW station-ID tail ([cwTailSeconds], 0 when the ID is off) plus the
+ * VOX pre-tone prepended in VOX control mode ([voxPreToneSeconds], 0 when a
+ * rig is keyed explicitly); negative values are treated as 0. This is the
+ * duration the transmitter's progress ticker actually measures (pre-tone +
+ * image + CW — see SstvTransmitter), so the confirm sheet and the progress
+ * readout use it rather than the bare [SstvMode.txDurationSeconds], which
+ * under-reports airtime whenever either extra is in play.
  */
-internal fun totalTxDurationSeconds(mode: SstvMode, cwTailSeconds: Double): Double =
-    mode.txDurationSeconds + cwTailSeconds.coerceAtLeast(0.0)
+internal fun totalTxDurationSeconds(
+    mode: SstvMode,
+    cwTailSeconds: Double,
+    voxPreToneSeconds: Double = 0.0,
+): Double =
+    mode.txDurationSeconds + cwTailSeconds.coerceAtLeast(0.0) +
+        voxPreToneSeconds.coerceAtLeast(0.0)
 
 /**
  * Confirm-sheet duration line, e.g. "Robot 36 — 320×240 — 37 seconds". When a
  * CW station-ID tail is appended ([cwTailSeconds] > 0) the total airtime is
  * shown and flagged so the operator knows how long the rig will actually key,
- * e.g. "Robot 36 — 320×240 — 42 seconds (incl. CW ID)".
+ * e.g. "Robot 36 — 320×240 — 42 seconds (incl. CW ID)". A VOX pre-tone folds
+ * into the total silently — it is sub-second leader, not a separate segment
+ * the operator would notice on air.
  */
-internal fun confirmDurationLine(mode: SstvMode, cwTailSeconds: Double = 0.0): String {
-    val total = totalTxDurationSeconds(mode, cwTailSeconds).roundToInt()
+internal fun confirmDurationLine(
+    mode: SstvMode,
+    cwTailSeconds: Double = 0.0,
+    voxPreToneSeconds: Double = 0.0,
+): String {
+    val total = totalTxDurationSeconds(mode, cwTailSeconds, voxPreToneSeconds).roundToInt()
     val idNote = if (cwTailSeconds > 0.0) " (incl. CW ID)" else ""
     return "${mode.displayName} — ${modeResolutionLabel(mode)} — $total seconds$idNote"
 }

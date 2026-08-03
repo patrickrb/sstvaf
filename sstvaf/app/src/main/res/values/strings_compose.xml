@@ -523,6 +523,8 @@
     <!-- ===== Settings: advanced ===== -->
     <string name="settings_ptt_delay">PTT Delay</string>
     <string name="settings_ptt_delay_desc">Delay after PTT before transmit audio begins</string>
+    <string name="settings_vox_pre_tone">VOX pre-tone</string>
+    <string name="settings_vox_pre_tone_desc">Extra 1900 Hz leader before each image so VOX or an auto-PTT cable (handheld radios) keys up without clipping the SSTV header. Applies in VOX mode only.</string>
     <string name="settings_cw_id">CW station ID</string>
     <string name="settings_cw_id_desc">Send your callsign in Morse code after each SSTV image</string>
     <string name="settings_cw_id_speed">CW ID speed</string>

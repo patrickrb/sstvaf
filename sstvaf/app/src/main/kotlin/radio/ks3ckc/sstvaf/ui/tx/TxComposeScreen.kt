@@ -58,10 +58,12 @@ import androidx.compose.ui.unit.sp
 import com.k1af.ft8af.GeneralVariables
 import com.k1af.ft8af.MainViewModel
 import com.k1af.ft8af.R
+import com.k1af.ft8af.transmit.PttController
 import radio.ks3ckc.sstvaf.gallery.ImageDirection
 import radio.ks3ckc.sstvaf.sstv.CwId
 import radio.ks3ckc.sstvaf.sstv.CwIdSettings
 import radio.ks3ckc.sstvaf.sstv.SstvMode
+import radio.ks3ckc.sstvaf.sstv.VoxPreTone
 import radio.ks3ckc.sstvaf.theme.Accent
 import radio.ks3ckc.sstvaf.theme.BgApp
 import radio.ks3ckc.sstvaf.theme.BgSurface
@@ -177,6 +179,19 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
         GeneralVariables.audioSampleRate,
     )
 
+    // Airtime the VOX pre-tone prepends in VOX control mode (sacrificial
+    // leader for VOX/auto-PTT-cable attack time — see VoxPreTone); 0 whenever
+    // a rig is keyed explicitly, mirroring SstvTransmitter's gating.
+    val voxPreToneSeconds =
+        if (PttController.controlsPtt(GeneralVariables.controlMode)) {
+            0.0
+        } else {
+            VoxPreTone.durationSeconds(
+                GeneralVariables.voxPreToneMs,
+                GeneralVariables.audioSampleRate,
+            )
+        }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -235,7 +250,9 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
             if (isTransmitting) {
                 TxProgressPanel(
                     progress = txProgress,
-                    totalSeconds = totalTxDurationSeconds(composition.mode, cwTailSeconds),
+                    totalSeconds = totalTxDurationSeconds(
+                        composition.mode, cwTailSeconds, voxPreToneSeconds,
+                    ),
                     onCancel = { mainViewModel.sstvTransmitter.cancel() },
                 )
             } else {
@@ -269,6 +286,7 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
         visible = showConfirmSheet,
         mode = composition.mode,
         cwTailSeconds = cwTailSeconds,
+        voxPreToneSeconds = voxPreToneSeconds,
         onDismiss = { showConfirmSheet = false },
         onConfirm = {
             showConfirmSheet = false

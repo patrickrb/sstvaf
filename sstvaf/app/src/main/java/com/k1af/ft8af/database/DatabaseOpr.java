@@ -2334,6 +2334,9 @@ public class DatabaseOpr extends SQLiteOpenHelper {
                 if (name.equalsIgnoreCase("cwIdEnabled")) {//Append CW station-ID after SSTV image (issue #14)
                     GeneralVariables.cwIdEnabled = result.equals("1");
                 }
+                if (name.equalsIgnoreCase("voxPreToneMs")) {//VOX pre-tone length (extra leader for VOX/auto-PTT cable HTs)
+                    GeneralVariables.voxPreToneMs = parseVoxPreToneMs(result);
+                }
                 if (name.equalsIgnoreCase("cwIdWpm")) {//CW ID keying speed (WPM), max/default 20
                     //Defensive parse: settings import (#382) can feed a
                     //corrupted/non-numeric value here at startup. Blank or
@@ -2527,5 +2530,21 @@ public class DatabaseOpr extends SQLiteOpenHelper {
         }
     }
 
+    /**
+     * Defensive parse for the voxPreToneMs config value: settings import
+     * (#382) can feed a blank, null, or non-numeric string here at startup.
+     * Those fall back to the VoxPreTone default (300 ms); numeric input is
+     * clamped to 0..VoxPreTone.MAX_MS (the settings picker's range).
+     */
+    public static int parseVoxPreToneMs(String result) {
+        int ms = radio.ks3ckc.sstvaf.sstv.VoxPreTone.DEFAULT_MS;
+        if (result != null && !result.isEmpty()) {
+            try {
+                ms = Integer.parseInt(result.trim());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return Math.max(0, Math.min(radio.ks3ckc.sstvaf.sstv.VoxPreTone.MAX_MS, ms));
+    }
 
 }

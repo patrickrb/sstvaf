@@ -80,9 +80,11 @@ public class PttController {
 
     /**
      * Whether the given control mode commands PTT explicitly (CAT/RTS/DTR).
-     * VOX (and anything unknown) does not — the audio keys the rig.
+     * VOX (and anything unknown) does not — the audio keys the rig. Public
+     * because SstvTransmitter uses it to decide whether to prepend a VOX
+     * pre-tone and whether the PTT settle delay applies.
      */
-    static boolean controlsPtt(int controlMode) {
+    public static boolean controlsPtt(int controlMode) {
         return controlMode == ControlMode.CAT
                 || controlMode == ControlMode.RTS
                 || controlMode == ControlMode.DTR;
