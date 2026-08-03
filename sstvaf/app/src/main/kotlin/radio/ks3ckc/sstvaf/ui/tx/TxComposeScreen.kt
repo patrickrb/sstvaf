@@ -33,7 +33,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -85,26 +84,25 @@ import radio.ks3ckc.sstvaf.ui.components.TopBar
 fun TxComposeScreen(mainViewModel: MainViewModel) {
     val context = LocalContext.current
 
-    var composition by remember {
-        mutableStateOf(
+    // The composition and picked photo live in MainViewModel's TxComposerState,
+    // NOT in remember{}: the tab shell fully disposes this screen on every tab
+    // switch, and the operator's photo/crop/overlay setup must survive until
+    // they replace or clear it themselves. The remember{} below runs once per
+    // tab visit and (re-)seeds defaults only while the composition is untouched
+    // — preserving the old pick-up-a-new-callsign behavior.
+    val composerState = mainViewModel.txComposerState
+    remember {
+        composerState.refreshDefaults {
             defaultTxComposition(
                 GeneralVariables.myCallsign,
                 initialTxMode(GeneralVariables.sstvTxMode),
                 GeneralVariables.getMyMaidenheadGrid() ?: "",
-            ),
-        )
+            )
+        }
     }
-    var sourceBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    // Release the previous source's pixels when a new photo replaces it and
-    // when the screen leaves composition. Sources are downsampled (~2x the
-    // mode frame at most) but on pre-O devices their pixels live in native
-    // memory the GC can't see, so dispose deterministically. Safe ordering:
-    // onDispose for the old key runs after recomposition, by which point the
-    // preview has already been re-rendered from the new source.
-    DisposableEffect(sourceBitmap) {
-        val owned = sourceBitmap
-        onDispose { owned?.recycle() }
-    }
+    val composition = composerState.composition
+        ?: return // unreachable: refreshDefaults above always seeds
+    val sourceBitmap = composerState.sourceBitmap
     var showConfirmSheet by remember { mutableStateOf(false) }
     // Index into composition.overlays being edited, or -1 for a new overlay;
     // null = editor closed.
@@ -114,18 +112,16 @@ fun TxComposeScreen(mainViewModel: MainViewModel) {
     val txProgress by mainViewModel.sstvTransmitter.txProgress.observeAsState(0f)
     val isTuning by mainViewModel.tuneOperator.mutableIsTuning.observeAsState(false)
 
-    // Load a picked/captured image into the source bitmap and reset the crop.
-    // Shared by the photo picker and the camera capture below.
+    // Load a picked/captured image into the composer state (resets the crop,
+    // recycles the photo it replaces). Shared by the photo picker and the
+    // camera capture below.
     val applyImageUri: (Uri) -> Unit = { uri ->
         val bitmap = loadSourceBitmap(
             context.contentResolver, uri,
             composition.mode.width, composition.mode.height,
         )
         if (bitmap != null) {
-            sourceBitmap = bitmap
-            composition = composition.copy(
-                sourceUri = uri.toString(), zoom = 1f, panX = 0f, panY = 0f,
-            )
+            composerState.setImage(bitmap, uri.toString())
         }
     }
 
@@ -201,11 +197,12 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                 onTakePhoto = launchCamera,
                 onGesture = { panDx, panDy, zoomFactor, previewW, previewH ->
                     val src = sourceBitmap ?: return@TxPreviewFrame
-                    composition = applyPanZoomGesture(
+                    composerState.composition = applyPanZoomGesture(
                         composition, src.width, src.height,
                         previewW, previewH, panDx, panDy, zoomFactor,
                     )
                 },
+                onClearImage = { composerState.clearImage() },
             )
 
             Spacer(Modifier.height(12.dp))
@@ -214,7 +211,7 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                 selected = composition.mode,
                 enabled = !isTransmitting,
                 onSelect = { mode ->
-                    composition = composition.copy(mode = mode)
+                    composerState.composition = composition.copy(mode = mode)
                     GeneralVariables.sstvTxMode = mode.name
                     mainViewModel.databaseOpr.writeConfig("sstvTxMode", mode.name, null)
                 },
@@ -227,7 +224,9 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                 enabled = !isTransmitting,
                 onEdit = { index -> editingOverlay = index },
                 onAdd = { editingOverlay = -1 },
-                onRemove = { index -> composition = composition.withOverlayRemoved(index) },
+                onRemove = { index ->
+                    composerState.composition = composition.withOverlayRemoved(index)
+                },
             )
 
             Spacer(Modifier.height(16.dp))
@@ -255,7 +254,7 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
             initial = composition.overlays.getOrNull(index),
             onDismiss = { editingOverlay = null },
             onSave = { overlay ->
-                composition = if (index in composition.overlays.indices) {
+                composerState.composition = if (index in composition.overlays.indices) {
                     composition.withOverlayReplaced(index, overlay)
                 } else {
                     composition.withOverlayAdded(overlay)
@@ -308,6 +307,7 @@ private fun TxPreviewFrame(
     onPickImage: () -> Unit,
     onTakePhoto: () -> Unit,
     onGesture: (panDx: Float, panDy: Float, zoomFactor: Float, previewW: Float, previewH: Float) -> Unit,
+    onClearImage: () -> Unit,
 ) {
     val aspect = mode.width.toFloat() / mode.height.toFloat()
     val config = LocalConfiguration.current
@@ -371,7 +371,8 @@ private fun TxPreviewFrame(
                         }
                     },
             )
-            // Re-pick affordances in the corner: library (CHANGE) and camera.
+            // Corner affordances: camera, library (CHANGE), and the only way
+            // the composed image is ever dropped — the user's explicit CLEAR.
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier
@@ -387,6 +388,11 @@ private fun TxPreviewFrame(
                     text = stringResource(R.string.tx_change_photo),
                     enabled = gesturesEnabled,
                     onClick = onPickImage,
+                )
+                CornerAffordance(
+                    text = stringResource(R.string.tx_clear_photo),
+                    enabled = gesturesEnabled,
+                    onClick = onClearImage,
                 )
             }
         }

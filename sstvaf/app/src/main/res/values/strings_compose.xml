@@ -717,6 +717,7 @@
     <string name="tx_preview_description">Transmit preview</string>
     <string name="tx_change_photo">CHANGE</string>
     <string name="tx_camera_photo">CAMERA</string>
+    <string name="tx_clear_photo">CLEAR</string>
     <string name="tx_overlay_add">Add text</string>
     <string name="tx_overlay_edit">Edit text</string>
     <string name="tx_overlay_remove">Remove</string>
