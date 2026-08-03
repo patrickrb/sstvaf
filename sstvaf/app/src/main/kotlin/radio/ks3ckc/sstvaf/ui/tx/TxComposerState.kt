@@ -50,6 +50,12 @@ class TxComposerState {
      * callsign entered in Settings after the TX tab was first opened still
      * produces the default callsign/CQ overlays on the next visit. Any
      * user-touched composition is returned unchanged, photo or not.
+     *
+     * Untouched is *structural*, deliberately: picking a photo and clearing it
+     * again (with no mode/overlay edit) lands back on a composition equal to
+     * the seeded default — genuinely pristine, so it re-seeds like one. The
+     * clear itself is never undone (there is no photo either way), and any
+     * real edit makes the state structurally distinct and thus protected.
      */
     fun refreshDefaults(defaultProvider: () -> TxComposition): TxComposition {
         val current = composition

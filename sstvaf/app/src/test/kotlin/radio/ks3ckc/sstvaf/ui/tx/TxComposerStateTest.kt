@@ -124,6 +124,25 @@ class TxComposerStateTest {
     }
 
     @Test
+    fun photoOnlyThenClearIsPristineAndPicksUpRefreshedDefaults() {
+        // Copilot review (PR #73) flagged this path as a bug; it is pinned
+        // here as INTENDED. Picking a photo and clearing it without any other
+        // edit returns the composition to the pristine seeded state (default
+        // mode/overlays, no photo), so the next visit refreshes defaults —
+        // e.g. a callsign set in the meantime seeds its overlays. Nothing the
+        // user did is lost: the photo stays cleared either way, and any
+        // mode/overlay edit makes the state structurally distinct and thus
+        // protected (see clearedCompositionCountsAsTouchedNotReSeeded).
+        val state = TxComposerState()
+        state.refreshDefaults { default(callsign = "") }
+        state.setImage(bitmap(), "content://photo/1")
+        state.clearImage()
+        val after = state.refreshDefaults { default(callsign = "K1ABC") }
+        assertThat(after).isEqualTo(default(callsign = "K1ABC"))
+        assertThat(state.sourceBitmap).isNull()
+    }
+
+    @Test
     fun clearedCompositionCountsAsTouchedNotReSeeded() {
         // After an explicit clear the operator's mode/overlay choices remain;
         // the next tab visit must not blow them away with fresh defaults.
