@@ -1,7 +1,0 @@
-Connection mode refers to how FT8CN connects to and controls the radio.
-   FT8CN supports three connection modes with the radio: wired connection (USB-to-serial), Bluetooth connection, and network connection. For wired and Bluetooth connections, FT8CN controls the radio via serial port commands (PTT on/off, frequency setting, mode setting, etc.). Network connection uses the radio's network protocol to control the radio, including audio transmission and reception over the network.
-   Currently, FT8CN supports ICOM and FlexRadio network protocols. ICOM fully supports audio signal transmission and reception, while FlexRadio currently only supports audio reception.
-   Notes:
-     1. Bluetooth must be enabled on the phone to enter Bluetooth connection mode.
-     2. Bluetooth serial port (SPP) is different from Bluetooth audio. Bluetooth audio can only be used for audio transmission and reception, and cannot control the radio. Only radios with Bluetooth serial port capability can be controlled by FT8CN.
-     3. When using ICOM over a network connection, the transmission process demands high router performance. Low-performance routers may experience severe packet loss during audio transmission. It is recommended to use the radio's AP or the phone's AP for the connection.

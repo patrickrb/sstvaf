@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="radio.ks3ckc.sstvaf.sstv.digital.BitInterleaverTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-07-09T01:47:52" hostname="JIGGLEBILLY" time="0.25">
-  <properties/>
-  <testcase name="spreads a contiguous burst across the codeword" classname="radio.ks3ckc.sstvaf.sstv.digital.BitInterleaverTest" time="0.194"/>
-  <testcase name="roundtrips arbitrary lengths and depths" classname="radio.ks3ckc.sstvaf.sstv.digital.BitInterleaverTest" time="0.049"/>
-  <testcase name="rejects non-positive depth" classname="radio.ks3ckc.sstvaf.sstv.digital.BitInterleaverTest" time="0.004"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

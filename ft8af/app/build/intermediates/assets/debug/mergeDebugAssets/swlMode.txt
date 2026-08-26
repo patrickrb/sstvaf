@@ -1,7 +1,0 @@
-SWL stands for Shortwave Listener.
-SWL mode is a receive-only mode where you listen to contacts between other amateur radio operators without transmitting.
-For SWL, FT8CN adds "Save Decoded Messages" and "Save SWL Records" features.
-Save Decoded Messages: Saves all messages decoded by FT8CN.
-Save SWL Records: Saves the QSO logs of contacts between other amateur radio stations that you monitored. In FT8CN, a successful SWL QSO requires: a closing message (73, RR73, or RRR) and signal reports from both parties. Grid reports from both parties are not required.
-Saved "Decoded Messages" and "SWL Records" can be queried and exported from the web interface (accessible via a browser on the same local network).
-Deleting saved "Decoded Messages" and "SWL Records" can be done through the "Clear Cache" option in the Settings page.

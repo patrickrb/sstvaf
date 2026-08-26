@@ -1,3 +1,0 @@
-Carrier band refers to the carrier frequency band used by the radio during transmission. The carrier band is recorded in every QSO log entry.
-In CAT mode, the app will automatically set the radio's carrier band.
-In VOX mode, it is only used for saving logs.

@@ -1,5 +1,0 @@
-About CI-V Address and Baud Rate
-CI-V Address: The CI-V address of the radio. CI-V (Communications Interface V) is a communication protocol between the controller and the radio.
-Baud Rate: The data transmission speed between the radio and the app.
-According to CI-V requirements, communication addresses are needed to distinguish between receiver and sender (since there may be more than one device on the control bus). Generally, each model has a default address assigned at the factory. Different radio models may have different default addresses. The controller's default address is typically 0xE0, and the broadcast address is 0x00. For example, the IC-705's default address is 0xA4.
-This app has pre-configured the default addresses and maximum supported baud rates for several radio models. You can automatically set the address and baud rate by selecting your "Radio Model."

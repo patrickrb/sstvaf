@@ -1,3 +1,0 @@
-Excluded callsign prefixes. After FT8CN decodes a message, callsigns matching these prefixes will not be added to the "Call" list, preventing the auto-caller from calling those callsigns.
-Multiple callsign prefixes can be entered, separated by commas or spaces.
-The excluded callsign prefix action has the highest priority, taking precedence over "Followed," "CQ," and "Directed to me."

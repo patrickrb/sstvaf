@@ -1,3 +1,0 @@
-Time offset refers to the offset of each cycle relative to the system clock in this app.
-The FT8 clock cycle is 15 seconds. All stations use UTC time as the reference, with cycle start times at 0, 15, 30, and 45 seconds of each minute.
-If network access is available, FT8CN will automatically sync the time. If network access is unavailable, you can manually set the offset value.

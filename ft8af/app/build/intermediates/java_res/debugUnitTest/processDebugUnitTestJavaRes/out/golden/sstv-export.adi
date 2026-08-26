@@ -1,3 +1,0 @@
-SSTVAF ADIF Export<eoh>
-<call:4>W1AW <QSL_RCVD:1>N <QSL_MANUAL:1>N <gridsquare:0> <mode:3>FT8 <rst_sent:3>-05 <rst_rcvd:3>-10 <qso_date:8>19700101 <time_on:6>000000 <qso_date_off:8>19700101 <time_off:6>000000 <band:3>20m <freq:9>14.074000 <station_callsign:6>KS3CKC <my_gridsquare:0> <comment:6>legacy <eor>
-<call:5>TEST1 <QSL_RCVD:1>N <QSL_MANUAL:1>N <gridsquare:4>EM29 <mode:4>SSTV <SUBMODE:9>Scottie 1 <rst_sent:3>595 <rst_rcvd:3>595 <qso_date:8>19700101 <time_on:6>000000 <qso_date_off:8>19700101 <time_off:6>000000 <band:3>20m <freq:9>14.230000 <station_callsign:6>KS3CKC <my_gridsquare:4>EM28 <comment:18>First SSTV contact <eor>
