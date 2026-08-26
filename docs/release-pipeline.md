@@ -94,12 +94,15 @@ These cannot be done from a workflow file — do them in the repo settings:
 1. **Create the `staging` branch** from `dev`:
    `git checkout dev && git pull && git checkout -b staging && git push -u origin staging`.
 2. **Branch protection for `staging`** → Require status checks →
-   add `Staging branch source gate / enforce-source-is-dev` (plus the platform
-   gates `android-gate`, `desktop-gate`, `ios-gate` as desired).
+   add `enforce-source-is-dev` plus the always-run platform gates
+   `android-gate`, `desktop-gui-gate` and `SSTV codec host tests`.
 3. **Branch protection for `main`** → Require status checks →
-   add `Main branch source gate / enforce-source-is-staging`. If the old
-   `enforce-source-is-dev` check was required on `main`, remove it — that gate
-   now lives on `staging`.
+   add `enforce-source-is-staging` plus the same three platform gates.
+   `dev` requires just `SSTV codec host tests`. All three branches require one
+   approving review and block force-pushes/deletions (admins exempt), mirroring
+   FT8AF. Applied 2026-08-26 via the branch-protection API; re-apply with
+   `gh api -X PUT repos/<owner>/sstvaf/branches/<branch>/protection` if the
+   check names ever change.
 4. **Play Console** → confirm the `PLAY_SERVICE_ACCOUNT_JSON` service account has
    release permission on the **production** track (it previously only needed
    internal). `main` merges now publish there.
