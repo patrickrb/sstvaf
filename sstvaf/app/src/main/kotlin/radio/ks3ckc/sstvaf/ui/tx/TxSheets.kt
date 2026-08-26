@@ -77,6 +77,14 @@ internal fun TxConfirmSheet(
                 fontSize = 14.sp,
                 fontFamily = GeistMonoFamily,
             )
+            Spacer(Modifier.height(2.dp))
+            // Plain-language airtime class under the exact seconds, so the
+            // operator gauges the on-air commitment at the moment they commit.
+            Text(
+                text = stringResource(txAirtimeClass(mode, cwTailSeconds).labelRes),
+                color = TextMuted,
+                fontSize = 12.sp,
+            )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = formatDialFrequency(GeneralVariables.band),

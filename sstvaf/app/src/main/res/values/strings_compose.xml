@@ -732,6 +732,13 @@
     <string name="tx_confirm_warning">Confirming keys the transmitter</string>
     <string name="tx_confirm_cancel">Cancel</string>
     <string name="tx_confirm_go">Transmit</string>
+    <!-- Pre-transmit confirm sheet: plain-language class of how long the rig
+         will be keyed, shown under the exact seconds so an operator can gauge
+         the commitment before tying up the frequency. -->
+    <string name="tx_airtime_quick">Quick transmission</string>
+    <string name="tx_airtime_moderate">Moderate transmission</string>
+    <string name="tx_airtime_long">Long transmission</string>
+    <string name="tx_airtime_very_long">Very long transmission</string>
     <string name="tx_cancel_button">CANCEL TX</string>
     <!-- TX progress: estimated time left in the current transmission.
          %1$s is a preformatted m:ss countdown (e.g. "1:09"). Mirrors
