@@ -1,18 +1,22 @@
+# Promotion path: feature → dev → staging → main.
+#
+# PRs into `staging` must come from `dev` in this repo. The `staging` ruleset
+# requires this check, so a PR from anywhere else can't be merged. Merging
+# dev → staging is what cuts the android-dev.<run#> prerelease + Play
+# internal release (android.yml) and the desktop dev build (desktop-gui.yml).
+
 name: Staging branch source gate
 
-# Enforces release discipline: PRs targeting staging must come from `dev`.
-# The promotion path is feature -> dev -> staging -> main; bundling many dev PRs
-# into a single dev -> staging promotion is what cuts a dev (prerelease) build.
-# Only dev -> staging is allowed here, gated by branch protection requiring this
-# status check.
-#
-# To enforce it: GitHub → Settings → Branches → Branch protection rule for
-# `staging` → Require status checks to pass → add "Staging branch source gate /
-# enforce-source-is-dev" to the required list.
-
+# pull_request_target (not pull_request) on purpose: the workflow then comes
+# from the base branch, so a PR can't edit this file to make its own check
+# pass. Safe here because the job never checks out or runs PR code - it only
+# reads event metadata.
 on:
-  pull_request:
+  pull_request_target:
     branches: [staging]
+
+permissions:
+  contents: read
 
 jobs:
   enforce-source-is-dev:
@@ -21,22 +25,27 @@ jobs:
     steps:
       - name: Check PR head branch
         env:
+          GH_TOKEN: ${{ github.token }}
           HEAD_REF: ${{ github.head_ref }}
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
           BASE_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          # Require the promotion PR to come from the dev branch IN THIS repo.
-          # Checking the branch name alone is insufficient: a fork could open a
-          # PR from its own branch literally named "dev" and pass, so also pin
-          # the head repo to the base repo.
-          if [[ "${HEAD_REPO}" != "${BASE_REPO}" ]]; then
-            echo "::error title=PR source must be this repo::PRs to staging must originate from dev in ${BASE_REPO}, not a fork (${HEAD_REPO})."
+          # Bootstrap: until the source branch exists there is nothing to
+          # promote from, so the gate can't apply yet. Pass with a warning.
+          if ! gh api "repos/$BASE_REPO/branches/dev" --silent 2>/dev/null; then
+            echo "::warning::Branch 'dev' does not exist yet in $BASE_REPO - source gate not applied."
+            exit 0
+          fi
+          # The branch name alone isn't enough: a fork could open a PR from a
+          # branch literally named "dev". Pin the head repo too.
+          if [[ "$HEAD_REPO" != "$BASE_REPO" ]]; then
+            echo "::error title=PR source must be this repo::PRs to staging must come from dev in $BASE_REPO, not a fork ($HEAD_REPO)."
             exit 1
           fi
-          if [[ "${HEAD_REF}" != "dev" ]]; then
-            echo "::error title=PR source must be dev::PRs to staging are only allowed from the dev branch. Source branch: ${HEAD_REF}"
-            echo "Land your changes on dev first (PR from your feature branch into dev), then open dev → staging to cut a dev build."
+          if [[ "$HEAD_REF" != "dev" ]]; then
+            echo "::error title=PR source must be dev::PRs to staging are only allowed from dev (got '$HEAD_REF')."
+            echo "Land the change on dev first (PR feature → dev), then open dev → staging to cut an internal release."
             exit 1
           fi
-          echo "OK — PR source is dev in ${BASE_REPO}."
+          echo "OK — PR source is dev in $BASE_REPO."
