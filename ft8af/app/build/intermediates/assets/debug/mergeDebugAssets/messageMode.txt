@@ -1,3 +1,0 @@
-Message mode refers to the display style of the message list.
-  Standard list mode: The traditional FT8CN message display mode, which includes FT8 message elements plus callsign locations, distance, unworked zone indicators, message type, and more.
-  Compact list mode: A simplified FT8 message display mode that only shows essential FT8 message information.

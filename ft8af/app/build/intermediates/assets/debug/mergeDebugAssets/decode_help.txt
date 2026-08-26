@@ -1,4 +1,0 @@
-About Decoding Modes
-Fast decode: Uses the original FT8CN decoding method, performing a single-pass decode on the received audio.
-Multi-pass decode: Builds on fast decode by performing multiple decoding passes, increasing the number of iterations and attempting to decode overlapping signals.
-Note: Multi-pass decoding requires significantly more processing power, resulting in longer overall decode times and reduced battery life.

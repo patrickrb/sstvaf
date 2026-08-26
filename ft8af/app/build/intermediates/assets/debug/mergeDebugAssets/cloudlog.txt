@@ -1,9 +1,0 @@
-About Cloudlog
-
-This feature helps you upload your QSO to Cloudlog immediately after completing a contact.
-
-You need to obtain your API KEY from Cloudlog's "API Keys" section and enter it in the app.
-
-The server address must start with http or https, for example: http://192.168.1.3:1234.
-
-The Station ID can be found in Cloudlog's "Station Locations" section.
