@@ -62,3 +62,47 @@ from any existing SSTV codec source code. In particular, no GPL SSTV source
 
 Everything else here (oscillator, FM demodulator, sync tracker, slant
 regression) is original signal-processing code written for this project.
+
+## WeFax / HF radiofax (`wefax.h` / `wefax.c`)
+
+WeFax is a **distinct modulation** from the VIS+scanline SSTV family above —
+no VIS code, no per-mode segment table; a transmission is a continuous stream
+of scan lines whose left margin is set by a *phasing* signal. It was
+implemented clean-room from the published marine/aviation radiofax
+specifications, not from any existing decoder source.
+
+1. **ITU-R Recommendation M.1171 / M.633 and the WMO "Manual on the Global
+   Telecommunication System" (radiofacsimile / HF WEFAX)**, as summarised in
+   standard amateur-radio references (e.g. the operating notes distributed
+   with NOAA/DWD/marine HF fax schedules). These give:
+
+   - **Modulation:** frequency-shift keying, F3C, with an **800 Hz shift**
+     around a **1900 Hz** center — **black = 1500 Hz, white = 2300 Hz**. This
+     is deliberately the same band the SSTV pixel scan uses, so the SSTV FM
+     discriminator (`sstv_demod.c`) is reused verbatim and a WeFax pixel maps
+     to the identical `f = 1500 + v·(800/255)` Hz used by the SSTV scan
+     (source 4 above).
+
+   - **Line rate:** given in lines per minute (LPM); the common HF value is
+     **120 lpm** (⇒ 0.5 s per line, 2 lines/s). Samples per line at a given
+     audio rate is therefore `sample_rate · 60 / lpm`.
+
+   - **Index Of Cooperation (IOC):** the horizontal resolution parameter. The
+     number of picture elements per line is `IOC · π`, so the standard
+     **IOC 576** ⇒ `round(576·π) = 1810` px/line and IOC 288 ⇒ 905 px/line.
+     (IOC is historically the drum-diameter × line-density product; `× π`
+     converts it to pixels across one scan.)
+
+   - **APT start/stop tones:** the automatic-picture-transmission start signal
+     is a black/white keying at **300 Hz for IOC 576** (675 Hz for IOC 288),
+     letting a receiver auto-select the IOC; the stop signal keys at
+     **450 Hz**. Both run ~5 s in practice.
+
+   - **Phasing signal:** a run of lines that are black except for a short
+     white pulse at the left margin (~5% of the line here); the pulse's
+     leading edge marks column 0, which the decoder uses to lock the line
+     phase before picture content begins.
+
+   The phasing lock, line slicer, box-average line renderer, and line
+   classifier in `wefax.c` are original signal-processing code written for
+   this project.

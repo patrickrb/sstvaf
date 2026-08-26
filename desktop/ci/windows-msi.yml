@@ -1,0 +1,97 @@
+name: Windows 32-bit MSI
+
+# ---------------------------------------------------------------------------
+# To enable this in CI, copy this file to .github/workflows/windows-msi.yml.
+# It is kept under desktop/ci/ in the PR that introduced it because the token
+# that opened that PR lacked the `workflow` scope required to add files under
+# .github/workflows/. A maintainer with a normally-scoped token just runs:
+#   git mv desktop/ci/windows-msi.yml .github/workflows/
+# ---------------------------------------------------------------------------
+#
+# Cross-compiles the SSTVAF desktop CLI (desktop/) for 32-bit Windows with the
+# i686 MinGW toolchain and packages it as an MSI with wixl (msitools) — all on
+# a Linux runner, no Windows machine needed. Produces sstvaf.exe + an MSI that
+# installs on stock 32-bit Windows, uploaded as a build artifact (and attached
+# to the GitHub Release when the trigger is a v* tag).
+#
+# The CLI's pure logic is gated first by the same host C tests that guard the
+# codec, so a broken serializer/dispatcher fails before we ever cross-compile.
+
+on:
+  push:
+    branches: [main, staging, dev]
+    tags: ['v*']
+    paths:
+      - 'desktop/**'
+      - 'ft8af/app/src/main/cpp/sstv_lib/**'
+      - '.github/workflows/windows-msi.yml'
+  pull_request:
+    branches: [main, staging, dev]
+    paths:
+      - 'desktop/**'
+      - 'ft8af/app/src/main/cpp/sstv_lib/**'
+      - '.github/workflows/windows-msi.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: windows-msi-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host-tests:
+    name: Desktop CLI host tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run desktop CLI host tests
+        run: bash desktop/run_cli_host_tests.sh
+
+  build-msi:
+    name: Cross-compile 32-bit Windows MSI
+    runs-on: ubuntu-latest
+    needs: host-tests
+    # Needed only by the "Attach MSI to release" step on v* tags.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MinGW (i686) and wixl
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-mingw-w64-i686 wixl file
+
+      - name: Derive version
+        id: ver
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            v="${GITHUB_REF#refs/tags/v}"
+          else
+            v="0.0.0-${GITHUB_SHA::7}"
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "Building version $v"
+
+      - name: Cross-compile and package MSI
+        run: bash desktop/build_win32_msi.sh "${{ steps.ver.outputs.version }}"
+
+      - name: Verify the exe is a 32-bit PE
+        run: |
+          file desktop/build/win32/sstvaf.exe
+          file desktop/build/win32/sstvaf.exe | grep -qi "PE32" \
+            || { echo "sstvaf.exe is not a 32-bit PE"; exit 1; }
+
+      - name: Upload MSI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sstvaf-win32-msi
+          path: |
+            desktop/build/win32/*.msi
+            desktop/build/win32/sstvaf.exe
+          if-no-files-found: error
+
+      - name: Attach MSI to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: desktop/build/win32/*.msi

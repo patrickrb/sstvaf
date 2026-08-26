@@ -76,6 +76,7 @@ add_library(sstv_dsp STATIC
         sstv_lib/sstv_encode.c
         sstv_lib/sstv_demod.c
         sstv_lib/sstv_decode.c
+        sstv_lib/wefax.c
 )
 
 target_include_directories(sstv_dsp PUBLIC

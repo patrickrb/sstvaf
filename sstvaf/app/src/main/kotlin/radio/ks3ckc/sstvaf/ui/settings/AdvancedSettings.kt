@@ -49,6 +49,7 @@ import radio.ks3ckc.sstvaf.theme.applyTheme
 import radio.ks3ckc.sstvaf.theme.currentThemeNameRes
 import radio.ks3ckc.sstvaf.theme.loadTheme
 import radio.ks3ckc.sstvaf.theme.saveTheme
+import radio.ks3ckc.sstvaf.sstv.VoxPreTone
 import radio.ks3ckc.sstvaf.ui.components.GlassCard
 import radio.ks3ckc.sstvaf.ui.components.SettingsRow
 import java.text.SimpleDateFormat
@@ -67,6 +68,23 @@ internal data class AppLanguage(val tag: String, @StringRes val nameRes: Int)
  * order. Capped at 20 WPM per issue #14 ("maximum and default of 20WPM").
  */
 internal val CW_ID_WPM_OPTIONS: List<Int> = listOf(5, 8, 10, 12, 15, 18, 20)
+
+/**
+ * Selectable VOX pre-tone lengths (milliseconds) for the picker: off, then
+ * 100 ms steps up to [VoxPreTone.MAX_MS]. 0 disables the pre-tone entirely.
+ */
+internal val VOX_PRE_TONE_MS_OPTIONS: List<Int> =
+    (0..VoxPreTone.MAX_MS step 100).toList()
+
+/**
+ * The picker index for the stored pre-tone length: the exact option when the
+ * value is one (the normal case — the picker only writes list values), else
+ * the [VoxPreTone.DEFAULT_MS] entry so an out-of-list value from a settings
+ * import still highlights something sensible. Pure logic, unit-tested.
+ */
+internal fun voxPreToneIndex(storedMs: Int): Int =
+    VOX_PRE_TONE_MS_OPTIONS.indexOf(storedMs)
+        .let { if (it >= 0) it else VOX_PRE_TONE_MS_OPTIONS.indexOf(VoxPreTone.DEFAULT_MS) }
 
 /**
  * Single source of truth for the in-app Language picker, in display order. Adding
@@ -123,11 +141,13 @@ fun AdvancedSettings(
     val context = LocalContext.current
 
     var pttDelay by remember { mutableIntStateOf(GeneralVariables.pttDelay) }
+    var voxPreToneMs by remember { mutableIntStateOf(GeneralVariables.voxPreToneMs) }
     var cwIdEnabled by remember { mutableStateOf(GeneralVariables.cwIdEnabled) }
     var cwIdWpm by remember { mutableIntStateOf(GeneralVariables.cwIdWpm) }
     var currentTheme by remember { mutableStateOf(loadTheme(context)) }
 
     var showPttDelay by remember { mutableStateOf(false) }
+    var showVoxPreTone by remember { mutableStateOf(false) }
     var showCwIdWpm by remember { mutableStateOf(false) }
     var showLanguagePicker by remember { mutableStateOf(false) }
     var showThemePicker by remember { mutableStateOf(false) }
@@ -285,6 +305,29 @@ fun AdvancedSettings(
         )
     }
 
+    // -- VOX Pre-tone Picker --
+    // Extra 1900 Hz leader prepended in VOX mode so a radio's VOX or an
+    // auto-PTT audio cable (HTs on an APRS-K1-style interface) keys up on
+    // sacrificial tone instead of eating the SSTV calibration header.
+    if (showVoxPreTone) {
+        val voxPreToneOptions = VOX_PRE_TONE_MS_OPTIONS.map {
+            stringResource(R.string.settings_milliseconds_format, it)
+        }
+        ListPickerDialog(
+            title = stringResource(R.string.settings_vox_pre_tone),
+            items = voxPreToneOptions,
+            selectedIndex = voxPreToneIndex(voxPreToneMs),
+            onDismiss = { showVoxPreTone = false },
+            onSelect = { index ->
+                showVoxPreTone = false
+                val ms = VOX_PRE_TONE_MS_OPTIONS[index]
+                GeneralVariables.voxPreToneMs = ms
+                voxPreToneMs = ms
+                mainViewModel.databaseOpr.writeConfig("voxPreToneMs", ms.toString(), null)
+            },
+        )
+    }
+
     // -- CW ID Speed Picker (issue #14) --
     if (showCwIdWpm) {
         val wpmLabels = CW_ID_WPM_OPTIONS.map {
@@ -383,6 +426,16 @@ fun AdvancedSettings(
                         value = pttDelayStr,
                         showChevron = true,
                         onClick = { showPttDelay = true },
+                    )
+                    SectionDivider()
+                    SettingsRow(
+                        label = stringResource(R.string.settings_vox_pre_tone),
+                        description = stringResource(R.string.settings_vox_pre_tone_desc),
+                        value = stringResource(
+                            R.string.settings_milliseconds_format, voxPreToneMs,
+                        ),
+                        showChevron = true,
+                        onClick = { showVoxPreTone = true },
                     )
                     SectionDivider()
                     // CW station-ID tail (issue #14)

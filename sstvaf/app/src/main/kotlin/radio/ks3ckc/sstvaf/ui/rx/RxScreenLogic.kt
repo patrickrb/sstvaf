@@ -1,5 +1,6 @@
 package radio.ks3ckc.sstvaf.ui.rx
 
+import radio.ks3ckc.sstvaf.sstv.SstvMode
 import radio.ks3ckc.sstvaf.sstv.SstvRxState
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -46,6 +47,44 @@ internal fun rxProgressPercent(rowsReady: Int, totalRows: Int): Int {
 internal fun rxQualityFraction(quality: Float): Float = quality.coerceIn(0f, 1f)
 
 /**
+ * The fixed calibration header (1900 Hz leader + VIS) every SSTV mode plays
+ * before the first image row. [SstvMode.txDurationSeconds] bundles it into the
+ * total transmission time (see the enum's kdoc); the ETA math removes it,
+ * because by the time rows are arriving in the Decoding state the header is
+ * already behind us.
+ */
+internal const val SSTV_HEADER_SECONDS = 0.91
+
+/**
+ * Estimated seconds of image left to receive: the mode's image-only scan time
+ * scaled by the fraction of rows still to come. The scan time is the mode's
+ * total [SstvMode.txDurationSeconds] minus the [SSTV_HEADER_SECONDS] header
+ * (SSTV timing is symmetric, so a mode receives in the same time it transmits).
+ * Clamped so a completed or overrun frame (rowsReady >= totalRows) and a
+ * degenerate total (<= 0) both yield 0.
+ */
+internal fun rxEtaSeconds(mode: SstvMode, rowsReady: Int, totalRows: Int): Double {
+    if (totalRows <= 0) return 0.0
+    val imageSeconds = (mode.txDurationSeconds - SSTV_HEADER_SECONDS).coerceAtLeast(0.0)
+    val remainingRows = (totalRows - rowsReady).coerceIn(0, totalRows)
+    return imageSeconds * remainingRows / totalRows
+}
+
+/**
+ * ETA as a short "~m:ss" label (e.g. "~0:12"), rounding to whole seconds and
+ * never going negative. Shown under the forming image so the operator knows
+ * roughly how long until the picture completes.
+ */
+internal fun formatRxEta(secondsRemaining: Double): String {
+    val total = secondsRemaining.roundToInt().coerceAtLeast(0)
+    return String.format(Locale.US, "~%d:%02d", total / 60, total % 60)
+}
+
+/** ETA "~m:ss" label straight from the live decode counters. */
+internal fun rxEtaLabel(mode: SstvMode, rowsReady: Int, totalRows: Int): String =
+    formatRxEta(rxEtaSeconds(mode, rowsReady, totalRows))
+
+/**
  * Slant in ppm as a short signed label, e.g. "+12", "-3", "0". Rounded to
  * whole ppm — finer than that is noise at SSTV line rates.
  */
@@ -57,6 +96,43 @@ internal fun formatSlantPpm(slantPpm: Float): String {
 /** Dial frequency in Hz → "14.230 MHz"-style label (three decimals, kHz resolution). */
 internal fun formatDialFrequency(freqHz: Long): String =
     String.format(Locale.US, "%.3f MHz", freqHz / 1_000_000.0)
+
+/**
+ * The RX tab's dial-frequency label, optionally suffixed with the amateur band
+ * ("14.230 MHz · 20m"). This mirrors the always-on TX strip pill in the app
+ * shell ([radio.ks3ckc.sstvaf.SstvAfApp]) — same " · " separator, same
+ * MHz-then-band ordering — so the two live-tuning readouts read identically and
+ * the operator sees at a glance which band they're monitoring. A null or blank
+ * [bandName] (an out-of-band dial, or a band the rig helper can't name) drops
+ * the suffix, leaving the plain "14.230 MHz" rather than a trailing separator.
+ */
+internal fun formatDialFrequencyWithBand(freqHz: Long, bandName: String?): String {
+    val base = formatDialFrequency(freqHz)
+    val trimmed = bandName?.trim().orEmpty()
+    return if (trimmed.isEmpty()) base else "$base · $trimmed"
+}
+
+/**
+ * Estimated seconds of image scan still to receive. SSTV scans rows at a
+ * constant rate, so the time left is the fraction of rows not yet decoded
+ * scaled by the mode's image-scan time (its total TX duration minus the fixed
+ * calibration header, [SstvMode.CALIBRATION_HEADER_SECONDS], which has already
+ * elapsed by the time rows arrive). Clamped to ≥0; returns 0 for a
+ * degenerate/empty total and for an overrun (rowsReady ≥ totalRows).
+ */
+internal fun rxSecondsRemaining(rowsReady: Int, totalRows: Int, txDurationSeconds: Double): Int {
+    if (totalRows <= 0) return 0
+    val done = rowsReady.coerceIn(0, totalRows)
+    val imageSeconds = (txDurationSeconds - SstvMode.CALIBRATION_HEADER_SECONDS).coerceAtLeast(0.0)
+    val remainingFraction = (totalRows - done).toDouble() / totalRows
+    return (remainingFraction * imageSeconds).roundToInt().coerceAtLeast(0)
+}
+
+/** ETA label for the RX strip in "m:ss" (e.g. 110 → "1:50", 0 → "0:00"). */
+internal fun formatRxEta(secondsRemaining: Int): String {
+    val s = secondsRemaining.coerceAtLeast(0)
+    return String.format(Locale.US, "%d:%02d", s / 60, s % 60)
+}
 
 /**
  * Whether an Aborted state has a partial image worth showing (some rows

@@ -3,7 +3,7 @@
 // The headers are synthesized by the test's own tone generator (NOT the
 // library encoder), so a systematic encoder/decoder timing bug can't cancel
 // out. Covers:
-//   - clean detection of all 9 known VIS codes,
+//   - clean detection of all 16 known VIS codes,
 //   - tuning offsets of ±30 Hz and ±80 Hz (constant-offset calibration),
 //   - additive white gaussian noise,
 //   - a parity-corrupted header (rejected),
@@ -66,10 +66,17 @@ int main(void)
         { 93, SSTV_MODE_PD50,     "PD 50" },
         { 99, SSTV_MODE_PD90,     "PD 90" },
         { 95, SSTV_MODE_PD120,    "PD 120" },
+        { 76, SSTV_MODE_SCOTTIEDX, "Scottie DX" },
+        { 36, SSTV_MODE_MARTIN3,  "Martin 3" },
+        { 32, SSTV_MODE_MARTIN4,  "Martin 4" },
+        { 98, SSTV_MODE_PD160,    "PD 160" },
+        { 96, SSTV_MODE_PD180,    "PD 180" },
+        { 97, SSTV_MODE_PD240,    "PD 240" },
+        { 94, SSTV_MODE_PD290,    "PD 290" },
     };
 
-    // 1. Clean headers, all nine codes.
-    for (int i = 0; i < 9; i++) {
+    // 1. Clean headers, all known codes.
+    for (int i = 0; i < (int)(sizeof(kCodes) / sizeof(kCodes[0])); i++) {
         int status;
         int mode = detect(kCodes[i].code, 0.0, 0, 300.0, 0.0, 0, &status);
         snprintf(label, sizeof(label), "clean VIS %d -> %s", kCodes[i].code,

@@ -154,7 +154,8 @@ internal fun ManualQsoSheet(
                 fontFamily = GeistMonoFamily,
             )
             Spacer(Modifier.height(6.dp))
-            // Mode picker — the nine SSTV modes in three rows of chips.
+            // Mode picker — all SSTV modes in rows of up to three chips (the
+            // last row holds the remainder when the count isn't a multiple of 3).
             SstvMode.entries.chunked(3).forEach { rowModes ->
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),

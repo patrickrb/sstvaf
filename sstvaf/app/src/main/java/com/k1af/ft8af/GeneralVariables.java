@@ -358,6 +358,7 @@ public class GeneralVariables {
     public static String cloudlogApiKey = "";//Cloudlog API key
     public static String cloudlogStationID = "";//Cloudlog station ID
     public static int pttDelay = 100;//PTT response time; radios typically need some response time after PTT command, default 100ms
+    public static int voxPreToneMs = 300;//Extra 1900Hz leader prepended in VOX mode so VOX/auto-PTT cable attack time never eats the calibration header
     public static boolean cwIdEnabled = false;//Append a CW (Morse) station-ID after each SSTV image (issue #14)
     public static int cwIdWpm = 20;//CW ID keying speed, words-per-minute (max/default 20)
     public static int civAddress = 0xa4;//CI-V address

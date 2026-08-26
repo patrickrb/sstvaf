@@ -27,8 +27,9 @@ Android phone or tablet.
 - **Pre-transmit confirmation** with mode and duration, plus a live progress
   bar while the image is on the air
 
-### Nine SSTV modes
-Scottie 1 / 2 · Martin 1 / 2 · Robot 36 / 72 · PD 50 / 90 / 120
+### Sixteen SSTV modes
+Scottie 1 / 2 / DX · Martin 1 / 2 / 3 / 4 · Robot 36 / 72 ·
+PD 50 / 90 / 120 / 160 / 180 / 240 / 290
 
 ### Radio control
 - USB CAT control for the same rig set as FT8AF (Icom, Yaesu, Kenwood,
@@ -71,6 +72,11 @@ for the exact specification sources. The codec and its JNI glue
 `libsstvaf.so`, so a fresh clone builds with no manual steps. Host-side C
 tests (golden waveform vectors, VIS detection, encode→decode round trips,
 slant correction) run in CI on every PR.
+
+Because the codec is plain, Android-free C11, it also builds as a small desktop
+command-line tool. See [`desktop/`](desktop/README.md) for `sstvaf encode` /
+`sstvaf decode` and a **cross-compiled 32-bit Windows MSI** (built from Linux
+with the i686 MinGW toolchain + `wixl`).
 
 ---
 

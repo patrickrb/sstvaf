@@ -1,0 +1,186 @@
+:root {
+  color-scheme: dark;
+  --bg: #10131a;
+  --panel: #171b24;
+  --line: #262c38;
+  --text: #e6e9ef;
+  --dim: #8b93a3;
+  --accent: #4da3ff;
+  --good: #3ddc84;
+  --warn: #ffb84d;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+main {
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 0.5px;
+}
+
+header .sub {
+  margin: 4px 0 20px;
+  color: var(--dim);
+}
+
+h2 {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--dim);
+  margin: 24px 0 8px;
+}
+
+.dim {
+  color: var(--dim);
+}
+
+.error {
+  color: #ff6b6b;
+}
+
+/* --- controls --- */
+
+.controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+select {
+  flex: 1;
+  padding: 8px 10px;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+select:disabled {
+  opacity: 0.6;
+}
+
+button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--accent);
+  color: #06121f;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button.stop {
+  background: #ff6b6b;
+  color: #1f0606;
+}
+
+/* --- receive --- */
+
+.rx {
+  margin-top: 20px;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--dim);
+  flex: none;
+}
+
+.dot.leader {
+  background: var(--warn);
+}
+
+.dot.decoding {
+  background: var(--accent);
+}
+
+.dot.complete {
+  background: var(--good);
+}
+
+.dot.aborted {
+  background: #ff6b6b;
+}
+
+.progress {
+  height: 4px;
+  background: var(--line);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.progress .bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 120ms linear;
+}
+
+.frame {
+  background: #000;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  justify-content: center;
+}
+
+/* The decoded image is small (320x240 typically); scale it up but keep the
+   pixels crisp rather than smoothed, so decode artifacts stay visible. */
+.frame canvas {
+  width: 100%;
+  max-width: 640px;
+  height: auto;
+  image-rendering: pixelated;
+  background: #000;
+}
+
+/* --- log --- */
+
+.log {
+  list-style: none;
+  margin: 0;
+  padding: 8px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+}
+
+.log li {
+  padding: 2px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.log li:last-child {
+  border-bottom: none;
+}

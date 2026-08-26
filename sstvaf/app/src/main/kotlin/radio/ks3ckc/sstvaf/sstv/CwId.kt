@@ -154,6 +154,40 @@ object CwId {
     }
 
     /**
+     * The number of samples [tail] produces for [settings] at [sampleRate],
+     * computed WITHOUT allocating the waveform — for TX duration estimates (the
+     * confirm sheet and the progress readout, which run on the UI thread).
+     *
+     * Matches `tail(settings, sampleRate).size` exactly for every input: 0 when
+     * the ID is disabled, the text is unkeyable, or the sample rate is
+     * non-positive; otherwise the [LEAD_GAP_MS] lead-in plus the keyed callsign
+     * length. The keyed length equals `round(totalUnits * samplesPerUnit)` — the
+     * per-segment lengths in [encode] telescope to that single rounding — so the
+     * whole tail can be sized from the keying timeline alone. [CwIdTest] pins the
+     * two against each other.
+     */
+    fun tailSampleCount(settings: CwIdSettings, sampleRate: Int): Int {
+        if (!settings.enabled || sampleRate <= 0) return 0
+        val units = keyingUnits(settings.text).sumOf { it.units }
+        if (units == 0) return 0
+        val samplesPerUnit = ditMs(settings.wpm.coerceAtMost(MAX_WPM)) * sampleRate / 1000.0
+        val keyed = Math.round(units * samplesPerUnit).toInt()
+        if (keyed <= 0) return 0
+        val gap = (LEAD_GAP_MS.toLong() * sampleRate / 1000L).toInt()
+        return gap + keyed
+    }
+
+    /**
+     * [tailSampleCount] expressed in seconds — the airtime the CW station-ID
+     * tail adds after the image. 0.0 when nothing is keyed (disabled, unkeyable
+     * text, or a non-positive sample rate).
+     */
+    fun tailDurationSeconds(settings: CwIdSettings, sampleRate: Int): Double {
+        if (sampleRate <= 0) return 0.0
+        return tailSampleCount(settings, sampleRate).toDouble() / sampleRate
+    }
+
+    /**
      * The standalone CW-ID buffer for [settings]: a [LEAD_GAP_MS] lead-in
      * silence followed by the keyed callsign, or an empty array when the ID is
      * disabled or the text is not keyable. Kept separate from the image so it

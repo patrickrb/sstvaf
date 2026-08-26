@@ -26,6 +26,7 @@ lib_srcs=(
     "$lib/sstv_encode.c"
     "$lib/sstv_demod.c"
     "$lib/sstv_decode.c"
+    "$lib/wefax.c"
 )
 
 tmp="$(mktemp -d)"
@@ -57,6 +58,7 @@ suites=(
     test_sstv_roundtrip
     test_sstv_slant
     test_sstv_robot36_chroma
+    test_wefax
 )
 
 for suite in "${suites[@]}"; do

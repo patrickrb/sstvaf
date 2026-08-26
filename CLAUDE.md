@@ -52,6 +52,17 @@ a PR.
 open a pull request against `dev` (do the work on a feature branch, then
 `gh pr create --base dev`). Don't merge straight to `main`.
 
+**Promotion path: feature → `dev` → `staging` → `main`** (details in
+`docs/release-pipeline.md`). Merging `dev → staging` cuts an `android-dev.<run#>`
+prerelease on the Play **internal** track; Claude picks the semver bump from the
+PRs, commits and diff size since the last `android-v*` tag and writes the Play
+release notes (`android.yml`, needs the `ANTHROPIC_API_KEY` secret — without it
+the run falls back to a patch bump and PR titles). Merging `staging → main`
+ships that same version + notes as `android-v<x.y.z>` on the **production**
+track. A promotion that touches nothing under `sstvaf/` builds but cuts no
+release. The source gates (`staging-gate.yml`, `main-gate.yml`) reject PRs into
+`staging`/`main` from anywhere else.
+
 **Use a git worktree for every separate line of work.** Don't switch branches in
 your primary checkout — branch-switching there collides with anything else in
 flight (a running build, an `adb install`, a different task). Instead spin up an

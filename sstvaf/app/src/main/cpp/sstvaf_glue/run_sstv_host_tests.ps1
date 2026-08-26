@@ -15,6 +15,7 @@
     test_sstv_roundtrip      — encode->decode PSNR floors, abort, reset
     test_sstv_slant          — clock-slant tracking + sync freewheeling
     test_sstv_robot36_chroma — separator-keyed chroma pairing robustness
+    test_wefax               — WeFax/radiofax helpers, phasing lock, roundtrip
 
 .PARAMETER Clang
   Path to a host clang.exe. Defaults to a search of common install locations.
@@ -60,7 +61,7 @@ Write-Host "Using clang: $Clang"
 # encoder/decoder boundaries anyway.
 $libSrcs = @(
     "sstv_modes.c","sstv_vis.c","sstv_osc.c","sstv_color.c",
-    "sstv_encode.c","sstv_demod.c","sstv_decode.c"
+    "sstv_encode.c","sstv_demod.c","sstv_decode.c","wefax.c"
 ) | ForEach-Object { Join-Path $lib $_ }
 
 $common = @("-std=c11","-O2","-D_CRT_SECURE_NO_WARNINGS",
@@ -73,7 +74,8 @@ $suites = @(
     "test_sstv_vis",
     "test_sstv_roundtrip",
     "test_sstv_slant",
-    "test_sstv_robot36_chroma"
+    "test_sstv_robot36_chroma",
+    "test_wefax"
 )
 
 if ($Regen) {

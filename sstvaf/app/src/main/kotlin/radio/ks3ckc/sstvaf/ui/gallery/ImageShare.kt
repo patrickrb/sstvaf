@@ -25,17 +25,31 @@ internal fun imageShareUri(context: Context, file: File): Uri =
 /**
  * The ACTION_SEND intent for sharing one saved image. Separated from the
  * chooser/startActivity plumbing so the intent contents are unit-testable.
+ *
+ * A non-blank [caption] rides along as EXTRA_TEXT (the body a chat/social
+ * target shows next to the image) and EXTRA_SUBJECT (the title email-style
+ * targets use), so the SSTV context travels with the picture. A null/blank
+ * caption keeps the bare image-only intent unchanged.
  */
-internal fun buildImageShareIntent(uri: Uri): Intent =
+internal fun buildImageShareIntent(uri: Uri, caption: String? = null): Intent =
     Intent(Intent.ACTION_SEND).apply {
         type = "image/png"
         putExtra(Intent.EXTRA_STREAM, uri)
+        if (!caption.isNullOrBlank()) {
+            putExtra(Intent.EXTRA_TEXT, caption)
+            putExtra(Intent.EXTRA_SUBJECT, caption)
+        }
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
 
-/** Share [file] via the system chooser. */
-internal fun shareImage(context: Context, file: File, chooserTitle: String) {
-    val send = buildImageShareIntent(imageShareUri(context, file))
+/** Share [file] via the system chooser, optionally with a metadata [caption]. */
+internal fun shareImage(
+    context: Context,
+    file: File,
+    chooserTitle: String,
+    caption: String? = null,
+) {
+    val send = buildImageShareIntent(imageShareUri(context, file), caption)
     context.startActivity(
         Intent.createChooser(send, chooserTitle).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

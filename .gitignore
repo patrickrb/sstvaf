@@ -9,3 +9,11 @@ CLAUDE.local.md
 
 # Claude Code session state
 .claude/scheduled_tasks.lock
+
+# Gradle build output and caches - ANY module, any depth.
+# These rules live at the root on purpose: sstvaf/.gitignore only protects
+# sstvaf/, so a stray module directory (the old ft8af/ carried ~2.6k committed
+# class files, jars and gradle caches before it was removed) had nothing
+# covering it. Trailing slashes keep build.gradle / build.gradle.kts tracked.
+.gradle/
+build/

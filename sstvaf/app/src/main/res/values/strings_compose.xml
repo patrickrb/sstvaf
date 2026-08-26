@@ -211,6 +211,10 @@
     <string name="log_section_signal_trend">Signal Trend</string>
     <string name="log_no_qsos_yet">No QSOs yet</string>
     <string name="log_no_qsos_recorded_yet">No QSOs recorded yet</string>
+    <string name="log_search_placeholder">Search callsign, grid, band…</string>
+    <string name="log_search_no_matches">No QSOs match “%1$s”</string>
+    <string name="log_cd_search">Search QSOs</string>
+    <string name="log_cd_clear_search">Clear search</string>
     <string name="log_state_usa">%1$s, USA</string>
     <string name="log_cd_qso_actions">QSO actions</string>
     <string name="log_action_edit">Edit</string>
@@ -519,6 +523,8 @@
     <!-- ===== Settings: advanced ===== -->
     <string name="settings_ptt_delay">PTT Delay</string>
     <string name="settings_ptt_delay_desc">Delay after PTT before transmit audio begins</string>
+    <string name="settings_vox_pre_tone">VOX pre-tone</string>
+    <string name="settings_vox_pre_tone_desc">Extra 1900 Hz leader before each image so VOX or an auto-PTT cable (handheld radios) keys up without clipping the SSTV header. Applies in VOX mode only.</string>
     <string name="settings_cw_id">CW station ID</string>
     <string name="settings_cw_id_desc">Send your callsign in Morse code after each SSTV image</string>
     <string name="settings_cw_id_speed">CW ID speed</string>
@@ -638,8 +644,10 @@
     <string name="rx_signal_lost">Signal lost — partial image not saved</string>
     <string name="rx_quality_label">Quality</string>
     <string name="rx_progress_format" translatable="false">%1$d%%</string>
-    <string name="rx_rows_format" translatable="false">%1$d/%2$d</string>
     <string name="rx_slant_format" translatable="false">%1$s ppm</string>
+    <!-- RX decode status: estimated time left in the current image.
+         %1$s is a preformatted m:ss ETA (e.g. "1:23"). -->
+    <string name="rx_eta_format">%1$s left</string>
     <string name="settings_save_rx_photos">Save received images to Photos</string>
     <string name="settings_save_rx_photos_desc">Completed SSTV images also appear in the Photos app under Pictures/SSTVAF (Android 10+)</string>
 
@@ -649,8 +657,24 @@
     <string name="gallery_filter_all">All</string>
     <string name="gallery_filter_rx">Received</string>
     <string name="gallery_filter_tx">Sent</string>
+    <!-- Filter chip label = filter name + image count, e.g. "Received 9".
+         %1$s is the filter name (All/Received/Sent); %2$d is the image count.
+         Reorder the tokens if the target language needs the count first. -->
+    <string name="gallery_filter_chip_label">%1$s %2$d</string>
     <string name="gallery_empty_rx">Received images will appear here</string>
     <string name="gallery_empty_tx">Sent images will appear here</string>
+    <!-- Gallery search field: hint text and the "no matches" note. %1$s is the
+         query the operator typed. -->
+    <string name="gallery_search_placeholder">Search mode, band, note…</string>
+    <string name="gallery_search_no_matches">No images match “%1$s”</string>
+    <string name="gallery_cd_search">Search images</string>
+    <string name="gallery_cd_clear_search">Clear search</string>
+    <string name="gallery_section_today">Today</string>
+    <string name="gallery_section_yesterday">Yesterday</string>
+    <!-- Date-section header = day label + that day's image count, e.g.
+         "Today · 3". %1$s is the day label (Today/Yesterday/date); %2$d is the
+         count. Reorder or change the separator if the target language needs it. -->
+    <string name="gallery_section_count_label">%1$s · %2$d</string>
     <string name="gallery_share">Share</string>
     <string name="gallery_save_photos">Save to Photos</string>
     <string name="gallery_delete">Delete</string>
@@ -661,15 +685,28 @@
     <string name="gallery_save_photos_failed">Couldn\'t save to Photos</string>
     <string name="gallery_meta_mode">Mode</string>
     <string name="gallery_meta_frequency">Frequency</string>
+    <string name="gallery_meta_band">Band</string>
     <string name="gallery_meta_time">Time</string>
     <string name="gallery_meta_size">Size</string>
+    <string name="gallery_meta_airtime">Air time</string>
     <string name="gallery_meta_quality">Quality</string>
+    <!-- Quality meta value: raw percentage + plain-language grade, e.g. "87% · Excellent". -->
+    <string name="gallery_quality_value">%1$s · %2$s</string>
+    <string name="gallery_quality_grade_excellent">Excellent</string>
+    <string name="gallery_quality_grade_good">Good</string>
+    <string name="gallery_quality_grade_fair">Fair</string>
+    <string name="gallery_quality_grade_poor">Poor</string>
     <string name="gallery_meta_direction">Direction</string>
     <string name="gallery_meta_direction_rx">Received</string>
     <string name="gallery_meta_direction_tx">Sent</string>
     <string name="gallery_meta_status">Status</string>
     <string name="gallery_meta_complete">Complete</string>
     <string name="gallery_meta_partial">Partial</string>
+    <string name="gallery_meta_note">Note</string>
+    <string name="gallery_note_add">Add a note</string>
+    <string name="gallery_note_title">Image note</string>
+    <string name="gallery_note_hint">Callsign, QTH, or comment</string>
+    <string name="gallery_note_save">Save</string>
     <string name="rx_view_in_gallery">View in Gallery</string>
 
     <!-- ===== TX composer tab (PR 8) ===== -->
@@ -682,6 +719,7 @@
     <string name="tx_preview_description">Transmit preview</string>
     <string name="tx_change_photo">CHANGE</string>
     <string name="tx_camera_photo">CAMERA</string>
+    <string name="tx_clear_photo">CLEAR</string>
     <string name="tx_overlay_add">Add text</string>
     <string name="tx_overlay_edit">Edit text</string>
     <string name="tx_overlay_remove">Remove</string>
@@ -694,5 +732,16 @@
     <string name="tx_confirm_warning">Confirming keys the transmitter</string>
     <string name="tx_confirm_cancel">Cancel</string>
     <string name="tx_confirm_go">Transmit</string>
+    <!-- Pre-transmit confirm sheet: plain-language class of how long the rig
+         will be keyed, shown under the exact seconds so an operator can gauge
+         the commitment before tying up the frequency. -->
+    <string name="tx_airtime_quick">Quick transmission</string>
+    <string name="tx_airtime_moderate">Moderate transmission</string>
+    <string name="tx_airtime_long">Long transmission</string>
+    <string name="tx_airtime_very_long">Very long transmission</string>
     <string name="tx_cancel_button">CANCEL TX</string>
+    <!-- TX progress: estimated time left in the current transmission.
+         %1$s is a preformatted m:ss countdown (e.g. "1:09"). Mirrors
+         rx_eta_format on the receive side. -->
+    <string name="tx_remaining_format">%1$s left</string>
 </resources>

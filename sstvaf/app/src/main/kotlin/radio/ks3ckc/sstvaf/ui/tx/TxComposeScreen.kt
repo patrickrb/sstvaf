@@ -33,7 +33,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -58,8 +57,12 @@ import androidx.compose.ui.unit.sp
 import com.k1af.ft8af.GeneralVariables
 import com.k1af.ft8af.MainViewModel
 import com.k1af.ft8af.R
+import com.k1af.ft8af.transmit.PttController
 import radio.ks3ckc.sstvaf.gallery.ImageDirection
+import radio.ks3ckc.sstvaf.sstv.CwId
+import radio.ks3ckc.sstvaf.sstv.CwIdSettings
 import radio.ks3ckc.sstvaf.sstv.SstvMode
+import radio.ks3ckc.sstvaf.sstv.VoxPreTone
 import radio.ks3ckc.sstvaf.theme.Accent
 import radio.ks3ckc.sstvaf.theme.BgApp
 import radio.ks3ckc.sstvaf.theme.BgSurface
@@ -83,25 +86,25 @@ import radio.ks3ckc.sstvaf.ui.components.TopBar
 fun TxComposeScreen(mainViewModel: MainViewModel) {
     val context = LocalContext.current
 
-    var composition by remember {
-        mutableStateOf(
+    // The composition and picked photo live in MainViewModel's TxComposerState,
+    // NOT in remember{}: the tab shell fully disposes this screen on every tab
+    // switch, and the operator's photo/crop/overlay setup must survive until
+    // they replace or clear it themselves. The remember{} below runs once per
+    // tab visit and (re-)seeds defaults only while the composition is untouched
+    // — preserving the old pick-up-a-new-callsign behavior.
+    val composerState = mainViewModel.txComposerState
+    remember {
+        composerState.refreshDefaults {
             defaultTxComposition(
                 GeneralVariables.myCallsign,
                 initialTxMode(GeneralVariables.sstvTxMode),
-            ),
-        )
+                GeneralVariables.getMyMaidenheadGrid() ?: "",
+            )
+        }
     }
-    var sourceBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    // Release the previous source's pixels when a new photo replaces it and
-    // when the screen leaves composition. Sources are downsampled (~2x the
-    // mode frame at most) but on pre-O devices their pixels live in native
-    // memory the GC can't see, so dispose deterministically. Safe ordering:
-    // onDispose for the old key runs after recomposition, by which point the
-    // preview has already been re-rendered from the new source.
-    DisposableEffect(sourceBitmap) {
-        val owned = sourceBitmap
-        onDispose { owned?.recycle() }
-    }
+    val composition = composerState.composition
+        ?: return // unreachable: refreshDefaults above always seeds
+    val sourceBitmap = composerState.sourceBitmap
     var showConfirmSheet by remember { mutableStateOf(false) }
     // Index into composition.overlays being edited, or -1 for a new overlay;
     // null = editor closed.
@@ -111,18 +114,16 @@ fun TxComposeScreen(mainViewModel: MainViewModel) {
     val txProgress by mainViewModel.sstvTransmitter.txProgress.observeAsState(0f)
     val isTuning by mainViewModel.tuneOperator.mutableIsTuning.observeAsState(false)
 
-    // Load a picked/captured image into the source bitmap and reset the crop.
-    // Shared by the photo picker and the camera capture below.
+    // Load a picked/captured image into the composer state (resets the crop,
+    // recycles the photo it replaces). Shared by the photo picker and the
+    // camera capture below.
     val applyImageUri: (Uri) -> Unit = { uri ->
         val bitmap = loadSourceBitmap(
             context.contentResolver, uri,
             composition.mode.width, composition.mode.height,
         )
         if (bitmap != null) {
-            sourceBitmap = bitmap
-            composition = composition.copy(
-                sourceUri = uri.toString(), zoom = 1f, panX = 0f, panY = 0f,
-            )
+            composerState.setImage(bitmap, uri.toString())
         }
     }
 
@@ -161,6 +162,32 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
         tuneActive = isTuning,
     )
 
+    // Airtime the optional CW station-ID tail adds after the image (issue #14),
+    // so the confirm sheet and progress readout report the true on-air duration
+    // rather than the image-only mode length. Read from GeneralVariables (the
+    // same source SstvTransmitter uses); 0 when the ID is off or unkeyable.
+    val cwTailSeconds = CwId.tailDurationSeconds(
+        CwIdSettings(
+            enabled = GeneralVariables.cwIdEnabled,
+            text = GeneralVariables.myCallsign,
+            wpm = GeneralVariables.cwIdWpm,
+        ),
+        GeneralVariables.audioSampleRate,
+    )
+
+    // Airtime the VOX pre-tone prepends in VOX control mode (sacrificial
+    // leader for VOX/auto-PTT-cable attack time — see VoxPreTone); 0 whenever
+    // a rig is keyed explicitly, mirroring SstvTransmitter's gating.
+    val voxPreToneSeconds =
+        if (PttController.controlsPtt(GeneralVariables.controlMode)) {
+            0.0
+        } else {
+            VoxPreTone.durationSeconds(
+                GeneralVariables.voxPreToneMs,
+                GeneralVariables.audioSampleRate,
+            )
+        }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -185,11 +212,12 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                 onTakePhoto = launchCamera,
                 onGesture = { panDx, panDy, zoomFactor, previewW, previewH ->
                     val src = sourceBitmap ?: return@TxPreviewFrame
-                    composition = applyPanZoomGesture(
+                    composerState.composition = applyPanZoomGesture(
                         composition, src.width, src.height,
                         previewW, previewH, panDx, panDy, zoomFactor,
                     )
                 },
+                onClearImage = { composerState.clearImage() },
             )
 
             Spacer(Modifier.height(12.dp))
@@ -198,7 +226,7 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                 selected = composition.mode,
                 enabled = !isTransmitting,
                 onSelect = { mode ->
-                    composition = composition.copy(mode = mode)
+                    composerState.composition = composition.copy(mode = mode)
                     GeneralVariables.sstvTxMode = mode.name
                     mainViewModel.databaseOpr.writeConfig("sstvTxMode", mode.name, null)
                 },
@@ -211,7 +239,9 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                 enabled = !isTransmitting,
                 onEdit = { index -> editingOverlay = index },
                 onAdd = { editingOverlay = -1 },
-                onRemove = { index -> composition = composition.withOverlayRemoved(index) },
+                onRemove = { index ->
+                    composerState.composition = composition.withOverlayRemoved(index)
+                },
             )
 
             Spacer(Modifier.height(16.dp))
@@ -219,7 +249,9 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
             if (isTransmitting) {
                 TxProgressPanel(
                     progress = txProgress,
-                    mode = composition.mode,
+                    totalSeconds = totalTxDurationSeconds(
+                        composition.mode, cwTailSeconds, voxPreToneSeconds,
+                    ),
                     onCancel = { mainViewModel.sstvTransmitter.cancel() },
                 )
             } else {
@@ -239,7 +271,7 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
             initial = composition.overlays.getOrNull(index),
             onDismiss = { editingOverlay = null },
             onSave = { overlay ->
-                composition = if (index in composition.overlays.indices) {
+                composerState.composition = if (index in composition.overlays.indices) {
                     composition.withOverlayReplaced(index, overlay)
                 } else {
                     composition.withOverlayAdded(overlay)
@@ -252,6 +284,8 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
     TxConfirmSheet(
         visible = showConfirmSheet,
         mode = composition.mode,
+        cwTailSeconds = cwTailSeconds,
+        voxPreToneSeconds = voxPreToneSeconds,
         onDismiss = { showConfirmSheet = false },
         onConfirm = {
             showConfirmSheet = false
@@ -291,6 +325,7 @@ private fun TxPreviewFrame(
     onPickImage: () -> Unit,
     onTakePhoto: () -> Unit,
     onGesture: (panDx: Float, panDy: Float, zoomFactor: Float, previewW: Float, previewH: Float) -> Unit,
+    onClearImage: () -> Unit,
 ) {
     val aspect = mode.width.toFloat() / mode.height.toFloat()
     val config = LocalConfiguration.current
@@ -354,7 +389,8 @@ private fun TxPreviewFrame(
                         }
                     },
             )
-            // Re-pick affordances in the corner: library (CHANGE) and camera.
+            // Corner affordances: camera, library (CHANGE), and the only way
+            // the composed image is ever dropped — the user's explicit CLEAR.
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier
@@ -370,6 +406,11 @@ private fun TxPreviewFrame(
                     text = stringResource(R.string.tx_change_photo),
                     enabled = gesturesEnabled,
                     onClick = onPickImage,
+                )
+                CornerAffordance(
+                    text = stringResource(R.string.tx_clear_photo),
+                    enabled = gesturesEnabled,
+                    onClick = onClearImage,
                 )
             }
         }
@@ -395,7 +436,7 @@ private fun CornerAffordance(text: String, enabled: Boolean, onClick: () -> Unit
     )
 }
 
-/** Horizontal mode selector, labels like "Scottie 1 · 111 s". */
+/** Horizontal mode selector, labels like "Scottie 1 · 320×256 · 111 s". */
 @Composable
 private fun ModeChipRow(
     selected: SstvMode,
@@ -508,9 +549,14 @@ private fun TransmitButton(gate: TxGate, onClick: () -> Unit) {
     }
 }
 
-/** Progress bar + elapsed/total + cancel, shown while the rig is keyed. */
+/**
+ * Progress bar + elapsed/total + cancel, shown while the rig is keyed.
+ * [totalSeconds] is the full on-air duration (image scan + any CW ID tail),
+ * matching the transmitter's progress ticker so elapsed/total stays accurate
+ * through the CW station-ID tail.
+ */
 @Composable
-private fun TxProgressPanel(progress: Float, mode: SstvMode, onCancel: () -> Unit) {
+private fun TxProgressPanel(progress: Float, totalSeconds: Double, onCancel: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -522,9 +568,21 @@ private fun TxProgressPanel(progress: Float, mode: SstvMode, onCancel: () -> Uni
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            text = txElapsedLabel(progress, mode.txDurationSeconds),
+            text = txElapsedLabel(progress, totalSeconds),
             color = TextPrimary,
             fontSize = 13.sp,
+            fontFamily = GeistMonoFamily,
+        )
+        Spacer(Modifier.height(2.dp))
+        // Plain-language countdown of transmit time left, mirroring the RX
+        // decode ETA — "how much longer is the rig keyed" at a glance.
+        Text(
+            text = stringResource(
+                R.string.tx_remaining_format,
+                txRemainingLabel(progress, totalSeconds),
+            ),
+            color = TextMuted,
+            fontSize = 11.sp,
             fontFamily = GeistMonoFamily,
         )
         Spacer(Modifier.height(10.dp))

@@ -1,5 +1,7 @@
 package radio.ks3ckc.sstvaf.ui.tx
 
+import androidx.annotation.StringRes
+import com.k1af.ft8af.R
 import radio.ks3ckc.sstvaf.sstv.SstvMode
 import java.io.IOException
 import java.util.Locale
@@ -47,13 +49,90 @@ internal fun transmitGate(hasImage: Boolean, isTransmitting: Boolean, tuneActive
 // Labels
 // ---------------------------------------------------------------------------
 
-/** Mode selector chip label, e.g. "Scottie 1 · 111 s" (duration rounded to whole seconds). */
-internal fun modeChipLabel(mode: SstvMode): String =
-    "${mode.displayName} · ${mode.txDurationSeconds.roundToInt()} s"
+/**
+ * The mode's picture resolution as a compact "width×height" label, e.g.
+ * "320×256". Surfaced next to the duration so an operator picking among the
+ * (now 16) modes sees the picture-quality half of the trade-off — Robot 36 is
+ * 320×240 in 37 s, PD 290 is 800×616 but takes 290 s — not just the airtime.
+ */
+internal fun modeResolutionLabel(mode: SstvMode): String = "${mode.width}×${mode.height}"
 
-/** Confirm-sheet duration line, e.g. "Robot 36 — 37 seconds". */
-internal fun confirmDurationLine(mode: SstvMode): String =
-    "${mode.displayName} — ${mode.txDurationSeconds.roundToInt()} seconds"
+/** Mode selector chip label, e.g. "Scottie 1 · 320×256 · 111 s" (duration rounded to whole seconds). */
+internal fun modeChipLabel(mode: SstvMode): String =
+    "${mode.displayName} · ${modeResolutionLabel(mode)} · ${mode.txDurationSeconds.roundToInt()} s"
+
+/**
+ * Total on-air seconds for a transmission: the [mode] image scan plus the
+ * optional CW station-ID tail ([cwTailSeconds], 0 when the ID is off) plus the
+ * VOX pre-tone prepended in VOX control mode ([voxPreToneSeconds], 0 when a
+ * rig is keyed explicitly); negative values are treated as 0. This is the
+ * duration the transmitter's progress ticker actually measures (pre-tone +
+ * image + CW — see SstvTransmitter), so the confirm sheet and the progress
+ * readout use it rather than the bare [SstvMode.txDurationSeconds], which
+ * under-reports airtime whenever either extra is in play.
+ */
+internal fun totalTxDurationSeconds(
+    mode: SstvMode,
+    cwTailSeconds: Double,
+    voxPreToneSeconds: Double = 0.0,
+): Double =
+    mode.txDurationSeconds + cwTailSeconds.coerceAtLeast(0.0) +
+        voxPreToneSeconds.coerceAtLeast(0.0)
+
+/**
+ * Confirm-sheet duration line, e.g. "Robot 36 — 320×240 — 37 seconds". When a
+ * CW station-ID tail is appended ([cwTailSeconds] > 0) the total airtime is
+ * shown and flagged so the operator knows how long the rig will actually key,
+ * e.g. "Robot 36 — 320×240 — 42 seconds (incl. CW ID)". A VOX pre-tone folds
+ * into the total silently — it is sub-second leader, not a separate segment
+ * the operator would notice on air.
+ */
+internal fun confirmDurationLine(
+    mode: SstvMode,
+    cwTailSeconds: Double = 0.0,
+    voxPreToneSeconds: Double = 0.0,
+): String {
+    val total = totalTxDurationSeconds(mode, cwTailSeconds, voxPreToneSeconds).roundToInt()
+    val idNote = if (cwTailSeconds > 0.0) " (incl. CW ID)" else ""
+    return "${mode.displayName} — ${modeResolutionLabel(mode)} — $total seconds$idNote"
+}
+
+/**
+ * A plain-language class for how long the rig will be keyed, so the confirm
+ * sheet can tell an operator whether they are committing to a quick or a
+ * multi-minute transmission before they tie up the frequency. It is purely a
+ * function of the *total* airtime (image scan + optional CW ID tail — see
+ * [totalTxDurationSeconds]); the picture-quality half of the trade-off is
+ * already carried by the resolution in [confirmDurationLine]/[modeChipLabel].
+ */
+internal enum class TxAirtimeClass(@StringRes val labelRes: Int) {
+    QUICK(R.string.tx_airtime_quick),
+    MODERATE(R.string.tx_airtime_moderate),
+    LONG(R.string.tx_airtime_long),
+    VERY_LONG(R.string.tx_airtime_very_long),
+}
+
+/**
+ * Classify a transmission's total airtime into a [TxAirtimeClass]. Thresholds
+ * (inclusive lower bounds), chosen around the practical SSTV airtime spread the
+ * app supports (Martin 4 ≈ 30 s … PD 290 ≈ 290 s) so every class is actually
+ * reachable — each of the 16 modes falls into one of these buckets:
+ *   < 60 s   → QUICK       (Robot 36, Martin 2/3/4, PD 50, …)
+ *   < 120 s  → MODERATE    (Robot 72, Scottie 1/2, Martin 1, PD 90, …)
+ *   < 240 s  → LONG        (PD 120/160/180)
+ *   ≥ 240 s  → VERY_LONG   (Scottie DX, PD 240/290)
+ * Folds in the CW ID tail via [totalTxDurationSeconds], so enabling the ID can
+ * bump a mode into the next class up when it nudges the total past a boundary.
+ */
+internal fun txAirtimeClass(mode: SstvMode, cwTailSeconds: Double = 0.0): TxAirtimeClass {
+    val total = totalTxDurationSeconds(mode, cwTailSeconds)
+    return when {
+        total < 60.0 -> TxAirtimeClass.QUICK
+        total < 120.0 -> TxAirtimeClass.MODERATE
+        total < 240.0 -> TxAirtimeClass.LONG
+        else -> TxAirtimeClass.VERY_LONG
+    }
+}
 
 /** Seconds → "m:ss". */
 internal fun formatMinSec(totalSeconds: Int): String {
@@ -71,6 +150,28 @@ internal fun txElapsedLabel(progress: Float, durationSeconds: Double): String {
     val elapsed = (progress.coerceIn(0f, 1f) * total).roundToInt().coerceAtMost(total)
     return "${formatMinSec(elapsed)} / ${formatMinSec(total)}"
 }
+
+/**
+ * Whole seconds of transmission still to play, the mirror of the elapsed value
+ * inside [txElapsedLabel] (total − elapsed) so the countdown and the elapsed/
+ * total line never disagree by a rounding tick. Clamped to 0..total, so a
+ * finished (progress ≥ 1f) or degenerate (duration ≤ 0) transmission reads 0
+ * rather than going negative.
+ */
+internal fun txRemainingSeconds(progress: Float, durationSeconds: Double): Int {
+    val total = durationSeconds.roundToInt().coerceAtLeast(0)
+    val elapsed = (progress.coerceIn(0f, 1f) * total).roundToInt().coerceIn(0, total)
+    return total - elapsed
+}
+
+/**
+ * Preformatted "m:ss" countdown of transmit time left, e.g. "1:09". Fed into
+ * the `tx_remaining_format` resource ("%1$s left") for display under the TX
+ * progress bar, mirroring the RX decode ETA so both directions surface a
+ * plain-language "how much longer" readout.
+ */
+internal fun txRemainingLabel(progress: Float, durationSeconds: Double): String =
+    formatMinSec(txRemainingSeconds(progress, durationSeconds))
 
 // ---------------------------------------------------------------------------
 // Last-used-mode persistence (config key "sstvTxMode")

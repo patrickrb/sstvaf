@@ -17,6 +17,9 @@ class GalleryLogicTest {
     /** 2026-07-04T15:30:12Z. */
     private val goldenUtc = 1_783_179_012_000L
 
+    /** Mirror of the `gallery_filter_chip_label` resource ("%1$s %2$d"). */
+    private val CHIP_PATTERN = "%1\$s %2\$d"
+
     private fun image(
         id: Long = 1L,
         direction: ImageDirection = ImageDirection.RX,
@@ -27,7 +30,8 @@ class GalleryLogicTest {
         height: Int = 256,
         complete: Boolean = true,
         quality: Float = 0.87f,
-    ) = SavedImage(id, "f$id.png", direction, mode, freqHz, utcMillis, width, height, complete, quality, "")
+        notes: String = "",
+    ) = SavedImage(id, "f$id.png", direction, mode, freqHz, utcMillis, width, height, complete, quality, notes)
 
     // ----- filtering ---------------------------------------------------------
 
@@ -66,6 +70,210 @@ class GalleryLogicTest {
         for (filter in GalleryFilter.entries) {
             assertThat(filterGalleryImages(emptyList(), filter)).isEmpty()
         }
+    }
+
+    // ----- filter counts / chip labels ---------------------------------------
+
+    @Test
+    fun filterCounts_splitsRxTxAndSumsAll() {
+        val images = listOf(
+            image(id = 1, direction = ImageDirection.RX),
+            image(id = 2, direction = ImageDirection.TX),
+            image(id = 3, direction = ImageDirection.RX),
+            image(id = 4, direction = ImageDirection.RX),
+        )
+        val counts = galleryFilterCounts(images)
+        assertThat(counts[GalleryFilter.RX]).isEqualTo(3)
+        assertThat(counts[GalleryFilter.TX]).isEqualTo(1)
+        assertThat(counts[GalleryFilter.ALL]).isEqualTo(4)
+    }
+
+    @Test
+    fun filterCounts_emptyInput_allZeroButPresent() {
+        val counts = galleryFilterCounts(emptyList())
+        for (filter in GalleryFilter.entries) {
+            assertThat(counts[filter]).isEqualTo(0)
+        }
+    }
+
+    @Test
+    fun filterCounts_allEqualsSumOfRxAndTx() {
+        val images = listOf(
+            image(id = 1, direction = ImageDirection.TX),
+            image(id = 2, direction = ImageDirection.TX),
+        )
+        val counts = galleryFilterCounts(images)
+        assertThat(counts[GalleryFilter.ALL])
+            .isEqualTo((counts[GalleryFilter.RX] ?: 0) + (counts[GalleryFilter.TX] ?: 0))
+    }
+
+    @Test
+    fun filterCounts_hasEntryForEveryFilter() {
+        // The count map must cover every GalleryFilter (the require() contract):
+        // a new filter value with no count would fail here rather than shipping a
+        // blank badge.
+        assertThat(galleryFilterCounts(emptyList()).keys)
+            .isEqualTo(GalleryFilter.entries.toSet())
+    }
+
+    @Test
+    fun filterChipLabel_appendsCountIncludingZero() {
+        assertThat(galleryFilterChipLabel(CHIP_PATTERN, "Received", 9)).isEqualTo("Received 9")
+        assertThat(galleryFilterChipLabel(CHIP_PATTERN, "Sent", 0)).isEqualTo("Sent 0")
+        assertThat(galleryFilterChipLabel(CHIP_PATTERN, "All", 12)).isEqualTo("All 12")
+    }
+
+    @Test
+    fun filterChipLabels_areUniquePerFilterEvenWhenCountsCollide() {
+        // rx == all when there are no TX images; the base label keeps the chips
+        // reading distinctly even though they're now keyed by GalleryFilter (not
+        // by their rendered text).
+        val counts = galleryFilterCounts(
+            listOf(
+                image(id = 1, direction = ImageDirection.RX),
+                image(id = 2, direction = ImageDirection.RX),
+            ),
+        )
+        val labels = GalleryFilter.entries.map {
+            galleryFilterChipLabel(CHIP_PATTERN, it.name, counts[it] ?: 0)
+        }
+        assertThat(labels.toSet()).hasSize(GalleryFilter.entries.size)
+    }
+
+    // ----- free-text search --------------------------------------------------
+
+    @Test
+    fun search_blankQuery_returnsSameInstance() {
+        val images = listOf(image(id = 1), image(id = 2))
+        for (q in listOf("", "   ", "\t\n")) {
+            assertThat(searchGalleryImages(images, q)).isSameInstanceAs(images)
+        }
+    }
+
+    @Test
+    fun search_matchesModeDisplayNameCaseInsensitive() {
+        val images = listOf(
+            image(id = 1, mode = "Scottie 1"),
+            image(id = 2, mode = "Martin 2"),
+        )
+        assertThat(searchGalleryImages(images, "scottie").map { it.id }).containsExactly(1L)
+        assertThat(searchGalleryImages(images, "MARTIN").map { it.id }).containsExactly(2L)
+    }
+
+    @Test
+    fun search_matchesModeShortCode() {
+        val images = listOf(
+            image(id = 1, mode = "Scottie 1"), // S1
+            image(id = 2, mode = "PD 120"), // PD120
+        )
+        assertThat(searchGalleryImages(images, "pd120").map { it.id }).containsExactly(2L)
+        assertThat(searchGalleryImages(images, "s1").map { it.id }).containsExactly(1L)
+    }
+
+    @Test
+    fun search_matchesBandLabel() {
+        val images = listOf(
+            image(id = 1, freqHz = 14_230_000L), // 20m
+            image(id = 2, freqHz = 7_040_000L), // 40m
+        )
+        assertThat(searchGalleryImages(images, "20m").map { it.id }).containsExactly(1L)
+        assertThat(searchGalleryImages(images, "40M").map { it.id }).containsExactly(2L)
+    }
+
+    @Test
+    fun search_matchesFrequencyMhzText() {
+        val images = listOf(
+            image(id = 1, freqHz = 14_230_000L), // 14.230
+            image(id = 2, freqHz = 7_040_000L), // 7.040
+        )
+        assertThat(searchGalleryImages(images, "14.230").map { it.id }).containsExactly(1L)
+    }
+
+    @Test
+    fun search_matchesDirectionEnumName() {
+        val images = listOf(
+            image(id = 1, direction = ImageDirection.RX),
+            image(id = 2, direction = ImageDirection.TX),
+        )
+        assertThat(searchGalleryImages(images, "tx").map { it.id }).containsExactly(2L)
+        assertThat(searchGalleryImages(images, "RX").map { it.id }).containsExactly(1L)
+    }
+
+    @Test
+    fun search_matchesNoteText() {
+        val images = listOf(
+            image(id = 1, notes = "QSO with W1AW"),
+            image(id = 2, notes = "great signal"),
+        )
+        assertThat(searchGalleryImages(images, "w1aw").map { it.id }).containsExactly(1L)
+        assertThat(searchGalleryImages(images, "SIGNAL").map { it.id }).containsExactly(2L)
+    }
+
+    @Test
+    fun search_multipleTokens_narrowByAll() {
+        val images = listOf(
+            image(id = 1, mode = "Scottie 1", freqHz = 14_230_000L), // Scottie + 20m
+            image(id = 2, mode = "Scottie 1", freqHz = 7_040_000L), // Scottie + 40m
+            image(id = 3, mode = "Martin 1", freqHz = 14_230_000L), // Martin + 20m
+        )
+        // Both tokens must match (mode AND band), so only image 1 survives.
+        assertThat(searchGalleryImages(images, "scottie 20m").map { it.id }).containsExactly(1L)
+    }
+
+    @Test
+    fun search_tokenMatchingNothing_dropsImage() {
+        val images = listOf(image(id = 1, mode = "Scottie 1", freqHz = 14_230_000L))
+        assertThat(searchGalleryImages(images, "scottie zzz")).isEmpty()
+    }
+
+    @Test
+    fun search_interiorWhitespaceCollapses() {
+        val images = listOf(image(id = 1, mode = "Scottie 1", freqHz = 14_230_000L))
+        // Extra spaces between tokens must not create empty tokens that match nothing.
+        assertThat(searchGalleryImages(images, "  scottie    20m  ").map { it.id })
+            .containsExactly(1L)
+    }
+
+    @Test
+    fun search_tokenDoesNotStraddleFacets() {
+        // "1martin" is a substring of neither the mode nor any other single facet,
+        // even though "Martin 1" ends in "1"; facets are matched individually.
+        val images = listOf(image(id = 1, mode = "Martin 1"))
+        assertThat(searchGalleryImages(images, "1martin")).isEmpty()
+    }
+
+    @Test
+    fun search_outOfBandFrequency_hasNoBandFacet() {
+        // 27 MHz CB is not an amateur band → amateurBand() is null → no NPE, no match.
+        val images = listOf(image(id = 1, freqHz = 27_205_000L, mode = "Scottie 1"))
+        assertThat(searchGalleryImages(images, "20m")).isEmpty()
+        assertThat(searchGalleryImages(images, "scottie").map { it.id }).containsExactly(1L)
+    }
+
+    // ----- empty-state reason ------------------------------------------------
+
+    @Test
+    fun emptyReason_blankQuery_isNoImagesForFilter() {
+        val reason = galleryEmptyReason(GalleryFilter.TX, "  ")
+        assertThat(reason).isInstanceOf(GalleryEmptyReason.NoImages::class.java)
+        assertThat((reason as GalleryEmptyReason.NoImages).messageRes)
+            .isEqualTo(R.string.gallery_empty_tx)
+    }
+
+    @Test
+    fun emptyReason_blankQueryNonTxFilter_pointsAtReceiving() {
+        for (filter in listOf(GalleryFilter.ALL, GalleryFilter.RX)) {
+            val reason = galleryEmptyReason(filter, "")
+            assertThat((reason as GalleryEmptyReason.NoImages).messageRes)
+                .isEqualTo(R.string.gallery_empty_rx)
+        }
+    }
+
+    @Test
+    fun emptyReason_nonBlankQuery_isSearchMissWithTrimmedQuery() {
+        val reason = galleryEmptyReason(GalleryFilter.ALL, "  w1aw  ")
+        assertThat(reason).isInstanceOf(GalleryEmptyReason.NoSearchMatch::class.java)
+        assertThat((reason as GalleryEmptyReason.NoSearchMatch).query).isEqualTo("w1aw")
     }
 
     // ----- sorting -----------------------------------------------------------
@@ -184,6 +392,32 @@ class GalleryLogicTest {
         assertThat(galleryCellMeta(entry, goldenUtc)).isEqualTo("PD120 · 2026-06-24")
     }
 
+    // ----- partial-decode badge ----------------------------------------------
+
+    @Test
+    fun partialBadge_shownForIncompleteImage() {
+        val entry = image(complete = false)
+        assertThat(galleryShowPartialBadge(entry)).isTrue()
+    }
+
+    @Test
+    fun partialBadge_hiddenForCompleteImage() {
+        val entry = image(complete = true)
+        assertThat(galleryShowPartialBadge(entry)).isFalse()
+    }
+
+    @Test
+    fun partialBadge_dependsOnlyOnCompleteness_notDirection() {
+        // TX images are generated whole, so they are always complete; the badge
+        // keys off completeness alone, so an (unexpected) partial TX still flags.
+        assertThat(galleryShowPartialBadge(image(direction = ImageDirection.TX, complete = true)))
+            .isFalse()
+        assertThat(galleryShowPartialBadge(image(direction = ImageDirection.RX, complete = false)))
+            .isTrue()
+        assertThat(galleryShowPartialBadge(image(direction = ImageDirection.TX, complete = false)))
+            .isTrue()
+    }
+
     // ----- empty state -------------------------------------------------------
 
     @Test
@@ -229,6 +463,23 @@ class GalleryLogicTest {
     }
 
     @Test
+    fun viewerAirTime_modeNominalDurationAsMinSec() {
+        // Scottie 1 = 110.54 s ≈ 111 s -> 1:51.
+        assertThat(formatViewerAirTime("Scottie 1")).isEqualTo("1:51")
+        // Robot 36 = 36.91 s ≈ 37 s -> 0:37 (under a minute).
+        assertThat(formatViewerAirTime("Robot 36")).isEqualTo("0:37")
+        // PD 290 = 289.59 s ≈ 290 s -> 4:50 (multi-minute).
+        assertThat(formatViewerAirTime("PD 290")).isEqualTo("4:50")
+    }
+
+    @Test
+    fun viewerAirTime_unknownModeIsNull() {
+        // A hand-edited / future mode name has no duration, so the row is omitted.
+        assertThat(formatViewerAirTime("Not A Mode")).isNull()
+        assertThat(formatViewerAirTime("")).isNull()
+    }
+
+    @Test
     fun viewerQuality_wholePercentClamped() {
         assertThat(formatViewerQuality(0.87f)).isEqualTo("87%")
         assertThat(formatViewerQuality(0f)).isEqualTo("0%")
@@ -236,6 +487,33 @@ class GalleryLogicTest {
         assertThat(formatViewerQuality(1.4f)).isEqualTo("100%") // clamped
         assertThat(formatViewerQuality(-0.2f)).isEqualTo("0%") // clamped
         assertThat(formatViewerQuality(0.005f)).isEqualTo("1%") // rounds
+    }
+
+    @Test
+    fun qualityGrade_mapsThresholds() {
+        // Inclusive lower bounds: ≥0.85 Excellent, ≥0.65 Good, ≥0.40 Fair, else Poor.
+        assertThat(qualityGrade(1f)).isEqualTo(QualityGrade.EXCELLENT)
+        assertThat(qualityGrade(0.85f)).isEqualTo(QualityGrade.EXCELLENT) // boundary
+        assertThat(qualityGrade(0.84f)).isEqualTo(QualityGrade.GOOD)
+        assertThat(qualityGrade(0.65f)).isEqualTo(QualityGrade.GOOD) // boundary
+        assertThat(qualityGrade(0.64f)).isEqualTo(QualityGrade.FAIR)
+        assertThat(qualityGrade(0.40f)).isEqualTo(QualityGrade.FAIR) // boundary
+        assertThat(qualityGrade(0.39f)).isEqualTo(QualityGrade.POOR)
+        assertThat(qualityGrade(0f)).isEqualTo(QualityGrade.POOR)
+    }
+
+    @Test
+    fun qualityGrade_clampsOutOfRangeAndNaN() {
+        assertThat(qualityGrade(1.5f)).isEqualTo(QualityGrade.EXCELLENT) // clamped to 1
+        assertThat(qualityGrade(-0.3f)).isEqualTo(QualityGrade.POOR) // clamped to 0
+        assertThat(qualityGrade(Float.NaN)).isEqualTo(QualityGrade.POOR) // NaN → 0
+    }
+
+    @Test
+    fun qualityGrade_everyValueHasADistinctLabelRes() {
+        val labels = QualityGrade.entries.map { it.labelRes }
+        assertThat(labels).containsNoDuplicates()
+        assertThat(labels).hasSize(QualityGrade.entries.size)
     }
 
     @Test
@@ -256,6 +534,102 @@ class GalleryLogicTest {
         assertThat(viewerAspectRatio(320, 0)).isWithin(1e-6f).of(4f / 3f)
     }
 
+    // ----- share caption -----------------------------------------------------
+
+    @Test
+    fun shareUtc_minutePrecision() {
+        assertThat(formatShareUtc(goldenUtc)).isEqualTo("2026-07-04 15:30 UTC")
+    }
+
+    @Test
+    fun shareUtc_isUtcRegardlessOfDefaultZone() {
+        val zone = java.util.TimeZone.getDefault()
+        try {
+            java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("America/New_York"))
+            assertThat(formatShareUtc(goldenUtc)).isEqualTo("2026-07-04 15:30 UTC")
+        } finally {
+            java.util.TimeZone.setDefault(zone)
+        }
+    }
+
+    @Test
+    fun shareCaption_combinesModeFreqBandAndTime() {
+        val entry = image(mode = "Scottie 1", freqHz = 14_230_000L, utcMillis = goldenUtc)
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV Scottie 1 · 14.230 MHz · 20m · 2026-07-04 15:30 UTC")
+    }
+
+    @Test
+    fun shareCaption_usesStoredModeNameVerbatim() {
+        val entry = image(mode = "AVT 90", freqHz = 7_171_000L, utcMillis = goldenUtc)
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV AVT 90 · 7.171 MHz · 40m · 2026-07-04 15:30 UTC")
+    }
+
+    @Test
+    fun shareCaption_dropsBandSegmentWhenOutOfBand() {
+        // 27.265 MHz (CB) is not an amateur band — no band segment.
+        val entry = image(mode = "Scottie 1", freqHz = 27_265_000L, utcMillis = goldenUtc)
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV Scottie 1 · 27.265 MHz · 2026-07-04 15:30 UTC")
+    }
+
+    @Test
+    fun shareCaption_appendsNoteWhenPresent() {
+        val entry = image(freqHz = 14_230_000L, utcMillis = goldenUtc).copy(notes = "de K1AF")
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV Scottie 1 · 14.230 MHz · 20m · 2026-07-04 15:30 UTC · de K1AF")
+    }
+
+    @Test
+    fun shareCaption_flattensNoteWhitespaceToSingleLine() {
+        val entry = image(freqHz = 14_230_000L, utcMillis = goldenUtc).copy(notes = "  line1\n line2  ")
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV Scottie 1 · 14.230 MHz · 20m · 2026-07-04 15:30 UTC · line1 line2")
+    }
+
+    @Test
+    fun shareCaption_blankNoteAddsNothing() {
+        val entry = image(freqHz = 14_230_000L, utcMillis = goldenUtc).copy(notes = "   ")
+        assertThat(buildImageShareCaption(entry))
+            .isEqualTo("SSTV Scottie 1 · 14.230 MHz · 20m · 2026-07-04 15:30 UTC")
+    }
+
+    // ----- amateur band lookup -----------------------------------------------
+
+    @Test
+    fun amateurBand_mapsCommonSstvFrequencies() {
+        val cases = mapOf(
+            3_730_000L to "80m",
+            7_171_000L to "40m",
+            10_140_000L to "30m",
+            14_230_000L to "20m",
+            21_340_000L to "15m",
+            28_680_000L to "10m",
+            50_680_000L to "6m",
+            144_500_000L to "2m",
+        )
+        for ((freq, band) in cases) {
+            assertThat(amateurBand(freq)).isEqualTo(band)
+        }
+    }
+
+    @Test
+    fun amateurBand_isInclusiveAtEdges() {
+        assertThat(amateurBand(14_000_000L)).isEqualTo("20m")
+        assertThat(amateurBand(14_350_000L)).isEqualTo("20m")
+        assertThat(amateurBand(13_999_999L)).isNull()
+        assertThat(amateurBand(14_350_001L)).isNull()
+    }
+
+    @Test
+    fun amateurBand_nullOutsideAnyAllocation() {
+        assertThat(amateurBand(0L)).isNull()
+        assertThat(amateurBand(27_265_000L)).isNull() // CB 11m, not amateur
+        assertThat(amateurBand(-1L)).isNull()
+        assertThat(amateurBand(500_000_000L)).isNull()
+    }
+
     // ----- filter chip labels ------------------------------------------------
 
     @Test
@@ -263,5 +637,111 @@ class GalleryLogicTest {
         assertThat(GalleryFilter.ALL.labelRes()).isEqualTo(R.string.gallery_filter_all)
         assertThat(GalleryFilter.RX.labelRes()).isEqualTo(R.string.gallery_filter_rx)
         assertThat(GalleryFilter.TX.labelRes()).isEqualTo(R.string.gallery_filter_tx)
+    }
+
+    // ----- date grouping (section headers) -----------------------------------
+
+    /** golden day is 2026-07-04; use a "now" a couple of hours after it. */
+    private val nowSameDay = goldenUtc + 2 * 3_600_000L
+    private val oneDay = 86_400_000L
+
+    @Test
+    fun sections_emptyInput_isEmpty() {
+        assertThat(buildGallerySections(emptyList(), nowSameDay)).isEmpty()
+    }
+
+    @Test
+    fun sections_groupsTodayYesterdayEarlier() {
+        val images = listOf(
+            image(id = 1, utcMillis = goldenUtc), // today
+            image(id = 2, utcMillis = goldenUtc - oneDay), // yesterday
+            image(id = 3, utcMillis = goldenUtc - 3 * oneDay), // 2026-07-01
+        )
+        val sections = buildGallerySections(images, nowSameDay)
+
+        assertThat(sections.map { it.header }).containsExactly(
+            GallerySectionHeader.Today,
+            GallerySectionHeader.Yesterday,
+            GallerySectionHeader.Earlier("2026-07-01"),
+        ).inOrder()
+        assertThat(sections.map { it.images.map { img -> img.id } })
+            .containsExactly(listOf(1L), listOf(2L), listOf(3L)).inOrder()
+    }
+
+    @Test
+    fun sections_sameDayImagesShareOneHeader_newestFirst() {
+        val images = listOf(
+            image(id = 1, utcMillis = goldenUtc - 3_600_000L), // 14:30
+            image(id = 2, utcMillis = goldenUtc), // 15:30 (newer)
+        )
+        val sections = buildGallerySections(images, nowSameDay)
+
+        assertThat(sections).hasSize(1)
+        assertThat(sections.single().header).isEqualTo(GallerySectionHeader.Today)
+        // Sorted newest-first within the day, regardless of input order.
+        assertThat(sections.single().images.map { it.id }).containsExactly(2L, 1L).inOrder()
+    }
+
+    @Test
+    fun sections_futureSkewClampsIntoToday() {
+        val images = listOf(
+            image(id = 1, utcMillis = nowSameDay + oneDay), // ahead of the clock
+            image(id = 2, utcMillis = goldenUtc), // real today image
+        )
+        val sections = buildGallerySections(images, nowSameDay)
+
+        // Both land under a single Today header — no spurious future day.
+        assertThat(sections).hasSize(1)
+        assertThat(sections.single().header).isEqualTo(GallerySectionHeader.Today)
+        assertThat(sections.single().images.map { it.id }).containsExactly(1L, 2L).inOrder()
+    }
+
+    @Test
+    fun sections_dayBoundaryIsUtcNotElapsedHours() {
+        // 40 hours before "now" but only the day *before* yesterday by UTC date.
+        val images = listOf(image(id = 1, utcMillis = goldenUtc - 40 * 3_600_000L))
+        val sections = buildGallerySections(images, nowSameDay)
+        // goldenUtc - 40h = 2026-07-02 23:30Z → "2026-07-02", i.e. Earlier.
+        assertThat(sections.single().header)
+            .isEqualTo(GallerySectionHeader.Earlier("2026-07-02"))
+    }
+
+    @Test
+    fun sectionKey_isStablePerHeader() {
+        assertThat(gallerySectionKey(GallerySectionHeader.Today)).isEqualTo("today")
+        assertThat(gallerySectionKey(GallerySectionHeader.Yesterday)).isEqualTo("yesterday")
+        assertThat(gallerySectionKey(GallerySectionHeader.Earlier("2026-07-01")))
+            .isEqualTo("2026-07-01")
+    }
+
+    // ----- section count label -----------------------------------------------
+
+    /** Mirror of the `gallery_section_count_label` resource ("%1$s · %2$d"). */
+    private val SECTION_PATTERN = "%1\$s · %2\$d"
+
+    @Test
+    fun sectionCountLabel_appendsCount() {
+        assertThat(gallerySectionCountLabel(SECTION_PATTERN, "Today", 3))
+            .isEqualTo("Today · 3")
+        assertThat(gallerySectionCountLabel(SECTION_PATTERN, "Yesterday", 12))
+            .isEqualTo("Yesterday · 12")
+        assertThat(gallerySectionCountLabel(SECTION_PATTERN, "2026-07-01", 1))
+            .isEqualTo("2026-07-01 · 1")
+    }
+
+    @Test
+    fun sectionCountLabel_matchesSectionImageCounts() {
+        // The header count is the section's own list size, so it always agrees
+        // with the cells rendered beneath it (including a single-image day).
+        val images = listOf(
+            image(id = 1, utcMillis = goldenUtc), // today
+            image(id = 2, utcMillis = goldenUtc - 3_600_000L), // today
+            image(id = 3, utcMillis = goldenUtc - oneDay), // yesterday
+        )
+        val sections = buildGallerySections(images, nowSameDay)
+        val labels = sections.map {
+            gallerySectionCountLabel(SECTION_PATTERN, "D", it.images.size)
+        }
+        assertThat(labels).containsExactly("D · 2", "D · 1").inOrder()
     }
 }

@@ -1,18 +1,22 @@
+# Promotion path: feature → dev → staging → main.
+#
+# PRs into `main` must come from `staging` in this repo. The `main` ruleset
+# requires this check, so a PR from anywhere else can't be merged. Merging
+# staging → main is the "promote to production" step: android-v<x.y.z> +
+# Play production (android.yml) and desktop-v<x.y.z> (desktop-gui.yml).
+
 name: Main branch source gate
 
-# Enforces release discipline: PRs targeting main must come from `staging`.
-# The promotion path is feature -> dev -> staging -> main; only staging -> main
-# is allowed as the "promote to production" step, gated by branch protection
-# requiring this status check.
-#
-# To enforce it: GitHub → Settings → Branches → Branch protection rule for
-# `main` → Require status checks to pass → add "Main branch source gate /
-# enforce-source-is-staging" to the required list. (If you previously required
-# the old "enforce-source-is-dev" check, swap it for this one.)
-
+# pull_request_target (not pull_request) on purpose: the workflow then comes
+# from the base branch, so a PR can't edit this file to make its own check
+# pass. Safe here because the job never checks out or runs PR code - it only
+# reads event metadata.
 on:
-  pull_request:
+  pull_request_target:
     branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   enforce-source-is-staging:
@@ -21,22 +25,25 @@ jobs:
     steps:
       - name: Check PR head branch
         env:
+          GH_TOKEN: ${{ github.token }}
           HEAD_REF: ${{ github.head_ref }}
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
           BASE_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          # Require the promotion PR to come from the staging branch IN THIS
-          # repo. Checking the branch name alone is insufficient: a fork could
-          # open a PR from its own branch literally named "staging" and pass, so
-          # also pin the head repo to the base repo.
-          if [[ "${HEAD_REPO}" != "${BASE_REPO}" ]]; then
-            echo "::error title=PR source must be this repo::PRs to main must originate from staging in ${BASE_REPO}, not a fork (${HEAD_REPO})."
+          # Bootstrap: until the source branch exists there is nothing to
+          # promote from, so the gate can't apply yet. Pass with a warning.
+          if ! gh api "repos/$BASE_REPO/branches/staging" --silent 2>/dev/null; then
+            echo "::warning::Branch 'staging' does not exist yet in $BASE_REPO - source gate not applied."
+            exit 0
+          fi
+          if [[ "$HEAD_REPO" != "$BASE_REPO" ]]; then
+            echo "::error title=PR source must be this repo::PRs to main must come from staging in $BASE_REPO, not a fork ($HEAD_REPO)."
             exit 1
           fi
-          if [[ "${HEAD_REF}" != "staging" ]]; then
-            echo "::error title=PR source must be staging::PRs to main are only allowed from the staging branch. Source branch: ${HEAD_REF}"
+          if [[ "$HEAD_REF" != "staging" ]]; then
+            echo "::error title=PR source must be staging::PRs to main are only allowed from staging (got '$HEAD_REF')."
             echo "Promote through staging first (feature → dev → staging), then open staging → main."
             exit 1
           fi
-          echo "OK — PR source is staging in ${BASE_REPO}."
+          echo "OK — PR source is staging in $BASE_REPO."

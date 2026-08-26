@@ -42,6 +42,16 @@ enum class SstvMode(
     val totalRows: Int get() = height
 
     companion object {
+        /**
+         * Fixed calibration-header seconds (leader + 1200 Hz break + VIS) baked
+         * into every mode's [txDurationSeconds] ahead of the image scan — see the
+         * class KDoc and `cpp/sstv_lib/sstv_modes.c`. The header is the same for
+         * every mode (e.g. Robot 36 = 36.0 s scan + 0.91 s header = 36.91), so it
+         * lives here as the single source of truth rather than being duplicated
+         * by callers that need the image-scan portion (the RX ETA subtracts it).
+         */
+        const val CALIBRATION_HEADER_SECONDS = 0.91
+
         /** Reverse lookup from a native mode id; null for -1/unknown. */
         @JvmStatic
         fun fromModeId(modeId: Int): SstvMode? = entries.firstOrNull { it.modeId == modeId }
