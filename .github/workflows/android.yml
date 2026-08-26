@@ -682,7 +682,7 @@ jobs:
                 if [[ "$CAND_FOUND" == "true" ]]; then
                   version="$CAND_VERSION"; version_source="promoted from $CAND_TAG"
                 else
-                  version=$(.github/scripts/android-next-version.sh "$PREV_VERSION" "$BUMP")
+                  version=$(bash .github/scripts/android-next-version.sh "$PREV_VERSION" "$BUMP")
                   version_source="$BUMP bump ($BUMP_SOURCE) from ${PREV_VERSION}"
                 fi
                 if [[ "$LANE" == "production" ]]; then
@@ -690,7 +690,7 @@ jobs:
                   # candidate promoted twice): step the patch until the tag is free.
                   while git rev-parse -q --verify "refs/tags/android-v$version" > /dev/null; do
                     echo "::warning::Tag android-v$version already exists — stepping the patch version."
-                    version=$(.github/scripts/android-next-version.sh "$version" patch)
+                    version=$(bash .github/scripts/android-next-version.sh "$version" patch)
                   done
                   release_tag="android-v$version"
                   version_name="$version"
