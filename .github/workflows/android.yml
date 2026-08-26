@@ -9,7 +9,8 @@ name: Android CI & Release
 #   PR to dev/staging/main -> build-only (unsigned), tests
 #   push to dev            -> build-only sanity, NO release (dev builds never
 #                             reach the Releases page)
-#   push to staging        -> android-dev.<run#> PRERELEASE + Play internal,
+#   push to staging        -> android-dev.<run#> PRERELEASE + Play internal
+#                             as a DRAFT (roll it out from Play Console),
 #                             versionName <x.y.z>-dev.<run#> where x.y.z is the
 #                             semver Claude picks from the changes since the
 #                             last production tag (see "Versioning" below)
@@ -668,12 +669,12 @@ jobs:
           BUMP_SOURCE: ${{ steps.ai.outputs.source }}
         run: |
           set -euo pipefail
-          release_tag=""; version_name=""; should_release=false; is_prerelease=false; play_track=""; version_source=""
+          release_tag=""; version_name=""; should_release=false; is_prerelease=false; play_track=""; play_status=""; version_source=""
           case "$LANE" in
             tag)
               release_tag="${GITHUB_REF_NAME}"
               version_name="${GITHUB_REF_NAME#android-v}"
-              should_release=true; play_track=production; version_source="pushed tag"
+              should_release=true; play_track=production; play_status=completed; version_source="pushed tag"
               ;;
             production|dev)
               if [[ "$ANDROID_CHANGED" != "true" ]]; then
@@ -695,6 +696,9 @@ jobs:
                   release_tag="android-v$version"
                   version_name="$version"
                   play_track=production
+                  # Production rolls out live. Change to `draft` to gate every
+                  # production release behind a manual rollout in Play Console.
+                  play_status=completed
                 else
                   # staging: a run-numbered PRERELEASE on the Play internal track.
                   # Distinct tag prefix so it sorts separately from android-v*;
@@ -703,6 +707,13 @@ jobs:
                   version_name="${version}-dev.${GITHUB_RUN_NUMBER}"
                   is_prerelease=true
                   play_track=internal
+                  # Internal testing uploads as a DRAFT, matching Sorrel's
+                  # play-beta.yml. The AAB, its versionName and Claude's release
+                  # notes all land in Play Console, but nothing reaches internal
+                  # testers until it is reviewed and rolled out by hand.
+                  # `completed` - inherited from the FT8AF workflow this was
+                  # ported from - published straight to the track instead.
+                  play_status=draft
                 fi
                 should_release=true
                 echo "version=$version" >> "$GITHUB_OUTPUT"
@@ -719,6 +730,7 @@ jobs:
             echo "should_release=$should_release"
             echo "is_prerelease=$is_prerelease"
             echo "play_track=$play_track"
+            echo "play_status=$play_status"
             echo "version_source=$version_source"
           } >> "$GITHUB_OUTPUT"
 
@@ -940,7 +952,9 @@ jobs:
           mappingFile: sstvaf/app/build/outputs/mapping/release/mapping.txt
           # staging -> internal track; main / android-v* tag -> production track.
           track: ${{ steps.tag.outputs.play_track }}
-          status: completed
+          # internal -> draft (review + roll out by hand); production -> completed.
+          # Set in "Compute version and release tag".
+          status: ${{ steps.tag.outputs.play_status }}
           releaseName: ${{ steps.tag.outputs.release_tag }}
           # Claude's release notes (whatsnew-en-US), written by "Write release
           # notes" above — shows up as the track's "Release notes" in Console.
@@ -969,6 +983,7 @@ jobs:
           VERSION_NAME: ${{ steps.tag.outputs.version_name }}
           VERSION_SOURCE: ${{ steps.tag.outputs.version_source }}
           PLAY_TRACK: ${{ steps.tag.outputs.play_track }}
+          PLAY_STATUS: ${{ steps.tag.outputs.play_status }}
           PLAY_OUTCOME: ${{ steps.play_publish.outcome }}
         run: |
           {
@@ -976,7 +991,10 @@ jobs:
             echo ""
             echo "- **versionName:** \`$VERSION_NAME\` ($VERSION_SOURCE)"
             echo "- **versionCode:** $((GITHUB_RUN_NUMBER + 1000))"
-            echo "- **Play track:** \`$PLAY_TRACK\` (publish: $PLAY_OUTCOME)"
+            echo "- **Play track:** \`$PLAY_TRACK\` (status: $PLAY_STATUS, publish: $PLAY_OUTCOME)"
+            if [[ "$PLAY_STATUS" == "draft" ]]; then
+              echo "- Uploaded as a **draft** - review it in Play Console and roll it out to reach testers."
+            fi
             echo ""
             echo "### Release notes"
             echo ""
