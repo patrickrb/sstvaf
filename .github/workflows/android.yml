@@ -561,6 +561,12 @@ jobs:
             [[ -s notes.txt ]] || echo "Bug fixes and improvements." > notes.txt
             exit 0
           }
+          # Play's what's-new cap is 500 CHARACTERS. `head -c` counts BYTES,
+          # so it can slice a multi-byte character (an em dash, an accented
+          # call sign) in half and leave invalid UTF-8 that Play rejects.
+          trunc_chars() {
+            python3 -c 'import sys; n=int(sys.argv[1]); sys.stdout.buffer.write(sys.stdin.buffer.read().decode("utf-8","replace")[:n].encode("utf-8"))' "$1"
+          }
           [[ -n "$ANTHROPIC_API_KEY" ]] || fallback "ANTHROPIC_API_KEY is not set"
 
           SCHEMA='{
@@ -611,14 +617,27 @@ jobs:
             output_config: {format: {type: "json_schema", schema: $schema}},
             messages: [{role: "user", content: $prompt}]
           }' > request.json
-          if ! RESP=$(curl -sSf --max-time 300 https://api.anthropic.com/v1/messages \
+          # `fallbacks: "default"` + the `server-side-fallback-2026-07-01` beta is
+          # the documented way to survive a `stop_reason: "refusal"` on the
+          # Opus/Fable tier. Deliberately NOT run with curl's -f: on a non-2xx we
+          # want the response BODY in the step log, because that is what names the
+          # cause (a retired beta value, a bad model id, an expired key). The whole
+          # step is already wrapped in fallback(), so any failure - beta retirement
+          # included - degrades to a patch bump plus PR-title notes rather than
+          # blocking the release.
+          HTTP_CODE=$(curl -sS --max-time 300 -o response.json -w '%{http_code}' \
+              https://api.anthropic.com/v1/messages \
               -H "x-api-key: $ANTHROPIC_API_KEY" \
               -H "anthropic-version: 2023-06-01" \
               -H "anthropic-beta: server-side-fallback-2026-07-01" \
               -H "content-type: application/json" \
-              -d @request.json); then
-            fallback "the Claude API request failed"
+              -d @request.json) || HTTP_CODE="000"
+          if [[ "$HTTP_CODE" != 2* ]]; then
+            echo "HTTP ${HTTP_CODE} from the Messages API:"
+            cat response.json 2>/dev/null || true
+            fallback "the Claude API request failed (HTTP ${HTTP_CODE})"
           fi
+          RESP=$(cat response.json)
           STOP=$(jq -r '.stop_reason // empty' <<< "$RESP")
           if [[ "$STOP" != "end_turn" ]]; then
             echo "Response: $RESP"
@@ -627,8 +646,9 @@ jobs:
           # Structured outputs guarantee the text block is valid JSON matching the schema.
           TEXT=$(jq -r '[.content[] | select(.type == "text")][0].text' <<< "$RESP")
           BUMP=$(jq -er '.bump' <<< "$TEXT") || fallback "Claude's answer had no bump"
-          # Prompt targets <=400 chars; the hard truncation guards Play's 500-char limit.
-          jq -r '.notes' <<< "$TEXT" | head -c 500 > notes.txt
+          # Prompt targets <=400 chars; the hard truncation guards Play's
+          # 500-CHARACTER limit (trunc_chars, not head -c - see above).
+          jq -r '.notes' <<< "$TEXT" | trunc_chars 500 > notes.txt
           echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
           echo "source=claude" >> "$GITHUB_OUTPUT"
           echo "Claude chose bump: $BUMP"
@@ -714,7 +734,10 @@ jobs:
           # candidate; the android-v* tag-push lane has none.
           mkdir -p distribution/whatsnew
           if [[ -s notes.txt ]]; then
-            head -c 500 notes.txt > distribution/whatsnew/whatsnew-en-US
+            # 500 CHARACTERS - Play counts its cap in characters, and a byte slice
+            # (head -c) can cut a multi-byte character in half, leaving invalid
+            # UTF-8 that Play rejects.
+            python3 -c 'import sys; sys.stdout.buffer.write(open(sys.argv[1],"rb").read().decode("utf-8","replace")[:500].encode("utf-8"))' notes.txt > distribution/whatsnew/whatsnew-en-US
           else
             echo "SSTVAF $VERSION_NAME" > distribution/whatsnew/whatsnew-en-US
           fi
