@@ -71,8 +71,17 @@
     <!-- ===== App header (every tab) ===== -->
     <string name="action_back">Back</string>
     <!-- Frequency chip content description. %1$s is the chip's own label, e.g.
-         "14.230 · 20m". -->
-    <string name="header_frequency_chip_description">Frequency %1$s, tap to change</string>
+         "14.230 · 20m"; %2$s is the CAT link state, which the chip otherwise
+         shows only as a coloured dot. -->
+    <string name="header_frequency_chip_description">Frequency %1$s, %2$s, tap to change</string>
+    <!-- CAT link state. Reads as one segment of a "IC-705 · USB cable · CAT ·
+         connected" summary as well as inside the chip description above, so
+         these stay lowercase phrases. -->
+    <string name="cat_state_connected">connected</string>
+    <string name="cat_state_connecting">connecting</string>
+    <string name="cat_state_disconnected">not connected</string>
+    <string name="cat_state_error">connection error</string>
+    <string name="cat_state_vox">no CAT link</string>
     <string name="header_more_description">More: radio, operator, logbook, settings</string>
 
     <!-- ===== More sheet (header overflow) ===== -->
@@ -664,7 +673,11 @@
     <string name="rx_status_listening">Listening</string>
     <!-- %1$s is the SSTV mode the decoder locked onto, e.g. "Scottie 1". -->
     <string name="rx_status_decoding">Decoding %1$s</string>
+    <string name="rx_status_off">Receive is off</string>
+    <!-- Decoding finished; the image has not been confirmed in the Gallery yet. -->
+    <string name="rx_status_complete">Image complete</string>
     <string name="rx_status_saved">Saved to Gallery</string>
+    <string name="rx_status_save_failed">Save failed</string>
     <string name="rx_status_lost">Signal lost</string>
     <!-- Right of the status row while idle: the operator picks no mode on receive. -->
     <string name="rx_status_auto_detect">auto-detect</string>
@@ -835,7 +848,10 @@
     <string name="mode_note_most_common">most common on 20m</string>
     <string name="mode_card_label">MODE</string>
     <!-- Mode card content description. %1$s is the current mode, e.g. "Scottie 1". -->
-    <string name="mode_card_description">SSTV mode %1$s, tap to change</string>
+    <string name="mode_card_description">SSTV mode %1$s</string>
+    <!-- Names the card's tap ACTION; the card itself is described by
+         mode_card_description above. -->
+    <string name="mode_card_action">Change SSTV mode</string>
     <!-- Mode row content description. %1$s mode name, %2$s dimensions, %3$s duration. -->
     <string name="mode_row_description">%1$s, %2$s, %3$s</string>
 

@@ -34,7 +34,7 @@ import radio.ks3ckc.sstvaf.theme.TextPrimary
  *
  * Passing [onBack] prepends a back chevron next to the title. It is the app's
  * one back affordance: Settings, Radio & audio, Logbook and every Settings
- * detail screen all render the same 34dp circle in the same place, so "go back"
+ * detail screen all render the same back circle in the same place, so "go back"
  * never moves or changes shape between screens.
  *
  * The three tabs use [AppHeader] instead, which carries the dial chip and the
@@ -51,7 +51,9 @@ fun TopBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = if (onBack != null) 8.dp else 18.dp, end = 18.dp, top = 12.dp, bottom = 12.dp),
+            // 1dp + the 48dp target's 7dp of slack puts the chevron in the same
+            // place the old 34dp circle sat at 8dp.
+            .padding(start = if (onBack != null) 1.dp else 18.dp, end = 18.dp, top = 12.dp, bottom = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = if (onBack != null) Alignment.CenterVertically else Alignment.Top,
     ) {
@@ -88,13 +90,23 @@ fun TopBar(
     }
 }
 
-/** The 34dp back circle — a right-pointing chevron rotated to point back. */
+/**
+ * The back control — a right-pointing chevron rotated to point back, drawn in a
+ * 34dp circle inside a 48dp touch target.
+ *
+ * The 48dp is not decoration: it is Android's minimum accessible target size,
+ * and it is what the Material [androidx.compose.material3.IconButton] this
+ * replaced provided for free. A 34dp target is a quarter of the area, which is
+ * the difference between "back" being reliable and being a miss for anyone with
+ * a tremor or a large thumb. The circle stays 34dp so the chevron sits exactly
+ * where the design puts it; only the clickable bounds grew.
+ */
 @Composable
 internal fun BackButton(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val backLabel = stringResource(R.string.action_back)
     Box(
         modifier = modifier
-            .size(34.dp)
+            .size(48.dp)
             .clip(CircleShape)
             .clickable(role = Role.Button, onClick = onBack)
             // A bare chevron: contentDescription is the only thing TalkBack has
@@ -102,12 +114,17 @@ internal fun BackButton(onBack: () -> Unit, modifier: Modifier = Modifier) {
             .semantics { contentDescription = backLabel },
         contentAlignment = Alignment.Center,
     ) {
-        SstvAfIcons.Chevron(
-            color = TextPrimary,
-            size = 20.dp,
-            strokeWidth = 2f,
-            modifier = Modifier.rotate(180f),
-        )
+        Box(
+            modifier = Modifier.size(34.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            SstvAfIcons.Chevron(
+                color = TextPrimary,
+                size = 20.dp,
+                strokeWidth = 2f,
+                modifier = Modifier.rotate(180f),
+            )
+        }
     }
 }
 
