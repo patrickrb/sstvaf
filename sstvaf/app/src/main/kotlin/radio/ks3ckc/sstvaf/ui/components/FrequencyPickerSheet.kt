@@ -1,28 +1,28 @@
 package radio.ks3ckc.sstvaf.ui.components
 
 import android.content.Context
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,7 +39,7 @@ import radio.ks3ckc.sstvaf.theme.*
  * GeneralVariables, persists the new bandFreq in config, refreshes QSL callsigns, and
  * pushes the new frequency to the rig when CAT/RTS/DTR control is active.
  *
- * Shared between the Settings band picker and the TxStrip frequency picker.
+ * Shared between the Settings band picker and the header's Frequency sheet.
  */
 fun selectBandIndex(mainViewModel: MainViewModel, context: Context, index: Int) {
     GeneralVariables.bandListIndex = index
@@ -53,8 +53,8 @@ fun selectBandIndex(mainViewModel: MainViewModel, context: Context, index: Int) 
         "bandFreq", GeneralVariables.band.toString(), null,
     )
     mainViewModel.databaseOpr.getAllQSLCallsigns()
-    // Notify observers (TxStrip pill, Settings band picker) so the UI updates
-    // without waiting for a rig onFreqChanged round-trip.
+    // Notify observers (the header's frequency chip, Settings band picker) so the
+    // UI updates without waiting for a rig onFreqChanged round-trip.
     GeneralVariables.mutableBandChange.postValue(index)
 
     // Per-band output level (issue #355): when enabled and this band has a
@@ -99,259 +99,315 @@ fun selectBandIndex(mainViewModel: MainViewModel, context: Context, index: Int) 
     }
 }
 
-private data class BandGroup(
-    val waveLength: String,
-    val primaryIndex: Int,
-    val primaryFreqHz: Long,
-    val alternates: List<Pair<Int, Long>>,
-)
-
-/**
- * Build the band model from OperationBand.bandList:
- *   - Group entries by waveLength (file order preserved).
- *   - Primary = first entry with marked == true; fall back to first entry in group.
- *   - Alternates = every other entry in the group, in file order.
- */
-private fun buildBandGroups(): List<BandGroup> {
-    val order = LinkedHashMap<String, MutableList<Pair<Int, OperationBand.Band>>>()
-    for (i in 0 until OperationBand.bandList.size) {
-        val b = OperationBand.bandList[i]
-        if (GeneralVariables.isBandExcluded(b.waveLength)) continue
-        order.getOrPut(b.waveLength) { mutableListOf() }.add(i to b)
-    }
-    return order.map { (wave, entries) ->
-        val primary = entries.firstOrNull { it.second.marked } ?: entries.first()
-        val alternates = entries.filter { it.first != primary.first }
-            .map { it.first to it.second.band }
-        BandGroup(
-            waveLength = wave,
-            primaryIndex = primary.first,
-            primaryFreqHz = primary.second.band,
-            alternates = alternates,
-        )
-    }
-}
-
 internal fun formatMhz(freqHz: Long): String {
     val mhz = freqHz / 1_000_000.0
     return String.format(java.util.Locale.US, "%.3f", mhz)
 }
 
+// ---------------------------------------------------------------------------
+// The SSTV calling frequencies
+// ---------------------------------------------------------------------------
+
+/**
+ * One row of the Frequency sheet: a band, the dial everyone calls SSTV on
+ * there, and a note on when that band is worth sitting on.
+ */
+internal data class SstvCallingFrequency(
+    val band: String,
+    val freqHz: Long,
+    @StringRes val noteRes: Int,
+)
+
+/**
+ * The five SSTV calling frequencies, low band to high.
+ *
+ * Five rows, not the whole band plan. The old sheet offered a tile grid of every
+ * entry in `bands.txt` plus an expandable alternates list — a general-purpose
+ * band picker on a screen where the operator has exactly one question: "where is
+ * SSTV right now?". These five are where the activity is, and each carries the
+ * propagation note that answers "is it worth listening?". The full band list
+ * still lives in Radio & audio for the operator who needs 30m or 6m.
+ *
+ * Every one of these dials is already a marked primary entry in `bands.txt`, so
+ * [callingFrequencyBandIndex] resolves each to a real band index without
+ * inventing one.
+ */
+internal val SSTV_CALLING_FREQUENCIES: List<SstvCallingFrequency> = listOf(
+    SstvCallingFrequency("80m", 3_845_000L, R.string.freq_note_night),
+    SstvCallingFrequency("40m", 7_171_000L, R.string.freq_note_evenings),
+    SstvCallingFrequency("20m", 14_230_000L, R.string.freq_note_daytime_busiest),
+    SstvCallingFrequency("15m", 21_340_000L, R.string.freq_note_daytime),
+    SstvCallingFrequency("10m", 28_680_000L, R.string.freq_note_when_open),
+)
+
+/**
+ * The index into [OperationBand.bandList] carrying [freqHz], or -1 when no entry
+ * has that exact dial.
+ *
+ * Takes the frequencies as a plain list so the lookup is unit-testable without
+ * loading `bands.txt` off the asset manager. Deliberately NOT
+ * [OperationBand.getIndexByFreq]: that helper *appends* a synthetic band when it
+ * finds no match, which is the right behaviour for tuning to an arbitrary dial
+ * but wrong for a highlight check that runs on every recomposition — it would
+ * grow the band list forever. Callers that need the append-on-miss behaviour
+ * fall back to it explicitly.
+ */
+internal fun callingFrequencyBandIndex(freqHz: Long, bandFreqsHz: List<Long>): Int =
+    bandFreqsHz.indexOfFirst { it == freqHz }
+
+/**
+ * Whether a calling-frequency row is the one currently dialled in. Compares the
+ * dial itself rather than band-list indices, so an operator who reached 14.230
+ * by any route — this sheet, the Settings picker, or the rig's own VFO knob
+ * reporting back over CAT — sees the row highlighted.
+ */
+internal fun isCallingFrequencySelected(row: SstvCallingFrequency, currentFreqHz: Long): Boolean =
+    row.freqHz == currentFreqHz
+
+// ---------------------------------------------------------------------------
+// TX level / TUNE helpers (moved here when the TX strip was deleted)
+// ---------------------------------------------------------------------------
+
+/**
+ * Clamp a volume value after a +/- step to the 0–100 range.
+ * Extracted so it can be unit-tested without Compose.
+ */
+internal fun clampVolume(current: Int, delta: Int): Int =
+    (current + delta).coerceIn(0, 100)
+
+/**
+ * Label for the TUNE button: the plain label when idle, "label countdown" while
+ * the carrier is up (e.g. "TUNE 7s") so the operator sees the safety timeout
+ * running. Extracted so it can be unit-tested without Compose.
+ */
+internal fun tuneChipLabel(label: String, isTuning: Boolean, remainingSec: Int): String =
+    if (isTuning) "$label ${remainingSec.coerceAtLeast(0)}s" else label
+
+// ---------------------------------------------------------------------------
+// The sheet
+// ---------------------------------------------------------------------------
+
+/**
+ * The Frequency sheet, opened from the header's dial chip: the five SSTV
+ * calling frequencies, the TX level, and TUNE.
+ *
+ * TUNE lives here, two taps deep, on purpose. It used to be a chip on the TX
+ * strip — permanently on screen on every tab, one stray thumb from keying a
+ * steady carrier in the middle of somebody else's QSO. Behind a sheet it is
+ * still two taps from the operator who wants it while setting up an antenna,
+ * and unreachable by accident. It also disables Transmit while it runs, because
+ * the tune carrier and an SSTV transmission both want the same rig.
+ */
 @Composable
 fun FrequencyPickerSheet(
     visible: Boolean,
-    currentBandIndex: Int,
+    currentFreqHz: Long,
+    catStatusLabel: String,
+    catDotColor: Color,
+    txLevel: Int,
+    isTuning: Boolean,
+    tuneRemainingSec: Int,
+    tuneMaxSeconds: Int,
     onDismiss: () -> Unit,
-    onSelect: (Int) -> Unit,
+    onSelectBandIndex: (Int) -> Unit,
+    onTxLevelChange: (Int) -> Unit,
+    onTxLevelChangeFinished: () -> Unit,
+    onToggleTune: () -> Unit,
 ) {
     SstvAfBottomSheet(visible = visible, onDismiss = onDismiss) {
-        val groups = remember(GeneralVariables.excludedBands.toSet()) { buildBandGroups() }
-        var showAlternates by remember { mutableStateOf(false) }
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .padding(top = 8.dp, bottom = 24.dp),
+                .padding(horizontal = 18.dp)
+                .padding(top = 8.dp, bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                text = stringResource(R.string.freq_select_title),
-                color = TextPrimary,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                fontFamily = GeistMonoFamily,
-                letterSpacing = 0.06.sp,
-                modifier = Modifier.padding(bottom = 12.dp),
-            )
-
-            BandTileGrid(
-                groups = groups,
-                currentBandIndex = currentBandIndex,
-                onTileClick = onSelect,
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Show / hide alternates toggle
+            // ---- Title + live rig/CAT status ----
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { showAlternates = !showAlternates }
-                    .padding(vertical = 10.dp, horizontal = 4.dp),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = if (showAlternates) stringResource(R.string.freq_hide_alternates) else stringResource(R.string.freq_show_alternates),
-                    color = TextMuted,
-                    fontSize = 11.sp,
+                    text = stringResource(R.string.freq_sheet_title),
+                    color = TextPrimary,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.SemiBold,
-                    fontFamily = GeistMonoFamily,
-                    letterSpacing = 0.08.sp,
                 )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = if (showAlternates) "△" else "▽",
-                    color = TextFaint,
-                    fontSize = 11.sp,
-                )
-            }
-
-            if (showAlternates) {
-                Spacer(modifier = Modifier.height(4.dp))
-                AlternatesList(
-                    groups = groups,
-                    currentBandIndex = currentBandIndex,
-                    onChipClick = onSelect,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun BandTileGrid(
-    groups: List<BandGroup>,
-    currentBandIndex: Int,
-    onTileClick: (Int) -> Unit,
-) {
-    val columns = 3
-    val rows = groups.chunked(columns)
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        for (row in rows) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                for (g in row) {
-                    // If an alternate within this group is the active selection,
-                    // surface that on the tile so the user doesn't have to open the
-                    // alternates list to see what's tuned. Tapping the tile still
-                    // tunes to the band's primary — that's also the "reset to
-                    // default" gesture for getting off an alternate.
-                    val selectedAlt = g.alternates.firstOrNull { it.first == currentBandIndex }
-                    val isSelected = g.primaryIndex == currentBandIndex || selectedAlt != null
-                    val displayFreqHz = selectedAlt?.second ?: g.primaryFreqHz
-                    BandTile(
-                        waveLength = g.waveLength,
-                        freqHz = displayFreqHz,
-                        isSelected = isSelected,
-                        isAlternate = selectedAlt != null,
-                        modifier = Modifier.weight(1f),
-                        onClick = { onTileClick(g.primaryIndex) },
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(catDotColor),
                     )
-                }
-                // Pad incomplete row with empty weights so tiles stay sized consistently.
-                repeat(columns - row.size) {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun BandTile(
-    waveLength: String,
-    freqHz: Long,
-    isSelected: Boolean,
-    isAlternate: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
-    val bg = if (isSelected) AccentSoft else BgSurface3
-    val bandColor = if (isSelected) Accent else TextPrimary
-    val freqColor = if (isSelected) Accent else TextMuted
-
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(bg)
-            .clickable { onClick() }
-            .padding(vertical = 12.dp, horizontal = 8.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = waveLength,
-                color = bandColor,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = GeistMonoFamily,
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (isAlternate) {
                     Text(
-                        text = stringResource(R.string.freq_alt_prefix),
-                        color = freqColor,
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        fontFamily = GeistMonoFamily,
-                        letterSpacing = 0.08.sp,
+                        text = catStatusLabel,
+                        color = TextMuted,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
                     )
                 }
-                Text(
-                    text = formatMhz(freqHz),
-                    color = freqColor,
-                    fontSize = 11.sp,
-                    fontFamily = GeistMonoFamily,
-                )
             }
-        }
-    }
-}
 
-@Composable
-private fun AlternatesList(
-    groups: List<BandGroup>,
-    currentBandIndex: Int,
-    onChipClick: (Int) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        for (g in groups) {
-            if (g.alternates.isEmpty()) continue
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // ---- The five calling frequencies ----
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                for (row in SSTV_CALLING_FREQUENCIES) {
+                    CallingFrequencyRow(
+                        row = row,
+                        selected = isCallingFrequencySelected(row, currentFreqHz),
+                        onClick = {
+                            val exact = callingFrequencyBandIndex(
+                                row.freqHz,
+                                OperationBand.bandList.map { it.band },
+                            )
+                            // A dial missing from bands.txt (a hand-edited asset)
+                            // still has to be tunable, so fall back to the helper
+                            // that appends an entry for it.
+                            onSelectBandIndex(
+                                if (exact >= 0) exact else OperationBand.getIndexByFreq(row.freqHz),
+                            )
+                        },
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Border),
+            )
+
+            // ---- TX level ----
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 Text(
-                    text = g.waveLength,
+                    text = stringResource(R.string.freq_tx_level),
+                    modifier = Modifier.width(74.dp),
                     color = TextMuted,
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    fontFamily = GeistMonoFamily,
-                    modifier = Modifier.width(44.dp),
+                    fontWeight = FontWeight.Medium,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    for (alt in g.alternates) {
-                        AlternateChip(
-                            label = formatMhz(alt.second),
-                            isSelected = alt.first == currentBandIndex,
-                            onClick = { onChipClick(alt.first) },
+                IntSlider(
+                    value = txLevel,
+                    onValueChange = { onTxLevelChange(it.coerceIn(0, 100)) },
+                    onValueChangeFinished = onTxLevelChangeFinished,
+                    valueRange = 0f..100f,
+                    modifier = Modifier.weight(1f),
+                    thumbColor = Accent,
+                    activeTrackColor = Accent,
+                )
+                Text(
+                    text = stringResource(R.string.settings_percent_format, txLevel),
+                    modifier = Modifier.width(36.dp),
+                    color = TextFaint,
+                    fontSize = 11.sp,
+                    fontFamily = GeistMonoFamily,
+                )
+            }
+
+            // ---- TUNE ----
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                val tuneDescription = stringResource(R.string.tune_content_description)
+                Box(
+                    modifier = Modifier
+                        .width(96.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (isTuning) StatusBad else BgSurface3)
+                        .clickable(
+                            onClickLabel = tuneDescription,
+                            role = Role.Button,
+                            onClick = onToggleTune,
                         )
-                    }
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = tuneChipLabel(
+                            stringResource(R.string.tune_button), isTuning, tuneRemainingSec,
+                        ),
+                        color = if (isTuning) Color.White else TextMuted,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = GeistMonoFamily,
+                        maxLines = 1,
+                        softWrap = false,
+                    )
                 }
+                Text(
+                    // The timeout is an operator setting (Transmission → Tune), so
+                    // the copy reads the live value instead of hardcoding "10 s"
+                    // and going stale the moment somebody changes it.
+                    text = stringResource(R.string.freq_tune_explain, tuneMaxSeconds),
+                    modifier = Modifier.weight(1f),
+                    color = TextFaint,
+                    fontSize = 11.sp,
+                    lineHeight = 15.sp,
+                )
             }
         }
     }
 }
 
+/** One calling-frequency row: band, dial, and when to sit on it. */
 @Composable
-private fun AlternateChip(
-    label: String,
-    isSelected: Boolean,
+private fun CallingFrequencyRow(
+    row: SstvCallingFrequency,
+    selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val bg = if (isSelected) AccentSoft else BgSurface3
-    val fg = if (isSelected) Accent else TextMuted
-    Box(
+    Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(bg)
-            .clickable { onClick() }
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (selected) Accent.copy(alpha = 0.10f) else Color.Transparent)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            text = label,
-            color = fg,
-            fontSize = 11.sp,
+            text = row.band,
+            modifier = Modifier.width(38.dp),
+            color = TextMuted,
+            fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
-            fontFamily = GeistMonoFamily,
+        )
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = formatMhz(row.freqHz),
+                color = TextPrimary,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = GeistMonoFamily,
+            )
+            Text(
+                text = stringResource(R.string.freq_unit_mhz),
+                color = TextFaint,
+                fontSize = 12.sp,
+            )
+        }
+        Text(
+            text = stringResource(row.noteRes),
+            color = TextFaint,
+            fontSize = 11.sp,
+            maxLines = 1,
         )
     }
 }

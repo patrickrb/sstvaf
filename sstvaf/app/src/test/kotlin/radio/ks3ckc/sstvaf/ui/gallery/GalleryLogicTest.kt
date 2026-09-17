@@ -1,6 +1,5 @@
 package radio.ks3ckc.sstvaf.ui.gallery
 
-import androidx.compose.ui.unit.dp
 import com.google.common.truth.Truth.assertThat
 import com.k1af.ft8af.R
 import org.junit.Test
@@ -425,28 +424,6 @@ class GalleryLogicTest {
         assertThat(galleryEmptyStateRes(GalleryFilter.ALL)).isEqualTo(R.string.gallery_empty_rx)
         assertThat(galleryEmptyStateRes(GalleryFilter.RX)).isEqualTo(R.string.gallery_empty_rx)
         assertThat(galleryEmptyStateRes(GalleryFilter.TX)).isEqualTo(R.string.gallery_empty_tx)
-    }
-
-    // ----- empty-state bottom padding (#24) ----------------------------------
-
-    @Test
-    fun emptyStatePadding_reservesStripHeight() {
-        // The default reserves the approximate TX-strip height so the centered
-        // illustration clears the always-on strip in a short/landscape canvas.
-        assertThat(emptyStateBottomPadding()).isEqualTo(TxStripApproxHeight)
-        assertThat(TxStripApproxHeight.value).isGreaterThan(0f)
-    }
-
-    @Test
-    fun emptyStatePadding_passesThroughPositiveHeight() {
-        assertThat(emptyStateBottomPadding(64.dp)).isEqualTo(64.dp)
-        assertThat(emptyStateBottomPadding(0.dp)).isEqualTo(0.dp)
-    }
-
-    @Test
-    fun emptyStatePadding_clampsNegativeToZero() {
-        // A bad/negative measurement must never yield negative padding.
-        assertThat(emptyStateBottomPadding((-20).dp)).isEqualTo(0.dp)
     }
 
     // ----- viewer metadata ---------------------------------------------------

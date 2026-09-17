@@ -25,10 +25,6 @@
     <string name="continent_an">Антарктида</string>
 
     <!-- ===== Bottom navigation tabs ===== -->
-    <string name="tab_decode">Декод</string>
-    <string name="tab_waterfall">Водоспад</string>
-    <string name="tab_logbook">Журнал</string>
-    <string name="tab_settings">Налаштування</string>
 
     <!-- ===== Status pills (decode list badges) ===== -->
     <string name="status_new_dxcc">НОВИЙ DXCC</string>
@@ -57,10 +53,6 @@
     <string name="exit_message">Ви впевнені, що хочете закрити застосунок? Будь-який активний QSO буде скасовано.</string>
 
     <!-- ===== Frequency picker ===== -->
-    <string name="freq_select_title">ВИБІР ЧАСТОТИ</string>
-    <string name="freq_show_alternates">ПОКАЗАТИ АЛЬТЕРНАТИВНІ</string>
-    <string name="freq_hide_alternates">ПРИХОВАТИ АЛЬТЕРНАТИВНІ</string>
-    <string name="freq_alt_prefix">"ALT "</string>
 
     <!-- ===== Operator card ===== -->
     <string name="op_no_call">НЕМАЄ ПОЗИВНОГО</string>
@@ -104,12 +96,6 @@
     <string name="hound_call_frequency">Частота виклику (Hz, 1000–4000)</string>
     <string name="hound_start">Старт</string>
 
-    <!-- ===== CAT status chip ===== -->
-    <string name="cat_status_chip_label">CAT</string>
-    <string name="cat_status_connected">CAT під’єднано — торкніться, щоб перепід’єднатися</string>
-    <string name="cat_status_connecting">CAT під’єднання…</string>
-    <string name="cat_status_disconnected">CAT від’єднано — торкніться, щоб під’єднатися</string>
-    <string name="cat_status_error">Помилка з’єднання CAT — торкніться, щоб повторити</string>
 
     <!-- ===== SWR lockout banner ===== -->
     <string name="swr_lockout_title">TX ЗУПИНЕНО — Виявлено високий SWR (%1$s)</string>
@@ -307,10 +293,6 @@
     <string name="map_info_distance">Відстань</string>
     <string name="map_info_bearing">Пеленг</string>
     <string name="map_info_snr">SNR</string>
-    <string name="waterfall_title">Водоспад</string>
-    <string name="waterfall_toggle_nr">NR</string>
-    <string name="waterfall_toggle_msg">MSG</string>
-    <string name="waterfall_status_live">НАЖИВО</string>
 
     <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d min</string>

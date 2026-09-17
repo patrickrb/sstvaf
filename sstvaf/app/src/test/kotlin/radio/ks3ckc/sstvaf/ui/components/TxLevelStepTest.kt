@@ -4,10 +4,11 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 /**
- * Unit tests for [clampVolume] — the pure volume-stepping helper used by the
- * inline TX volume slider's +/- buttons. No Android runtime needed.
+ * Unit tests for [clampVolume] — the pure TX-level stepping helper. It moved
+ * from the deleted TX strip into the Frequency sheet, which is where TX level
+ * now lives. No Android runtime needed.
  */
-class TxStripVolumeTest {
+class TxLevelStepTest {
 
     @Test
     fun `step up by 5 from mid-range`() {

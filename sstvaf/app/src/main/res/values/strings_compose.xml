@@ -36,11 +36,11 @@
     <string name="continent_oc">Oceania</string>
     <string name="continent_an">Antarctica</string>
 
-    <!-- ===== Bottom navigation tabs ===== -->
-    <string name="tab_decode">Decode</string>
-    <string name="tab_waterfall">Waterfall</string>
-    <string name="tab_logbook">Logbook</string>
-    <string name="tab_settings">Settings</string>
+    <!-- ===== Bottom navigation tabs =====
+         Three tabs, and each label doubles as its screen's title in the header,
+         so there is one name per screen to translate. -->
+    <string name="tab_receive">Receive</string>
+    <string name="tab_send">Send</string>
 
     <!-- ===== Status pills (decode list badges) ===== -->
     <string name="status_new_dxcc">NEW DXCC</string>
@@ -68,11 +68,34 @@
     <string name="exit_title">EXIT SSTVAF?</string>
     <string name="exit_message">Are you sure you want to close the app? Any active QSO will be cancelled.</string>
 
-    <!-- ===== Frequency picker ===== -->
-    <string name="freq_select_title">SELECT FREQUENCY</string>
-    <string name="freq_show_alternates">SHOW ALTERNATES</string>
-    <string name="freq_hide_alternates">HIDE ALTERNATES</string>
-    <string name="freq_alt_prefix">"ALT "</string>
+    <!-- ===== App header (every tab) ===== -->
+    <string name="action_back">Back</string>
+    <!-- Frequency chip content description. %1$s is the chip's own label, e.g.
+         "14.230 · 20m". -->
+    <string name="header_frequency_chip_description">Frequency %1$s, tap to change</string>
+    <string name="header_more_description">More: radio, operator, logbook, settings</string>
+
+    <!-- ===== More sheet (header overflow) ===== -->
+    <string name="more_title">More</string>
+    <string name="more_radio_audio">Radio &amp; audio</string>
+    <string name="more_operator">Operator</string>
+    <string name="more_logbook">Logbook</string>
+    <string name="more_logbook_sub">SSTV QSOs · ADIF export · Cloudlog</string>
+    <string name="more_settings">Settings</string>
+    <string name="more_settings_sub">Everything else</string>
+
+    <!-- ===== Frequency sheet ===== -->
+    <string name="freq_sheet_title">Frequency</string>
+    <string name="freq_unit_mhz">MHz</string>
+    <!-- When each SSTV calling frequency is worth sitting on. -->
+    <string name="freq_note_night">night</string>
+    <string name="freq_note_evenings">evenings</string>
+    <string name="freq_note_daytime_busiest">daytime · busiest</string>
+    <string name="freq_note_daytime">daytime</string>
+    <string name="freq_note_when_open">when open</string>
+    <string name="freq_tx_level">TX level</string>
+    <!-- %1$d is the operator's configured tune timeout in seconds (Transmission settings). -->
+    <string name="freq_tune_explain">Keys a steady carrier for antenna tuning. Stops itself after %1$d s.</string>
 
     <!-- ===== Operator card ===== -->
     <string name="op_no_call">NO CALL</string>
@@ -119,12 +142,6 @@
     <string name="hound_call_frequency">Call frequency (Hz, 1000–4000)</string>
     <string name="hound_start">Start</string>
 
-    <!-- ===== CAT status chip ===== -->
-    <string name="cat_status_chip_label">CAT</string>
-    <string name="cat_status_connected">CAT connected — tap to reconnect</string>
-    <string name="cat_status_connecting">CAT connecting…</string>
-    <string name="cat_status_disconnected">CAT disconnected — tap to connect</string>
-    <string name="cat_status_error">CAT connection error — tap to retry</string>
 
     <!-- ===== SWR lockout banner ===== -->
     <string name="swr_lockout_title">TX HALTED — High SWR detected (%1$s)</string>
@@ -355,10 +372,6 @@
     <string name="map_info_distance">Distance</string>
     <string name="map_info_bearing">Bearing</string>
     <string name="map_info_snr">SNR</string>
-    <string name="waterfall_title">Waterfall</string>
-    <string name="waterfall_toggle_nr">NR</string>
-    <string name="waterfall_toggle_msg">MSG</string>
-    <string name="waterfall_status_live">LIVE</string>
 
     <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d min</string>
@@ -634,8 +647,6 @@
     <string name="tune_unavailable_route">Tune is not yet supported on this audio route</string>
 
     <!-- ===== SSTV RX tab + received-image storage (PR 6) ===== -->
-    <string name="tab_rx" translatable="false">RX</string>
-    <string name="rx_title">Receive</string>
     <string name="rx_listening">Listening for SSTV…</string>
     <string name="rx_disabled">Receive is off</string>
     <string name="rx_signal_detected">Signal detected…</string>
@@ -653,7 +664,6 @@
 
     <!-- ===== Gallery tab (PR 7) ===== -->
     <string name="tab_gallery">Gallery</string>
-    <string name="gallery_title">Gallery</string>
     <string name="gallery_filter_all">All</string>
     <string name="gallery_filter_rx">Received</string>
     <string name="gallery_filter_tx">Sent</string>
@@ -710,8 +720,6 @@
     <string name="rx_view_in_gallery">View in Gallery</string>
 
     <!-- ===== TX composer tab (PR 8) ===== -->
-    <string name="tab_tx" translatable="false">TX</string>
-    <string name="tx_title">Transmit</string>
     <string name="tx_empty_title">Pick a picture to send</string>
     <string name="tx_empty_body">Photos are cropped to the SSTV mode\'s frame</string>
     <string name="tx_pick_button">Pick picture</string>
@@ -744,8 +752,6 @@
          %1$s is a preformatted m:ss countdown (e.g. "1:09"). Mirrors
          rx_eta_format on the receive side. -->
     <string name="tx_remaining_format">%1$s left</string>
-    <string name="cat_status_linked">Radio linked</string>
-    <string name="cat_status_not_linked">Radio not linked</string>
     <string name="settings_cat_usb_diagnostics">USB Diagnostics</string>
     <string name="settings_cat_usb_diagnostics_desc">Check USB device discovery and CAT communication</string>
     <string name="usb_diag_title">USB Diagnostics</string>

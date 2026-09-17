@@ -71,7 +71,6 @@ import radio.ks3ckc.sstvaf.theme.GeistMonoFamily
 import radio.ks3ckc.sstvaf.theme.StatusWarn
 import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
-import radio.ks3ckc.sstvaf.ui.components.TopBar
 
 /**
  * The TX composer tab: pick a photo, crop it into the selected SSTV mode's
@@ -193,7 +192,7 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
             .fillMaxSize()
             .background(BgApp),
     ) {
-        TopBar(title = stringResource(R.string.tx_title))
+        // Title comes from the app shell's header ([AppHeader]).
 
         Column(
             modifier = Modifier

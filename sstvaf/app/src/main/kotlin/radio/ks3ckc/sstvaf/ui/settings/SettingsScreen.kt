@@ -101,12 +101,14 @@ internal fun resolveRigDisplayName(
 @Composable
 fun SettingsScreen(
     mainViewModel: MainViewModel,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var currentCategory by remember { mutableStateOf<SettingsCategory?>(null) }
 
     // Hardware back pops a detail screen back to the landing. On the landing the
-    // handler is disabled so the event propagates up (app exit) as before.
+    // handler is disabled so the event propagates up — to the shell, which pops
+    // Settings itself (Settings is no longer a tab, it is a screen over one).
     BackHandler(enabled = currentCategory != null) { currentCategory = null }
 
     AnimatedContent(
@@ -126,6 +128,7 @@ fun SettingsScreen(
         when (category) {
             null -> SettingsLanding(
                 mainViewModel = mainViewModel,
+                onBack = onBack,
                 onOpenCategory = { currentCategory = it },
             )
             SettingsCategory.RADIO_AUDIO ->
@@ -151,6 +154,7 @@ fun SettingsScreen(
 @Composable
 private fun SettingsLanding(
     mainViewModel: MainViewModel,
+    onBack: () -> Unit,
     onOpenCategory: (SettingsCategory) -> Unit,
 ) {
     val context = LocalContext.current
@@ -221,7 +225,7 @@ private fun SettingsLanding(
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
-        TopBar(title = stringResource(R.string.settings_title))
+        TopBar(title = stringResource(R.string.settings_title), onBack = onBack)
 
         Column(
             modifier = Modifier

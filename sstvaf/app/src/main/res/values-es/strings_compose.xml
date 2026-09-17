@@ -25,10 +25,6 @@
     <string name="continent_an">Antártida</string>
 
     <!-- ===== Bottom navigation tabs ===== -->
-    <string name="tab_decode">Decodificar</string>
-    <string name="tab_waterfall">Cascada</string>
-    <string name="tab_logbook">Diario</string>
-    <string name="tab_settings">Ajustes</string>
 
     <!-- ===== Status pills (decode list badges) ===== -->
     <string name="status_new_dxcc">NUEVO DXCC</string>
@@ -55,10 +51,6 @@
     <string name="exit_message">¿Seguro que quieres cerrar la app? Cualquier QSO activo se cancelará.</string>
 
     <!-- ===== Frequency picker ===== -->
-    <string name="freq_select_title">SELECCIONAR FRECUENCIA</string>
-    <string name="freq_show_alternates">MOSTRAR ALTERNATIVAS</string>
-    <string name="freq_hide_alternates">OCULTAR ALTERNATIVAS</string>
-    <string name="freq_alt_prefix">"ALT "</string>
 
     <!-- ===== Operator card ===== -->
     <string name="op_no_call">SIN INDICATIVO</string>
@@ -253,10 +245,6 @@
     <string name="map_info_distance">Distancia</string>
     <string name="map_info_bearing">Rumbo</string>
     <string name="map_info_snr">SNR</string>
-    <string name="waterfall_title">Cascada</string>
-    <string name="waterfall_toggle_nr">NR</string>
-    <string name="waterfall_toggle_msg">MSG</string>
-    <string name="waterfall_status_live">EN VIVO</string>
 
     <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d min</string>
@@ -460,12 +448,6 @@
     <string name="hound_call_frequency">Frecuencia de llamada (Hz, 1000–4000)</string>
     <string name="hound_start">Iniciar</string>
 
-    <!-- ===== CAT status chip ===== -->
-    <string name="cat_status_chip_label">CAT</string>
-    <string name="cat_status_connected">CAT conectado — toca para reconectar</string>
-    <string name="cat_status_connecting">Conectando CAT…</string>
-    <string name="cat_status_disconnected">CAT desconectado — toca para conectar</string>
-    <string name="cat_status_error">Error de conexión CAT — toca para reintentar</string>
     <string name="qsopanel_log_action">LOG</string>
     <string name="qsopanel_queue">COLA</string>
     <string name="swr_lockout_title">TX DETENIDO — SWR alto detectado (%1$s)</string>

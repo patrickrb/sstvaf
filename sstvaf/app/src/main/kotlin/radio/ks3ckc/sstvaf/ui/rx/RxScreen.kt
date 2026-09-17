@@ -50,14 +50,12 @@ import radio.ks3ckc.sstvaf.theme.BgApp
 import radio.ks3ckc.sstvaf.theme.BgSurface
 import radio.ks3ckc.sstvaf.theme.BgSurface3
 import radio.ks3ckc.sstvaf.theme.GeistMonoFamily
-import radio.ks3ckc.sstvaf.theme.Signal
 import radio.ks3ckc.sstvaf.theme.StatusConfirmed
 import radio.ks3ckc.sstvaf.theme.StatusWarn
 import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
 import radio.ks3ckc.sstvaf.ui.components.EmptyStateWaves
 import radio.ks3ckc.sstvaf.ui.components.Toggle
-import radio.ks3ckc.sstvaf.ui.components.TopBar
 
 /**
  * The SSTV receive tab: watches [SstvRxState] and shows the image forming
@@ -150,31 +148,31 @@ fun RxScreen(
             .fillMaxSize()
             .background(BgApp),
     ) {
-        TopBar(title = stringResource(R.string.rx_title)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = frequencyLabel,
-                    color = Signal,
-                    fontFamily = GeistMonoFamily,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = stringResource(R.string.rx_toggle_label),
-                    color = TextMuted,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Toggle(
-                    checked = rxEnabled,
-                    onCheckedChange = { on ->
-                        rxEnabled = on
-                        listener.setEnabled(on)
-                    },
-                )
-            }
+        // No title bar here: the app shell's header ([AppHeader]) carries the
+        // screen title and the dial, so a second one would double up. The dial
+        // moved there too — this screen only keeps the receive switch, which the
+        // shell has no business owning.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.End,
+        ) {
+            Text(
+                text = stringResource(R.string.rx_toggle_label),
+                color = TextMuted,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Toggle(
+                checked = rxEnabled,
+                onCheckedChange = { on ->
+                    rxEnabled = on
+                    listener.setEnabled(on)
+                },
+            )
         }
 
         Box(

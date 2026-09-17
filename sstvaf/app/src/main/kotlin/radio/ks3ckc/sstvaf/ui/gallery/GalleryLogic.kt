@@ -1,8 +1,6 @@
 package radio.ks3ckc.sstvaf.ui.gallery
 
 import androidx.annotation.StringRes
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import com.k1af.ft8af.R
 import radio.ks3ckc.sstvaf.gallery.ImageDirection
 import radio.ks3ckc.sstvaf.gallery.SavedImage
@@ -316,39 +314,6 @@ internal fun galleryEmptyReason(filter: GalleryFilter, query: String): GalleryEm
         GalleryEmptyReason.NoSearchMatch(needle)
     }
 }
-
-/**
- * Approximate collapsed height of the always-on TX status strip
- * (radio.ks3ckc.sstvaf.ui.components.TxStrip) with its volume slider hidden.
- * The strip has no fixed height — its size comes from its Column vertical
- * padding (8dp + 8dp) + 10dp inter-row spacing, plus the status row (~22dp
- * indicator) and the frequency/TUNE chip row (~30dp: 7dp+7dp padding around a
- * ~16dp label). That totals ~78dp, so this is a measured approximation used
- * only to bias the Gallery empty state up out from behind the strip (issue
- * #24). With the volume slider shown the strip is taller (~+46dp); the extra
- * spill in that rarer case is acceptable for a cosmetic empty state.
- */
-internal val TxStripApproxHeight: Dp = 78.dp
-
-/**
- * Bottom padding for the Gallery empty-state container (issue #24).
- *
- * In the app shell (see [radio.ks3ckc.sstvaf.SstvAfApp]) the tab content sits
- * in a `weight(1f)` Box and the always-on TX strip is the *next* sibling in the
- * Column, so the content area's height already excludes the strip. The problem
- * is that a Box does not clip its children: in a short / landscape canvas the
- * empty-state illustration + caption is taller than that content Box, so
- * centering it overflows the Box's bottom edge — and because the strip is
- * composed after the content, it draws over that spilled-out lower portion,
- * clipping the caption. Reserving the strip's height as bottom padding shrinks
- * the centering region to the visible band, biasing the content up so it no
- * longer overflows into the strip.
- *
- * A non-positive height (defensive against a bad measurement) yields no
- * padding, leaving the plain centered layout unchanged.
- */
-internal fun emptyStateBottomPadding(txStripHeight: Dp = TxStripApproxHeight): Dp =
-    txStripHeight.coerceAtLeast(0.dp)
 
 // ---------------------------------------------------------------------------
 // Viewer-sheet metadata formatting
