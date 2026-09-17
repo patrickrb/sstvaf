@@ -488,4 +488,12 @@
     <string name="tune_stopped_timeout">Tune arrêté après %1$d s</string>
     <string name="tune_blocked_tx">Arrêtez le CQ/QSO avant d\'utiliser Tune</string>
     <string name="tune_unavailable_route">Tune n\'est pas encore disponible sur cette voie audio</string>
+    <string name="tune_atu_started">Coupleur d\'antenne de la radio démarré</string>
+    <string name="tune_atu_unavailable">Coupleur indisponible — connectez une radio CAT avec coupleur interne</string>
+    <string name="settings_tune_method">Méthode de Tune</string>
+    <string name="settings_tune_method_desc">Automatique démarre le coupleur interne de la radio via CAT s\'il est disponible, sinon émet la tonalité à faible puissance</string>
+    <string name="tune_method_automatic">Automatique</string>
+    <string name="tune_method_internal">Coupleur interne</string>
+    <string name="tune_method_tone">Tonalité à faible puissance</string>
+
 </resources>

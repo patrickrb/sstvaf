@@ -488,4 +488,12 @@
     <string name="tune_stopped_timeout">Tuneは%1$d秒後に停止しました</string>
     <string name="tune_blocked_tx">Tuneの前にCQ/QSOを停止してください</string>
     <string name="tune_unavailable_route">このオーディオ経路ではTuneはまだ利用できません</string>
+    <string name="tune_atu_started">無線機のアンテナチューナーを開始しました</string>
+    <string name="tune_atu_unavailable">チューナーを使用できません — 内蔵チューナー付きのCAT無線機を接続してください</string>
+    <string name="settings_tune_method">Tune方式</string>
+    <string name="settings_tune_method_desc">自動は利用可能な場合CAT経由で無線機の内蔵チューナーを開始し、そうでなければ低出力トーンを送信します</string>
+    <string name="tune_method_automatic">自動</string>
+    <string name="tune_method_internal">内蔵チューナー</string>
+    <string name="tune_method_tone">低出力トーン</string>
+
 </resources>

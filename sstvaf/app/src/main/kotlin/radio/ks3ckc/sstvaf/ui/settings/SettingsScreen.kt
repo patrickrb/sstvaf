@@ -66,6 +66,7 @@ private enum class SettingsCategory {
     TRANSMISSION,
     LOGGING,
     ADVANCED,
+    USB_DIAGNOSTICS,
     ABOUT,
 }
 
@@ -133,6 +134,8 @@ fun SettingsScreen(
                 TransmissionSettings(mainViewModel, onBack = { currentCategory = null })
             SettingsCategory.LOGGING ->
                 LoggingSettings(mainViewModel, onBack = { currentCategory = null })
+            SettingsCategory.USB_DIAGNOSTICS ->
+                UsbDiagnosticsScreen(mainViewModel, onBack = { currentCategory = null })
             SettingsCategory.ADVANCED ->
                 AdvancedSettings(mainViewModel, onBack = { currentCategory = null })
             SettingsCategory.ABOUT ->
@@ -298,6 +301,13 @@ private fun SettingsLanding(
                         label = stringResource(R.string.settings_cat_advanced),
                         showChevron = true,
                         onClick = { onOpenCategory(SettingsCategory.ADVANCED) },
+                    )
+                    SectionDivider()
+                    SettingsRow(
+                        label = stringResource(R.string.settings_cat_usb_diagnostics),
+                        description = stringResource(R.string.settings_cat_usb_diagnostics_desc),
+                        showChevron = true,
+                        onClick = { onOpenCategory(SettingsCategory.USB_DIAGNOSTICS) },
                     )
                     SectionDivider()
                     SettingsRow(

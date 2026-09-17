@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -59,6 +60,7 @@ import com.k1af.ft8af.ui.ToastMessage
 import com.k1af.ft8af.x6100.X6100Radio
 import com.k1af.ft8af.x6100.XieguRadioFactory
 import radio.ks3ckc.sstvaf.theme.*
+import radio.ks3ckc.sstvaf.util.bluetoothAdapter
 import radio.ks3ckc.sstvaf.ui.components.CredentialFieldRole
 import radio.ks3ckc.sstvaf.ui.components.autofill
 
@@ -122,9 +124,10 @@ fun BluetoothPickerDialog(
     mainViewModel: MainViewModel,
     onDismiss: () -> Unit,
 ) {
-    val devices = remember {
+    val context = LocalContext.current
+    val devices = remember(context) {
         val list = mutableListOf<BtDeviceInfo>()
-        val adapter = BluetoothAdapter.getDefaultAdapter()
+        val adapter = bluetoothAdapter(context)
         if (adapter != null) {
             for (device in adapter.bondedDevices) {
                 val spp = BluetoothConstants.checkIsSpp(device)

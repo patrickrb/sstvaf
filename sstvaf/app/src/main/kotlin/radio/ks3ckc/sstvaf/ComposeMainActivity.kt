@@ -38,10 +38,10 @@ import com.k1af.ft8af.GeneralVariables
 import com.k1af.ft8af.MainViewModel
 import com.k1af.ft8af.R
 import radio.ks3ckc.sstvaf.sync.QsoAutoSync
+import radio.ks3ckc.sstvaf.util.bluetoothAdapter
 import com.k1af.ft8af.service.RxForegroundService
 import com.k1af.ft8af.service.RxServiceController
 import com.k1af.ft8af.bluetooth.BluetoothStateBroadcastReceive
-import com.k1af.ft8af.bluetooth.ScoPolicy
 import com.k1af.ft8af.connector.CableSerialPort
 import com.k1af.ft8af.connector.ConnectMode
 import com.k1af.ft8af.callsign.CallsignDatabase
@@ -103,6 +103,13 @@ class ComposeMainActivity : AppCompatActivity() {
         GeneralVariables.getInstance().setMainContext(applicationContext)
         mainViewModel = MainViewModel.getInstance(this)
         ToastMessage.getInstance()
+
+        // The notification's Exit button routes here so it runs the same shutdown as the
+        // in-app exit; cleared in onDestroy so a destroyed activity isn't leaked. Registered
+        // BEFORE the service starts so there's no window where the notification can appear
+        // and be tapped before the handler exists (which would fall back to a bare
+        // stopSelf()/System.exit(0) that skips rig disconnect and RX teardown).
+        RxForegroundService.setExitHandler { closeApp() }
 
         // Keep RX alive in the background (no-op until RECORD_AUDIO is granted; the
         // permission-result callback re-invokes this once the user grants it).
@@ -351,11 +358,10 @@ class ComposeMainActivity : AppCompatActivity() {
                 // review); gating on connect mode at all keeps a car/headphones paired
                 // for music from being yanked out of A2DP (the original bug).
                 Handler(Looper.getMainLooper()).post {
-                    if (ScoPolicy.shouldEnterHeadsetMode(
-                            GeneralVariables.connectMode, mainViewModel.isBTConnected())
-                    ) {
-                        mainViewModel.setBlueToothOn()
-                    }
+                    // Enter Bluetooth headset (SCO) mode if a Bluetooth rig is in use OR the
+                    // persisted audio device is a Bluetooth-SCO headset (FT8AF #723). The
+                    // decision + AudioRecord rebuild live in the view model.
+                    mainViewModel.refreshBluetoothHeadsetMode()
                 }
 
                 // USB auto-connect is driven by the mutableSerialPorts observer; Bluetooth has
@@ -557,6 +563,7 @@ class ComposeMainActivity : AppCompatActivity() {
         unregisterBluetoothReceiver()
         unregisterUsbDetachReceiver()
         qsoAutoSync?.unregister()
+        RxForegroundService.setExitHandler(null)
         super.onDestroy()
     }
 
@@ -597,7 +604,7 @@ class ComposeMainActivity : AppCompatActivity() {
      * so it is unit-testable; this method only collects Android state and acts on CONNECT.
      */
     private fun autoConnectBluetoothIfNeeded() {
-        val adapter = BluetoothAdapter.getDefaultAdapter()
+        val adapter = bluetoothAdapter(this)
         val addr = GeneralVariables.bluetoothDeviceAddress
         // A corrupted/legacy persisted value would make getRemoteDevice() throw
         // IllegalArgumentException and crash startup, so validate the MAC up front (PR #227 review).

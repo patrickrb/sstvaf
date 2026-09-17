@@ -77,6 +77,23 @@ public class GeneralVariables {
     // before resampling/decoding. 1.0 = 100% = unchanged behavior. Persisted
     // under the "inputVolume" config key as a percent (0..200).
     public static volatile float inputGainPercent = 1.0f;
+
+    // RX audio channel selection for stereo inputs: which side of a stereo
+    // source feeds the decoder. AudioChannelSelect.BOTH (the default) averages L+R,
+    // exactly as every build before this did; LEFT/RIGHT take one channel and
+    // discard the other, for splitter cables and dual-receiver rigs that carry
+    // the wanted audio on one side only. Persisted under
+    // AudioChannelSelect.RX_CONFIG_KEY; read live on the audio hot path, hence volatile.
+    public static volatile int rxAudioChannel = com.k1af.ft8af.wave.AudioChannelSelect.BOTH;
+
+    // TX audio channel selection, the transmit mirror of rxAudioChannel: which
+    // side of a stereo sink carries the generated waveform. BOTH (the default)
+    // sends the same audio to each channel, exactly as every build before this
+    // did — on the AudioTrack path that stays a mono open, which the framework
+    // duplicates. LEFT/RIGHT open stereo and silence the other side, so a
+    // splitter cable drives only the intended rig. Persisted under
+    // AudioChannelSelect.TX_CONFIG_KEY; read on the TX path, hence volatile.
+    public static volatile int txAudioChannel = com.k1af.ft8af.wave.AudioChannelSelect.BOTH;
     // Live RX input level (peak + short-term RMS of post-gain samples),
     // published by HamRecorder once per metering window for the UI meter.
     public static final MutableLiveData<com.k1af.ft8af.wave.InputAudioLevel.Levels>
@@ -361,7 +378,12 @@ public class GeneralVariables {
     public static int voxPreToneMs = 300;//Extra 1900Hz leader prepended in VOX mode so VOX/auto-PTT cable attack time never eats the calibration header
     public static boolean cwIdEnabled = false;//Append a CW (Morse) station-ID after each SSTV image (issue #14)
     public static int cwIdWpm = 20;//CW ID keying speed, words-per-minute (max/default 20)
+    //Tune method (issue #425): TuneMethod.AUTOMATIC/INTERNAL/TONE — whether the
+    //TUNE chip starts the rig's internal ATU (over CAT) or plays the carrier tone.
+    public static volatile int tuneMethod = 0;
     public static int civAddress = 0xa4;//CI-V address
+    public static String civAddressStored = null;//Raw "civ" config text as hydrated (null = no row); lets the #753 repair see whether the on-disk form is canonical hex.
+    public static boolean civAddressFormatKnown = false;//True when config "civFormat=hex" was present: the stored civ value is trusted verbatim, no model reconciliation (#753).
     public static int baudRate = 19200;//Baud rate
     public static long band = 14230000;//Carrier frequency band (default: 20m SSTV calling frequency)
     public static int serialDataBits = 8;//Default is 8
@@ -442,6 +464,55 @@ public class GeneralVariables {
     @SuppressLint("DefaultLocale")
     public static String getBaseFrequencyStr() {
         return String.format("%.0f", baseFrequency);
+    }
+
+    /**
+     * The dial the app is entitled to COMMAND, as opposed to {@link #band}, which is
+     * whatever the rig was last observed reporting. They used to be one field, so a bad
+     * reading became a command and fought the operator's band selection — see
+     * {@link com.k1af.ft8af.rigs.RigDialTarget}. Set by explicit selections (band picker,
+     * connect-time push) and by a trusted rig report; 0 means "not yet established",
+     * which falls back to {@link #band}.
+     */
+    public static volatile long commandedBandHz = 0;
+
+    /**
+     * When the rig last answered with an error or unparseable frame ("?;"), meaning the CAT
+     * stream was desynchronised and frequencies it reports around then are not trustworthy
+     * enough to command back at it. A timestamp, not a flag: see
+     * {@link com.k1af.ft8af.rigs.RigDialTarget#DESYNC_DISTRUST_MS}.
+     */
+    public static volatile long rigRejectedAtMs = 0L;
+
+    /**
+     * When the operator last explicitly selected a dial in the app (band picker), or 0
+     * when there is no unconfirmed selection. While set, a rig report that differs from
+     * {@link #commandedBandHz} is an echo of the past — the selection may not even have
+     * reached the wire yet — and must not be adopted as the commanded dial. Cleared when
+     * the rig confirms the selection. See {@link com.k1af.ft8af.rigs.RigDialTarget}.
+     * Set via {@link #operatorChoseDial(long)}.
+     */
+    public static volatile long operatorDialAssertedAtMs = 0L;
+
+    /**
+     * When {@link #commandedBandHz} was last actually dispatched to the rig (the FA write
+     * in {@code setOperationBand}'s delayed runnable), or 0 if not yet. Distinguishes a
+     * selection the rig has had a chance to act on from one dropped by the
+     * connected-gate. See {@link com.k1af.ft8af.rigs.RigDialTarget#CONFIRM_GRACE_MS}.
+     */
+    public static volatile long operatorDialDeliveredAtMs = 0L;
+
+    /**
+     * Record an explicit operator dial selection: the dial the app asserts from now on,
+     * protected from being overwritten by rig reports until the rig confirms it. One
+     * helper so every band-selection entry point keeps the fields in step.
+     */
+    public static void operatorChoseDial(long hz) {
+        commandedBandHz = hz;
+        operatorDialAssertedAtMs = System.currentTimeMillis();
+        // A stale stamp from an OLDER selection must not make this one look
+        // delivered: zero is unambiguous.
+        operatorDialDeliveredAtMs = 0L;
     }
 
     public static String getCivAddressStr() {

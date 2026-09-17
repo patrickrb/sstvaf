@@ -530,4 +530,12 @@
     <string name="tune_stopped_timeout">Tune gestopt na %1$d s</string>
     <string name="tune_blocked_tx">Stop de CQ/QSO voordat je Tune gebruikt</string>
     <string name="tune_unavailable_route">Tune is nog niet beschikbaar op deze audioroute</string>
+    <string name="tune_atu_started">Antennetuner van de radio gestart</string>
+    <string name="tune_atu_unavailable">Tuner niet beschikbaar — sluit een CAT-radio met interne tuner aan</string>
+    <string name="settings_tune_method">Tune-methode</string>
+    <string name="settings_tune_method_desc">Automatisch start de interne tuner van de radio via CAT indien beschikbaar, anders klinkt de toon met laag vermogen</string>
+    <string name="tune_method_automatic">Automatisch</string>
+    <string name="tune_method_internal">Interne tuner</string>
+    <string name="tune_method_tone">Toon met laag vermogen</string>
+
 </resources>

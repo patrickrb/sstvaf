@@ -24,9 +24,11 @@ import com.k1af.ft8af.MainViewModel
 import com.k1af.ft8af.R
 import com.k1af.ft8af.transmit.MeterProtectionController
 import com.k1af.ft8af.transmit.TuneController
+import com.k1af.ft8af.transmit.TuneMethod
 import radio.ks3ckc.sstvaf.TUNE_LEVEL_INDEPENDENT_KEY
 import radio.ks3ckc.sstvaf.TUNE_LEVEL_KEY
 import radio.ks3ckc.sstvaf.TUNE_MAX_ON_SECONDS_KEY
+import radio.ks3ckc.sstvaf.TUNE_METHOD_KEY
 import radio.ks3ckc.sstvaf.saveTuneLevelForCurrentBand
 import radio.ks3ckc.sstvaf.theme.*
 import radio.ks3ckc.sstvaf.ui.components.SstvAfIconButton
@@ -54,6 +56,35 @@ fun TransmissionSettings(
     var tuneMaxOnSeconds by remember { mutableIntStateOf(GeneralVariables.tuneMaxOnSeconds) }
     var tuneLevelIndependent by remember { mutableStateOf(GeneralVariables.tuneLevelIndependent) }
     var tuneLevel by remember { mutableIntStateOf(GeneralVariables.tuneLevel) }
+    // Tune method (FT8AF issue #425): rig ATU over CAT vs the carrier tone.
+    var tuneMethod by remember { mutableIntStateOf(GeneralVariables.tuneMethod) }
+    var showTuneMethod by remember { mutableStateOf(false) }
+
+    // Index == TuneMethod.AUTOMATIC/INTERNAL/TONE
+    val tuneMethodOptions = listOf(
+        stringResource(R.string.tune_method_automatic),
+        stringResource(R.string.tune_method_internal),
+        stringResource(R.string.tune_method_tone),
+    )
+
+    // -- Tune Method Picker --
+    if (showTuneMethod) {
+        ListPickerDialog(
+            title = stringResource(R.string.settings_tune_method),
+            items = tuneMethodOptions,
+            selectedIndex = TuneMethod.clamp(tuneMethod),
+            onDismiss = { showTuneMethod = false },
+            onSelect = { index ->
+                showTuneMethod = false
+                val method = TuneMethod.clamp(index)
+                tuneMethod = method
+                GeneralVariables.tuneMethod = method
+                mainViewModel.databaseOpr.writeConfig(
+                    TUNE_METHOD_KEY, method.toString(), null,
+                )
+            },
+        )
+    }
 
     SettingsDetailScaffold(
         title = stringResource(R.string.settings_cat_transmission),
@@ -289,6 +320,14 @@ fun TransmissionSettings(
         SettingsSection(title = "TUNE") {
             GlassCard(modifier = Modifier.fillMaxWidth()) {
                 Column {
+                    SettingsRow(
+                        label = stringResource(R.string.settings_tune_method),
+                        description = stringResource(R.string.settings_tune_method_desc),
+                        value = tuneMethodOptions[TuneMethod.clamp(tuneMethod)],
+                        showChevron = true,
+                        onClick = { showTuneMethod = true },
+                    )
+                    SectionDivider()
                     SettingsRow(
                         label = "Tune timeout",
                         description = "Hard cap on the tune carrier — it always stops by itself",

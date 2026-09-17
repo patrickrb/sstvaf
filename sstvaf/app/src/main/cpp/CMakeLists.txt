@@ -84,6 +84,47 @@ target_include_directories(sstv_dsp PUBLIC
 )
 
 # ---------------------------------------------------------------------------
+# hamlib (prebuilt static, per-ABI) — CAT protocol engine
+# ---------------------------------------------------------------------------
+# libhamlib.a is cross-compiled from the pinned source in hamlib/vendor/ by
+# hamlib/build_android.sh. It is NOT checked into git (large + rebuildable) —
+# the block below builds it on demand per ABI (see hamlib/.gitignore). hamlib
+# supplies per-radio CAT framing; ft8af_glue/hamlib_jni.cpp drives it over a
+# loopback-TCP socket bridged to the app's USB-serial transport. See
+# hamlib/HAMLIB_PIN.txt for the design + build instructions.
+
+set(HAMLIB_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/hamlib)
+set(HAMLIB_A ${HAMLIB_ROOT}/prebuilt/${ANDROID_ABI}/libhamlib.a)
+
+# Produce libhamlib.a on demand: on Linux/macOS (incl. CI) run the cross-compile
+# here; on Windows the autotools build can't run against the Windows NDK, so
+# require a one-time WSL build. Once present it is reused.
+if(NOT EXISTS ${HAMLIB_A})
+    if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+        message(FATAL_ERROR
+            "Missing ${HAMLIB_A}.
+"
+            "On Windows, build the hamlib static libs once under WSL:
+"
+            "  ANDROID_NDK_HOME=<linux-NDK> bash ${HAMLIB_ROOT}/build_android.sh
+"
+            "See ${HAMLIB_ROOT}/HAMLIB_PIN.txt.")
+    else()
+        message(STATUS "hamlib: building libhamlib.a for ${ANDROID_ABI} (one-time)")
+        execute_process(
+            COMMAND ${CMAKE_COMMAND} -E env ANDROID_NDK_HOME=${CMAKE_ANDROID_NDK}
+                    bash ${HAMLIB_ROOT}/build_android.sh ${ANDROID_ABI}
+            RESULT_VARIABLE HAMLIB_BUILD_RC)
+        if(NOT HAMLIB_BUILD_RC EQUAL 0)
+            message(FATAL_ERROR "hamlib build failed for ${ANDROID_ABI} (rc=${HAMLIB_BUILD_RC})")
+        endif()
+    endif()
+endif()
+
+add_library(hamlib STATIC IMPORTED)
+set_target_properties(hamlib PROPERTIES IMPORTED_LOCATION ${HAMLIB_A})
+
+# ---------------------------------------------------------------------------
 # libsstvaf.so — unified JNI bridge
 # ---------------------------------------------------------------------------
 
@@ -102,19 +143,29 @@ add_library(sstvaf SHARED
         # JNI wrappers — SSTV codec (NativeSstvCodec)
         sstvaf_glue/sstv_encode_jni.cpp
         sstvaf_glue/sstv_decode_jni.cpp
+        # JNI wrappers — hamlib CAT bridge + Bionic API-gap shims
+        ft8af_glue/hamlib_jni.cpp
+        ft8af_glue/hamlib_compat.c
 )
 
 target_include_directories(sstvaf PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/kissfft
+        ${HAMLIB_ROOT}/include
 )
 
 find_library(log-lib log)
+# libandroid: hamlib's android-sensor rotator backend references ASensorManager /
+# ALooper; nothing in our loopback-TCP CAT path runs it, but the archive still has
+# to resolve at link time.
+find_library(android-lib android)
 
 target_link_options(sstvaf PRIVATE "-Wl,-z,max-page-size=16384")
 
 target_link_libraries(sstvaf
         usb1.0
         sstv_dsp
+        hamlib
         m
         ${log-lib}
+        ${android-lib}
 )

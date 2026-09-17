@@ -39,9 +39,15 @@ public class KenwoodTK90RigConstant {
     private static final String TS2000_SET_DATA = "MD6;";//KENWOOD/TX-500 DATA mode (USB line input)
     private static final String TS590_READ_FREQ = "FA;";//KENWOOD read frequency
     private static final String TS590_READ_METERS = "RM;";//KENWOOD read METER
+    private static final String TX500_SELECT_SWR_METER = "RM1;";//Lab599 TX-500: switch meter to SWR before reading (issue #599)
 
     private static final String TS570_PTT_OFF = "RX;";//KENWOOD TS570,PTT
     private static final String TS570_PTT_ON = "TX;";//KENWOOD TS570,PTT
+
+    // Start the internal antenna tuner (TS-590/TS-2000 AC command:
+    // P1=1 RX AT in, P2=1 TX AT in, P3=1 = start tuning). The rig keys its
+    // own carrier and stops by itself; rigs without an ATU answer "?;".
+    private static final String START_ATU_TUNE = "AC111;";
 
 
     // (tr)uSDX extensions
@@ -78,6 +84,10 @@ public class KenwoodTK90RigConstant {
             return PTT_OFF.getBytes();
         }
 
+    }
+
+    public static byte[] startAtuTune() {
+        return START_ATU_TUNE.getBytes();
     }
 
     public static byte[] setTS590PTTState(boolean on) {
@@ -156,6 +166,10 @@ public class KenwoodTK90RigConstant {
 
     public static byte[] setRead590Meters() {
         return TS590_READ_METERS.getBytes();
+    }
+
+    public static byte[] setTX500SelectSwrMeter() {
+        return TX500_SELECT_SWR_METER.getBytes();
     }
 
     public static byte[] setTS590ReadOperationFreq() {

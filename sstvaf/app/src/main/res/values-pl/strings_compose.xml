@@ -519,4 +519,12 @@
     <string name="tune_stopped_timeout">Tune zatrzymany po %1$d s</string>
     <string name="tune_blocked_tx">Zatrzymaj CQ/QSO przed użyciem Tune</string>
     <string name="tune_unavailable_route">Tune nie jest jeszcze dostępny na tej ścieżce audio</string>
+    <string name="tune_atu_started">Uruchomiono tuner antenowy radia</string>
+    <string name="tune_atu_unavailable">Tuner niedostępny — podłącz radio CAT z wewnętrznym tunerem</string>
+    <string name="settings_tune_method">Metoda Tune</string>
+    <string name="settings_tune_method_desc">Automatycznie uruchamia wewnętrzny tuner radia przez CAT, gdy jest dostępny, w przeciwnym razie nadaje ton małej mocy</string>
+    <string name="tune_method_automatic">Automatycznie</string>
+    <string name="tune_method_internal">Tuner wewnętrzny</string>
+    <string name="tune_method_tone">Ton małej mocy</string>
+
 </resources>

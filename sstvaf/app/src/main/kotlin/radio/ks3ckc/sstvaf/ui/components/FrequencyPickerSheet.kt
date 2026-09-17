@@ -44,6 +44,10 @@ import radio.ks3ckc.sstvaf.theme.*
 fun selectBandIndex(mainViewModel: MainViewModel, context: Context, index: Int) {
     GeneralVariables.bandListIndex = index
     GeneralVariables.band = OperationBand.getBandFreq(index)
+    // An explicit operator choice: this is the dial the app asserts from now on, and the
+    // one the reassert heartbeat re-sends — protected from being overwritten by rig
+    // echoes until the rig confirms it. See RigDialTarget.
+    GeneralVariables.operatorChoseDial(GeneralVariables.band)
     val newWaveLength = BaseRigOperation.getMeterFromFreq(GeneralVariables.band)
     mainViewModel.databaseOpr.writeConfig(
         "bandFreq", GeneralVariables.band.toString(), null,
