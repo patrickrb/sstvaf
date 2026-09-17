@@ -50,6 +50,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.selection.selectable
 import androidx.annotation.StringRes
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.draw.alpha
 
 /**
  * The panel under the tool rail: the controls for whichever tool is active.
@@ -82,12 +84,33 @@ internal fun TxToolPanel(
     onUndoStroke: () -> Unit,
     onClearStrokes: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(BgSurface)
+            // Blocked as a whole rather than by threading `enabled` through
+            // twenty controls. While the rig is keyed the audio buffer is
+            // already encoded and playing, so an edit here could only make the
+            // preview disagree with what the far end is receiving; and under
+            // the sent scrim these controls are not even visible.
+            .then(
+                if (enabled) {
+                    Modifier
+                } else {
+                    Modifier
+                        .alpha(0.4f)
+                        .pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    awaitPointerEvent().changes.forEach { it.consume() }
+                                }
+                            }
+                        }
+                },
+            )
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {

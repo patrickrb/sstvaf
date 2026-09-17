@@ -23,6 +23,8 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import radio.ks3ckc.sstvaf.sstv.SstvMode
 import kotlin.math.abs
+import radio.ks3ckc.sstvaf.sstv.TxOutcome
+import radio.ks3ckc.sstvaf.sstv.TxImageWindow
 
 /**
  * Gesture regression tests for the composer canvas.
@@ -65,6 +67,8 @@ class TxEditorGestureTest {
         tool: TxTool,
         initial: TxComposition,
         onComposition: (TxComposition) -> Unit,
+        transmitting: Boolean = false,
+        outcome: TxOutcome? = null,
     ) {
         var composition by remember { mutableStateOf(initial) }
         var selected by remember { mutableStateOf<String?>(null) }
@@ -77,7 +81,11 @@ class TxEditorGestureTest {
                 composition = composition,
                 tool = tool,
                 selectedOverlayId = selected,
-                editable = true,
+                editable = !transmitting && outcome == null,
+                transmitting = transmitting,
+                transmitProgress = 0f,
+                outcome = outcome,
+                imageWindow = TxImageWindow.WHOLE,
                 onPanBy = { dx, dy ->
                     composition = composition.copy(
                         panX = panStep(composition.panX, dx, composition.zoom),
@@ -103,6 +111,8 @@ class TxEditorGestureTest {
                 onDeleteSelected = {},
                 onChangePhoto = {},
                 onClearImage = {},
+                onEditAgain = {},
+                onNewPicture = {},
             )
         }
     }
@@ -289,6 +299,55 @@ class TxEditorGestureTest {
 
         rule.onNodeWithTag(CANVAS_TAG).performTouchInput {
             down(center)
+            up()
+        }
+        rule.waitForIdle()
+
+        assertThat(latest!!.paths).isEmpty()
+    }
+
+    // ----- lockout while keyed or showing an outcome --------------------------
+
+    @Test
+    fun `the canvas takes no edits while the rig is keyed`() {
+        // The audio buffer is encoded and playing by then, so a stroke could
+        // not reach the air and would only make the preview disagree with what
+        // the far end received.
+        var latest: TxComposition? = null
+        rule.setContent {
+            Harness(
+                tool = TxTool.DRAW,
+                initial = TxComposition(mode = mode),
+                onComposition = { latest = it },
+                transmitting = true,
+            )
+        }
+
+        rule.onNodeWithTag(CANVAS_TAG).performTouchInput {
+            down(center)
+            moveBy(Offset(20f, 0f))
+            up()
+        }
+        rule.waitForIdle()
+
+        assertThat(latest!!.paths).isEmpty()
+    }
+
+    @Test
+    fun `the canvas takes no edits while an outcome is on screen`() {
+        var latest: TxComposition? = null
+        rule.setContent {
+            Harness(
+                tool = TxTool.DRAW,
+                initial = TxComposition(mode = mode),
+                onComposition = { latest = it },
+                outcome = TxOutcome.COMPLETED,
+            )
+        }
+
+        rule.onNodeWithTag(CANVAS_TAG).performTouchInput {
+            down(center)
+            moveBy(Offset(20f, 0f))
             up()
         }
         rule.waitForIdle()

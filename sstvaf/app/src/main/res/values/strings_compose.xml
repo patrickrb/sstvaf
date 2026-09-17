@@ -774,6 +774,12 @@
     <string name="tx_transmitting_label">TRANSMITTING · %1$s</string>
     <string name="tx_stop_action">Stop</string>
     <string name="tx_sent_saved">Sent · saved to Gallery</string>
+    <string name="tx_outcome_sent">Sent</string>
+    <string name="tx_outcome_sent_detail">Saved to Gallery</string>
+    <string name="tx_outcome_stopped">Stopped</string>
+    <string name="tx_outcome_stopped_detail">Part of the picture went out</string>
+    <string name="tx_outcome_failed">Transmit failed</string>
+    <string name="tx_outcome_failed_detail">Nothing went out · check the debug log</string>
     <string name="tx_sent_edit_again">Edit &amp; send again</string>
     <string name="tx_sent_new_picture">New picture</string>
 

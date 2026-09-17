@@ -32,6 +32,17 @@ class TxComposerState {
      */
     var composition: TxComposition? by mutableStateOf(null)
 
+    /**
+     * The sequence number of the last transmit result this composer has already
+     * shown the operator.
+     *
+     * Lives here rather than in the screen because the screen is discarded on
+     * every tab switch. A transmission that finishes while the operator is
+     * looking at the Gallery must still raise its confirmation when they come
+     * back, and must not raise it twice.
+     */
+    var lastSeenTxSequence: Long = 0L
+
     /** The operator's picked/captured photo; null shows the pick prompt. */
     var sourceBitmap: Bitmap? by mutableStateOf(null)
         private set

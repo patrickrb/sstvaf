@@ -17,10 +17,8 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -72,6 +70,10 @@ import radio.ks3ckc.sstvaf.theme.StatusBad
 import radio.ks3ckc.sstvaf.theme.StatusConfirmed
 import radio.ks3ckc.sstvaf.theme.TextPrimary
 import radio.ks3ckc.sstvaf.ui.components.SstvAfIcons
+import radio.ks3ckc.sstvaf.theme.TextMuted
+import radio.ks3ckc.sstvaf.sstv.imageScanProgress
+import radio.ks3ckc.sstvaf.sstv.TxOutcome
+import radio.ks3ckc.sstvaf.sstv.TxImageWindow
 
 /**
  * The transmit composer's canvas: the picture at the SSTV mode's native aspect
@@ -97,7 +99,8 @@ internal fun TxEditorCanvas(
     editable: Boolean,
     transmitting: Boolean,
     transmitProgress: Float,
-    done: Boolean,
+    outcome: TxOutcome?,
+    imageWindow: TxImageWindow,
     onEditAgain: () -> Unit,
     onNewPicture: () -> Unit,
     onPanBy: (dxFraction: Float, dyFraction: Float) -> Unit,
@@ -187,7 +190,7 @@ internal fun TxEditorCanvas(
         // No gesture surface while the rig is keyed or on the sent scrim: the
         // picture is already being encoded, so an edit could not reach the air
         // and would only make the preview disagree with what went out.
-        if (editable && !transmitting && !done) {
+        if (editable && !transmitting && outcome == null) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -249,11 +252,19 @@ internal fun TxEditorCanvas(
         }
 
         if (transmitting) {
-            TransmitLine(progress = transmitProgress)
+            // Image progress, not overall progress. transmitProgress covers
+            // the VOX leader and the CW ID tail as well, so driving the scan
+            // line straight off it started the sweep before a receiver had seen
+            // a pixel and only finished it during the station ID.
+            TransmitLine(progress = imageScanProgress(transmitProgress, imageWindow))
         }
 
-        if (done) {
-            SentScrim(onEditAgain = onEditAgain, onNewPicture = onNewPicture)
+        if (outcome != null) {
+            OutcomeScrim(
+                outcome = outcome,
+                onEditAgain = onEditAgain,
+                onNewPicture = onNewPicture,
+            )
         }
     }
 }
@@ -307,7 +318,16 @@ private fun TransmitLine(progress: Float) {
  * path needs a second thought about whether the previous edits survived.
  */
 @Composable
-private fun SentScrim(onEditAgain: () -> Unit, onNewPicture: () -> Unit) {
+private fun OutcomeScrim(
+    outcome: TxOutcome,
+    onEditAgain: () -> Unit,
+    onNewPicture: () -> Unit,
+) {
+    val tint = when (outcome) {
+        TxOutcome.COMPLETED -> StatusConfirmed
+        TxOutcome.CANCELLED -> Signal
+        TxOutcome.FAILED -> StatusBad
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -319,17 +339,27 @@ private fun SentScrim(onEditAgain: () -> Unit, onNewPicture: () -> Unit) {
             modifier = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
-                .background(StatusConfirmed.copy(alpha = 0.15f)),
+                .background(tint.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center,
         ) {
-            SstvAfIcons.Check(size = 22.dp, color = StatusConfirmed, strokeWidth = 2.2f)
+            if (outcome == TxOutcome.COMPLETED) {
+                SstvAfIcons.Check(size = 22.dp, color = tint, strokeWidth = 2.2f)
+            } else {
+                SstvAfIcons.Close(size = 22.dp, color = tint, strokeWidth = 2.2f)
+            }
         }
         Spacer(Modifier.size(8.dp))
         Text(
-            text = stringResource(R.string.tx_sent_saved),
+            text = stringResource(txOutcomeTitleRes(outcome)),
             color = TextPrimary,
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(Modifier.size(4.dp))
+        Text(
+            text = stringResource(txOutcomeDetailRes(outcome)),
+            color = TextMuted,
+            fontSize = 12.sp,
         )
         Spacer(Modifier.size(14.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -358,15 +388,19 @@ private fun ScrimPill(
 ) {
     Box(
         modifier = Modifier
+            // 48dp minimum: these are the only way out of the outcome state,
+            // and the previous pills were about 30dp tall.
+            .heightIn(min = 48.dp)
             .clip(RoundedCornerShape(999.dp))
             .background(background)
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp),
+        contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
             color = textColor,
-            fontSize = 12.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
         )
     }
