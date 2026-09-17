@@ -81,13 +81,27 @@ internal fun rigLinkTitleRes(state: RigLinkState, hasRigModel: Boolean = true): 
  */
 internal fun hasRigModelSelected(modelNo: Int): Boolean = modelNo > 0
 
-/** The card action pill, e.g. "Reconnect" / "Connect" / "Test PTT". */
+/**
+ * The card action pill, e.g. "Reconnect" / "Connect" / "Test PTT".
+ *
+ * Each label names what the tap actually does, which is the whole point: one
+ * handler behind three labels meant none of them were true. With no rig model
+ * chosen the tap opens the model picker, so the pill says so rather than
+ * offering to connect to a rig the app has not been told the type of. Under VOX
+ * it keys the tune carrier, so it offers to stop while that is running.
+ */
 @StringRes
-internal fun rigLinkActionRes(state: RigLinkState): Int = when (state) {
-    RigLinkState.CONNECTED -> R.string.radio_action_reconnect
-    RigLinkState.CONNECTING -> R.string.radio_action_connecting
-    RigLinkState.DISCONNECTED -> R.string.radio_action_connect
-    RigLinkState.VOX -> R.string.radio_action_test_ptt
+internal fun rigLinkActionRes(
+    state: RigLinkState,
+    hasRigModel: Boolean = true,
+    tuning: Boolean = false,
+): Int = when {
+    state == RigLinkState.VOX && tuning -> R.string.radio_action_stop_test
+    state == RigLinkState.VOX -> R.string.radio_action_test_ptt
+    !hasRigModel -> R.string.radio_action_choose_rig
+    state == RigLinkState.CONNECTED -> R.string.radio_action_reconnect
+    state == RigLinkState.CONNECTING -> R.string.radio_action_connecting
+    else -> R.string.radio_action_connect
 }
 
 /**
@@ -246,10 +260,17 @@ internal fun baudChipLabel(baud: Int): String = when {
     else -> "${baud / 1000}.${(baud % 1000) / 100}k"
 }
 
-/** PTT delay slider bounds and step, in milliseconds. */
+/**
+ * PTT delay slider bounds and step, in milliseconds.
+ *
+ * 10 ms steps, not 50: the Advanced picker this replaces offered 0..190 in
+ * tens, so a coarser step here would silently round a value an operator had
+ * already tuned the first time they touched the slider. The range extends to
+ * 500 for rigs that take longer to switch over than that picker allowed.
+ */
 internal const val PTT_DELAY_MIN = 0
 internal const val PTT_DELAY_MAX = 500
-internal const val PTT_DELAY_STEP = 50
+internal const val PTT_DELAY_STEP = 10
 
 /**
  * A PTT delay snapped to the slider's step and clamped to its range.

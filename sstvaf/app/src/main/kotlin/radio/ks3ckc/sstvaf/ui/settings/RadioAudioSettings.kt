@@ -96,6 +96,7 @@ fun RadioAudioSettings(
         CatConnectionState.DISCONNECTED,
     )
     val inputLevels by GeneralVariables.mutableInputLevel.observeAsState()
+    val isTuning by mainViewModel.tuneOperator.mutableIsTuning.observeAsState(false)
 
     // Mirror of GeneralVariables.excludedBands so the dialog + the "N of M enabled"
     // label recompose as the user toggles bands.
@@ -189,6 +190,33 @@ fun RadioAudioSettings(
     // =====================================================================
 
     /**
+     * Opens the connection flow for a route. Shared by the route selector and
+     * by switching into a rig-control PTT mode, so the two can never launch
+     * different flows for the same route.
+     */
+    val startConnectionFlow: (Int) -> Unit = { route ->
+        when (route) {
+            ConnectMode.BLUE_TOOTH -> {
+                showBluetoothPicker = true
+            }
+            ConnectMode.NETWORK -> {
+                when (GeneralVariables.instructionSet) {
+                    InstructionSet.FLEX_NETWORK ->
+                        showFlexRadioPicker = true
+                    InstructionSet.XIEGU_6100_FT8CNS ->
+                        showXieguRadioPicker = true
+                    else ->
+                        showIcomLogin = true
+                }
+            }
+            else -> {
+                mainViewModel.getUsbDevice()
+                showSerialPortPicker = true
+            }
+        }
+    }
+
+    /**
      * Applies a new PTT/control mode.
      *
      * Lifted out of the picker dialog this replaces, unchanged: switching to a
@@ -205,8 +233,14 @@ fun RadioAudioSettings(
             || newMode == ControlMode.DTR
         ) {
             if (!mainViewModel.isRigConnected()) {
-                mainViewModel.getUsbDevice()
-                showSerialPortPicker = true
+                // Start the flow for the route the operator actually chose.
+                // This was hard-coded to the USB serial picker, lifted from the
+                // dialog it replaced - harmless there, because the dialog could
+                // not show both controls at once. With the segmented controls
+                // side by side, picking CAT while the route was Bluetooth or
+                // Network launched a cable picker for a cable that is not in
+                // use.
+                startConnectionFlow(connectMode)
             } else {
                 mainViewModel.setOperationBand()
             }
@@ -221,25 +255,7 @@ fun RadioAudioSettings(
         GeneralVariables.connectMode = index
         connectMode = index
         mainViewModel.databaseOpr.writeConfig("connectMode", index.toString(), null)
-        when (index) {
-            ConnectMode.BLUE_TOOTH -> {
-                showBluetoothPicker = true
-            }
-            ConnectMode.NETWORK -> {
-                when (GeneralVariables.instructionSet) {
-                    InstructionSet.FLEX_NETWORK ->
-                        showFlexRadioPicker = true
-                    InstructionSet.XIEGU_6100_FT8CNS ->
-                        showXieguRadioPicker = true
-                    else ->
-                        showIcomLogin = true
-                }
-            }
-            ConnectMode.USB_CABLE -> {
-                mainViewModel.getUsbDevice()
-                showSerialPortPicker = true
-            }
-        }
+        startConnectionFlow(index)
     }
 
     /** Applies a new serial baud rate. */
@@ -250,10 +266,32 @@ fun RadioAudioSettings(
     }
 
     /**
-     * Re-runs the connection flow for the current route: the action on the
-     * connection card.
+     * What the connection card's action pill does, dispatched by link state so
+     * each label means what it says.
+     *
+     * One handler for every state sent all three labels to the same setup flow:
+     * "Reconnect" never actually re-established a live link, "Test PTT" opened
+     * a connection picker, and on a fresh install "Connect" launched a cable
+     * picker for a rig the app had not been told the model of yet.
      */
-    val reconnect: () -> Unit = { applyConnectMode(connectMode) }
+    val onLinkAction: () -> Unit = {
+        val state = rigLinkState(controlMode, catState)
+        when {
+            // Nothing to connect to until a model is chosen: the CAT command
+            // set, the CI-V address and the baud default all come from it.
+            state != RigLinkState.VOX && !hasRigModelSelected(modelNo) ->
+                showRigModelPicker = true
+            state == RigLinkState.CONNECTED -> mainViewModel.reconnectRig()
+            // Test PTT under VOX is the tune carrier: a steady tone that
+            // keys the rig through its own VOX circuit, which is the only
+            // thing there is to test when the app has no control link. It is
+            // bounded by the same max-on timeout as TUNE elsewhere, and the
+            // pill turns into Stop while it runs.
+            state == RigLinkState.VOX ->
+                if (isTuning) mainViewModel.tuneOperator.stopTune() else mainViewModel.startTune()
+            else -> startConnectionFlow(connectMode)
+        }
+    }
 
     // -- Serial Port Picker (USB Cable) --
     if (showSerialPortPicker) {
@@ -522,6 +560,7 @@ fun RadioAudioSettings(
                 state = linkState,
                 rigName = rigModelStr,
                 hasRigModel = hasRigModelSelected(modelNo),
+                tuning = isTuning,
                 detail = rigLinkDetail(
                     state = linkState,
                     connectionLabel = connectModeStr,
@@ -532,7 +571,7 @@ fun RadioAudioSettings(
                     waitingDetail = stringResource(R.string.radio_detail_waiting),
                     checkCableDetail = stringResource(R.string.radio_detail_check_cable),
                 ),
-                onAction = reconnect,
+                onAction = onLinkAction,
             )
         }
 
@@ -614,6 +653,14 @@ fun RadioAudioSettings(
                         onClick = { showRigModelPicker = true },
                     )
                     SectionDivider()
+                    // The only PTT delay editor in the app now; the Advanced
+                    // picker is gone. Two editors over one value had
+                    // incompatible domains (10 ms steps to 190 there, 50 ms
+                    // steps to 500 here) and independent remembered state, so
+                    // moving between them could silently round an operator's
+                    // setting. The step is 10 ms so every value the old picker
+                    // could set is still reachable, and the range extends to
+                    // 500 for rigs that need longer to switch over.
                     SliderRow(
                         label = stringResource(R.string.radio_ptt_delay),
                         description = stringResource(R.string.radio_ptt_delay_desc),

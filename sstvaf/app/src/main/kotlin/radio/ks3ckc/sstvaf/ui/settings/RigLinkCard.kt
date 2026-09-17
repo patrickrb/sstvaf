@@ -73,6 +73,7 @@ internal fun RigLinkCard(
     detail: String,
     onAction: () -> Unit,
     modifier: Modifier = Modifier,
+    tuning: Boolean = false,
 ) {
     val tint = rigLinkColor(state)
     val shape = RoundedCornerShape(14.dp)
@@ -129,7 +130,12 @@ internal fun RigLinkCard(
             )
         }
 
-        LinkActionPill(state = state, onAction = onAction)
+        LinkActionPill(
+            state = state,
+            hasRigModel = hasRigModel,
+            tuning = tuning,
+            onAction = onAction,
+        )
     }
 }
 
@@ -163,7 +169,12 @@ private fun LinkDot(state: RigLinkState, tint: Color) {
 }
 
 @Composable
-private fun LinkActionPill(state: RigLinkState, onAction: () -> Unit) {
+private fun LinkActionPill(
+    state: RigLinkState,
+    hasRigModel: Boolean,
+    tuning: Boolean,
+    onAction: () -> Unit,
+) {
     val enabled = rigLinkActionEnabled(state)
     val primary = rigLinkActionIsPrimary(state)
     val shape = RoundedCornerShape(999.dp)
@@ -193,7 +204,7 @@ private fun LinkActionPill(state: RigLinkState, onAction: () -> Unit) {
             .padding(horizontal = 14.dp, vertical = 9.dp),
     ) {
         Text(
-            text = stringResource(rigLinkActionRes(state)),
+            text = stringResource(rigLinkActionRes(state, hasRigModel, tuning)),
             color = textColor,
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,

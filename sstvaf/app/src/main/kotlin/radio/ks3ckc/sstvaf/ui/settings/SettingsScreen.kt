@@ -44,6 +44,10 @@ import radio.ks3ckc.sstvaf.theme.TextFaint
 import radio.ks3ckc.sstvaf.ui.components.GlassCard
 import radio.ks3ckc.sstvaf.ui.components.SettingsRow
 import radio.ks3ckc.sstvaf.ui.components.TopBar
+import radio.ks3ckc.sstvaf.theme.loadTheme
+import radio.ks3ckc.sstvaf.theme.currentThemeNameRes
+import androidx.compose.ui.platform.LocalContext
+import com.k1af.ft8af.rigs.CatConnectionState
 
 /**
  * Resolves the rig name shown on the operator card.
@@ -112,6 +116,8 @@ fun SettingsScreen(
                 TransmissionSettings(mainViewModel, onBack = { currentCategory = null })
             SettingsCategory.LOGGING ->
                 LoggingSettings(mainViewModel, onBack = { currentCategory = null })
+            SettingsCategory.APPEARANCE ->
+                AppearanceSettings(onBack = { currentCategory = null })
             SettingsCategory.USB_DIAGNOSTICS ->
                 UsbDiagnosticsScreen(mainViewModel, onBack = { currentCategory = null })
             SettingsCategory.ADVANCED ->
@@ -152,7 +158,18 @@ private fun SettingsLanding(
     var showEditOperator by remember { mutableStateOf(false) }
 
     val grid = gridLive.orEmpty()
-    val rigConnected = mainViewModel.isRigConnected()
+
+    // Observed, not a snapshot. isRigConnected() only reports whether the
+    // transport is open and does not recompose, so the strip stayed green after
+    // the CAT watchdog had already given up on the rig - which is exactly the
+    // moment an operator is looking at it. The link state is derived the same
+    // way Radio & audio derives it, so the two screens cannot disagree.
+    val catState by mainViewModel.mutableCatConnectionState.observeAsState(
+        CatConnectionState.DISCONNECTED,
+    )
+    val controlMode = GeneralVariables.controlMode
+    val linkState = rigLinkState(controlMode, catState)
+    val rigConnected = linkState == RigLinkState.CONNECTED
     val rigName = resolveRigDisplayName(
         connected = rigConnected,
         // User-selected model name from RigNameList (set in MainViewModel.connectRig).
@@ -182,7 +199,7 @@ private fun SettingsLanding(
                 rigStatus = rigStatusLine(
                     connected = rigConnected,
                     rigName = rigName,
-                    controlLabel = ControlMode.getControlModeStr(GeneralVariables.controlMode),
+                    controlLabel = ControlMode.getControlModeStr(controlMode),
                     connectedFormat = stringResource(R.string.settings_rig_status_connected),
                     idleFormat = stringResource(R.string.settings_rig_status_idle),
                 ),
@@ -198,7 +215,7 @@ private fun SettingsLanding(
                         SettingsRow(
                             label = stringResource(categoryLabelRes(category)),
                             description = stringResource(categoryDescriptionRes(category)),
-                            value = categoryValue(category, mainViewModel, rigName),
+                            value = categoryValue(category, rigName, rigConnected),
                             showChevron = true,
                             onClick = { onOpenCategory(category) },
                         )
@@ -307,22 +324,29 @@ private fun SettingsLanding(
 @Composable
 private fun categoryValue(
     category: SettingsCategory,
-    mainViewModel: MainViewModel,
     rigName: String,
-): String? = when (category) {
+    rigConnected: Boolean,
+): String = when (category) {
     SettingsCategory.RADIO_AUDIO -> rigName
-    SettingsCategory.LOGGING -> if (GeneralVariables.saveRxToPhotos) {
-        stringResource(R.string.settings_value_photos_on)
+    // The tune method is the only setting this screen holds, so it is the
+    // value.
+    SettingsCategory.TRANSMISSION -> stringResource(tuneMethodNameRes(GeneralVariables.tuneMethod))
+    // Cloudlog upload is the consequential one: on means every QSO leaves the
+    // device.
+    SettingsCategory.LOGGING -> if (GeneralVariables.enableCloudlog) {
+        stringResource(R.string.settings_value_cloudlog_on)
     } else {
-        null
+        stringResource(R.string.settings_value_off)
     }
-    SettingsCategory.USB_DIAGNOSTICS -> if (mainViewModel.isRigConnected()) {
+    SettingsCategory.APPEARANCE -> stringResource(currentThemeNameRes(loadTheme(LocalContext.current)))
+    // PTT delay is the one an operator comes back to adjust.
+    SettingsCategory.ADVANCED -> stringResource(
+        R.string.settings_milliseconds_format, GeneralVariables.pttDelay,
+    )
+    SettingsCategory.USB_DIAGNOSTICS -> if (rigConnected) {
         stringResource(R.string.settings_value_usb_ok)
     } else {
-        null
+        stringResource(R.string.settings_value_no_link)
     }
     SettingsCategory.ABOUT -> BuildConfig.VERSION_NAME
-    // Transmission and Advanced hold several unrelated values with no single
-    // headline worth pinning to the row; a made-up one would be noise.
-    SettingsCategory.TRANSMISSION, SettingsCategory.ADVANCED -> null
 }

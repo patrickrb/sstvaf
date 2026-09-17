@@ -140,17 +140,12 @@ fun AdvancedSettings(
 ) {
     val context = LocalContext.current
 
-    var pttDelay by remember { mutableIntStateOf(GeneralVariables.pttDelay) }
     var voxPreToneMs by remember { mutableIntStateOf(GeneralVariables.voxPreToneMs) }
     var cwIdEnabled by remember { mutableStateOf(GeneralVariables.cwIdEnabled) }
     var cwIdWpm by remember { mutableIntStateOf(GeneralVariables.cwIdWpm) }
-    var currentTheme by remember { mutableStateOf(loadTheme(context)) }
 
-    var showPttDelay by remember { mutableStateOf(false) }
     var showVoxPreTone by remember { mutableStateOf(false) }
     var showCwIdWpm by remember { mutableStateOf(false) }
-    var showLanguagePicker by remember { mutableStateOf(false) }
-    var showThemePicker by remember { mutableStateOf(false) }
 
     // -- Backup & restore (issue #357) --
     val scope = rememberCoroutineScope()
@@ -282,29 +277,6 @@ fun AdvancedSettings(
         )
     }
 
-    val pttDelayStr = stringResource(R.string.settings_milliseconds_format, pttDelay)
-
-    // -- PTT Delay Picker --
-    if (showPttDelay) {
-        val pttDelayOptions = (0 until 20).map {
-            stringResource(R.string.settings_milliseconds_format, it * 10)
-        }
-        val currentPttIndex = (pttDelay / 10).coerceIn(0, 19)
-        ListPickerDialog(
-            title = stringResource(R.string.settings_ptt_delay),
-            items = pttDelayOptions,
-            selectedIndex = currentPttIndex,
-            onDismiss = { showPttDelay = false },
-            onSelect = { index ->
-                showPttDelay = false
-                val ms = index * 10
-                GeneralVariables.pttDelay = ms
-                pttDelay = ms
-                mainViewModel.databaseOpr.writeConfig("pttDelay", ms.toString(), null)
-            },
-        )
-    }
-
     // -- VOX Pre-tone Picker --
     // Extra 1900 Hz leader prepended in VOX mode so a radio's VOX or an
     // auto-PTT audio cable (HTs on an APRS-K1-style interface) keys up on
@@ -355,61 +327,6 @@ fun AdvancedSettings(
     // language calls AppCompatDelegate.setApplicationLocales, which persists the
     // choice (framework LocaleManager on API 33+, AppCompat autoStore backport on
     // older) and recreates the activity so the new locale takes effect immediately.
-    if (showLanguagePicker) {
-        val languageTags = LANGUAGE_TAGS
-        // Built with a for-loop (not map/forEach) so the @Composable stringResource
-        // calls run in a permitted context; mirrors LANGUAGE_TAGS index-for-index.
-        val languageLabels = ArrayList<String>(LANGUAGE_TAGS.size)
-        languageLabels.add(stringResource(R.string.settings_language_system))
-        for (lang in SUPPORTED_LANGUAGES) {
-            languageLabels.add(stringResource(lang.nameRes))
-        }
-        val currentTags = AppCompatDelegate.getApplicationLocales().toLanguageTags()
-        val currentIndex = languageTags.indexOfFirst { it.isNotEmpty() && currentTags.startsWith(it) }
-            .let { if (it >= 0) it else 0 }
-        ListPickerDialog(
-            title = stringResource(R.string.settings_language),
-            items = languageLabels,
-            selectedIndex = currentIndex,
-            onDismiss = { showLanguagePicker = false },
-            onSelect = { index ->
-                showLanguagePicker = false
-                val tag = languageTags[index]
-                val locales = if (tag.isEmpty()) {
-                    LocaleListCompat.getEmptyLocaleList()
-                } else {
-                    LocaleListCompat.forLanguageTags(tag)
-                }
-                AppCompatDelegate.setApplicationLocales(locales)
-            },
-        )
-    }
-
-    // -- Theme Picker --
-    // Selecting a theme applies it live (swaps the Compose palette + night mode,
-    // no activity recreate) and persists the choice. Built like the language
-    // picker so adding a future theme is one ThemeOption entry.
-    if (showThemePicker) {
-        val themes = ThemeOption.entries
-        val themeLabels = ArrayList<String>(themes.size)
-        for (theme in themes) {
-            themeLabels.add(stringResource(theme.nameRes))
-        }
-        ListPickerDialog(
-            title = stringResource(R.string.settings_theme),
-            items = themeLabels,
-            selectedIndex = themes.indexOf(currentTheme).coerceAtLeast(0),
-            onDismiss = { showThemePicker = false },
-            onSelect = { index ->
-                showThemePicker = false
-                val theme = themes[index]
-                currentTheme = theme
-                applyTheme(theme)
-                saveTheme(context, theme)
-            },
-        )
-    }
-
     SettingsDetailScaffold(
         title = stringResource(R.string.settings_cat_advanced),
         onBack = onBack,
@@ -417,17 +334,15 @@ fun AdvancedSettings(
         // =====================================================================
         // ADVANCED
         // =====================================================================
+        // PTT delay lives on Radio & audio, next to the connection and PTT
+        // controls it belongs with. It used to be here as well, and the two
+        // editors enforced different domains over the same value (tens up to
+        // 190 here, fifties up to 500 there) with independent remembered
+        // state, so moving between them could silently round an operator's
+        // setting.
         SettingsSection(title = stringResource(R.string.settings_section_advanced)) {
             GlassCard(modifier = Modifier.fillMaxWidth()) {
                 Column {
-                    SettingsRow(
-                        label = stringResource(R.string.settings_ptt_delay),
-                        description = stringResource(R.string.settings_ptt_delay_desc),
-                        value = pttDelayStr,
-                        showChevron = true,
-                        onClick = { showPttDelay = true },
-                    )
-                    SectionDivider()
                     SettingsRow(
                         label = stringResource(R.string.settings_vox_pre_tone),
                         description = stringResource(R.string.settings_vox_pre_tone_desc),
@@ -462,38 +377,6 @@ fun AdvancedSettings(
                         )
                     }
                 }
-            }
-        }
-
-        // =====================================================================
-        // APPEARANCE
-        // =====================================================================
-        SettingsSection(title = stringResource(R.string.settings_section_appearance)) {
-            GlassCard(modifier = Modifier.fillMaxWidth()) {
-                SettingsRow(
-                    label = stringResource(R.string.settings_theme),
-                    description = stringResource(R.string.settings_theme_desc),
-                    value = stringResource(currentThemeNameRes(currentTheme)),
-                    showChevron = true,
-                    onClick = { showThemePicker = true },
-                )
-            }
-        }
-
-        // =====================================================================
-        // LANGUAGE
-        // =====================================================================
-        SettingsSection(title = stringResource(R.string.settings_section_language)) {
-            GlassCard(modifier = Modifier.fillMaxWidth()) {
-                val currentTags = AppCompatDelegate.getApplicationLocales().toLanguageTags()
-                val currentLangRes = currentLanguageNameRes(currentTags)
-                SettingsRow(
-                    label = stringResource(R.string.settings_language),
-                    description = stringResource(R.string.settings_language_desc),
-                    value = stringResource(currentLangRes),
-                    showChevron = true,
-                    onClick = { showLanguagePicker = true },
-                )
             }
         }
 

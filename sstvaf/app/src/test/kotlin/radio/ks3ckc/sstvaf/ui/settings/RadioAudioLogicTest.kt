@@ -230,12 +230,29 @@ class RadioAudioLogicTest {
 
     @Test
     fun `ptt delay snaps to the step`() {
-        // The value is a settling time tuned by trial; 137 ms would suggest a
-        // precision the control does not have.
-        assertThat(snapPttDelay(137)).isEqualTo(150)
-        assertThat(snapPttDelay(124)).isEqualTo(100)
-        assertThat(snapPttDelay(125)).isEqualTo(150)
+        // The value is a settling time tuned by trial, so it snaps; 137 ms
+        // would suggest a precision the control does not have.
+        assertThat(snapPttDelay(137)).isEqualTo(140)
+        assertThat(snapPttDelay(124)).isEqualTo(120)
+        assertThat(snapPttDelay(125)).isEqualTo(130)
         assertThat(snapPttDelay(100)).isEqualTo(100)
+    }
+
+    @Test
+    fun `every value the old Advanced picker could set is still reachable`() {
+        // That picker offered 0..190 in tens and this slider replaces it. A
+        // coarser step here would silently round a delay an operator had
+        // already tuned, the first time they touched the control.
+        for (legacy in 0..190 step 10) {
+            assertThat(snapPttDelay(legacy)).isEqualTo(legacy)
+        }
+    }
+
+    @Test
+    fun `the range extends past what the old picker allowed`() {
+        // Some rigs take longer than 190 ms to switch over.
+        assertThat(PTT_DELAY_MAX).isGreaterThan(190)
+        assertThat(snapPttDelay(500)).isEqualTo(500)
     }
 
     @Test
@@ -399,5 +416,42 @@ class RadioAudioLogicTest {
     @Test
     fun `extra whitespace between terms is ignored`() {
         assertThat(searchRigs(rigs, "  yaesu    891  ").map { it.index }).containsExactly(4)
+    }
+
+    // ----- the card action label ---------------------------------------------
+
+    @Test
+    fun `with no rig model the action offers to choose one`() {
+        // The CAT command set, the CI-V address and the baud default all come
+        // from the model, so there is nothing to connect to until it is set.
+        // Offering "Connect" there sent the operator to a cable picker for a
+        // rig the app had not been told the type of.
+        assertThat(rigLinkActionRes(RigLinkState.DISCONNECTED, hasRigModel = false))
+            .isEqualTo(rigLinkActionRes(RigLinkState.CONNECTED, hasRigModel = false))
+        assertThat(rigLinkActionRes(RigLinkState.DISCONNECTED, hasRigModel = false))
+            .isNotEqualTo(rigLinkActionRes(RigLinkState.DISCONNECTED, hasRigModel = true))
+    }
+
+    @Test
+    fun `vox does not need a rig model to offer its test`() {
+        // Under VOX the rig keys itself off audio, so the model is irrelevant.
+        assertThat(rigLinkActionRes(RigLinkState.VOX, hasRigModel = false))
+            .isEqualTo(rigLinkActionRes(RigLinkState.VOX, hasRigModel = true))
+    }
+
+    @Test
+    fun `the vox test offers to stop while it is running`() {
+        // It keys the rig, so there has to be a way to stop it that is not
+        // waiting for the timeout.
+        assertThat(rigLinkActionRes(RigLinkState.VOX, tuning = true))
+            .isNotEqualTo(rigLinkActionRes(RigLinkState.VOX, tuning = false))
+    }
+
+    @Test
+    fun `each connected state keeps its own label`() {
+        assertThat(rigLinkActionRes(RigLinkState.CONNECTED))
+            .isNotEqualTo(rigLinkActionRes(RigLinkState.DISCONNECTED))
+        assertThat(rigLinkActionRes(RigLinkState.CONNECTING))
+            .isNotEqualTo(rigLinkActionRes(RigLinkState.DISCONNECTED))
     }
 }

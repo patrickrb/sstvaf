@@ -46,6 +46,9 @@ import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
 import radio.ks3ckc.sstvaf.ui.components.SstvAfBottomSheet
 import radio.ks3ckc.sstvaf.ui.components.SstvAfIcons
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.selection.selectable
 
 /**
  * The rig model picker: a search field over the shipped model list.
@@ -161,14 +164,17 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
             )
         }
         if (query.isNotEmpty()) {
+            val clearLabel = stringResource(R.string.radio_rig_search_clear)
             Box(
                 modifier = Modifier
-                    .size(20.dp)
+                    // 48dp of target around a 14dp glyph. onClickLabel, which
+                    // this used, changes the spoken action hint but leaves an
+                    // icon-only node unnamed, so the description is set as a
+                    // real semantic.
+                    .size(48.dp)
                     .clip(RoundedCornerShape(999.dp))
-                    .clickable(
-                        role = Role.Button,
-                        onClickLabel = stringResource(R.string.radio_rig_search_clear),
-                    ) { onQueryChange("") },
+                    .clickable(role = Role.Button) { onQueryChange("") }
+                    .semantics { contentDescription = clearLabel },
                 contentAlignment = Alignment.Center,
             ) {
                 SstvAfIcons.Close(
@@ -189,7 +195,11 @@ private fun RigRow(option: RigOption, selected: Boolean, onClick: () -> Unit) {
             .fillMaxWidth()
             .clip(shape)
             .background(if (selected) AccentSoft else BgSurface2, shape)
-            .clickable(role = Role.RadioButton, onClick = onClick)
+            // The check mark beside the current model is a drawn icon, so the
+            // selected state is what actually tells a screen reader which rig
+            // is configured.
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .heightIn(min = 48.dp)
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),

@@ -907,14 +907,18 @@
     <!-- ===== Redesign: Settings landing ===== -->
     <string name="action_edit">Edit</string>
     <string name="settings_cat_radio_audio_desc">Rig model, connection, PTT and audio devices</string>
-    <string name="settings_cat_transmission_desc">Timing, repeats and what gets sent</string>
-    <string name="settings_cat_logging_desc">QSO log, ADIF export and awards</string>
-    <string name="settings_cat_advanced_desc">PTT timing, diagnostics, backup and restore</string>
+    <string name="settings_cat_transmission_desc">How TUNE keys the rig</string>
+    <string name="settings_cat_appearance">Appearance</string>
+    <string name="settings_cat_appearance_desc">Theme and app language</string>
+    <string name="settings_cat_logging_desc">Cloudlog upload and saving to Photos</string>
+    <string name="settings_cat_advanced_desc">VOX pre-tone, CW identification, backup and restore</string>
     <string name="settings_cat_about_desc">Version, licences and credits</string>
     <string name="settings_rig_status_connected">%1$s linked over %2$s</string>
     <string name="settings_rig_status_idle">No rig linked · %1$s</string>
-    <string name="settings_value_photos_on">Photos on</string>
     <string name="settings_value_usb_ok">Linked</string>
+    <string name="settings_value_no_link">No link</string>
+    <string name="settings_value_cloudlog_on">Cloudlog on</string>
+    <string name="settings_value_off">Off</string>
     <string name="settings_footer">SSTVAF v%1$s · Export and import settings in Advanced</string>
 
     <!-- ===== Redesign: operator sheet ===== -->
@@ -934,6 +938,8 @@
     <string name="radio_action_connecting">Connecting</string>
     <string name="radio_action_connect">Connect</string>
     <string name="radio_action_test_ptt">Test PTT</string>
+    <string name="radio_action_stop_test">Stop test</string>
+    <string name="radio_action_choose_rig">Choose rig</string>
     <string name="radio_detail_vox">The rig keys itself from transmit audio</string>
     <string name="radio_detail_waiting">waiting for the rig</string>
     <string name="radio_detail_check_cable">check the cable and rig settings</string>

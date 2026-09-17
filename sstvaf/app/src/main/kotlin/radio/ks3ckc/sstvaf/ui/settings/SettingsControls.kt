@@ -31,6 +31,9 @@ import radio.ks3ckc.sstvaf.theme.GeistMonoFamily
 import radio.ks3ckc.sstvaf.theme.TextFaint
 import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.selection.selectable
 
 /**
  * The redesign shared settings controls: a segmented selector, a chip row, a
@@ -74,15 +77,29 @@ internal fun <T> SegmentedChoice(
         options.forEach { option ->
             val isSelected = option == selected
             val segmentShape = RoundedCornerShape(8.dp)
+            val segmentName = contentDescription?.invoke(option)
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .clip(segmentShape)
                     .background(if (isSelected) AccentSoft else BgSurface2, segmentShape)
-                    .clickable(
+                    // selectable, not clickable: only the selected state tells
+                    // a screen reader which segment is active, and the fill is
+                    // the sole visual cue. The description names the control
+                    // rather than the action - onClickLabel, which this used,
+                    // only changes the spoken action hint.
+                    .selectable(
+                        selected = isSelected,
                         role = Role.RadioButton,
-                        onClickLabel = contentDescription?.invoke(option),
-                    ) { onSelect(option) }
+                        onClick = { onSelect(option) },
+                    )
+                    .then(
+                        if (segmentName != null) {
+                            Modifier.semantics { this.contentDescription = segmentName }
+                        } else {
+                            Modifier
+                        },
+                    )
                     .padding(vertical = 9.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -140,7 +157,13 @@ internal fun <T> ChipChoiceRow(
                     .clip(shape)
                     .background(if (isSelected) AccentSoft else BgSurface3, shape)
                     .border(1.dp, if (isSelected) Accent.copy(alpha = 0.4f) else Border, shape)
-                    .clickable(role = Role.RadioButton) { onSelect(option) }
+                    // Same reasoning as the segmented control: the chips are
+                    // one of a set, and which one is current has to be spoken.
+                    .selectable(
+                        selected = isSelected,
+                        role = Role.RadioButton,
+                        onClick = { onSelect(option) },
+                    )
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {
