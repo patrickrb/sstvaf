@@ -519,4 +519,12 @@
     <string name="tune_stopped_timeout">Tune зупинено через %1$d с</string>
     <string name="tune_blocked_tx">Зупиніть CQ/QSO перед використанням Tune</string>
     <string name="tune_unavailable_route">Tune поки не підтримується на цьому аудіотракті</string>
+    <string name="tune_atu_started">Антенний тюнер трансивера запущено</string>
+    <string name="tune_atu_unavailable">Тюнер недоступний — підключіть CAT-трансивер із вбудованим тюнером</string>
+    <string name="settings_tune_method">Метод Tune</string>
+    <string name="settings_tune_method_desc">Автоматично запускає вбудований тюнер трансивера через CAT, якщо доступний, інакше передає малопотужний тон</string>
+    <string name="tune_method_automatic">Автоматично</string>
+    <string name="tune_method_internal">Вбудований тюнер</string>
+    <string name="tune_method_tone">Малопотужний тон</string>
+
 </resources>

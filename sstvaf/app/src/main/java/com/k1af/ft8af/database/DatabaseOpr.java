@@ -30,6 +30,7 @@ import com.k1af.ft8af.log.QSLCallsignRecord;
 import com.k1af.ft8af.log.QSLRecord;
 import com.k1af.ft8af.log.QSLRecordStr;
 import com.k1af.ft8af.rigs.BaseRigOperation;
+import com.k1af.ft8af.wave.AudioChannelSelect;
 import com.k1af.ft8af.wave.InputAudioLevel;
 
 import org.jetbrains.annotations.Nullable;
@@ -2289,13 +2290,25 @@ public class DatabaseOpr extends SQLiteOpenHelper {
                     GeneralVariables.setBaseFrequency(freq);
                 }
                 if (name.equalsIgnoreCase("civ")) {
-                    GeneralVariables.civAddress = result.equals("") ? 0xa4 : Integer.parseInt(result, 16);
+                    // Hex on disk; also repairs the decimal strings an earlier Compose
+                    // picker wrote (#753). The two-digit ambiguity is settled against the
+                    // rig model in MainViewModel.connectRig().
+                    GeneralVariables.civAddress = com.k1af.ft8af.rigs.CivAddressConfig
+                            .decode(result, com.k1af.ft8af.rigs.CivAddressConfig.DEFAULT_ADDRESS);
+                    GeneralVariables.civAddressStored = result;
+                }
+                if (name.equalsIgnoreCase(com.k1af.ft8af.rigs.CivAddressConfig.FORMAT_KEY)) {
+                    // Provenance marker: present only when a hex-aware writer stored "civ".
+                    GeneralVariables.civAddressFormatKnown =
+                            com.k1af.ft8af.rigs.CivAddressConfig.isHexFormatMarker(result);
                 }
                 if (name.equalsIgnoreCase("baudRate")) {
                     GeneralVariables.baudRate = result.equals("") ? 19200 : Integer.parseInt(result);
                 }
                 if (name.equalsIgnoreCase("bandFreq")) {
                     GeneralVariables.band = result.equals("") ? 14230000 : Long.parseLong(result);
+                    // Restored operator selection from config; seeds the commanded dial.
+                    GeneralVariables.commandedBandHz = GeneralVariables.band;
                     GeneralVariables.bandListIndex = OperationBand.getIndexByFreq(GeneralVariables.band);
                 }
 
@@ -2374,6 +2387,16 @@ public class DatabaseOpr extends SQLiteOpenHelper {
                     //falls back to unity; numeric clamps to 0..200%.
                     GeneralVariables.inputGainPercent = InputAudioLevel.parseGainPercent(result);
                 }
+                if (name.equalsIgnoreCase(AudioChannelSelect.RX_CONFIG_KEY)) {//RX stereo channel select
+                    //0=mix L+R (default), 1=left only, 2=right only. Parsed
+                    //defensively — an imported/corrupted value falls back to mix.
+                    GeneralVariables.rxAudioChannel = AudioChannelSelect.parse(result);
+                }
+                if (name.equalsIgnoreCase(AudioChannelSelect.TX_CONFIG_KEY)) {//TX stereo channel select
+                    //0=both channels (default), 1=left only, 2=right only. Same
+                    //defensive parse as the RX key; anything else falls back to both.
+                    GeneralVariables.txAudioChannel = AudioChannelSelect.parse(result);
+                }
                 if (name.equalsIgnoreCase("showTxVolumeSlider")) {//Inline TX volume slider visibility
                     GeneralVariables.showTxVolumeSlider = !result.equals("0");
                     GeneralVariables.mutableShowTxVolumeSlider.postValue(GeneralVariables.showTxVolumeSlider);
@@ -2416,6 +2439,16 @@ public class DatabaseOpr extends SQLiteOpenHelper {
                 }
                 if (name.equalsIgnoreCase("perBandTuneLevels")) {//Per-band independent tune levels
                     GeneralVariables.perBandTuneLevels = result == null ? "" : result;
+                }
+                if (name.equalsIgnoreCase("tuneMethod")) {//Tune method: rig ATU vs carrier (issue #425)
+                    if (result != null) {
+                        try {
+                            GeneralVariables.tuneMethod =
+                                    com.k1af.ft8af.transmit.TuneMethod.clamp(
+                                            Integer.parseInt(result.trim()));
+                        } catch (NumberFormatException ignored) {
+                        }
+                    }
                 }
                 if (name.equalsIgnoreCase("excludedCallsigns")) {//Blocklist: callsign prefixes
                     GeneralVariables.addExcludedCallsigns(result);

@@ -12,7 +12,10 @@ import android.util.Log;
 
 import com.k1af.ft8af.GeneralVariables;
 import com.k1af.ft8af.R;
+import com.k1af.ft8af.bluetooth.DefaultOutputRouting;
 import com.k1af.ft8af.ui.ToastMessage;
+import com.k1af.ft8af.wave.AudioChannelCapability;
+import com.k1af.ft8af.wave.AudioChannelSelect;
 import com.k1af.ft8af.wave.UsbAudioDevice;
 import com.k1af.ft8af.wave.UsbAudioNative;
 
@@ -25,10 +28,17 @@ import com.k1af.ft8af.wave.UsbAudioNative;
  *   <li><b>Rig wave route</b> (network rigs / truSDX audio-over-CAT) — the
  *       whole buffer is handed to the rig, which streams it itself.</li>
  *   <li><b>Direct USB audio</b> — libusb-backed {@link UsbAudioDevice#writeAudio};
- *       TX volume is applied live inside the native write loop.</li>
+ *       TX volume is applied live inside the native write loop, and the TX
+ *       channel selection is honoured by the device's interleave.</li>
  *   <li><b>AudioTrack</b> (Android default sink) — chunked MODE_STREAM playback
  *       with the TX volume re-read per ~50ms chunk, so a slider move lands
- *       mid-transmission.</li>
+ *       mid-transmission. Holds transient-exclusive audio focus for the
+ *       duration ({@link TxAudioFocus}) so other apps' sounds don't mix into
+ *       the rig feed, opens stereo with one side silenced when the operator
+ *       picked Left/Right on an explicit sink ({@link TxChannelLayout}), and
+ *       steers the "Default" sink to the rig's A2DP endpoint while our own
+ *       Bluetooth SCO link is holding the media route
+ *       ({@link DefaultOutputRouting}).</li>
  * </ol>
  *
  * <p>Two hard-won behaviors are preserved here (see CLAUDE.md):
@@ -64,13 +74,15 @@ public class TransmitAudioSink {
 
     /**
      * Abstraction over the PCM output device so the chunked loop is
-     * unit-testable without an Android AudioTrack.
+     * unit-testable without an Android AudioTrack. The sink hands it MONO
+     * sample buffers; an implementation that opened stereo expands them
+     * itself and reports frames, not samples, from the write calls.
      */
     public interface PcmOutput {
-        /** Blocking write; returns frames written or a negative error. */
+        /** Blocking write of {@code length} mono samples; returns frames written or a negative error. */
         int writeFloats(float[] data, int length);
 
-        /** Blocking write; returns frames written or a negative error. */
+        /** Blocking write of {@code length} mono samples; returns frames written or a negative error. */
         int writeShorts(short[] data, int length);
 
         /** Current playback head position in frames (for the drain wait). */
@@ -99,6 +111,21 @@ public class TransmitAudioSink {
         boolean sendWave(float[] buffer, int sampleRate);
     }
 
+    /**
+     * Whether the app's own Bluetooth SCO link was up when the current
+     * transmission was keyed, and which device carried it — the snapshot
+     * {@code MainViewModel} takes at key-down ({@code TxScoLatch}). Read by the
+     * Default-sink routing override: TX audio must only be steered onto a
+     * Bluetooth A2DP endpoint when our SCO session is the thing displacing the
+     * media route (see {@code AudioOutputRoutingPolicy}).
+     */
+    public interface TxScoState {
+        boolean heldForTx();
+
+        /** Bluetooth address of the SCO device, or null when unknown. */
+        String scoAddress();
+    }
+
     /** Millisecond sleeper, injected for tests. */
     public interface Sleeper {
         void sleepMs(long ms) throws InterruptedException;
@@ -107,6 +134,9 @@ public class TransmitAudioSink {
     private final PcmOutputFactory outputFactory;
     private final Sleeper sleeper;
     private RigWaveRoute rigWaveRoute;
+    // Created lazily on the real AudioTrack path only: its constructor pins a
+    // Handler to the main looper, which a plain JVM unit test doesn't have.
+    private TxAudioFocus txAudioFocus;
 
     private volatile boolean cancelled = false;
     private volatile PcmOutput activeOutput = null;
@@ -127,6 +157,16 @@ public class TransmitAudioSink {
 
     public void setRigWaveRoute(RigWaveRoute route) {
         this.rigWaveRoute = route;
+    }
+
+    /**
+     * Wire the SCO-at-keying snapshot the Default-sink routing override reads.
+     * Only the real AudioTrack factory consumes it; a test factory ignores it.
+     */
+    public void setTxScoState(TxScoState state) {
+        if (outputFactory instanceof AudioTrackOutputFactory) {
+            ((AudioTrackOutputFactory) outputFactory).scoState = state;
+        }
     }
 
     /**
@@ -192,9 +232,16 @@ public class TransmitAudioSink {
             return playViaUsbAudio(buffer, sampleRate);
         }
 
-        // 3) AudioTrack (Android default sink).
+        // 3) AudioTrack (Android default sink). This branch shares Android's
+        // mixer with every other app, so claim exclusive focus for the
+        // transmission. Denial is log-only: TX must still go out.
         GeneralVariables.fileLog("TransmitAudioSink: using AudioTrack output (Android default sink)");
-        return playViaPcmOutput(buffer, sampleRate, float32, volume);
+        TxAudioFocus focus = acquireAudioFocus("play");
+        try {
+            return playViaPcmOutput(buffer, sampleRate, float32, volume);
+        } finally {
+            if (focus != null) focus.release();
+        }
     }
 
     /**
@@ -205,11 +252,13 @@ public class TransmitAudioSink {
      */
     public PlayResult playStream(ChunkSource source, int sampleRate, boolean float32) {
         cancelled = false;
+        TxAudioFocus focus = acquireAudioFocus("playStream");
         PcmOutput out;
         try {
             out = outputFactory.open(sampleRate, float32);
         } catch (Exception e) {
             Log.e(TAG, "playStream: failed to open output: " + e);
+            if (focus != null) focus.release();
             return PlayResult.ERROR;
         }
         activeOutput = out;
@@ -233,7 +282,25 @@ public class TransmitAudioSink {
         } finally {
             activeOutput = null;
             out.release();
+            if (focus != null) focus.release();
         }
+    }
+
+    /**
+     * Take transient-exclusive audio focus for an AudioTrack transmission, or
+     * return null when there is no app context (unit tests, or before the
+     * activity is up) — TX proceeds regardless.
+     */
+    private TxAudioFocus acquireAudioFocus(String what) {
+        Context ctx = GeneralVariables.getMainContext();
+        if (ctx == null) return null;
+        if (txAudioFocus == null) {
+            txAudioFocus = new TxAudioFocus();
+        }
+        boolean granted = txAudioFocus.acquire(ctx);
+        GeneralVariables.fileLog("TransmitAudioSink: " + what + " audio focus "
+                + (granted ? "granted (exclusive)" : "NOT granted — other-app audio may mix into TX"));
+        return txAudioFocus;
     }
 
     /** Whether the user picked a direct-USB audio output device. */
@@ -318,8 +385,10 @@ public class TransmitAudioSink {
     /**
      * Direct USB audio output, extracted intact from the FT8 engine. TX volume
      * is applied live inside the native write loop (UsbAudioNative.setTxVolume),
-     * so the buffer is handed over at full scale. The iso-packet-length math in
-     * cpp/usb_audio_capture.cpp is load-bearing (see CLAUDE.md) and untouched.
+     * so the buffer is handed over at full scale, and the TX channel selection
+     * (GeneralVariables.txAudioChannel) is applied by the device's interleave.
+     * The iso-packet-length math in cpp/usb_audio_capture.cpp is load-bearing
+     * (see CLAUDE.md) and untouched.
      */
     private PlayResult playViaUsbAudio(float[] buffer, int sampleRate) {
         GeneralVariables.fileLog(String.format(
@@ -453,13 +522,54 @@ public class TransmitAudioSink {
     }
 
     /**
+     * Expand {@code count} mono 16-bit samples into interleaved stereo with the
+     * excluded side silenced, per the operator's TX channel selection. The
+     * float path uses {@link TxChannelLayout#layOut}; this is its int16 twin.
+     * Pure function — unit-tested.
+     */
+    static short[] expandShortsToStereo(short[] mono, int count, int selection, short[] scratch) {
+        int needed = count * 2;
+        short[] out = (scratch != null && scratch.length >= needed) ? scratch : new short[needed];
+        boolean left = AudioChannelSelect.writesChannel(selection, AudioChannelSelect.CHANNEL_LEFT);
+        boolean right = AudioChannelSelect.writesChannel(selection, AudioChannelSelect.CHANNEL_RIGHT);
+        for (int i = 0; i < count; i++) {
+            out[2 * i] = left ? mono[i] : 0;
+            out[2 * i + 1] = right ? mono[i] : 0;
+        }
+        return out;
+    }
+
+    /**
      * The real AudioTrack-backed output. MODE_STREAM with a deliberately small
      * (~200ms) buffer so live volume changes land within one chunk + buffer
      * depth — instant enough to pull drive down and protect the rig mid-over.
      */
     private static class AudioTrackOutputFactory implements PcmOutputFactory {
+        /** SCO-at-keying snapshot for the Default-sink routing override (may be null). */
+        volatile TxScoState scoState;
+
         @Override
         public PcmOutput open(int sampleRate, boolean float32) {
+            // Resolve the preferred sink up front: the TX channel selection needs
+            // its channel count before the track is built, and the same
+            // AudioDeviceInfo is handed to setPreferredDevice below.
+            final AudioDeviceInfo preferredOutputDevice = GeneralVariables.audioOutputDeviceId > 0
+                    ? findAudioDeviceById(GeneralVariables.audioOutputDeviceId,
+                            AudioManager.GET_DEVICES_OUTPUTS)
+                    : null;
+            // Which side of a stereo sink carries the waveform. "Both" — the
+            // default and, on a mono or unknown device, the only possibility —
+            // keeps the historical MONO open: the framework duplicates it to
+            // every channel, so that path is byte-for-byte what it always was.
+            final TxChannelLayout layout = TxChannelLayout.resolve(
+                    GeneralVariables.txAudioChannel,
+                    GeneralVariables.audioOutputDeviceId > 0,
+                    outputMaxChannels(preferredOutputDevice));
+            if (layout.isStereo()) {
+                GeneralVariables.fileLog(
+                        "TransmitAudioSink: stereo TX open, channel select=" + layout.selection);
+            }
+
             AudioAttributes attributes = new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_MEDIA)
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
@@ -468,19 +578,21 @@ public class TransmitAudioSink {
                     ? AudioFormat.ENCODING_PCM_FLOAT : AudioFormat.ENCODING_PCM_16BIT;
             AudioFormat format = new AudioFormat.Builder().setSampleRate(sampleRate)
                     .setEncoding(encoding)
-                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build();
+                    .setChannelMask(layout.channelMask).build();
             int bytesPerSample = float32 ? 4 : 2;
-            int targetBufBytes = (sampleRate / 5) * bytesPerSample; // ~200ms mono
-            int minBuf = AudioTrack.getMinBufferSize(sampleRate,
-                    AudioFormat.CHANNEL_OUT_MONO, encoding);
+            // ~200ms at whatever channel count the layout opened with.
+            int targetBufBytes = layout.bufferBytes(sampleRate, bytesPerSample);
+            int minBuf = AudioTrack.getMinBufferSize(sampleRate, layout.channelMask, encoding);
             int bufBytes = Math.max(targetBufBytes, minBuf > 0 ? minBuf : targetBufBytes);
             final AudioTrack track = new AudioTrack(attributes, format, bufBytes,
                     AudioTrack.MODE_STREAM, 0);
 
-            // Set the user-preferred output device (null resets to default).
+            // Set the user-preferred output device (null resets to default); on
+            // the Default sink, steer around a live SCO session of ours instead.
             if (GeneralVariables.audioOutputDeviceId > 0) {
-                track.setPreferredDevice(findAudioDeviceById(
-                        GeneralVariables.audioOutputDeviceId, AudioManager.GET_DEVICES_OUTPUTS));
+                track.setPreferredDevice(preferredOutputDevice);
+            } else {
+                applyDefaultOutputRoutingOverride(track, scoState);
             }
 
             // Keep the track at unity: TX level is carried in the sample values.
@@ -488,14 +600,36 @@ public class TransmitAudioSink {
             track.setVolume(1.0f);
 
             return new PcmOutput() {
+                // Stereo scratch, allocated once: the interleave runs every
+                // ~50ms and a fresh array per chunk is churn for nothing.
+                private float[] floatScratch;
+                private short[] shortScratch;
+
                 @Override
                 public int writeFloats(float[] data, int length) {
-                    return track.write(data, 0, length, AudioTrack.WRITE_BLOCKING);
+                    int samples = layout.samplesForFrames(length);
+                    if (layout.isStereo()
+                            && (floatScratch == null || floatScratch.length < samples)) {
+                        floatScratch = new float[samples];
+                    }
+                    float[] toWrite = layout.layOut(data, length, floatScratch);
+                    int r = track.write(toWrite, 0, samples, AudioTrack.WRITE_BLOCKING);
+                    // write() counts samples, getPlaybackHeadPosition() counts
+                    // frames — the drain wait compares the two, so convert here.
+                    return r < 0 ? r : layout.framesFromSamples(r);
                 }
 
                 @Override
                 public int writeShorts(short[] data, int length) {
-                    return track.write(data, 0, length, AudioTrack.WRITE_BLOCKING);
+                    short[] toWrite = data;
+                    int samples = layout.samplesForFrames(length);
+                    if (layout.isStereo()) {
+                        shortScratch = expandShortsToStereo(data, length, layout.selection,
+                                shortScratch);
+                        toWrite = shortScratch;
+                    }
+                    int r = track.write(toWrite, 0, samples, AudioTrack.WRITE_BLOCKING);
+                    return r < 0 ? r : layout.framesFromSamples(r);
                 }
 
                 @Override
@@ -532,6 +666,52 @@ public class TransmitAudioSink {
                 }
             };
         }
+    }
+
+    /**
+     * Channel count the chosen sink reports, or {@link AudioChannelCapability#UNKNOWN}
+     * when there is no explicit device.
+     */
+    static int outputMaxChannels(AudioDeviceInfo device) {
+        if (device == null) return AudioChannelCapability.UNKNOWN;
+        return AudioChannelCapability.maxChannelCount(device.getChannelCounts());
+    }
+
+    /**
+     * When the user picked "Default" output and <em>this app</em> is holding a
+     * Bluetooth SCO link, pin the AudioTrack to the A2DP endpoint of the same
+     * Bluetooth device. On Android 8.1 (FT8AF issue #759 follow-up) the OS
+     * routes the USAGE_MEDIA stream through SCO while the hands-free link is
+     * active, leaving TX inaudible on a rig that only listens for the A2DP music
+     * channel. Leaves routing to the OS whenever the conditions aren't met; see
+     * {@code AudioOutputRoutingPolicy} for why the enumerated device types alone
+     * are not enough to decide.
+     */
+    private static void applyDefaultOutputRoutingOverride(final AudioTrack track,
+                                                          TxScoState scoState) {
+        Context context = GeneralVariables.getMainContext();
+        if (context == null) return;
+        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        if (audioManager == null) return;
+        AudioDeviceInfo[] outputs = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS);
+        boolean scoHeld = scoState != null && scoState.heldForTx();
+        String scoAddress = scoState == null ? null : scoState.scoAddress();
+        // The enumeration-to-policy-to-track wiring (and the address gating for
+        // API < 28 / a denied BLUETOOTH_CONNECT) lives in DefaultOutputRouting so
+        // it is covered by DefaultOutputRoutingTest; only the real track and the
+        // debug log are supplied from here.
+        DefaultOutputRouting.apply(outputs, scoHeld, scoAddress,
+                new DefaultOutputRouting.Sink() {
+                    @Override
+                    public boolean setPreferredDevice(AudioDeviceInfo device) {
+                        return track.setPreferredDevice(device);
+                    }
+
+                    @Override
+                    public void log(String line) {
+                        GeneralVariables.fileLog(line);
+                    }
+                });
     }
 
     /** Find an AudioDeviceInfo by device ID. */

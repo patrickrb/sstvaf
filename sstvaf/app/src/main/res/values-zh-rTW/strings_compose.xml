@@ -488,4 +488,12 @@
     <string name="tune_stopped_timeout">Tune已在%1$d秒後停止</string>
     <string name="tune_blocked_tx">使用Tune前請先停止CQ/QSO</string>
     <string name="tune_unavailable_route">此音訊路徑暫不支援Tune</string>
+    <string name="tune_atu_started">已啟動電台天線調諧器</string>
+    <string name="tune_atu_unavailable">調諧器不可用 — 請連接具有內建調諧器的CAT電台</string>
+    <string name="settings_tune_method">Tune方式</string>
+    <string name="settings_tune_method_desc">自動：可用時透過CAT啟動電台內建調諧器，否則發射低功率音頻</string>
+    <string name="tune_method_automatic">自動</string>
+    <string name="tune_method_internal">內建調諧器</string>
+    <string name="tune_method_tone">低功率音頻</string>
+
 </resources>

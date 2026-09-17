@@ -179,6 +179,26 @@ its serial (from `adb devices`). If `adb` isn't on your PATH, it lives at
 `<android-sdk>\platform-tools\adb.exe`; Homebrew installs on macOS put it at
 `/opt/homebrew/bin/adb`).
 
+### Hamlib (bundled CAT engine)
+
+The native build links a per-ABI static `libhamlib.a` (Hamlib 4.7.2, pinned in
+`sstvaf/app/src/main/cpp/hamlib/HAMLIB_PIN.txt`) into `libsstvaf.so`; it backs
+the "(Hamlib)" rig entries via `HamlibRig`. The archives under
+`cpp/hamlib/prebuilt/<abi>/` are **not tracked** (large, rebuildable). On
+Linux/macOS/CI, CMake runs `hamlib/build_android.sh` automatically the first
+time each ABI is built. On Windows the autotools build cannot run against the
+Windows NDK, so build the four archives once under WSL with a Linux NDK:
+
+```
+ANDROID_NDK_HOME=<linux-ndk> bash sstvaf/app/src/main/cpp/hamlib/build_android.sh
+```
+
+or copy `prebuilt/` from another checkout that already has them (a fresh
+worktree needs this before `installDebug` will configure). This is the same
+mechanism as FT8AF; the radio layer (`rigs/`, `connector/`, `serialport/`,
+`bluetooth/`, `icom/`, `flex/`, `x6100/`, `wave/`) is kept in sync with
+FT8AF's `dev` branch, which is the reference for all radio code.
+
 ## Debug logs
 
 The app writes a structured event log to

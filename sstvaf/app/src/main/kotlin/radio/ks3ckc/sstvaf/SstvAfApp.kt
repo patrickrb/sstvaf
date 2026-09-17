@@ -171,7 +171,7 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
                     if (isTuning) {
                         mainViewModel.tuneOperator.stopTune()
                     } else {
-                        mainViewModel.tuneOperator.startTune()
+                        mainViewModel.startTune()
                     }
                 },
                 onVolumeChange = { newVolume ->
