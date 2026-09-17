@@ -6,6 +6,7 @@ import radio.ks3ckc.sstvaf.sstv.SstvMode
 import java.io.IOException
 import java.util.Locale
 import kotlin.math.roundToInt
+import radio.ks3ckc.sstvaf.sstv.TxOutcome
 
 /**
  * Pure decision/formatting logic for [TxComposeScreen], extracted per project
@@ -433,4 +434,61 @@ internal fun modeSubLabel(mode: SstvMode, note: String?): String {
     val dimensions = modeResolutionLabel(mode)
     val trimmed = note?.trim().orEmpty()
     return if (trimmed.isEmpty()) dimensions else "$dimensions · $trimmed"
+}
+
+/**
+ * The confirm sheet's frequency line, e.g. `"14.230 MHz · 20m"`.
+ *
+ * Both the dial and the band, unlike the header chip which drops the unit for
+ * space. This is the sheet where an operator is about to tie up a frequency,
+ * so it says exactly which one in full.
+ */
+internal fun confirmFrequencyLine(freqHz: Long, bandLabel: String): String {
+    val mhz = String.format(Locale.US, "%.3f MHz", freqHz / 1_000_000.0)
+    val band = bandLabel.trim()
+    return if (band.isEmpty()) mhz else "$mhz · $band"
+}
+
+// ---------------------------------------------------------------------------
+// Editor lockout
+// ---------------------------------------------------------------------------
+
+/**
+ * Whether the editing controls accept input.
+ *
+ * False while the rig is keyed and false while a transmit outcome is on screen.
+ * Locking only the canvas was not enough: the tool panel stayed live, so an
+ * overlay could be moved after the audio buffer was already encoded and
+ * playing, leaving the preview disagreeing with what the far end received. And
+ * with the Transmit button still active under the sent scrim, a second tap
+ * started a real transmission while the success overlay was still up.
+ */
+internal fun editorControlsEnabled(transmitting: Boolean, showingOutcome: Boolean): Boolean =
+    !transmitting && !showingOutcome
+
+// ---------------------------------------------------------------------------
+// Transmit outcome wording
+// ---------------------------------------------------------------------------
+
+/**
+ * The headline on the outcome scrim.
+ *
+ * Three distinct lines, because the three outcomes call for different things
+ * from the operator: nothing, a resend of a picture the far end only half
+ * received, and a look at the log. The previous single "Sent" line was shown
+ * for all three, so a failed transmission was reported as a success.
+ */
+@StringRes
+internal fun txOutcomeTitleRes(outcome: TxOutcome): Int = when (outcome) {
+    TxOutcome.COMPLETED -> R.string.tx_outcome_sent
+    TxOutcome.CANCELLED -> R.string.tx_outcome_stopped
+    TxOutcome.FAILED -> R.string.tx_outcome_failed
+}
+
+/** The supporting line under [txOutcomeTitleRes]: what it means in practice. */
+@StringRes
+internal fun txOutcomeDetailRes(outcome: TxOutcome): Int = when (outcome) {
+    TxOutcome.COMPLETED -> R.string.tx_outcome_sent_detail
+    TxOutcome.CANCELLED -> R.string.tx_outcome_stopped_detail
+    TxOutcome.FAILED -> R.string.tx_outcome_failed_detail
 }

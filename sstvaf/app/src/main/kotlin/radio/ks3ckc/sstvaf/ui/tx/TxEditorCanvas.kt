@@ -1,15 +1,25 @@
 package radio.ks3ckc.sstvaf.ui.tx
 
 import android.graphics.Bitmap
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
@@ -20,7 +30,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -28,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.PathEffect
@@ -35,7 +48,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerInputScope
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -51,10 +63,17 @@ import com.k1af.ft8af.R
 import radio.ks3ckc.sstvaf.theme.Accent
 import radio.ks3ckc.sstvaf.theme.BgApp
 import radio.ks3ckc.sstvaf.theme.BgSurface
+import radio.ks3ckc.sstvaf.theme.BgSurface3
 import radio.ks3ckc.sstvaf.theme.GeistMonoFamily
+import radio.ks3ckc.sstvaf.theme.Signal
 import radio.ks3ckc.sstvaf.theme.StatusBad
+import radio.ks3ckc.sstvaf.theme.StatusConfirmed
 import radio.ks3ckc.sstvaf.theme.TextPrimary
 import radio.ks3ckc.sstvaf.ui.components.SstvAfIcons
+import radio.ks3ckc.sstvaf.theme.TextMuted
+import radio.ks3ckc.sstvaf.sstv.imageScanProgress
+import radio.ks3ckc.sstvaf.sstv.TxOutcome
+import radio.ks3ckc.sstvaf.sstv.TxImageWindow
 
 /**
  * The transmit composer's canvas: the picture at the SSTV mode's native aspect
@@ -78,6 +97,12 @@ internal fun TxEditorCanvas(
     tool: TxTool,
     selectedOverlayId: String?,
     editable: Boolean,
+    transmitting: Boolean,
+    transmitProgress: Float,
+    outcome: TxOutcome?,
+    imageWindow: TxImageWindow,
+    onEditAgain: () -> Unit,
+    onNewPicture: () -> Unit,
     onPanBy: (dxFraction: Float, dyFraction: Float) -> Unit,
     onZoomBy: (scale: Float) -> Unit,
     onOverlayTouched: (String) -> Unit,
@@ -91,6 +116,11 @@ internal fun TxEditorCanvas(
     modifier: Modifier = Modifier,
 ) {
     val aspect = composition.mode.width.toFloat() / composition.mode.height
+
+    // The ring breathes for the whole transmission. The rig being keyed is the
+    // one state an operator must never be unsure about, and a static border is
+    // easy to stop seeing.
+    val ringWidth by animateBreathingRing(active = transmitting)
 
     // On a landscape or desktop-shaped window, filling the width and deriving
     // the height from the aspect makes the canvas taller than the viewport and
@@ -124,7 +154,18 @@ internal fun TxEditorCanvas(
         modifier = modifier
             .then(frameModifier)
             .clip(RoundedCornerShape(12.dp))
-            .background(BgSurface),
+            .background(BgSurface)
+            .then(
+                if (transmitting) {
+                    Modifier.border(
+                        width = ringWidth.dp,
+                        color = Signal.copy(alpha = 0.35f + 0.55f * (ringWidth - 2f)),
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                } else {
+                    Modifier
+                },
+            ),
     ) {
         val widthPx = with(LocalDensity.current) { maxWidth.toPx() }
         val heightPx = with(LocalDensity.current) { maxHeight.toPx() }
@@ -146,7 +187,10 @@ internal fun TxEditorCanvas(
         // decided by the active tool, matching the design: Crop pans the
         // picture, Draw draws, and anything else treats a tap on empty canvas as
         // "deselect". Overlays intercept their own drags below.
-        if (editable) {
+        // No gesture surface while the rig is keyed or on the sent scrim: the
+        // picture is already being encoded, so an edit could not reach the air
+        // and would only make the preview disagree with what went out.
+        if (editable && !transmitting && outcome == null) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -206,7 +250,180 @@ internal fun TxEditorCanvas(
                 )
             }
         }
+
+        if (transmitting) {
+            // Image progress, not overall progress. transmitProgress covers
+            // the VOX leader and the CW ID tail as well, so driving the scan
+            // line straight off it started the sweep before a receiver had seen
+            // a pixel and only finished it during the station ID.
+            TransmitLine(progress = imageScanProgress(transmitProgress, imageWindow))
+        }
+
+        if (outcome != null) {
+            OutcomeScrim(
+                outcome = outcome,
+                onEditAgain = onEditAgain,
+                onNewPicture = onNewPicture,
+            )
+        }
     }
+}
+
+/**
+ * The amber line sweeping down the canvas as the picture goes out, with
+ * everything below it dimmed.
+ *
+ * It mirrors the receive canvas's decode reveal, deliberately: SSTV sends a
+ * picture one scan line at a time, so "how far down the picture are we" is the
+ * same question on both sides, and an operator who has watched a decode
+ * already knows how to read this. The dim below the line is what is still to
+ * come.
+ */
+@Composable
+private fun TransmitLine(progress: Float) {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val fraction = progress.coerceIn(0f, 1f)
+        val y = size.height * fraction
+        // Dim the part not yet sent.
+        drawRect(
+            color = BgApp.copy(alpha = 0.55f),
+            topLeft = Offset(0f, y),
+            size = Size(size.width, (size.height - y).coerceAtLeast(0f)),
+        )
+        // The line itself, with a glow above it.
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(Color.Transparent, Signal.copy(alpha = 0.5f)),
+                startY = y - 12.dp.toPx(),
+                endY = y,
+            ),
+            topLeft = Offset(0f, (y - 12.dp.toPx()).coerceAtLeast(0f)),
+            size = Size(size.width, 12.dp.toPx().coerceAtMost(y.coerceAtLeast(0f))),
+        )
+        drawRect(
+            color = Signal,
+            topLeft = Offset(0f, y - 1.dp.toPx()),
+            size = Size(size.width, 2.dp.toPx()),
+        )
+    }
+}
+
+/**
+ * The "sent" scrim: a green check, confirmation that it reached the gallery,
+ * and the two things an operator does next.
+ *
+ * Two choices rather than one dismiss, because after a transmission the
+ * operator either sends the same card again to the next station — the common
+ * case in a run — or starts something new. Making them pick means neither
+ * path needs a second thought about whether the previous edits survived.
+ */
+@Composable
+private fun OutcomeScrim(
+    outcome: TxOutcome,
+    onEditAgain: () -> Unit,
+    onNewPicture: () -> Unit,
+) {
+    val tint = when (outcome) {
+        TxOutcome.COMPLETED -> StatusConfirmed
+        TxOutcome.CANCELLED -> Signal
+        TxOutcome.FAILED -> StatusBad
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BgApp.copy(alpha = 0.7f)),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(tint.copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (outcome == TxOutcome.COMPLETED) {
+                SstvAfIcons.Check(size = 22.dp, color = tint, strokeWidth = 2.2f)
+            } else {
+                SstvAfIcons.Close(size = 22.dp, color = tint, strokeWidth = 2.2f)
+            }
+        }
+        Spacer(Modifier.size(8.dp))
+        Text(
+            text = stringResource(txOutcomeTitleRes(outcome)),
+            color = TextPrimary,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(Modifier.size(4.dp))
+        Text(
+            text = stringResource(txOutcomeDetailRes(outcome)),
+            color = TextMuted,
+            fontSize = 12.sp,
+        )
+        Spacer(Modifier.size(14.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ScrimPill(
+                label = stringResource(R.string.tx_sent_edit_again),
+                background = BgSurface3,
+                textColor = TextPrimary,
+                onClick = onEditAgain,
+            )
+            ScrimPill(
+                label = stringResource(R.string.tx_sent_new_picture),
+                background = Accent,
+                textColor = BgApp,
+                onClick = onNewPicture,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ScrimPill(
+    label: String,
+    background: Color,
+    textColor: Color,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            // 48dp minimum: these are the only way out of the outcome state,
+            // and the previous pills were about 30dp tall.
+            .heightIn(min = 48.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .background(background)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            color = textColor,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+/**
+ * The breathing ring's animated border width, in dp: 2 to 3 and back, about
+ * once every 1.6 s. Returns a constant when idle so no animation runs and no
+ * frames are spent on a canvas nobody is watching for RF.
+ */
+@Composable
+private fun animateBreathingRing(active: Boolean): State<Float> {
+    if (!active) return remember { mutableFloatStateOf(0f) }
+    val transition = rememberInfiniteTransition(label = "tx-ring")
+    return transition.animateFloat(
+        initialValue = 2f,
+        targetValue = 3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "tx-ring-width",
+    )
 }
 
 /**

@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import com.k1af.ft8af.GeneralVariables
 import com.k1af.ft8af.MainViewModel
 import com.k1af.ft8af.R
+import com.k1af.ft8af.rigs.BaseRigOperation
 import com.k1af.ft8af.transmit.PttController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -77,6 +78,8 @@ import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
 import radio.ks3ckc.sstvaf.ui.components.SstvAfIcons
 import java.util.Locale
+import radio.ks3ckc.sstvaf.sstv.TxOutcome
+import radio.ks3ckc.sstvaf.sstv.TxImageWindow
 
 /**
  * The TX composer tab: pick a photo, crop it into the selected SSTV mode's
@@ -118,6 +121,13 @@ fun TxComposeScreen(mainViewModel: MainViewModel) {
     // view-model-scoped composer state because these are not part of the
     // picture - the composition is what gets transmitted, this is just where
     // the operator's hands are (see TxEditorDraft).
+    // The transmission just finished and the operator has not chosen what next.
+    // Tracked here rather than derived from the transmitter, which goes back to
+    // idle the instant the audio stops - there would be no state left to show
+    // the confirmation from.
+    // The outcome being shown over the canvas, or null for none. Replaces the
+    // old boolean: a failure and a completed send must not look the same.
+    var outcome by remember { mutableStateOf<TxOutcome?>(null) }
     var tool by remember { mutableStateOf(TxTool.CROP) }
     var selectedOverlayId by remember { mutableStateOf<String?>(null) }
     var draft by remember { mutableStateOf(TxEditorDraft()) }
@@ -125,6 +135,32 @@ fun TxComposeScreen(mainViewModel: MainViewModel) {
     val isTransmitting by mainViewModel.sstvTransmitter.isTransmitting.observeAsState(false)
     val txProgress by mainViewModel.sstvTransmitter.txProgress.observeAsState(0f)
     val isTuning by mainViewModel.tuneOperator.mutableIsTuning.observeAsState(false)
+
+    // A finished transmission raises its confirmation from the transmitter's
+    // durable result, not from a screen-local edge on isTransmitting. The edge
+    // was invisible if the operator was on another tab when the transmission
+    // ended (this screen is not composed then), and it could not tell a
+    // completed image from a failure - so a failed transmission showed the
+    // green "Sent" scrim. The sequence number is kept in the composer state,
+    // which outlives the tab, so the result is shown exactly once.
+    val txResult by mainViewModel.sstvTransmitter.lastResult.observeAsState()
+    val imageWindow by mainViewModel.sstvTransmitter.imageWindow
+        .observeAsState(TxImageWindow.WHOLE)
+    LaunchedEffect(txResult, isTransmitting) {
+        val result = txResult
+        if (!isTransmitting && result != null &&
+            result.sequence > composerState.lastSeenTxSequence
+        ) {
+            composerState.lastSeenTxSequence = result.sequence
+            outcome = result.outcome
+        }
+    }
+
+    // Keyed, or showing an outcome: either way the editor is read-only.
+    val controlsEnabled = editorControlsEnabled(
+        transmitting = isTransmitting,
+        showingOutcome = outcome != null,
+    )
 
     // Load a picked/captured image into the composer state (resets the crop,
     // recycles the photo it replaces). Shared by the photo picker and the
@@ -302,7 +338,22 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                 composition = composition,
                 tool = tool,
                 selectedOverlayId = selectedOverlayId,
-                editable = !isTransmitting,
+                editable = controlsEnabled,
+                transmitting = isTransmitting,
+                transmitProgress = txProgress,
+                outcome = outcome,
+                imageWindow = imageWindow,
+                onEditAgain = {
+                    // Everything survives: the composition was never cleared,
+                    // so this is just dismissing the confirmation.
+                    outcome = null
+                },
+                onNewPicture = {
+                    outcome = null
+                    composerState.clearImage()
+                    selectedOverlayId = null
+                    tool = TxTool.CROP
+                },
                 // Every gesture callback below reads composerState.composition
                 // rather than the `composition` captured by this composition
                 // pass. The canvas gesture coroutine is not restarted for these
@@ -371,7 +422,7 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
 
             TxToolRail(
                 active = tool,
-                enabled = !isTransmitting,
+                enabled = controlsEnabled,
                 onSelect = { picked ->
                     tool = picked
                     // Leaving the text tools drops the selection: a dashed
@@ -383,6 +434,7 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
             )
 
             TxToolPanel(
+                enabled = controlsEnabled,
                 tool = tool,
                 composition = composition,
                 draft = draft,
@@ -482,14 +534,20 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            ModeCard(
-                mode = composition.mode,
-                enabled = !isTransmitting,
-                onClick = { showModeSheet = true },
-                modifier = Modifier.width(118.dp),
-            )
+            // The mode card steps aside while keyed: the amber panel needs the
+            // width, and the mode is fixed for the duration of a transmission
+            // anyway - it is encoded into the audio already playing.
+            if (!isTransmitting && outcome == null) {
+                ModeCard(
+                    mode = composition.mode,
+                    enabled = true,
+                    onClick = { showModeSheet = true },
+                    modifier = Modifier.width(118.dp),
+                )
+            }
             if (isTransmitting) {
-                TxProgressPanel(
+                TxTransmitPanel(
+                    mode = composition.mode,
                     progress = txProgress,
                     totalSeconds = totalTxDurationSeconds(
                         composition.mode, cwTailSeconds, voxPreToneSeconds,
@@ -497,13 +555,18 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                     onCancel = { mainViewModel.sstvTransmitter.cancel() },
                     modifier = Modifier.weight(1f),
                 )
-            } else {
+            } else if (outcome == null) {
                 TransmitButton(
                     gate = gate,
                     durationLabel = modeDurationLabel(composition.mode),
                     onClick = { showConfirmSheet = true },
                     modifier = Modifier.weight(1f),
                 )
+            } else {
+                // The scrim owns the next action while an outcome is up. A live
+                // Transmit button underneath it would key the rig with the
+                // success overlay still on screen.
+                Box(modifier = Modifier.weight(1f))
             }
         }
     }
@@ -525,6 +588,9 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
     TxConfirmSheet(
         visible = showConfirmSheet,
         mode = composition.mode,
+        preview = preview,
+        txLevelPercent = (GeneralVariables.volumePercent * 100).toInt(),
+        bandLabel = BaseRigOperation.getMeterFromFreq(GeneralVariables.band).orEmpty(),
         cwTailSeconds = cwTailSeconds,
         voxPreToneSeconds = voxPreToneSeconds,
         onDismiss = { showConfirmSheet = false },
@@ -626,54 +692,4 @@ private fun TransmitButton(
     }
 }
 
-/**
- * Progress bar + elapsed/total + cancel, shown while the rig is keyed.
- * [totalSeconds] is the full on-air duration (image scan + any CW ID tail),
- * matching the transmitter's progress ticker so elapsed/total stays accurate
- * through the CW station-ID tail.
- */
-@Composable
-private fun TxProgressPanel(
-    progress: Float,
-    totalSeconds: Double,
-    onCancel: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        // The caller's modifier carries the row weight. Dropping it made this
-        // panel ask for the full row width on top of the fixed-width mode card,
-        // so the progress UI overflowed the row while the rig was keyed.
-        modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        LinearProgressIndicator(
-            progress = { progress.coerceIn(0f, 1f) },
-            color = StatusWarn,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = txElapsedLabel(progress, totalSeconds),
-            color = TextPrimary,
-            fontSize = 13.sp,
-            fontFamily = GeistMonoFamily,
-        )
-        Spacer(Modifier.height(2.dp))
-        // Plain-language countdown of transmit time left, mirroring the RX
-        // decode ETA — "how much longer is the rig keyed" at a glance.
-        Text(
-            text = stringResource(
-                R.string.tx_remaining_format,
-                txRemainingLabel(progress, totalSeconds),
-            ),
-            color = TextMuted,
-            fontSize = 11.sp,
-            fontFamily = GeistMonoFamily,
-        )
-        Spacer(Modifier.height(10.dp))
-        OutlinedButton(onClick = onCancel) {
-            Text(stringResource(R.string.tx_cancel_button), color = StatusWarn)
-        }
-    }
-}
 

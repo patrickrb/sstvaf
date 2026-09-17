@@ -769,6 +769,20 @@
     <string name="tx_tool_adjust">Adjust</string>
     <string name="tx_tool_draw">Draw</string>
 
+    <!-- ===== TX transmit flow ===== -->
+    <!-- %1$s is the SSTV mode, e.g. "Scottie 1". -->
+    <string name="tx_transmitting_label">TRANSMITTING · %1$s</string>
+    <string name="tx_stop_action">Stop</string>
+    <string name="tx_sent_saved">Sent · saved to Gallery</string>
+    <string name="tx_outcome_sent">Sent</string>
+    <string name="tx_outcome_sent_detail">Saved to Gallery</string>
+    <string name="tx_outcome_stopped">Stopped</string>
+    <string name="tx_outcome_stopped_detail">Part of the picture went out</string>
+    <string name="tx_outcome_failed">Transmit failed</string>
+    <string name="tx_outcome_failed_detail">Nothing went out · check the debug log</string>
+    <string name="tx_sent_edit_again">Edit &amp; send again</string>
+    <string name="tx_sent_new_picture">New picture</string>
+
     <!-- ===== TX composer: canvas ===== -->
     <string name="tx_change_photo_pill">Change</string>
     <string name="tx_new_picture_short">New</string>
@@ -868,6 +882,8 @@
     <string name="tx_gate_no_image">Pick a picture first</string>
     <string name="tx_gate_tune_active">Stop Tune before transmitting</string>
     <string name="tx_confirm_title">Transmit this image?</string>
+    <!-- %1$d is the TX audio level percentage. -->
+    <string name="tx_confirm_level">TX level %1$d%%</string>
     <string name="tx_confirm_warning">Confirming keys the transmitter</string>
     <string name="tx_confirm_cancel">Cancel</string>
     <string name="tx_confirm_go">Transmit</string>
