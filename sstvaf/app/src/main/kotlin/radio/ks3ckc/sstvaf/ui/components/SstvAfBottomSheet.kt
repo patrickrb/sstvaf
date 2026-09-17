@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -109,6 +110,13 @@ fun SstvAfBottomSheet(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    // Lift the sheet above the on-screen keyboard. The activity
+                    // runs edge to edge, so without this a sheet holding a text
+                    // field is pushed entirely off-screen the moment the field
+                    // takes focus: the keyboard covers the bottom of the window
+                    // and the sheet is anchored to it. Harmless when no
+                    // keyboard is showing, which is every other sheet.
+                    .imePadding()
                     .offset { IntOffset(0, animatedOffset.toInt()) }
                     .onSizeChanged { sheetHeightPx = it.height.toFloat() }
                     .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))

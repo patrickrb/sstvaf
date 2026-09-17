@@ -10,23 +10,16 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -34,41 +27,23 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.k1af.ft8af.BuildConfig
 import com.k1af.ft8af.GeneralVariables
 import com.k1af.ft8af.MainViewModel
 import com.k1af.ft8af.R
+import com.k1af.ft8af.database.ControlMode
 import com.k1af.ft8af.location.GridLocationUpdater
-import radio.ks3ckc.sstvaf.theme.*
+import radio.ks3ckc.sstvaf.theme.TextFaint
 import radio.ks3ckc.sstvaf.ui.components.GlassCard
 import radio.ks3ckc.sstvaf.ui.components.SettingsRow
 import radio.ks3ckc.sstvaf.ui.components.TopBar
-
-/**
- * Top-level settings categories shown on the [SettingsLanding] page. Each opens
- * a focused detail screen via drill-down navigation.
- */
-private enum class SettingsCategory {
-    RADIO_AUDIO,
-    TRANSMISSION,
-    LOGGING,
-    ADVANCED,
-    USB_DIAGNOSTICS,
-    ABOUT,
-}
 
 /**
  * Resolves the rig name shown on the operator card.
@@ -92,11 +67,11 @@ internal fun resolveRigDisplayName(
 /**
  * Settings screen host. Shows a short category list (landing) and drills down
  * into a focused detail screen per category. Drill-down is driven by internal
- * state (no NavHost) since Settings is hosted as a plain tab swap in SstvAfApp.
+ * state (no NavHost) since Settings is hosted as a plain screen over a tab.
  *
- * [currentCategory] uses plain `remember` (not `rememberSaveable`), so switching
- * away to another tab and back resets to the category list — conventional
- * settings behavior.
+ * [currentCategory] uses plain `remember` (not `rememberSaveable`), so leaving
+ * Settings and coming back resets to the category list — conventional settings
+ * behaviour.
  */
 @Composable
 fun SettingsScreen(
@@ -148,8 +123,13 @@ fun SettingsScreen(
 }
 
 /**
- * Settings landing page: the operator identity card (pinned), the GPS
- * auto-grid toggle, and the list of categories to drill into.
+ * Settings landing page: the operator identity card, the category list with a
+ * current value on every row, the two station-wide toggles, and the version
+ * footer.
+ *
+ * The category rows carry their current value so the landing answers most
+ * "what is this set to?" questions without being opened, which is the point of
+ * the redesign here: the previous landing was six bare labels.
  */
 @Composable
 private fun SettingsLanding(
@@ -157,7 +137,7 @@ private fun SettingsLanding(
     onBack: () -> Unit,
     onOpenCategory: (SettingsCategory) -> Unit,
 ) {
-    val context = LocalContext.current
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     // Grid is observed so the operator card live-updates after a GPS grid change.
     val gridLive by GeneralVariables.mutableMyMaidenheadGrid.observeAsState(
@@ -168,9 +148,9 @@ private fun SettingsLanding(
     var antennaState by remember { mutableStateOf(GeneralVariables.myAntenna.orEmpty()) }
     var powerWattsState by remember { mutableIntStateOf(GeneralVariables.myPowerWatts) }
     var autoUpdateGridFromGPS by remember { mutableStateOf(GeneralVariables.autoUpdateGridFromGPS) }
+    var saveToPhotos by remember { mutableStateOf(GeneralVariables.saveRxToPhotos) }
     var showEditOperator by remember { mutableStateOf(false) }
 
-    val callsign = callsignState
     val grid = gridLive.orEmpty()
     val rigConnected = mainViewModel.isRigConnected()
     val rigName = resolveRigDisplayName(
@@ -181,44 +161,7 @@ private fun SettingsLanding(
         modelName = GeneralVariables.myRigName.orEmpty(),
         notConnectedLabel = stringResource(R.string.common_not_connected),
     )
-    val antennaDisplay = antennaState.ifEmpty { "--" }
-    val powerDisplay = if (powerWattsState > 0) "${powerWattsState}W" else "--"
 
-    // -- Edit Operator Dialog --
-    if (showEditOperator) {
-        EditOperatorDialog(
-            initialCallsign = callsign,
-            initialGrid = grid,
-            initialAntenna = antennaState,
-            initialPowerWatts = powerWattsState,
-            onDismiss = { showEditOperator = false },
-            onSave = { newCallsign, newGrid, newAntenna, newPowerWatts ->
-                val trimmedCall = newCallsign.uppercase().trim()
-                callsignState = trimmedCall
-                GeneralVariables.myCallsign = trimmedCall
-                mainViewModel.databaseOpr.writeConfig("callsign", trimmedCall, null)
-
-                val formattedGrid = buildString {
-                    newGrid.trim().forEachIndexed { i, c ->
-                        append(if (i < 2) c.uppercaseChar() else c.lowercaseChar())
-                    }
-                }
-                GeneralVariables.setMyMaidenheadGrid(formattedGrid)
-                mainViewModel.databaseOpr.writeConfig("grid", formattedGrid, null)
-
-                val trimmedAntenna = newAntenna.trim()
-                antennaState = trimmedAntenna
-                GeneralVariables.myAntenna = trimmedAntenna
-                mainViewModel.databaseOpr.writeConfig("antenna", trimmedAntenna, null)
-
-                powerWattsState = newPowerWatts
-                GeneralVariables.myPowerWatts = newPowerWatts
-                mainViewModel.databaseOpr.writeConfig("powerWatts", newPowerWatts.toString(), null)
-
-                showEditOperator = false
-            },
-        )
-    }
 
     Column(
         modifier = Modifier
@@ -231,22 +174,41 @@ private fun SettingsLanding(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // =====================================================================
-            // OPERATOR IDENTITY
-            // =====================================================================
-            SettingsSection(title = stringResource(R.string.settings_section_operator_identity)) {
-                OperatorCard(
-                    callsign = callsign,
-                    grid = grid,
+            OperatorCard(
+                callsign = callsignState,
+                detailLine = operatorDetailLine(grid, antennaState, powerWattsState),
+                rigStatus = rigStatusLine(
+                    connected = rigConnected,
                     rigName = rigName,
-                    antenna = antennaDisplay,
-                    power = powerDisplay,
-                    modifier = Modifier.padding(bottom = 4.dp),
-                    onClick = { showEditOperator = true },
-                )
-                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                    controlLabel = ControlMode.getControlModeStr(GeneralVariables.controlMode),
+                    connectedFormat = stringResource(R.string.settings_rig_status_connected),
+                    idleFormat = stringResource(R.string.settings_rig_status_idle),
+                ),
+                rigConnected = rigConnected,
+                onEdit = { showEditOperator = true },
+            )
+
+            // -- Categories, each with its current value --
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    SettingsCategory.entries.forEachIndexed { index, category ->
+                        if (index > 0) SectionDivider()
+                        SettingsRow(
+                            label = stringResource(categoryLabelRes(category)),
+                            description = stringResource(categoryDescriptionRes(category)),
+                            value = categoryValue(category, mainViewModel, rigName),
+                            showChevron = true,
+                            onClick = { onOpenCategory(category) },
+                        )
+                    }
+                }
+            }
+
+            // -- Station-wide toggles --
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Column {
                     SettingsRow(
                         label = stringResource(R.string.settings_auto_update_grid),
                         description = stringResource(R.string.settings_auto_update_grid_desc),
@@ -275,175 +237,92 @@ private fun SettingsLanding(
                             GridLocationUpdater.refresh(context, mainViewModel)
                         },
                     )
-                }
-            }
-
-            // =====================================================================
-            // CATEGORIES
-            // =====================================================================
-            GlassCard(modifier = Modifier.fillMaxWidth()) {
-                Column {
-                    SettingsRow(
-                        label = stringResource(R.string.settings_cat_radio_audio),
-                        showChevron = true,
-                        onClick = { onOpenCategory(SettingsCategory.RADIO_AUDIO) },
-                    )
                     SectionDivider()
                     SettingsRow(
-                        label = stringResource(R.string.settings_cat_transmission),
-                        showChevron = true,
-                        onClick = { onOpenCategory(SettingsCategory.TRANSMISSION) },
-                    )
-                    SectionDivider()
-                    SettingsRow(
-                        label = stringResource(R.string.settings_cat_logging),
-                        showChevron = true,
-                        onClick = { onOpenCategory(SettingsCategory.LOGGING) },
-                    )
-                    SectionDivider()
-                    SettingsRow(
-                        label = stringResource(R.string.settings_cat_advanced),
-                        showChevron = true,
-                        onClick = { onOpenCategory(SettingsCategory.ADVANCED) },
-                    )
-                    SectionDivider()
-                    SettingsRow(
-                        label = stringResource(R.string.settings_cat_usb_diagnostics),
-                        description = stringResource(R.string.settings_cat_usb_diagnostics_desc),
-                        showChevron = true,
-                        onClick = { onOpenCategory(SettingsCategory.USB_DIAGNOSTICS) },
-                    )
-                    SectionDivider()
-                    SettingsRow(
-                        label = stringResource(R.string.settings_cat_about),
-                        showChevron = true,
-                        onClick = { onOpenCategory(SettingsCategory.ABOUT) },
+                        label = stringResource(R.string.settings_save_rx_photos),
+                        description = stringResource(R.string.settings_save_rx_photos_desc),
+                        toggle = saveToPhotos,
+                        onToggleChange = { checked ->
+                            saveToPhotos = checked
+                            GeneralVariables.saveRxToPhotos = checked
+                            mainViewModel.databaseOpr.writeConfig(
+                                "saveRxToPhotos", if (checked) "1" else "0", null,
+                            )
+                        },
                     )
                 }
             }
 
-            // Bottom spacer for scroll overscroll / nav bar inset
+            Text(
+                text = stringResource(R.string.settings_footer, BuildConfig.VERSION_NAME),
+                color = TextFaint,
+                fontSize = 11.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            // Bottom spacer for scroll overscroll / nav bar inset.
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
+
+    // After the content, so the sheet draws over it: unlike a dialog, a bottom
+    // sheet is part of this layout rather than a window of its own.
+    OperatorSheet(
+        visible = showEditOperator,
+        initialCallsign = callsignState,
+        initialGrid = grid,
+        initialAntenna = antennaState,
+        initialPowerWatts = powerWattsState,
+        onDismiss = { showEditOperator = false },
+        onSave = { newCallsign, newGrid, newAntenna, newPowerWatts ->
+            // Values arrive already normalised from the sheet.
+            callsignState = newCallsign
+            GeneralVariables.myCallsign = newCallsign
+            mainViewModel.databaseOpr.writeConfig("callsign", newCallsign, null)
+
+            GeneralVariables.setMyMaidenheadGrid(newGrid)
+            mainViewModel.databaseOpr.writeConfig("grid", newGrid, null)
+
+            antennaState = newAntenna
+            GeneralVariables.myAntenna = newAntenna
+            mainViewModel.databaseOpr.writeConfig("antenna", newAntenna, null)
+
+            powerWattsState = newPowerWatts
+            GeneralVariables.myPowerWatts = newPowerWatts
+            mainViewModel.databaseOpr.writeConfig("powerWatts", newPowerWatts.toString(), null)
+
+            showEditOperator = false
+        },
+    )
 }
 
 /**
- * Dialog for editing callsign, grid locator, antenna, and power.
+ * The current-value summary shown on the right of a category row.
+ *
+ * Deliberately one short fact per category rather than a full summary: the row
+ * has to stay one line on a compact phone, and the value is there to confirm a
+ * setting at a glance, not to replace the screen behind it.
  */
 @Composable
-private fun EditOperatorDialog(
-    initialCallsign: String,
-    initialGrid: String,
-    initialAntenna: String = "",
-    initialPowerWatts: Int = 0,
-    onDismiss: () -> Unit,
-    onSave: (callsign: String, grid: String, antenna: String, powerWatts: Int) -> Unit,
-) {
-    var callsignInput by remember { mutableStateOf(TextFieldValue(initialCallsign)) }
-    var gridInput by remember { mutableStateOf(TextFieldValue(initialGrid)) }
-    var antennaInput by remember { mutableStateOf(TextFieldValue(initialAntenna)) }
-    var powerInput by remember {
-        mutableStateOf(TextFieldValue(if (initialPowerWatts > 0) initialPowerWatts.toString() else ""))
+private fun categoryValue(
+    category: SettingsCategory,
+    mainViewModel: MainViewModel,
+    rigName: String,
+): String? = when (category) {
+    SettingsCategory.RADIO_AUDIO -> rigName
+    SettingsCategory.LOGGING -> if (GeneralVariables.saveRxToPhotos) {
+        stringResource(R.string.settings_value_photos_on)
+    } else {
+        null
     }
-
-    val fieldColors = OutlinedTextFieldDefaults.colors(
-        focusedTextColor = TextPrimary,
-        unfocusedTextColor = TextPrimary,
-        cursorColor = Accent,
-        focusedBorderColor = Accent,
-        unfocusedBorderColor = BorderStrong,
-        focusedLabelColor = Accent,
-        unfocusedLabelColor = TextMuted,
-    )
-
-    Dialog(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(BgSurface2)
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.settings_edit_operator_identity),
-                color = TextPrimary,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 18.sp,
-            )
-
-            OutlinedTextField(
-                value = callsignInput,
-                onValueChange = { callsignInput = it },
-                label = { Text(stringResource(R.string.settings_callsign)) },
-                placeholder = { Text(stringResource(R.string.settings_callsign_hint), color = TextFaint) },
-                singleLine = true,
-                colors = fieldColors,
-                textStyle = TextStyle(
-                    fontFamily = GeistMonoFamily,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            OutlinedTextField(
-                value = gridInput,
-                onValueChange = { gridInput = it },
-                label = { Text(stringResource(R.string.settings_grid_locator)) },
-                placeholder = { Text(stringResource(R.string.settings_grid_locator_hint), color = TextFaint) },
-                singleLine = true,
-                colors = fieldColors,
-                textStyle = TextStyle(
-                    fontFamily = GeistMonoFamily,
-                    fontSize = 16.sp,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            OutlinedTextField(
-                value = antennaInput,
-                onValueChange = { antennaInput = it },
-                label = { Text("Antenna") },
-                placeholder = { Text("e.g. EFHW 40-10m", color = TextFaint) },
-                singleLine = true,
-                colors = fieldColors,
-                textStyle = TextStyle(fontSize = 14.sp),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            OutlinedTextField(
-                value = powerInput,
-                onValueChange = { new ->
-                    if (new.text.all { it.isDigit() }) powerInput = new
-                },
-                label = { Text("Power (watts)") },
-                placeholder = { Text("e.g. 100", color = TextFaint) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                colors = fieldColors,
-                textStyle = TextStyle(fontSize = 14.sp),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TextButton(onClick = onDismiss) {
-                    Text(stringResource(R.string.action_cancel), color = TextMuted)
-                }
-                TextButton(
-                    onClick = {
-                        val watts = powerInput.text.toIntOrNull() ?: 0
-                        onSave(callsignInput.text, gridInput.text, antennaInput.text, watts)
-                    },
-                ) {
-                    Text(stringResource(R.string.action_save), color = Accent, fontWeight = FontWeight.SemiBold)
-                }
-            }
-        }
+    SettingsCategory.USB_DIAGNOSTICS -> if (mainViewModel.isRigConnected()) {
+        stringResource(R.string.settings_value_usb_ok)
+    } else {
+        null
     }
+    SettingsCategory.ABOUT -> BuildConfig.VERSION_NAME
+    // Transmission and Advanced hold several unrelated values with no single
+    // headline worth pinning to the row; a made-up one would be noise.
+    SettingsCategory.TRANSMISSION, SettingsCategory.ADVANCED -> null
 }

@@ -904,4 +904,61 @@
     <string name="tune_method_internal">Internal tuner</string>
     <string name="tune_method_tone">Low power tone</string>
 
+    <!-- ===== Redesign: Settings landing ===== -->
+    <string name="action_edit">Edit</string>
+    <string name="settings_cat_radio_audio_desc">Rig model, connection, PTT and audio devices</string>
+    <string name="settings_cat_transmission_desc">Timing, repeats and what gets sent</string>
+    <string name="settings_cat_logging_desc">QSO log, ADIF export and awards</string>
+    <string name="settings_cat_advanced_desc">PTT timing, diagnostics, backup and restore</string>
+    <string name="settings_cat_about_desc">Version, licences and credits</string>
+    <string name="settings_rig_status_connected">%1$s linked over %2$s</string>
+    <string name="settings_rig_status_idle">No rig linked · %1$s</string>
+    <string name="settings_value_photos_on">Photos on</string>
+    <string name="settings_value_usb_ok">Linked</string>
+    <string name="settings_footer">SSTVAF v%1$s · Export and import settings in Advanced</string>
+
+    <!-- ===== Redesign: operator sheet ===== -->
+    <string name="operator_sheet_title">Operator</string>
+    <string name="operator_antenna">Antenna</string>
+    <string name="operator_antenna_hint">e.g. EFHW 40-10m</string>
+    <string name="operator_power">Power (watts)</string>
+    <string name="operator_power_hint">e.g. 100</string>
+
+    <!-- ===== Redesign: Radio &amp; audio ===== -->
+    <string name="radio_link_connected">%1$s connected</string>
+    <string name="radio_link_connecting">Connecting to %1$s</string>
+    <string name="radio_link_disconnected">%1$s not responding</string>
+    <string name="radio_link_vox">VOX · audio only</string>
+    <string name="radio_link_no_model">No rig model selected</string>
+    <string name="radio_action_reconnect">Reconnect</string>
+    <string name="radio_action_connecting">Connecting</string>
+    <string name="radio_action_connect">Connect</string>
+    <string name="radio_action_test_ptt">Test PTT</string>
+    <string name="radio_detail_vox">The rig keys itself from transmit audio</string>
+    <string name="radio_detail_waiting">waiting for the rig</string>
+    <string name="radio_detail_check_cable">check the cable and rig settings</string>
+    <string name="radio_hint_usb">Needs an OTG cable. Android asks permission the first time the rig is plugged in.</string>
+    <string name="radio_hint_bluetooth">Pair the rig in Android Bluetooth settings first.</string>
+    <string name="radio_hint_network">For a remote rig, e.g. rigctld at 192.168.1.10:4532.</string>
+    <string name="radio_ptt_cat">Keys the rig with a CAT command over the serial link.</string>
+    <string name="radio_ptt_rts">Keys the rig by raising the serial RTS line.</string>
+    <string name="radio_ptt_dtr">Keys the rig by raising the serial DTR line.</string>
+    <string name="radio_ptt_vox">The rig keys itself when it hears transmit audio. No control link.</string>
+    <string name="radio_section_connection">CONNECTION</string>
+    <string name="radio_ptt_method">PTT method</string>
+    <string name="radio_baud_rate">Baud rate</string>
+    <string name="radio_ptt_delay">PTT delay</string>
+    <string name="radio_ptt_delay_desc">Settling time after keying, before audio starts</string>
+    <string name="radio_ms_format">%1$d ms</string>
+    <string name="radio_rig_picker_title">Rig model</string>
+    <string name="radio_rig_search_hint">Search models</string>
+    <string name="radio_rig_search_clear">Clear search</string>
+    <string name="radio_rig_no_matches">No models match that search</string>
+    <string name="radio_input_level">Input level</string>
+    <string name="radio_level_silent">Silent</string>
+    <string name="radio_level_advice_silent">No audio reaching the app. Check the cable and the input device.</string>
+    <string name="radio_level_advice_low">Too quiet. Raise the rig or input gain.</string>
+    <string name="radio_level_advice_good">In the healthy range.</string>
+    <string name="radio_level_advice_high">Close to clipping. Lower the gain a little.</string>
+    <string name="radio_level_advice_clipping">Clipping. Lower the gain until peaks stay below the mark.</string>
 </resources>
