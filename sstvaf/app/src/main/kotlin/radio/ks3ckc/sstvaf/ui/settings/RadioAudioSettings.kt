@@ -44,6 +44,7 @@ import com.k1af.ft8af.database.ControlMode
 import com.k1af.ft8af.database.OperationBand
 import com.k1af.ft8af.database.RigNameList
 import com.k1af.ft8af.rigs.BaseRigOperation
+import com.k1af.ft8af.rigs.CatConnectionState
 import com.k1af.ft8af.rigs.CivAddressConfig
 import com.k1af.ft8af.rigs.InstructionSet
 import com.k1af.ft8af.ui.AudioDeviceSpinnerAdapter
@@ -87,6 +88,15 @@ fun RadioAudioSettings(
     var controlMode by remember { mutableIntStateOf(GeneralVariables.controlMode) }
     var modelNo by remember { mutableIntStateOf(GeneralVariables.modelNo) }
     var baudRate by remember { mutableIntStateOf(GeneralVariables.baudRate) }
+    var pttDelay by remember { mutableIntStateOf(GeneralVariables.pttDelay) }
+
+    // Live CAT state and metering window drive the connection card and the
+    // input meter; both have to track the rig rather than the last tap.
+    val catState by mainViewModel.mutableCatConnectionState.observeAsState(
+        CatConnectionState.DISCONNECTED,
+    )
+    val inputLevels by GeneralVariables.mutableInputLevel.observeAsState()
+    val isTuning by mainViewModel.tuneOperator.mutableIsTuning.observeAsState(false)
 
     // Mirror of GeneralVariables.excludedBands so the dialog + the "N of M enabled"
     // label recompose as the user toggles bands.
@@ -147,9 +157,6 @@ fun RadioAudioSettings(
 
     // Dialog visibility state
     var showRigModelPicker by remember { mutableStateOf(false) }
-    var showControlModePicker by remember { mutableStateOf(false) }
-    var showConnectionMode by remember { mutableStateOf(false) }
-    var showBaudRatePicker by remember { mutableStateOf(false) }
     var showBandPicker by remember { mutableStateOf(false) }
     var showEnabledBands by remember { mutableStateOf(false) }
     var showAudioFreq by remember { mutableStateOf(false) }
@@ -172,145 +179,118 @@ fun RadioAudioSettings(
     val baseFreqStr = remember(baseFreqLive) { GeneralVariables.getBaseFrequencyStr() }
     val audioFreqStr = stringResource(R.string.settings_hz_str_format, baseFreqStr)
     val baudRateStr = "$baudRate"
-    val isCatMode = controlMode == ControlMode.CAT
-        || controlMode == ControlMode.RTS
-        || controlMode == ControlMode.DTR
-
     // Rig model list
     val rigNameList = remember { RigNameList.getInstance(context) }
     val rigModelStr = remember(modelNo) {
         rigNameList.getRigNameByIndex(modelNo).name
     }
 
-    // Control mode display
-    val controlModeStr = when (controlMode) {
-        ControlMode.CAT -> "CAT"
-        ControlMode.RTS -> "RTS"
-        ControlMode.DTR -> "DTR"
-        else -> "VOX"
-    }
-
     // =====================================================================
     // DIALOGS
     // =====================================================================
 
-    // -- Rig Model Picker --
-    if (showRigModelPicker) {
-        val rigItems = rigNameList.rigList
-            .mapIndexed { index, rig -> index to rig }
-            .filter { (_, rig) -> !rig.modelName.startsWith("#") }
-        val rigDisplayNames = rigItems.map { (_, rig) -> rig.name }
-        val currentRigIndex = rigItems.indexOfFirst { (index, _) -> index == modelNo }
-            .coerceAtLeast(0)
-        ListPickerDialog(
-            title = stringResource(R.string.settings_rig_model),
-            items = rigDisplayNames,
-            selectedIndex = currentRigIndex,
-            onDismiss = { showRigModelPicker = false },
-            onSelect = { selectedDisplayIndex ->
-                showRigModelPicker = false
-                val (actualIndex, selectedRig) = rigItems[selectedDisplayIndex]
-                GeneralVariables.modelNo = actualIndex
-                modelNo = actualIndex
-                GeneralVariables.instructionSet = selectedRig.instructionSet
-                GeneralVariables.civAddress = selectedRig.address
-                GeneralVariables.baudRate = selectedRig.bauRate
-                baudRate = selectedRig.bauRate
-                mainViewModel.setCivAddress()
-                mainViewModel.databaseOpr.writeConfig("model", actualIndex.toString(), null)
-                mainViewModel.databaseOpr.writeConfig(
-                    "instruction", GeneralVariables.instructionSet.toString(), null,
-                )
-                mainViewModel.databaseOpr.writeConfig(
-                    "baudRate", GeneralVariables.baudRate.toString(), null,
-                )
-                // "civ" is a HEX key (rigaddress.txt, the loader and the legacy screen all
-                // agree). Writing Int.toString() here stored "164" for an IC-705's 0xA4,
-                // which reloaded as 0x64 and silently killed CAT frequency control
-                // (FT8AF #753).
-                val encodedCiv = CivAddressConfig.encode(GeneralVariables.civAddress)
-                mainViewModel.databaseOpr.writeConfig("civ", encodedCiv, null)
-                // Provenance marker: tells the #753 repair this value is hex and trusted.
-                mainViewModel.databaseOpr.writeConfig(
-                    CivAddressConfig.FORMAT_KEY, CivAddressConfig.FORMAT_HEX, null,
-                )
-                GeneralVariables.civAddressStored = encodedCiv
-                GeneralVariables.civAddressFormatKnown = true
-            },
-        )
+    /**
+     * Opens the connection flow for a route. Shared by the route selector and
+     * by switching into a rig-control PTT mode, so the two can never launch
+     * different flows for the same route.
+     */
+    val startConnectionFlow: (Int) -> Unit = { route ->
+        when (route) {
+            ConnectMode.BLUE_TOOTH -> {
+                showBluetoothPicker = true
+            }
+            ConnectMode.NETWORK -> {
+                when (GeneralVariables.instructionSet) {
+                    InstructionSet.FLEX_NETWORK ->
+                        showFlexRadioPicker = true
+                    InstructionSet.XIEGU_6100_FT8CNS ->
+                        showXieguRadioPicker = true
+                    else ->
+                        showIcomLogin = true
+                }
+            }
+            else -> {
+                mainViewModel.getUsbDevice()
+                showSerialPortPicker = true
+            }
+        }
     }
 
-    // -- Control Mode Picker --
-    if (showControlModePicker) {
-        val controlModeOptions = listOf("VOX", "CAT", "RTS", "DTR")
-        val controlModeValues = listOf(ControlMode.VOX, ControlMode.CAT, ControlMode.RTS, ControlMode.DTR)
-        val currentControlIndex = controlModeValues.indexOf(controlMode).coerceAtLeast(0)
-        ListPickerDialog(
-            title = stringResource(R.string.settings_control_mode),
-            items = controlModeOptions,
-            selectedIndex = currentControlIndex,
-            onDismiss = { showControlModePicker = false },
-            onSelect = { index ->
-                showControlModePicker = false
-                val newMode = controlModeValues[index]
-                GeneralVariables.controlMode = newMode
-                controlMode = newMode
-                mainViewModel.setControlMode()
-                mainViewModel.databaseOpr.writeConfig("ctrMode", newMode.toString(), null)
-                if (newMode == ControlMode.CAT
-                    || newMode == ControlMode.RTS
-                    || newMode == ControlMode.DTR
-                ) {
-                    if (!mainViewModel.isRigConnected()) {
-                        mainViewModel.getUsbDevice()
-                        showSerialPortPicker = true
-                    } else {
-                        mainViewModel.setOperationBand()
-                    }
-                }
-            },
-        )
+    /**
+     * Applies a new PTT/control mode.
+     *
+     * Lifted out of the picker dialog this replaces, unchanged: switching to a
+     * rig-control mode has to either open the port picker or re-assert the
+     * band, or the mode is set in the app while the rig knows nothing about it.
+     */
+    val applyControlMode: (Int) -> Unit = { newMode ->
+        GeneralVariables.controlMode = newMode
+        controlMode = newMode
+        mainViewModel.setControlMode()
+        mainViewModel.databaseOpr.writeConfig("ctrMode", newMode.toString(), null)
+        if (newMode == ControlMode.CAT
+            || newMode == ControlMode.RTS
+            || newMode == ControlMode.DTR
+        ) {
+            if (!mainViewModel.isRigConnected()) {
+                // Start the flow for the route the operator actually chose.
+                // This was hard-coded to the USB serial picker, lifted from the
+                // dialog it replaced - harmless there, because the dialog could
+                // not show both controls at once. With the segmented controls
+                // side by side, picking CAT while the route was Bluetooth or
+                // Network launched a cable picker for a cable that is not in
+                // use.
+                startConnectionFlow(connectMode)
+            } else {
+                mainViewModel.setOperationBand()
+            }
+        }
     }
 
-    // -- Connection Mode Picker --
-    if (showConnectionMode) {
-        val connectionOptions = listOf(
-            stringResource(R.string.settings_conn_usb_cable),
-            stringResource(R.string.settings_conn_bluetooth),
-            stringResource(R.string.settings_conn_network),
-        )
-        val currentIndex = GeneralVariables.connectMode.coerceIn(0, 2)
-        ListPickerDialog(
-            title = stringResource(R.string.settings_connection_mode),
-            items = connectionOptions,
-            selectedIndex = currentIndex,
-            onDismiss = { showConnectionMode = false },
-            onSelect = { index ->
-                showConnectionMode = false
-                GeneralVariables.connectMode = index
-                connectMode = index
-                mainViewModel.databaseOpr.writeConfig("connectMode", index.toString(), null)
-                when (index) {
-                    ConnectMode.BLUE_TOOTH -> {
-                        showBluetoothPicker = true
-                    }
-                    ConnectMode.NETWORK -> {
-                        when (GeneralVariables.instructionSet) {
-                            InstructionSet.FLEX_NETWORK ->
-                                showFlexRadioPicker = true
-                            InstructionSet.XIEGU_6100_FT8CNS ->
-                                showXieguRadioPicker = true
-                            else ->
-                                showIcomLogin = true
-                        }
-                    }
-                    ConnectMode.USB_CABLE -> {
-                        mainViewModel.getUsbDevice()
-                        showSerialPortPicker = true
-                    }
-                }
-            },
-        )
+    /**
+     * Applies a new connection route and immediately starts the matching
+     * connection flow, which is the whole point of picking one.
+     */
+    val applyConnectMode: (Int) -> Unit = { index ->
+        GeneralVariables.connectMode = index
+        connectMode = index
+        mainViewModel.databaseOpr.writeConfig("connectMode", index.toString(), null)
+        startConnectionFlow(index)
+    }
+
+    /** Applies a new serial baud rate. */
+    val applyBaudRate: (Int) -> Unit = { newBaudRate ->
+        GeneralVariables.baudRate = newBaudRate
+        baudRate = newBaudRate
+        mainViewModel.databaseOpr.writeConfig("baudRate", newBaudRate.toString(), null)
+    }
+
+    /**
+     * What the connection card's action pill does, dispatched by link state so
+     * each label means what it says.
+     *
+     * One handler for every state sent all three labels to the same setup flow:
+     * "Reconnect" never actually re-established a live link, "Test PTT" opened
+     * a connection picker, and on a fresh install "Connect" launched a cable
+     * picker for a rig the app had not been told the model of yet.
+     */
+    val onLinkAction: () -> Unit = {
+        val state = rigLinkState(controlMode, catState)
+        when {
+            // Nothing to connect to until a model is chosen: the CAT command
+            // set, the CI-V address and the baud default all come from it.
+            state != RigLinkState.VOX && !hasRigModelSelected(modelNo) ->
+                showRigModelPicker = true
+            state == RigLinkState.CONNECTED -> mainViewModel.reconnectRig()
+            // Test PTT under VOX is the tune carrier: a steady tone that
+            // keys the rig through its own VOX circuit, which is the only
+            // thing there is to test when the app has no control link. It is
+            // bounded by the same max-on timeout as TUNE elsewhere, and the
+            // pill turns into Stop while it runs.
+            state == RigLinkState.VOX ->
+                if (isTuning) mainViewModel.tuneOperator.stopTune() else mainViewModel.startTune()
+            else -> startConnectionFlow(connectMode)
+        }
     }
 
     // -- Serial Port Picker (USB Cable) --
@@ -363,26 +343,6 @@ fun RadioAudioSettings(
         IcomLoginDialog(
             mainViewModel = mainViewModel,
             onDismiss = { showIcomLogin = false },
-        )
-    }
-
-    // -- Baud Rate Picker --
-    if (showBaudRatePicker) {
-        val baudRateOptions = listOf(4800, 9600, 14400, 19200, 38400, 43000, 56000, 57600, 115200)
-        val baudRateLabels = baudRateOptions.map { it.toString() }
-        val currentBaudIndex = baudRateOptions.indexOf(baudRate).coerceAtLeast(0)
-        ListPickerDialog(
-            title = stringResource(R.string.settings_baud_rate),
-            items = baudRateLabels,
-            selectedIndex = currentBaudIndex,
-            onDismiss = { showBaudRatePicker = false },
-            onSelect = { index ->
-                showBaudRatePicker = false
-                val newBaudRate = baudRateOptions[index]
-                GeneralVariables.baudRate = newBaudRate
-                baudRate = newBaudRate
-                mainViewModel.databaseOpr.writeConfig("baudRate", newBaudRate.toString(), null)
-            },
         )
     }
 
@@ -592,6 +552,95 @@ fun RadioAudioSettings(
         onBack = onBack,
     ) {
         // =====================================================================
+        // LINK STATE
+        // =====================================================================
+        run {
+            val linkState = rigLinkState(controlMode, catState)
+            RigLinkCard(
+                state = linkState,
+                rigName = rigModelStr,
+                hasRigModel = hasRigModelSelected(modelNo),
+                tuning = isTuning,
+                detail = rigLinkDetail(
+                    state = linkState,
+                    connectionLabel = connectModeStr,
+                    baudLabel = baudRateStr,
+                    isUsb = connectMode == ConnectMode.USB_CABLE,
+                    dialLabel = bandStr,
+                    voxDetail = stringResource(R.string.radio_detail_vox),
+                    waitingDetail = stringResource(R.string.radio_detail_waiting),
+                    checkCableDetail = stringResource(R.string.radio_detail_check_cable),
+                ),
+                onAction = onLinkAction,
+            )
+        }
+
+        // =====================================================================
+        // CONNECTION
+        // =====================================================================
+        SettingsSection(title = stringResource(R.string.radio_section_connection)) {
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        SegmentedChoice(
+                            options = CONNECTION_MODES,
+                            selected = connectMode,
+                            label = { stringResource(connectionModeLabelRes(it)) },
+                            onSelect = applyConnectMode,
+                        )
+                        ChoiceHint(stringResource(connectionHintRes(connectMode)))
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = stringResource(R.string.radio_ptt_method),
+                            color = TextMuted,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        SegmentedChoice(
+                            options = CONTROL_MODES,
+                            selected = controlMode,
+                            label = { controlModeShortLabel(it) },
+                            // "RTS" spoken aloud tells a screen-reader user
+                            // nothing; the hint says what picking it does.
+                            contentDescription = { stringResource(controlHintRes(it)) },
+                            onSelect = applyControlMode,
+                        )
+                        ChoiceHint(stringResource(controlHintRes(controlMode)))
+                    }
+
+                    // Baud belongs to a USB serial link and nothing else. On a
+                    // network or Bluetooth route there is no serial line to
+                    // clock, and under VOX there is no link at all, so the
+                    // control disappears rather than sitting there implying a
+                    // change would do something.
+                    if (showsBaudRate(connectMode, controlMode)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = stringResource(R.string.radio_baud_rate),
+                                color = TextMuted,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            baudChipRows().forEach { row ->
+                                ChipChoiceRow(
+                                    options = row,
+                                    selected = baudRate,
+                                    label = { baudChipLabel(it) },
+                                    onSelect = applyBaudRate,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // =====================================================================
         // RADIO
         // =====================================================================
         SettingsSection(title = stringResource(R.string.settings_section_radio)) {
@@ -604,25 +653,28 @@ fun RadioAudioSettings(
                         onClick = { showRigModelPicker = true },
                     )
                     SectionDivider()
-                    SettingsRow(
-                        label = stringResource(R.string.settings_control_mode),
-                        value = controlModeStr,
-                        showChevron = true,
-                        onClick = { showControlModePicker = true },
-                    )
-                    SectionDivider()
-                    SettingsRow(
-                        label = stringResource(R.string.settings_connection_mode),
-                        value = connectModeStr,
-                        showChevron = isCatMode,
-                        onClick = if (isCatMode) {{ showConnectionMode = true }} else null,
-                    )
-                    SectionDivider()
-                    SettingsRow(
-                        label = stringResource(R.string.settings_baud_rate),
-                        value = baudRateStr,
-                        showChevron = isCatMode,
-                        onClick = if (isCatMode) {{ showBaudRatePicker = true }} else null,
+                    // The only PTT delay editor in the app now; the Advanced
+                    // picker is gone. Two editors over one value had
+                    // incompatible domains (10 ms steps to 190 there, 50 ms
+                    // steps to 500 here) and independent remembered state, so
+                    // moving between them could silently round an operator's
+                    // setting. The step is 10 ms so every value the old picker
+                    // could set is still reachable, and the range extends to
+                    // 500 for rigs that need longer to switch over.
+                    SliderRow(
+                        label = stringResource(R.string.radio_ptt_delay),
+                        description = stringResource(R.string.radio_ptt_delay_desc),
+                        valueLabel = stringResource(R.string.radio_ms_format, pttDelay),
+                        value = pttDelay.toFloat(),
+                        valueRange = PTT_DELAY_MIN.toFloat()..PTT_DELAY_MAX.toFloat(),
+                        steps = (PTT_DELAY_MAX - PTT_DELAY_MIN) / PTT_DELAY_STEP - 1,
+                        onValueChange = { pttDelay = snapPttDelay(it.toInt()) },
+                        onValueChangeFinished = {
+                            GeneralVariables.pttDelay = pttDelay
+                            mainViewModel.databaseOpr.writeConfig(
+                                "pttDelay", pttDelay.toString(), null,
+                            )
+                        },
                     )
                     SectionDivider()
                     SettingsRow(
@@ -687,6 +739,13 @@ fun RadioAudioSettings(
                             showAudioOutputPicker = true
                         },
                     )
+                    SectionDivider()
+                    // The meter sits between the device rows and the gain
+                    // control it is there to inform: an operator setting gain
+                    // needs to watch the level while they change it, and
+                    // anywhere else on the screen means scrolling between the
+                    // two.
+                    InputLevelMeter(levels = inputLevels)
                     SectionDivider()
                     SettingsRow(
                         label = stringResource(R.string.settings_input_volume),
@@ -840,6 +899,52 @@ fun RadioAudioSettings(
                 }
             }
         }
+    }
+
+    // Mounted after the scaffold, not before it. A bottom sheet is an
+    // ordinary composable in this layout rather than a separate window like
+    // the dialogs above, so emitting it first would let the screen behind it
+    // draw on top - which is exactly what happened the first time round.
+    // -- Rig Model Picker --
+    run {
+        val options = remember(rigNameList) { rigOptions(rigNameList) }
+        RigPickerSheet(
+            visible = showRigModelPicker,
+            options = options,
+            selectedIndex = modelNo,
+            onDismiss = { showRigModelPicker = false },
+            onSelect = { option ->
+                showRigModelPicker = false
+                val actualIndex = option.index
+                val selectedRig = rigNameList.rigList[actualIndex]
+                GeneralVariables.modelNo = actualIndex
+                modelNo = actualIndex
+                GeneralVariables.instructionSet = selectedRig.instructionSet
+                GeneralVariables.civAddress = selectedRig.address
+                GeneralVariables.baudRate = selectedRig.bauRate
+                baudRate = selectedRig.bauRate
+                mainViewModel.setCivAddress()
+                mainViewModel.databaseOpr.writeConfig("model", actualIndex.toString(), null)
+                mainViewModel.databaseOpr.writeConfig(
+                    "instruction", GeneralVariables.instructionSet.toString(), null,
+                )
+                mainViewModel.databaseOpr.writeConfig(
+                    "baudRate", GeneralVariables.baudRate.toString(), null,
+                )
+                // "civ" is a HEX key (rigaddress.txt, the loader and the legacy screen all
+                // agree). Writing Int.toString() here stored "164" for an IC-705's 0xA4,
+                // which reloaded as 0x64 and silently killed CAT frequency control
+                // (FT8AF #753).
+                val encodedCiv = CivAddressConfig.encode(GeneralVariables.civAddress)
+                mainViewModel.databaseOpr.writeConfig("civ", encodedCiv, null)
+                // Provenance marker: tells the #753 repair this value is hex and trusted.
+                mainViewModel.databaseOpr.writeConfig(
+                    CivAddressConfig.FORMAT_KEY, CivAddressConfig.FORMAT_HEX, null,
+                )
+                GeneralVariables.civAddressStored = encodedCiv
+                GeneralVariables.civAddressFormatKnown = true
+            },
+        )
     }
 }
 
