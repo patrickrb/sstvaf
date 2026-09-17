@@ -50,6 +50,21 @@ public class PttController {
         void sleepMs(long ms) throws InterruptedException;
     }
 
+    /**
+     * Observer of the keying edges, invoked on EVERY {@link #keyDown()} /
+     * {@link #keyUp()} regardless of control mode. {@code beforeKeyDown} runs
+     * before SCO is paused or PTT asserted, so a snapshot of the Bluetooth SCO
+     * link can be taken first ({@code TxScoLatch}); {@code afterKeyUp} runs once
+     * PTT is released and SCO restored. {@code keysViaControlPath} tells the
+     * observer whether this controller is actually driving PTT (CAT/RTS/DTR with
+     * a rig) or leaving it to VOX.
+     */
+    public interface KeyingObserver {
+        void beforeKeyDown(boolean keysViaControlPath);
+
+        void afterKeyUp();
+    }
+
     /** The audio action run between key-down and key-up. */
     public interface PlayAction {
         /** @return true if the audio played to completion. */
@@ -60,6 +75,7 @@ public class PttController {
     private final ScoControl sco;
     private final ControlModeSource controlModeSource;
     private final Sleeper sleeper;
+    private volatile KeyingObserver keyingObserver;
 
     public PttController(Keyer keyer, ScoControl sco, ControlModeSource controlModeSource) {
         this(keyer, sco, controlModeSource, new Sleeper() {
@@ -90,12 +106,29 @@ public class PttController {
                 || controlMode == ControlMode.DTR;
     }
 
+    /** Register (or clear, with null) the keying-edge observer. */
+    public void setKeyingObserver(KeyingObserver observer) {
+        this.keyingObserver = observer;
+    }
+
+    /** Whether a keyDown/keyUp right now would actually command PTT. */
+    private boolean keysViaControlPath() {
+        return controlsPtt(controlModeSource.controlMode()) && keyer.hasRig();
+    }
+
     /**
      * Assert PTT (+ pause SCO) through the configured control path. No-op for
-     * VOX or when no rig is connected.
+     * VOX or when no rig is connected — apart from notifying the
+     * {@link KeyingObserver}, which sees every edge.
      */
     public void keyDown() {
-        if (!controlsPtt(controlModeSource.controlMode()) || !keyer.hasRig()) {
+        boolean viaControlPath = keysViaControlPath();
+        KeyingObserver observer = keyingObserver;
+        if (observer != null) {
+            // Before the SCO pause below: the observer snapshots the link state.
+            observer.beforeKeyDown(viaControlPath);
+        }
+        if (!viaControlPath) {
             return;
         }
         if (sco.needControlSco()) {
@@ -106,12 +139,15 @@ public class PttController {
 
     /** Release PTT (+ restore SCO); counterpart of {@link #keyDown()}. */
     public void keyUp() {
-        if (!controlsPtt(controlModeSource.controlMode()) || !keyer.hasRig()) {
-            return;
+        if (keysViaControlPath()) {
+            keyer.setPtt(false);
+            if (sco.needControlSco()) {
+                sco.startSco();
+            }
         }
-        keyer.setPtt(false);
-        if (sco.needControlSco()) {
-            sco.startSco();
+        KeyingObserver observer = keyingObserver;
+        if (observer != null) {
+            observer.afterKeyUp();
         }
     }
 

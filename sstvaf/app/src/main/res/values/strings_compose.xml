@@ -744,4 +744,40 @@
          %1$s is a preformatted m:ss countdown (e.g. "1:09"). Mirrors
          rx_eta_format on the receive side. -->
     <string name="tx_remaining_format">%1$s left</string>
+    <string name="cat_status_linked">Radio linked</string>
+    <string name="cat_status_not_linked">Radio not linked</string>
+    <string name="settings_cat_usb_diagnostics">USB Diagnostics</string>
+    <string name="settings_cat_usb_diagnostics_desc">Check USB device discovery and CAT communication</string>
+    <string name="usb_diag_title">USB Diagnostics</string>
+    <string name="usb_diag_desc">Live status of USB device discovery and CAT communication. Use it to pinpoint where a rig connection is failing.</string>
+    <string name="usb_diag_device_found">Device Found</string>
+    <string name="usb_diag_vendor_id">Vendor ID</string>
+    <string name="usb_diag_product_id">Product ID</string>
+    <string name="usb_diag_permission">USB Permission</string>
+    <string name="usb_diag_cdc_serial">CDC Serial Found</string>
+    <string name="usb_diag_audio_device">Audio Device Found</string>
+    <string name="usb_diag_port_open">Port Open</string>
+    <string name="usb_diag_cat_response">CAT Response</string>
+    <string name="usb_diag_value_none">—</string>
+    <string name="usb_diag_status_pass">pass</string>
+    <string name="usb_diag_status_fail">fail</string>
+    <string name="settings_rx_channel">Receive Audio Channel</string>
+    <string name="settings_rx_channel_desc">Which side of a stereo input to decode. Use Left or Right when the radio only feeds one channel.</string>
+    <string name="settings_rx_channel_mix">Mix</string>
+    <string name="settings_tx_channel">Transmit Audio Channel</string>
+    <string name="settings_tx_channel_desc">Which side of a stereo output carries the transmitted audio. Use Left or Right to drive one radio on a splitter cable.</string>
+    <string name="settings_tx_channel_both">Both</string>
+    <string name="settings_channel_left">Left</string>
+    <string name="settings_channel_right">Right</string>
+    <string name="settings_channel_mono_device">This device has only one audio channel, so there is no side to choose.</string>
+    <string name="settings_tx_channel_default_sink">Choose a specific audio output device to pick a side. On the default output the app cannot tell where Android routes audio, so it sends to both channels.</string>
+    <string name="settings_rx_channel_network_source">Audio for this radio comes over its network link, not through an audio input, so there is no side to choose.</string>
+    <string name="tune_atu_started">Rig antenna tuner started</string>
+    <string name="tune_atu_unavailable">Rig tuner unavailable — connect a CAT radio with an internal tuner</string>
+    <string name="settings_tune_method">Tune method</string>
+    <string name="settings_tune_method_desc">Automatic starts the rig\'s internal tuner over CAT when available, otherwise plays the low power tone</string>
+    <string name="tune_method_automatic">Automatic</string>
+    <string name="tune_method_internal">Internal tuner</string>
+    <string name="tune_method_tone">Low power tone</string>
+
 </resources>

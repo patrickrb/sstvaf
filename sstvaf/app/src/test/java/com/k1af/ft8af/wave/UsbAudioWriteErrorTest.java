@@ -17,8 +17,11 @@ import org.junit.Test;
  * {@code libusb_error} (setup failure), or a positive
  * {@code libusb_transfer_status} when a transfer dies after streaming started —
  * the field failure mode from the 2026-07-03 POTA log was {@code rc=5}
- * TRANSFER_NO_DEVICE (device fell off the bus mid-TX, RF into the USB link),
- * which used to be logged as UNKNOWN.
+ * TRANSFER_NO_DEVICE, which used to be logged as UNKNOWN. That status is the
+ * kernel flushing the endpoint under our URBs: usually Android routing a sound
+ * through the same card while its class driver was still attached (see
+ * {@link UsbAudioControlInterfaceTest}), occasionally the device really falling
+ * off the bus (a hub resetting under RF).
  */
 public class UsbAudioWriteErrorTest {
 
@@ -140,5 +143,62 @@ public class UsbAudioWriteErrorTest {
     @Test
     public void fallback_success_neverFallsBack() {
         assertThat(UsbAudioDevice.shouldFallbackToUsbRequest(0, 10)).isFalse();
+    }
+
+    // ---- describeCaptureStopCode --------------------------------------------
+    // The reason the native capture event loop ended, surfaced to debug.log so
+    // the iso-retire failure mode is diagnosable in the field.
+
+    @Test
+    public void captureStop_cleanStop() {
+        assertThat(UsbAudioDevice.describeCaptureStopCode(0))
+                .isEqualTo("clean stop (nativeStop)");
+    }
+
+    @Test
+    public void captureStop_retiredNoCause() {
+        assertThat(UsbAudioDevice.describeCaptureStopCode(1))
+                .isEqualTo("all transfers retired (no terminal cause)");
+    }
+
+    @Test
+    public void captureStop_transferTerminalNoDevice() {
+        // 1000 + libusb_transfer_status(5=NO_DEVICE)
+        assertThat(UsbAudioDevice.describeCaptureStopCode(1005))
+                .isEqualTo("transfer terminal status NO_DEVICE");
+    }
+
+    @Test
+    public void captureStop_transferTerminalStall() {
+        assertThat(UsbAudioDevice.describeCaptureStopCode(1004))
+                .isEqualTo("transfer terminal status STALL");
+    }
+
+    @Test
+    public void captureStop_resubmitFailedNoDevice() {
+        // 2000 + (-LIBUSB_ERROR_NO_DEVICE=-(-4)=4)
+        assertThat(UsbAudioDevice.describeCaptureStopCode(2004))
+                .isEqualTo("resubmit failed: rc=-4 NO_DEVICE");
+    }
+
+    @Test
+    public void captureStop_handleEventsFailedIo() {
+        // 3000 + (-LIBUSB_ERROR_IO=-(-1)=1)
+        assertThat(UsbAudioDevice.describeCaptureStopCode(3001))
+                .isEqualTo("handle_events failed: rc=-1 IO");
+    }
+
+    @Test
+    public void captureStop_unknownCode() {
+        assertThat(UsbAudioDevice.describeCaptureStopCode(42))
+                .isEqualTo("unknown code");
+    }
+
+    @Test
+    public void transferStatusName_maps() {
+        assertThat(UsbAudioDevice.transferStatusName(0)).isEqualTo("COMPLETED");
+        assertThat(UsbAudioDevice.transferStatusName(5)).isEqualTo("NO_DEVICE");
+        assertThat(UsbAudioDevice.transferStatusName(6)).isEqualTo("OVERFLOW");
+        assertThat(UsbAudioDevice.transferStatusName(9)).isEqualTo("UNKNOWN(9)");
     }
 }
