@@ -668,6 +668,25 @@
     <!-- RX decode status: estimated time left in the current image.
          %1$s is a preformatted m:ss ETA (e.g. "1:23"). -->
     <string name="rx_eta_format">%1$s left</string>
+    <!-- ===== Receive screen (redesign) ===== -->
+    <string name="rx_canvas_description">Received SSTV picture</string>
+    <string name="rx_status_listening">Listening</string>
+    <!-- %1$s is the SSTV mode the decoder locked onto, e.g. "Scottie 1". -->
+    <string name="rx_status_decoding">Decoding %1$s</string>
+    <string name="rx_status_off">Receive is off</string>
+    <!-- Decoding finished; the image has not been confirmed in the Gallery yet. -->
+    <string name="rx_status_complete">Image complete</string>
+    <string name="rx_status_saved">Saved to Gallery</string>
+    <string name="rx_status_save_failed">Save failed</string>
+    <string name="rx_status_lost">Signal lost</string>
+    <!-- Right of the status row while idle: the operator picks no mode on receive. -->
+    <string name="rx_status_auto_detect">auto-detect</string>
+    <!-- %1$s is a percentage or an em dash when nothing has decoded. -->
+    <string name="rx_quality_value">Quality %1$s</string>
+    <string name="rx_received_today">RECEIVED TODAY</string>
+    <string name="rx_received_all">All</string>
+    <string name="rx_received_none">Nothing received yet</string>
+
     <string name="settings_save_rx_photos">Save received images to Photos</string>
     <string name="settings_save_rx_photos_desc">Completed SSTV images also appear in the Photos app under Pictures/SSTVAF (Android 10+)</string>
 

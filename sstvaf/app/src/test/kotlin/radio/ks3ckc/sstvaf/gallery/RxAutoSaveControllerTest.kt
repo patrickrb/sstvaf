@@ -17,6 +17,7 @@ class RxAutoSaveControllerTest {
 
     private val savedFrames = mutableListOf<LastDecodedImage.Frame>()
     private val logLines = mutableListOf<String>()
+    private val outcomes = mutableListOf<RxSaveOutcome>()
 
     private fun controller(
         saver: FrameSaver = FrameSaver { savedFrames.add(it) },
@@ -24,7 +25,11 @@ class RxAutoSaveControllerTest {
         saver = saver,
         log = { logLines.add(it) },
         dispatch = { it.run() }, // synchronous for tests
-    )
+    ).also {
+        // Collect outcomes directly rather than through the LiveData: postValue
+        // needs a main looper, and this class is otherwise pure JVM.
+        it.publishOutcome = { outcome -> outcomes.add(outcome) }
+    }
 
     private fun frame(utcMillis: Long = 1_000L, complete: Boolean = true) =
         LastDecodedImage.Frame(
@@ -165,5 +170,110 @@ class RxAutoSaveControllerTest {
 
         assertThat(savedFrames).isEmpty()
         assertThat(logLines.single()).contains("FAILED")
+    }
+
+    // ----- the save outcome the UI reads -------------------------------------
+
+    @Test
+    fun successfulSave_reportsPendingThenSaved() {
+        // The screen refreshes its gallery list on SAVED, so SAVED must be
+        // published after the write returns, never alongside the decoder's
+        // Complete — that ordering is the whole point of this signal.
+        val c = controller()
+        LastDecodedImage.frame = frame()
+
+        c.onState(completeState())
+
+        assertThat(outcomes).containsExactly(RxSaveOutcome.PENDING, RxSaveOutcome.SAVED).inOrder()
+    }
+
+    @Test
+    fun savedIsPublishedAfterTheWrite() {
+        val order = mutableListOf<String>()
+        val c = RxAutoSaveController(
+            saver = FrameSaver { order.add("write") },
+            log = {},
+            dispatch = { it.run() },
+        )
+        c.publishOutcome = { order.add(it.name) }
+        LastDecodedImage.frame = frame()
+
+        c.onState(completeState())
+
+        assertThat(order).containsExactly("PENDING", "write", "SAVED").inOrder()
+    }
+
+    @Test
+    fun throwingSaver_reportsFailed() {
+        val c = controller(saver = FrameSaver { error("disk full") })
+        LastDecodedImage.frame = frame()
+
+        c.onState(completeState())
+
+        assertThat(outcomes).containsExactly(RxSaveOutcome.PENDING, RxSaveOutcome.FAILED).inOrder()
+        assertThat(logLines.single()).contains("FAILED")
+    }
+
+    @Test
+    fun completionWithNoFrameAvailable_reportsFailed() {
+        // Nothing was snapshotted, so nothing can reach the Gallery. Staying
+        // silent here is what let the screen badge it "Saved".
+        val c = controller()
+        LastDecodedImage.frame = frame()
+
+        c.onState(SstvRxState.Complete(SstvMode.SCOTTIE_1, 0.9f, frameAvailable = false))
+
+        assertThat(savedFrames).isEmpty()
+        assertThat(outcomes).containsExactly(RxSaveOutcome.FAILED)
+    }
+
+    @Test
+    fun completionWithNoSnapshotAtAll_reportsFailed() {
+        val c = controller()
+        LastDecodedImage.frame = null
+
+        c.onState(completeState())
+
+        assertThat(savedFrames).isEmpty()
+        assertThat(outcomes).containsExactly(RxSaveOutcome.FAILED)
+    }
+
+    @Test
+    fun completionWithAPartialSnapshot_reportsFailed() {
+        val c = controller()
+        LastDecodedImage.frame = frame(complete = false)
+
+        c.onState(completeState())
+
+        assertThat(savedFrames).isEmpty()
+        assertThat(outcomes).containsExactly(RxSaveOutcome.FAILED)
+    }
+
+    @Test
+    fun redeliveredCompleteState_doesNotReannounceTheOutcome() {
+        val c = controller()
+        LastDecodedImage.frame = frame()
+
+        c.onState(completeState())
+        c.onState(completeState())
+
+        assertThat(outcomes).containsExactly(RxSaveOutcome.PENDING, RxSaveOutcome.SAVED).inOrder()
+    }
+
+    @Test
+    fun nonTerminalStates_publishNothing() {
+        val c = controller()
+        LastDecodedImage.frame = frame()
+
+        c.onState(SstvRxState.Idle)
+        c.onState(SstvRxState.Leader)
+        c.onState(SstvRxState.Aborted(42, SstvMode.SCOTTIE_1))
+
+        assertThat(outcomes).isEmpty()
+    }
+
+    @Test
+    fun saveStateStartsAtNone() {
+        assertThat(controller().saveState.value).isEqualTo(RxSaveOutcome.NONE)
     }
 }
