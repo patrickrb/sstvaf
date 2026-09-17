@@ -68,7 +68,10 @@ import radio.ks3ckc.sstvaf.theme.TextFaint
 import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
 import radio.ks3ckc.sstvaf.ui.components.EmptyStateWaves
-import radio.ks3ckc.sstvaf.ui.components.FilterChips
+import radio.ks3ckc.sstvaf.ui.tx.txSourcesDir
+import radio.ks3ckc.sstvaf.ui.tx.parseEditList
+import radio.ks3ckc.sstvaf.ui.tx.orphanedSourceNames
+import java.io.File
 
 /**
  * The Gallery tab: a grid of saved SSTV images (received today; transmitted
@@ -78,7 +81,10 @@ import radio.ks3ckc.sstvaf.ui.components.FilterChips
  * wrapper over [radio.ks3ckc.sstvaf.gallery.ReceivedImageStore].
  */
 @Composable
-fun GalleryScreen(mainViewModel: MainViewModel) {
+fun GalleryScreen(
+    mainViewModel: MainViewModel,
+    onSendAgain: (SavedImage) -> Unit = {},
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val store = mainViewModel.receivedImageStore
@@ -90,6 +96,25 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
     var images by remember { mutableStateOf<List<SavedImage>>(emptyList()) }
     LaunchedEffect(refreshKey) {
         images = withContext(Dispatchers.IO) { sortGalleryImages(store.list()) }
+    }
+
+    // Sweep durable TX sources no edit list refers to any more. Done here, off
+    // the list we have just loaded, rather than hooked to each row delete: a
+    // row's file name is generated inside the store, so there is nothing to
+    // derive a source path from at delete time, and a sweep also collects
+    // sources orphaned by a crash between the copy and the save.
+    LaunchedEffect(images) {
+        if (images.isEmpty()) return@LaunchedEffect
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val dir = txSourcesDir(context.filesDir)
+                val present = dir.listFiles()?.map { it.name }.orEmpty()
+                val referenced = images.mapNotNull { parseEditList(it.edits)?.sourceUri }
+                orphanedSourceNames(present, referenced).forEach { name ->
+                    File(dir, name).delete()
+                }
+            }
+        }
     }
 
     var filter by rememberSaveable { mutableStateOf(GalleryFilter.ALL) }
@@ -137,11 +162,12 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
     ) {
         // Title comes from the app shell's header ([AppHeader]).
 
-        FilterChips(
-            options = GalleryFilter.entries,
+        GallerySegmentedControl(
+            options = GalleryFilter.entries.toList(),
             selected = filter,
             label = { filterLabels.getValue(it) },
             onSelected = { filter = it },
+            modifier = Modifier.padding(horizontal = 16.dp),
         )
 
         // Search only makes sense once there is history to search; while the
@@ -210,6 +236,13 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
         entry = viewerEntry,
         imageFile = viewerEntry?.let { store.imageFile(it) },
         onDismiss = { viewerVisible = false },
+        onSendAgain = { entry ->
+            // The sheet closes on the way out: the composer is a different tab,
+            // and a sheet left open behind the navigation would still be there
+            // when the operator came back.
+            viewerVisible = false
+            onSendAgain(entry)
+        },
         onShare = { entry ->
             shareImage(
                 context,

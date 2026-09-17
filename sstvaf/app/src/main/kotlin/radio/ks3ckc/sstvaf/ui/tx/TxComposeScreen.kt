@@ -80,6 +80,7 @@ import radio.ks3ckc.sstvaf.ui.components.SstvAfIcons
 import java.util.Locale
 import radio.ks3ckc.sstvaf.sstv.TxOutcome
 import radio.ks3ckc.sstvaf.sstv.TxImageWindow
+import java.io.File
 
 /**
  * The TX composer tab: pick a photo, crop it into the selected SSTV mode's
@@ -251,6 +252,84 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
         }
     }
 
+    // A gallery picture the operator asked to reopen. Handled in an effect
+    // rather than inline so the bitmap decode happens off the composition, and
+    // keyed on the request itself so it runs once per tap.
+    val reopenRequest = composerState.pendingReopen
+    LaunchedEffect(reopenRequest?.id) {
+        // Read the request without consuming it. Consuming here set
+        // pendingReopen to null, which changed this effect's own key, so a
+        // recomposition during either of the suspending loads below cancelled
+        // the effect after the request had already been taken - and the
+        // composer was left showing the previous picture with nothing pending
+        // to retry. It is consumed at the end instead, once the load has
+        // actually landed.
+        val entry = reopenRequest ?: return@LaunchedEffect
+        val restored = parseEditList(entry.edits)
+        val sourceUri = restored?.sourceUri
+        // Prefer re-decoding the ORIGINAL source and replaying the edits: the
+        // saved PNG has the overlays burned in, so loading that and applying
+        // the list would draw every overlay twice. Falling back to the flat
+        // file is still useful — the operator gets the picture, just not an
+        // editable version of it.
+        val cardKind = cardKindFromUri(sourceUri)
+        val fromSource = when {
+            restored == null -> null
+            // A generated card has no file to decode: rebuild the gradient at
+            // the restored mode's size. This is the common path, since the
+            // one-tap cards are how most pictures get sent.
+            cardKind != null -> buildCardBitmap(
+                cardKind, restored.mode.width, restored.mode.height,
+            )
+            sourceUri != null -> withContext(Dispatchers.IO) {
+                runCatching {
+                    loadSourceBitmap(
+                        context.contentResolver,
+                        Uri.parse(sourceUri),
+                        restored.mode.width,
+                        restored.mode.height,
+                    )
+                }.getOrNull()
+            }
+            else -> null
+        }
+
+        if (fromSource != null && restored != null) {
+            composerState.setImage(fromSource, sourceUri.orEmpty())
+            composerState.composition = restored
+            tool = TxTool.TEXT
+            selectedOverlayId = restored.overlays.lastOrNull()?.id
+            restored.overlays.lastOrNull()?.let { draft = draft.matching(it) }
+        } else {
+            val flat = withContext(Dispatchers.IO) { loadSavedBitmap(store.imageFile(entry)) }
+            if (flat != null) {
+                composerState.setImage(flat, store.imageFile(entry).toString())
+                // No edit list to restore, so no overlays: they are already
+                // pixels in this file. Starting on Crop rather than Text says
+                // that honestly - there is no text here to edit.
+                //
+                // The mode comes from the row. setImage keeps whatever mode was
+                // selected, so without this a saved Scottie 1 picture reopened
+                // while the composer happened to be on Robot 36 would be
+                // cropped and transmitted at the wrong geometry.
+                val savedMode = SstvMode.entries.firstOrNull { it.displayName == entry.mode }
+                composerState.composition = composerState.composition?.copy(
+                    mode = savedMode ?: composerState.composition?.mode ?: composition.mode,
+                    overlays = emptyList(),
+                    paths = emptyList(),
+                    adjustments = ImageAdjustments(),
+                    frame = ImageFrame.NONE,
+                )
+                tool = TxTool.CROP
+                selectedOverlayId = null
+            }
+        }
+        outcome = null
+        // Only now: the load has landed, so a cancellation before this point
+        // leaves the request pending and the next composition retries it.
+        composerState.consumeReopenRequest()
+    }
+
     // Locale.ROOT, not the default locale: a callsign is a protocol
     // identifier, and on a Turkish-locale device the default uppercase() turns
     // an ASCII "i" into a dotted capital I, which is not the station that is
@@ -261,7 +340,7 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
     /** Load a text-only card: a generated gradient plus its starting overlays. */
     val loadCard: (TxCardKind) -> Unit = { kind ->
         val bitmap = buildCardBitmap(kind, composition.mode.width, composition.mode.height)
-        composerState.setImage(bitmap, "card:" + kind.name)
+        composerState.setImage(bitmap, cardSourceUri(kind))
         composerState.composition = composerState.composition?.copy(
             overlays = when (kind) {
                 TxCardKind.CQ -> cqCardOverlays(callsign)
@@ -599,6 +678,34 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
             val composite = preview ?: return@TxConfirmSheet
             val pixels = IntArray(composite.width * composite.height)
             composite.getPixels(pixels, 0, composite.width, 0, 0, composite.width, composite.height)
+            // A camera capture lives in cacheDir/camera_captures, which is
+            // throwaway staging the system may evict whenever it likes. An edit
+            // list pointing there would outlive the picture it describes, and
+            // "Send again" would silently fall back to the flattened image. Copy
+            // it somewhere durable first and record that instead. Gallery-picked
+            // photos already live in the media store and are left alone.
+            val durableComposition = composerState.composition?.let { current ->
+                if (!isCameraStagedSource(current.sourceUri)) {
+                    current
+                } else {
+                    val staged = current.sourceUri?.let { runCatching { File(Uri.parse(it).path!!) }.getOrNull() }
+                    val copied = staged?.takeIf { it.isFile }?.let { file ->
+                        runCatching {
+                            val dest = durableSourceFile(context.filesDir, System.currentTimeMillis())
+                            file.copyTo(dest, overwrite = true)
+                            dest
+                        }.getOrNull()
+                    }
+                    if (copied == null) {
+                        // Nothing durable to point at: drop the source so the
+                        // reopen takes the honest flattened-image path rather
+                        // than a URI that will not resolve.
+                        current.copy(sourceUri = null)
+                    } else {
+                        current.copy(sourceUri = Uri.fromFile(copied).toString())
+                    }
+                }
+            }
             performTransmit(
                 pixels = pixels,
                 width = composite.width,
@@ -611,6 +718,9 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                     mainViewModel.receivedImageStore.save(
                         p, w, h, m, utc, freq,
                         ImageDirection.TX, complete = true, quality = 1f,
+                        // The edit list travels with the picture so it can be
+                        // reopened later, not just re-sent flat.
+                        edits = TxEditList.serialize(durableComposition ?: composition),
                     )
                 },
                 log = { GeneralVariables.fileLog(it) },

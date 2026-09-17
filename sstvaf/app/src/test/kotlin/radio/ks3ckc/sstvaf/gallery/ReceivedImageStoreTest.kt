@@ -58,6 +58,7 @@ class ReceivedImageStoreTest {
         direction: ImageDirection = ImageDirection.RX,
         mode: SstvMode = SstvMode.SCOTTIE_1,
         complete: Boolean = true,
+        edits: String = "",
     ): SavedImage {
         val pixels = IntArray(mode.width * mode.height) { 0xFF336699.toInt() }
         return store().save(
@@ -70,6 +71,7 @@ class ReceivedImageStoreTest {
             direction = direction,
             complete = complete,
             quality = 0.87f,
+            edits = edits,
         )
     }
 
@@ -357,5 +359,48 @@ class ReceivedImageStoreTest {
         assertThat(imageDirectionFromDb("TX")).isEqualTo(ImageDirection.TX)
         assertThat(imageDirectionFromDb(null)).isEqualTo(ImageDirection.RX)
         assertThat(imageDirectionFromDb("bogus")).isEqualTo(ImageDirection.RX)
+    }
+
+    // ----- the edits column (v21) -------------------------------------------
+
+    /**
+     * The edit list is what makes a sent picture reopenable, so it has to
+     * survive the round trip through the column verbatim. A blob that comes
+     * back altered would parse to something other than what was transmitted,
+     * or to null, silently costing the operator the editable version.
+     */
+    private val sampleEdits =
+        """{"v":1,"mode":"SCOTTIE_1","overlays":[{"id":"t1","text":"K1AF"}]}"""
+
+    @Test
+    fun save_returnsTheEditListItWasGiven() {
+        val saved = saveOne(direction = ImageDirection.TX, edits = sampleEdits)
+        assertThat(saved.edits).isEqualTo(sampleEdits)
+    }
+
+    @Test
+    fun list_preservesTheEditList() {
+        saveOne(direction = ImageDirection.TX, edits = sampleEdits)
+        val listed = store().list().single()
+        assertThat(listed.edits).isEqualTo(sampleEdits)
+    }
+
+    @Test
+    fun save_defaultsTheEditListToEmpty() {
+        // Every RX row, and any TX row saved by an older build, reads back as
+        // "no edits recorded" rather than null.
+        val saved = saveOne()
+        assertThat(saved.edits).isEmpty()
+        assertThat(store().list().single().edits).isEmpty()
+    }
+
+    @Test
+    fun save_editListSurvivesJsonPunctuation() {
+        // Quotes and backslashes go through SQLite bound parameters, not string
+        // interpolation, but the column is the one place that is worth pinning.
+        val awkward = """{"v":1,"t":"a\"b\\c"}"""
+        val saved = saveOne(direction = ImageDirection.TX, edits = awkward)
+        assertThat(store().list().single().edits).isEqualTo(saved.edits)
+        assertThat(saved.edits).isEqualTo(awkward)
     }
 }
