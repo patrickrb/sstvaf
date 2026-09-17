@@ -479,3 +479,17 @@ internal fun buildImageShareCaption(entry: SavedImage): String {
 /** Completeness → viewer label resource (Complete / Partial). */
 internal fun viewerCompletenessRes(complete: Boolean): Int =
     if (complete) R.string.gallery_meta_complete else R.string.gallery_meta_partial
+
+/**
+ * The viewer's primary action label: replying to a received picture, or sending
+ * a transmitted one again.
+ *
+ * Two different verbs because they are two different actions. "Reply with a
+ * picture" opens a fresh composer — you are answering someone, not resending
+ * their image. "Send again" reopens your own, which is the common move in a
+ * run where the same card goes to station after station.
+ */
+internal fun sendAgainLabelRes(direction: ImageDirection): Int = when (direction) {
+    ImageDirection.RX -> R.string.gallery_reply_with_picture
+    ImageDirection.TX -> R.string.gallery_send_again
+}

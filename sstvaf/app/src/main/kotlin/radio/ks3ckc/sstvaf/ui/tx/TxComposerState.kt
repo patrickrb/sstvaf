@@ -1,6 +1,7 @@
 package radio.ks3ckc.sstvaf.ui.tx
 
 import android.graphics.Bitmap
+import radio.ks3ckc.sstvaf.gallery.SavedImage
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -35,6 +36,32 @@ class TxComposerState {
     /** The operator's picked/captured photo; null shows the pick prompt. */
     var sourceBitmap: Bitmap? by mutableStateOf(null)
         private set
+
+    /**
+     * A gallery picture the operator asked to reopen, waiting for the composer
+     * to pick it up.
+     *
+     * A request rather than a direct load, because loading needs a
+     * ContentResolver and bitmap decoding that belong on the screen, not in a
+     * state holder — and because the shell that raises it (a tap in the
+     * gallery) has none of that. Cleared by [consumeReopenRequest] so a tab
+     * switch back to Send does not reload the same picture over the operator's
+     * subsequent edits.
+     */
+    var pendingReopen: SavedImage? by mutableStateOf(null)
+        private set
+
+    /** Ask the composer to reopen [entry] the next time it composes. */
+    fun requestReopen(entry: SavedImage) {
+        pendingReopen = entry
+    }
+
+    /** Take the pending request, if any, and clear it. */
+    fun consumeReopenRequest(): SavedImage? {
+        val entry = pendingReopen
+        pendingReopen = null
+        return entry
+    }
 
     /**
      * What the composition looked like when defaults last seeded it — the

@@ -186,7 +186,17 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
                     onViewInGallery = { activeTab = SstvTab.GALLERY },
                 )
                 SstvTab.TX -> TxComposeScreen(mainViewModel)
-                SstvTab.GALLERY -> GalleryScreen(mainViewModel)
+                SstvTab.GALLERY -> GalleryScreen(
+                    mainViewModel,
+                    onSendAgain = { entry ->
+                        // Hand the picture to the composer and go there. The
+                        // composer decides whether it can be reopened as an
+                        // edit list or only loaded flat; the shell's job is
+                        // only to carry the request and switch tabs.
+                        mainViewModel.txComposerState.requestReopen(entry)
+                        activeTab = SstvTab.TX
+                    },
+                )
             }
         }
     }

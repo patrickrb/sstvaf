@@ -32,6 +32,12 @@ data class SavedImage(
     val complete: Boolean,
     val quality: Float,
     val notes: String,
+    /**
+     * The operator's edit list as JSON, or empty when none was recorded — a
+     * received image, or a row written before DB v21. See
+     * [radio.ks3ckc.sstvaf.ui.tx.TxEditList].
+     */
+    val edits: String = "",
 )
 
 /** Subdirectory of `filesDir` holding saved SSTV PNGs (see res/xml/filepaths.xml). */
@@ -86,6 +92,7 @@ internal fun imageMetadataValues(
     height: Int,
     complete: Boolean,
     quality: Float,
+    edits: String = "",
 ): ContentValues = ContentValues().apply {
     put("fileName", fileName)
     put("direction", direction.name)
@@ -97,6 +104,7 @@ internal fun imageMetadataValues(
     put("complete", if (complete) 1 else 0)
     put("quality", quality)
     put("notes", "")
+    put("edits", edits)
 }
 
 /** Maps a `sstv_images` cursor row back to a [SavedImage]. */
@@ -112,6 +120,13 @@ internal fun savedImageFromCursor(cursor: Cursor): SavedImage = SavedImage(
     complete = cursor.getInt(cursor.getColumnIndexOrThrow("complete")) != 0,
     quality = cursor.getFloat(cursor.getColumnIndexOrThrow("quality")),
     notes = cursor.getString(cursor.getColumnIndexOrThrow("notes")) ?: "",
+    // getColumnIndex, not getColumnIndexOrThrow: a database that upgraded
+    // mid-read, or any future build reading an older snapshot, must degrade to
+    // "no edits recorded" rather than throwing while the gallery is listing.
+    edits = cursor.getColumnIndex("edits")
+        .takeIf { it >= 0 }
+        ?.let { cursor.getString(it) }
+        ?: "",
 )
 
 /** DB text → direction; unknown text degrades to RX rather than crashing list(). */
@@ -172,6 +187,7 @@ class ReceivedImageStore @JvmOverloads constructor(
         direction: ImageDirection,
         complete: Boolean,
         quality: Float,
+        edits: String = "",
     ): SavedImage {
         require(pixels.size >= width * height) {
             "pixels too small: ${pixels.size} < ${width}x$height"
@@ -196,7 +212,7 @@ class ReceivedImageStore @JvmOverloads constructor(
 
         val values = imageMetadataValues(
             fileName, direction, mode.displayName, freqHz, utcMillis,
-            width, height, complete, quality,
+            width, height, complete, quality, edits,
         )
         val id = db.insert(SSTV_IMAGES_TABLE, null, values)
         if (id == -1L) {
@@ -225,6 +241,7 @@ class ReceivedImageStore @JvmOverloads constructor(
             complete = complete,
             quality = quality,
             notes = "",
+            edits = edits,
         )
     }
 

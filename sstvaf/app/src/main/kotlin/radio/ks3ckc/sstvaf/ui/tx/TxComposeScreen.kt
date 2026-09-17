@@ -231,13 +231,74 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
         }
     }
 
+    // A gallery picture the operator asked to reopen. Handled in an effect
+    // rather than inline so the bitmap decode happens off the composition, and
+    // keyed on the request itself so it runs once per tap.
+    val reopenRequest = composerState.pendingReopen
+    LaunchedEffect(reopenRequest?.id) {
+        val entry = composerState.consumeReopenRequest() ?: return@LaunchedEffect
+        val restored = parseEditList(entry.edits)
+        val sourceUri = restored?.sourceUri
+        // Prefer re-decoding the ORIGINAL source and replaying the edits: the
+        // saved PNG has the overlays burned in, so loading that and applying
+        // the list would draw every overlay twice. Falling back to the flat
+        // file is still useful — the operator gets the picture, just not an
+        // editable version of it.
+        val cardKind = cardKindFromUri(sourceUri)
+        val fromSource = when {
+            restored == null -> null
+            // A generated card has no file to decode: rebuild the gradient at
+            // the restored mode's size. This is the common path, since the
+            // one-tap cards are how most pictures get sent.
+            cardKind != null -> buildCardBitmap(
+                cardKind, restored.mode.width, restored.mode.height,
+            )
+            sourceUri != null -> withContext(Dispatchers.IO) {
+                runCatching {
+                    loadSourceBitmap(
+                        context.contentResolver,
+                        Uri.parse(sourceUri),
+                        restored.mode.width,
+                        restored.mode.height,
+                    )
+                }.getOrNull()
+            }
+            else -> null
+        }
+
+        if (fromSource != null && restored != null) {
+            composerState.setImage(fromSource, sourceUri.orEmpty())
+            composerState.composition = restored
+            tool = TxTool.TEXT
+            selectedOverlayId = restored.overlays.lastOrNull()?.id
+            restored.overlays.lastOrNull()?.let { draft = draft.matching(it) }
+        } else {
+            val flat = withContext(Dispatchers.IO) { loadSavedBitmap(store.imageFile(entry)) }
+            if (flat != null) {
+                composerState.setImage(flat, store.imageFile(entry).toString())
+                // No edit list to restore, so no overlays: they are already
+                // pixels in this file. Starting on Crop rather than Text says
+                // that honestly - there is no text here to edit.
+                composerState.composition = composerState.composition?.copy(
+                    overlays = emptyList(),
+                    paths = emptyList(),
+                    adjustments = ImageAdjustments(),
+                    frame = ImageFrame.NONE,
+                )
+                tool = TxTool.CROP
+                selectedOverlayId = null
+            }
+        }
+        justSent = false
+    }
+
     val callsign = GeneralVariables.myCallsign.orEmpty().trim().uppercase()
     val grid = GeneralVariables.getMyMaidenheadGrid().orEmpty()
 
     /** Load a text-only card: a generated gradient plus its starting overlays. */
     val loadCard: (TxCardKind) -> Unit = { kind ->
         val bitmap = buildCardBitmap(kind, composition.mode.width, composition.mode.height)
-        composerState.setImage(bitmap, "card:" + kind.name)
+        composerState.setImage(bitmap, cardSourceUri(kind))
         composerState.composition = composerState.composition?.copy(
             overlays = when (kind) {
                 TxCardKind.CQ -> cqCardOverlays(callsign)
@@ -553,6 +614,9 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                     mainViewModel.receivedImageStore.save(
                         p, w, h, m, utc, freq,
                         ImageDirection.TX, complete = true, quality = 1f,
+                        // The edit list travels with the picture so it can be
+                        // reopened later, not just re-sent flat.
+                        edits = TxEditList.serialize(composition),
                     )
                 },
                 log = { GeneralVariables.fileLog(it) },

@@ -68,7 +68,6 @@ import radio.ks3ckc.sstvaf.theme.TextFaint
 import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
 import radio.ks3ckc.sstvaf.ui.components.EmptyStateWaves
-import radio.ks3ckc.sstvaf.ui.components.FilterChips
 
 /**
  * The Gallery tab: a grid of saved SSTV images (received today; transmitted
@@ -78,7 +77,10 @@ import radio.ks3ckc.sstvaf.ui.components.FilterChips
  * wrapper over [radio.ks3ckc.sstvaf.gallery.ReceivedImageStore].
  */
 @Composable
-fun GalleryScreen(mainViewModel: MainViewModel) {
+fun GalleryScreen(
+    mainViewModel: MainViewModel,
+    onSendAgain: (SavedImage) -> Unit = {},
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val store = mainViewModel.receivedImageStore
@@ -137,11 +139,12 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
     ) {
         // Title comes from the app shell's header ([AppHeader]).
 
-        FilterChips(
-            options = GalleryFilter.entries,
+        GallerySegmentedControl(
+            options = GalleryFilter.entries.toList(),
             selected = filter,
             label = { filterLabels.getValue(it) },
             onSelected = { filter = it },
+            modifier = Modifier.padding(horizontal = 16.dp),
         )
 
         // Search only makes sense once there is history to search; while the
@@ -210,6 +213,13 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
         entry = viewerEntry,
         imageFile = viewerEntry?.let { store.imageFile(it) },
         onDismiss = { viewerVisible = false },
+        onSendAgain = { entry ->
+            // The sheet closes on the way out: the composer is a different tab,
+            // and a sheet left open behind the navigation would still be there
+            // when the operator came back.
+            viewerVisible = false
+            onSendAgain(entry)
+        },
         onShare = { entry ->
             shareImage(
                 context,

@@ -109,6 +109,34 @@ internal fun cardGradientArgb(kind: TxCardKind): Pair<Int, Int> = when (kind) {
 internal enum class TxCardKind { CQ, GRID }
 
 /**
+ * The URI scheme a generated card records as its source.
+ *
+ * A card has no file behind it: the gradient is generated at mode size on
+ * demand. Recording a scheme rather than a path means "Send again" can
+ * regenerate it, which matters because the one-tap card is the commonest way
+ * a picture gets sent — without this, reopening a card would silently fall
+ * back to its flattened PNG and the operator would find the text no longer
+ * editable.
+ */
+internal const val CARD_URI_SCHEME = "sstvcard"
+
+/** The source URI recorded for a generated [kind] card. */
+internal fun cardSourceUri(kind: TxCardKind): String = CARD_URI_SCHEME + ":" + kind.name
+
+/**
+ * The card a source URI refers to, or null when it is an ordinary photo.
+ * An unknown card name yields null so a future card kind degrades to the
+ * flattened-image fallback rather than crashing the restore.
+ */
+internal fun cardKindFromUri(uri: String?): TxCardKind? {
+    if (uri == null) return null
+    val prefix = CARD_URI_SCHEME + ":"
+    if (!uri.startsWith(prefix)) return null
+    val name = uri.removePrefix(prefix)
+    return TxCardKind.entries.firstOrNull { it.name == name }
+}
+
+/**
  * The caption on the "Last sent" row, e.g. "S1 · 14:02 · text kept, swap it".
  *
  * The trailing clause is the point of the row: it promises the overlays come
