@@ -664,7 +664,11 @@
     <string name="rx_status_listening">Listening</string>
     <!-- %1$s is the SSTV mode the decoder locked onto, e.g. "Scottie 1". -->
     <string name="rx_status_decoding">Decoding %1$s</string>
+    <string name="rx_status_off">Receive is off</string>
+    <!-- Decoding finished; the image has not been confirmed in the Gallery yet. -->
+    <string name="rx_status_complete">Image complete</string>
     <string name="rx_status_saved">Saved to Gallery</string>
+    <string name="rx_status_save_failed">Save failed</string>
     <string name="rx_status_lost">Signal lost</string>
     <!-- Right of the status row while idle: the operator picks no mode on receive. -->
     <string name="rx_status_auto_detect">auto-detect</string>

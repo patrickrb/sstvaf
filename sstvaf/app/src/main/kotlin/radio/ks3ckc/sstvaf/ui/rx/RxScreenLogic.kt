@@ -1,10 +1,14 @@
 package radio.ks3ckc.sstvaf.ui.rx
 
 import com.k1af.ft8af.R
+import radio.ks3ckc.sstvaf.gallery.ImageDirection
 import radio.ks3ckc.sstvaf.gallery.SavedImage
 import radio.ks3ckc.sstvaf.sstv.SstvMode
 import radio.ks3ckc.sstvaf.sstv.SstvRxState
 import java.text.SimpleDateFormat
+import java.time.Duration
+import java.time.Instant
+import java.time.ZoneId
 import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -157,26 +161,94 @@ internal fun showsPartialImage(state: SstvRxState.Aborted): Boolean =
  * picture would be premature.
  */
 internal enum class RxStatusKind {
-    /** Waiting for a transmission, or receive switched off. */
+    /** The operator switched receive off. Nothing is being listened for. */
+    OFF,
+
+    /** Waiting for a transmission. */
     LISTENING,
 
     /** Rows are arriving. */
     DECODING,
 
-    /** A full image finished and was saved. */
+    /** A full image finished decoding; persistence has not reported yet. */
+    COMPLETE,
+
+    /** A full image finished and the store confirmed it was written. */
     SAVED,
+
+    /** A full image finished but saving it failed — nothing reached the Gallery. */
+    SAVE_FAILED,
 
     /** Signal lost mid-picture. */
     LOST,
 }
 
-/** Engine state → status card. */
-internal fun rxStatusKind(state: SstvRxState): RxStatusKind = when (state) {
-    is SstvRxState.Idle, is SstvRxState.Leader -> RxStatusKind.LISTENING
-    is SstvRxState.Decoding -> RxStatusKind.DECODING
-    is SstvRxState.Complete -> RxStatusKind.SAVED
-    is SstvRxState.Aborted -> RxStatusKind.LOST
+/**
+ * What persistence has reported about the decode that just finished.
+ *
+ * Separate from [SstvRxState] because the two are genuinely separate events:
+ * [SstvRxState.Complete] means the *decoder* stopped, while the image is
+ * written by [radio.ks3ckc.sstvaf.gallery.RxAutoSaveController] on its own
+ * thread afterwards — and that save can be skipped (`frameAvailable = false`)
+ * or fail outright, in which case nothing ever reaches the Gallery.
+ */
+internal enum class RxSaveState {
+    /** No completed decode to save, or the save was never started. */
+    NONE,
+
+    /** A save is in flight. */
+    PENDING,
+
+    /** The store confirmed the write. */
+    SAVED,
+
+    /** The save threw; the image is lost. */
+    FAILED,
 }
+
+/**
+ * Engine state + the receive switch + persistence → status card.
+ *
+ * Three inputs, not one. `rxEnabled` is here because
+ * [radio.ks3ckc.sstvaf.sstv.SstvSignalListener.setEnabled] only stops feeding
+ * the decoder — it publishes no new `rxState` — so a switched-off receiver
+ * sits on its last state and would otherwise keep claiming to be "Listening",
+ * with a pulsing dot, while the canvas says receive is off. [RxSaveState] is
+ * here because a finished decode is not a saved image: see [RxSaveState].
+ */
+internal fun rxStatusKind(
+    state: SstvRxState,
+    receiveEnabled: Boolean,
+    saveState: RxSaveState,
+): RxStatusKind = when {
+    !receiveEnabled -> RxStatusKind.OFF
+    state is SstvRxState.Decoding -> RxStatusKind.DECODING
+    state is SstvRxState.Complete -> when (saveState) {
+        RxSaveState.SAVED -> RxStatusKind.SAVED
+        RxSaveState.FAILED -> RxStatusKind.SAVE_FAILED
+        RxSaveState.NONE, RxSaveState.PENDING -> RxStatusKind.COMPLETE
+    }
+    state is SstvRxState.Aborted -> RxStatusKind.LOST
+    else -> RxStatusKind.LISTENING
+}
+
+/**
+ * Whether the status dot animates. A receiver that is switched off is not
+ * doing anything, and a lost signal is a finished failure — neither should
+ * imply ongoing activity.
+ */
+internal fun rxStatusPulses(kind: RxStatusKind): Boolean =
+    kind != RxStatusKind.OFF && kind != RxStatusKind.LOST
+
+/**
+ * Whether the canvas earns its "Saved ✓" badge.
+ *
+ * Only on a confirmed write. The badge is a promise that the picture is in the
+ * Gallery, so deriving it from decoder completion made it lie whenever the
+ * frame snapshot failed or the asynchronous save threw.
+ */
+internal fun rxShowsSavedBadge(state: SstvRxState, saveState: RxSaveState): Boolean =
+    state is SstvRxState.Complete && saveState == RxSaveState.SAVED
 
 /**
  * The card's right-hand readout.
@@ -187,7 +259,8 @@ internal fun rxStatusKind(state: SstvRxState): RxStatusKind = when (state) {
  * picture; a finished decode shows how long the picture took, which is the
  * number an operator compares against the mode they expected.
  */
-internal fun rxStatusRightLabel(state: SstvRxState): String? = when (state) {
+internal fun rxStatusRightLabel(state: SstvRxState, receiveEnabled: Boolean): String? =
+    if (!receiveEnabled) null else when (state) {
     is SstvRxState.Idle, is SstvRxState.Leader -> null
     is SstvRxState.Decoding ->
         formatRxEta(rxSecondsRemaining(state.rowsReady, state.totalRows, state.mode.txDurationSeconds))
@@ -246,7 +319,11 @@ internal fun rxSlantLabel(state: SstvRxState): String = when (state) {
  * previous decode.
  */
 internal fun rxShowsCanvasImage(state: SstvRxState): Boolean = when (state) {
-    is SstvRxState.Decoding, is SstvRxState.Complete -> true
+    is SstvRxState.Decoding -> true
+    // frameAvailable = false means the row read failed and nothing was
+    // snapshotted, so LastDecodedImage.frame still holds the PREVIOUS decode.
+    // Showing it would present a stale picture as the one that just finished.
+    is SstvRxState.Complete -> state.frameAvailable
     is SstvRxState.Aborted -> showsPartialImage(state)
     else -> false
 }
@@ -300,10 +377,13 @@ internal fun rxRecentCaption(entry: SavedImage): String {
  * arriving, since they never chose it. The other three take no arguments; see
  * [rxStatusLabelTakesMode].
  */
-internal fun rxStatusLabelRes(state: SstvRxState): Int = when (rxStatusKind(state)) {
+internal fun rxStatusLabelRes(kind: RxStatusKind): Int = when (kind) {
+    RxStatusKind.OFF -> R.string.rx_status_off
     RxStatusKind.LISTENING -> R.string.rx_status_listening
     RxStatusKind.DECODING -> R.string.rx_status_decoding
+    RxStatusKind.COMPLETE -> R.string.rx_status_complete
     RxStatusKind.SAVED -> R.string.rx_status_saved
+    RxStatusKind.SAVE_FAILED -> R.string.rx_status_save_failed
     RxStatusKind.LOST -> R.string.rx_status_lost
 }
 
@@ -313,5 +393,65 @@ internal fun rxStatusLabelRes(state: SstvRxState): Int = when (rxStatusKind(stat
  * pass an argument to a string that has no placeholder (which silently formats
  * to the bare text) or omit one from the string that does.
  */
-internal fun rxStatusLabelTakesMode(state: SstvRxState): Boolean =
-    rxStatusKind(state) == RxStatusKind.DECODING
+internal fun rxStatusLabelTakesMode(kind: RxStatusKind): Boolean =
+    kind == RxStatusKind.DECODING
+
+// ---------------------------------------------------------------------------
+// "Received today" strip
+// ---------------------------------------------------------------------------
+
+/**
+ * The saved images the "RECEIVED TODAY" strip should show: received (not
+ * transmitted), dated today in the operator's own time zone, newest first,
+ * capped at [RX_RECENT_LIMIT].
+ *
+ * The heading is a promise the list has to keep. Filtering only by direction
+ * meant the strip showed whatever the last four RX images were — a week old,
+ * a year old — and kept showing yesterday's pictures after local midnight
+ * because nothing re-evaluated the day.
+ *
+ * "Today" is the operator's local calendar day, not a rolling 24 hours: the
+ * strip sits next to a UTC-stamped log, and an operator reading "today" means
+ * the day they are having.
+ */
+internal fun rxImagesReceivedToday(
+    images: List<SavedImage>,
+    nowMillis: Long,
+    zone: ZoneId,
+    limit: Int = RX_RECENT_LIMIT,
+): List<SavedImage> {
+    val today = Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate()
+    return images
+        .filter { it.direction == ImageDirection.RX }
+        .filter { Instant.ofEpochMilli(it.utcMillis).atZone(zone).toLocalDate() == today }
+        .sortedByDescending { it.utcMillis }
+        .take(limit)
+}
+
+/**
+ * Milliseconds from [nowMillis] until the next local midnight — when the strip
+ * has to re-evaluate "today" or it will keep yesterday's pictures on screen
+ * for a receiver left running overnight.
+ *
+ * Always strictly positive, so a caller using it as a delay cannot spin: at
+ * exactly midnight the answer is a whole day, not zero.
+ */
+internal fun rxMillisUntilNextLocalDay(nowMillis: Long, zone: ZoneId): Long {
+    val now = Instant.ofEpochMilli(nowMillis).atZone(zone)
+    val nextMidnight = now.toLocalDate().plusDays(1).atStartOfDay(zone)
+    return Duration.between(now, nextMidnight).toMillis().coerceAtLeast(1L)
+}
+
+/**
+ * The tallest the receive canvas may be, in dp, for a screen [screenHeightDp]
+ * tall.
+ *
+ * The canvas is a full-width 4:3 box, so on a wide-but-short canvas — a phone
+ * in landscape, or the tablet rail layout — its natural height is most of the
+ * screen and the status card and the "received today" strip get measured out
+ * of existence below it. This caps it at just over half the height so the rest
+ * of the screen keeps room, with a floor so a very short window still shows a
+ * usable picture rather than a sliver (the screen scrolls in that case).
+ */
+internal fun rxCanvasMaxHeightDp(screenHeightDp: Int): Int =
+    (screenHeightDp * 0.56f).roundToInt().coerceAtLeast(140)
