@@ -71,8 +71,17 @@
     <!-- ===== App header (every tab) ===== -->
     <string name="action_back">Back</string>
     <!-- Frequency chip content description. %1$s is the chip's own label, e.g.
-         "14.230 · 20m". -->
-    <string name="header_frequency_chip_description">Frequency %1$s, tap to change</string>
+         "14.230 · 20m"; %2$s is the CAT link state, which the chip otherwise
+         shows only as a coloured dot. -->
+    <string name="header_frequency_chip_description">Frequency %1$s, %2$s, tap to change</string>
+    <!-- CAT link state. Reads as one segment of a "IC-705 · USB cable · CAT ·
+         connected" summary as well as inside the chip description above, so
+         these stay lowercase phrases. -->
+    <string name="cat_state_connected">connected</string>
+    <string name="cat_state_connecting">connecting</string>
+    <string name="cat_state_disconnected">not connected</string>
+    <string name="cat_state_error">connection error</string>
+    <string name="cat_state_vox">no CAT link</string>
     <string name="header_more_description">More: radio, operator, logbook, settings</string>
 
     <!-- ===== More sheet (header overflow) ===== -->

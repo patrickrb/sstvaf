@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.annotation.StringRes
 import com.k1af.ft8af.R
 import com.k1af.ft8af.database.ControlMode
 import com.k1af.ft8af.rigs.CatConnectionState
@@ -58,6 +59,7 @@ fun AppHeader(
     title: String,
     frequencyLabel: String,
     catDotColor: Color,
+    catStateDescription: String,
     onOpenFrequency: () -> Unit,
     onOpenMore: () -> Unit,
     modifier: Modifier = Modifier,
@@ -83,10 +85,19 @@ fun AppHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // The chip carries the weight, not the button. A Row measures its
+            // unweighted children first against the whole available width, so an
+            // unweighted chip — at a large accessibility font scale its label can
+            // outgrow this half of the header on its own — would consume the row
+            // and leave MoreButton measured at zero width: an overflow control
+            // that is invisible and untappable. Weighted, the chip gets only what
+            // is left after the fixed 34dp button is reserved, and ellipsizes.
             FrequencyChip(
                 label = frequencyLabel,
                 dotColor = catDotColor,
+                catStateDescription = catStateDescription,
                 onClick = onOpenFrequency,
+                modifier = Modifier.weight(1f, fill = false),
             )
             MoreButton(onClick = onOpenMore)
         }
@@ -118,11 +129,19 @@ private fun HeaderTitle(title: String, modifier: Modifier = Modifier) {
 private fun FrequencyChip(
     label: String,
     dotColor: Color,
+    catStateDescription: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val description = stringResource(R.string.header_frequency_chip_description, label)
+    // The CAT state goes in the description, not just the dot: colour is the
+    // chip's only visual indication of the link, so without it TalkBack cannot
+    // tell connected from connecting, disconnected or errored — and neither can
+    // a sighted operator who cannot distinguish the dot's green from its amber.
+    val description = stringResource(
+        R.string.header_frequency_chip_description, label, catStateDescription,
+    )
     Row(
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(999.dp))
             .background(BgSurface2)
             .border(1.dp, Border, RoundedCornerShape(999.dp))
@@ -209,6 +228,32 @@ internal fun frequencyChipLabel(freqHz: Long, bandName: String): String {
  * purpose. This is the same state vocabulary as [CatStatusChip], which is why
  * both read from [CatConnectionState] rather than each inventing a status.
  */
+/**
+ * The string resource naming the CAT link's state, e.g. `"connected"`.
+ *
+ * The text counterpart of [headerCatDotColor], and deliberately the same
+ * vocabulary: the dot's colour and this phrase are two renderings of one state,
+ * so they are decided by two functions reading the same inputs rather than
+ * drifting apart. VOX reports "no CAT link" rather than "not connected" for the
+ * same reason the dot goes muted instead of red — an audio-only setup has no
+ * control link to be disconnected from.
+ *
+ * Lowercase because it is read both as a clause inside the chip's content
+ * description and as one `·`-separated segment of the radio summary line.
+ */
+@StringRes
+internal fun catStateDescriptionRes(controlMode: Int, state: CatConnectionState): Int =
+    if (controlMode == ControlMode.VOX) {
+        R.string.cat_state_vox
+    } else {
+        when (state) {
+            CatConnectionState.CONNECTED -> R.string.cat_state_connected
+            CatConnectionState.CONNECTING -> R.string.cat_state_connecting
+            CatConnectionState.ERROR -> R.string.cat_state_error
+            CatConnectionState.DISCONNECTED -> R.string.cat_state_disconnected
+        }
+    }
+
 internal fun headerCatDotColor(controlMode: Int, state: CatConnectionState): Color =
     if (controlMode == ControlMode.VOX) {
         TextMuted
