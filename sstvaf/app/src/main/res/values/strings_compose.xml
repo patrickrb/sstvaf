@@ -748,6 +748,82 @@
     <string name="tx_overlay_remove">Remove</string>
     <string name="tx_overlay_save">Save</string>
     <string name="tx_overlay_text_label">Text</string>
+    <!-- ===== TX composer: tool rail ===== -->
+    <string name="tx_tool_crop">Crop</string>
+    <string name="tx_tool_text">Text</string>
+    <string name="tx_tool_callsign">Callsign</string>
+    <string name="tx_tool_frame">Frame</string>
+    <string name="tx_tool_adjust">Adjust</string>
+    <string name="tx_tool_draw">Draw</string>
+
+    <!-- ===== TX composer: canvas ===== -->
+    <string name="tx_change_photo_pill">Change</string>
+    <string name="tx_overlay_delete_description">Remove the selected text</string>
+    <string name="tx_transmit_action">Transmit</string>
+
+    <!-- ===== TX composer: empty state ===== -->
+    <string name="tx_choose_photo">Choose a photo</string>
+    <string name="tx_choose_photo_sub">Cropped to the SSTV frame \u00b7 you can move it after</string>
+    <string name="tx_card_cq">CQ card</string>
+    <string name="tx_card_cq_headline">CQ SSTV</string>
+    <!-- %1$s is the operator\'s callsign. -->
+    <string name="tx_card_cq_sub">de %1$s</string>
+    <string name="tx_card_grid">Grid card</string>
+    <string name="tx_last_sent">Last sent</string>
+    <!-- Trailing clause of the Last sent caption: the picture comes back ready to edit. -->
+    <string name="tx_last_sent_note">tap to start from it</string>
+
+    <!-- ===== TX composer: crop tool ===== -->
+    <string name="tx_crop_hint">Drag the picture to reposition it. Slide to zoom.</string>
+    <string name="tx_zoom_min">1\u00d7</string>
+    <string name="tx_zoom_max">2.5\u00d7</string>
+    <string name="tx_crop_reset">Reset</string>
+    <string name="tx_crop_fill">Fill frame</string>
+
+    <!-- ===== TX composer: text tool ===== -->
+    <string name="tx_text_placeholder">Type, then drag it on the picture</string>
+    <string name="tx_text_add">Add</string>
+    <string name="tx_text_done">Done</string>
+    <string name="tx_text_hint_selected">Editing the selected text \u2014 drag it to move, \u2715 to remove.</string>
+    <string name="tx_text_hint_tap">Tap text on the picture to edit it.</string>
+    <string name="tx_text_hint_bar">Bar style is easiest to read through noise.</string>
+    <string name="tx_size_small">S</string>
+    <string name="tx_size_medium">M</string>
+    <string name="tx_size_large">L</string>
+    <string name="tx_style_bar">Bar</string>
+    <string name="tx_style_outline">Outline</string>
+
+    <!-- ===== TX composer: callsign tool ===== -->
+    <!-- %1$s is the operator\'s callsign, from Settings. -->
+    <string name="tx_callsign_prompt">Stamp %1$s \u2014 pick a spot</string>
+    <string name="tx_callsign_source">from Settings</string>
+    <string name="tx_callsign_unset">Set your callsign in Settings first — the stamp uses it.</string>
+    <string name="tx_preset_top_left">Top left</string>
+    <string name="tx_preset_top_center">Top bar</string>
+    <string name="tx_preset_top_right">Top right</string>
+    <string name="tx_preset_bottom_left">Bottom left</string>
+    <string name="tx_preset_bottom_center">Bottom bar</string>
+    <string name="tx_preset_bottom_right">Bottom right</string>
+
+    <!-- ===== TX composer: frame tool ===== -->
+    <string name="tx_frame_none">None</string>
+    <string name="tx_frame_thin">Thin</string>
+    <string name="tx_frame_bold">Bold</string>
+    <string name="tx_frame_amber">Amber</string>
+    <string name="tx_frame_hint">Frames are burned into the picture, so they survive the trip.</string>
+
+    <!-- ===== TX composer: adjust tool ===== -->
+    <string name="tx_adjust_brightness">Brightness</string>
+    <string name="tx_adjust_contrast">Contrast</string>
+    <string name="tx_adjust_saturation">Saturation</string>
+    <string name="tx_adjust_reset">Reset</string>
+    <string name="tx_adjust_hint">A little extra contrast reads better over the air.</string>
+
+    <!-- ===== TX composer: draw tool ===== -->
+    <string name="tx_draw_hint">Draw on the picture with your finger.</string>
+    <string name="tx_draw_undo">Undo</string>
+    <string name="tx_draw_clear">Clear</string>
+
     <!-- ===== SSTV mode sheet ===== -->
     <string name="mode_sheet_title">SSTV mode</string>
     <!-- Right of the sheet title: receive needs no mode, only transmit does. -->
