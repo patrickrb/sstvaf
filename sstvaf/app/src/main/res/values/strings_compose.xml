@@ -742,6 +742,24 @@
     <string name="tx_overlay_remove">Remove</string>
     <string name="tx_overlay_save">Save</string>
     <string name="tx_overlay_text_label">Text</string>
+    <!-- ===== SSTV mode sheet ===== -->
+    <string name="mode_sheet_title">SSTV mode</string>
+    <!-- Right of the sheet title: receive needs no mode, only transmit does. -->
+    <string name="mode_sheet_rx_note">receive auto-detects</string>
+    <string name="mode_group_fast">FAST · UNDER A MINUTE</string>
+    <string name="mode_group_standard">STANDARD</string>
+    <string name="mode_group_high_resolution">HIGH RESOLUTION</string>
+    <!-- Appended after a mode's dimensions; only Scottie 1 carries a note. -->
+    <string name="mode_note_most_common">most common on 20m</string>
+    <string name="mode_card_label">MODE</string>
+    <!-- Mode card content description. %1$s is the current mode, e.g. "Scottie 1". -->
+    <string name="mode_card_description">SSTV mode %1$s</string>
+    <!-- Names the card's tap ACTION; the card itself is described by
+         mode_card_description above. -->
+    <string name="mode_card_action">Change SSTV mode</string>
+    <!-- Mode row content description. %1$s mode name, %2$s dimensions, %3$s duration. -->
+    <string name="mode_row_description">%1$s, %2$s, %3$s</string>
+
     <string name="tx_transmit_button" translatable="false">TRANSMIT</string>
     <string name="tx_gate_no_image">Pick a picture first</string>
     <string name="tx_gate_tune_active">Stop Tune before transmitting</string>
