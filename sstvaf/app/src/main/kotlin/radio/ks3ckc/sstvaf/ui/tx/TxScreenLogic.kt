@@ -434,3 +434,16 @@ internal fun modeSubLabel(mode: SstvMode, note: String?): String {
     val trimmed = note?.trim().orEmpty()
     return if (trimmed.isEmpty()) dimensions else "$dimensions · $trimmed"
 }
+
+/**
+ * The confirm sheet's frequency line, e.g. `"14.230 MHz · 20m"`.
+ *
+ * Both the dial and the band, unlike the header chip which drops the unit for
+ * space. This is the sheet where an operator is about to tie up a frequency,
+ * so it says exactly which one in full.
+ */
+internal fun confirmFrequencyLine(freqHz: Long, bandLabel: String): String {
+    val mhz = String.format(Locale.US, "%.3f MHz", freqHz / 1_000_000.0)
+    val band = bandLabel.trim()
+    return if (band.isEmpty()) mhz else "$mhz · $band"
+}

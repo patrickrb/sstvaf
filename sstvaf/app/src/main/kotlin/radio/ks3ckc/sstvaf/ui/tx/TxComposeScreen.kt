@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import com.k1af.ft8af.GeneralVariables
 import com.k1af.ft8af.MainViewModel
 import com.k1af.ft8af.R
+import com.k1af.ft8af.rigs.BaseRigOperation
 import com.k1af.ft8af.transmit.PttController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -117,6 +118,11 @@ fun TxComposeScreen(mainViewModel: MainViewModel) {
     // view-model-scoped composer state because these are not part of the
     // picture - the composition is what gets transmitted, this is just where
     // the operator's hands are (see TxEditorDraft).
+    // The transmission just finished and the operator has not chosen what next.
+    // Tracked here rather than derived from the transmitter, which goes back to
+    // idle the instant the audio stops - there would be no state left to show
+    // the confirmation from.
+    var justSent by remember { mutableStateOf(false) }
     var tool by remember { mutableStateOf(TxTool.CROP) }
     var selectedOverlayId by remember { mutableStateOf<String?>(null) }
     var draft by remember { mutableStateOf(TxEditorDraft()) }
@@ -124,6 +130,17 @@ fun TxComposeScreen(mainViewModel: MainViewModel) {
     val isTransmitting by mainViewModel.sstvTransmitter.isTransmitting.observeAsState(false)
     val txProgress by mainViewModel.sstvTransmitter.txProgress.observeAsState(0f)
     val isTuning by mainViewModel.tuneOperator.mutableIsTuning.observeAsState(false)
+
+    // A transmission ending raises the sent confirmation. Keyed on the
+    // transitions of isTransmitting rather than on progress reaching 1.0: a
+    // cancelled transmission also ends, and the operator needs the same
+    // "what next" prompt either way rather than being dropped back into an
+    // editor with no sign anything happened.
+    var wasTransmitting by remember { mutableStateOf(false) }
+    LaunchedEffect(isTransmitting) {
+        if (wasTransmitting && !isTransmitting) justSent = true
+        wasTransmitting = isTransmitting
+    }
 
     // Load a picked/captured image into the composer state (resets the crop,
     // recycles the photo it replaces). Shared by the photo picker and the
@@ -298,6 +315,20 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                 tool = tool,
                 selectedOverlayId = selectedOverlayId,
                 editable = !isTransmitting,
+                transmitting = isTransmitting,
+                transmitProgress = txProgress,
+                done = justSent,
+                onEditAgain = {
+                    // Everything survives: the composition was never cleared,
+                    // so this is just dismissing the confirmation.
+                    justSent = false
+                },
+                onNewPicture = {
+                    justSent = false
+                    composerState.clearImage()
+                    selectedOverlayId = null
+                    tool = TxTool.CROP
+                },
                 onPanBy = { dxFraction, dyFraction ->
                     composerState.composition = composition.copy(
                         panX = panStep(composition.panX, dxFraction, composition.zoom),
@@ -450,14 +481,20 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            ModeCard(
-                mode = composition.mode,
-                enabled = !isTransmitting,
-                onClick = { showModeSheet = true },
-                modifier = Modifier.width(118.dp),
-            )
+            // The mode card steps aside while keyed: the amber panel needs the
+            // width, and the mode is fixed for the duration of a transmission
+            // anyway - it is encoded into the audio already playing.
+            if (!isTransmitting) {
+                ModeCard(
+                    mode = composition.mode,
+                    enabled = true,
+                    onClick = { showModeSheet = true },
+                    modifier = Modifier.width(118.dp),
+                )
+            }
             if (isTransmitting) {
-                TxProgressPanel(
+                TxTransmitPanel(
+                    mode = composition.mode,
                     progress = txProgress,
                     totalSeconds = totalTxDurationSeconds(
                         composition.mode, cwTailSeconds, voxPreToneSeconds,
@@ -493,6 +530,9 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
     TxConfirmSheet(
         visible = showConfirmSheet,
         mode = composition.mode,
+        preview = preview,
+        txLevelPercent = (GeneralVariables.volumePercent * 100).toInt(),
+        bandLabel = BaseRigOperation.getMeterFromFreq(GeneralVariables.band).orEmpty(),
         cwTailSeconds = cwTailSeconds,
         voxPreToneSeconds = voxPreToneSeconds,
         onDismiss = { showConfirmSheet = false },
@@ -594,51 +634,4 @@ private fun TransmitButton(
     }
 }
 
-/**
- * Progress bar + elapsed/total + cancel, shown while the rig is keyed.
- * [totalSeconds] is the full on-air duration (image scan + any CW ID tail),
- * matching the transmitter's progress ticker so elapsed/total stays accurate
- * through the CW station-ID tail.
- */
-@Composable
-private fun TxProgressPanel(
-    progress: Float,
-    totalSeconds: Double,
-    onCancel: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        LinearProgressIndicator(
-            progress = { progress.coerceIn(0f, 1f) },
-            color = StatusWarn,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = txElapsedLabel(progress, totalSeconds),
-            color = TextPrimary,
-            fontSize = 13.sp,
-            fontFamily = GeistMonoFamily,
-        )
-        Spacer(Modifier.height(2.dp))
-        // Plain-language countdown of transmit time left, mirroring the RX
-        // decode ETA — "how much longer is the rig keyed" at a glance.
-        Text(
-            text = stringResource(
-                R.string.tx_remaining_format,
-                txRemainingLabel(progress, totalSeconds),
-            ),
-            color = TextMuted,
-            fontSize = 11.sp,
-            fontFamily = GeistMonoFamily,
-        )
-        Spacer(Modifier.height(10.dp))
-        OutlinedButton(onClick = onCancel) {
-            Text(stringResource(R.string.tx_cancel_button), color = StatusWarn)
-        }
-    }
-}
 
