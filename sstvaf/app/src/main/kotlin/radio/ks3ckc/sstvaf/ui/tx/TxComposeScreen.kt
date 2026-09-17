@@ -80,6 +80,7 @@ import radio.ks3ckc.sstvaf.ui.components.SstvAfIcons
 import java.util.Locale
 import radio.ks3ckc.sstvaf.sstv.TxOutcome
 import radio.ks3ckc.sstvaf.sstv.TxImageWindow
+import java.io.File
 
 /**
  * The TX composer tab: pick a photo, crop it into the selected SSTV mode's
@@ -256,7 +257,14 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
     // keyed on the request itself so it runs once per tap.
     val reopenRequest = composerState.pendingReopen
     LaunchedEffect(reopenRequest?.id) {
-        val entry = composerState.consumeReopenRequest() ?: return@LaunchedEffect
+        // Read the request without consuming it. Consuming here set
+        // pendingReopen to null, which changed this effect's own key, so a
+        // recomposition during either of the suspending loads below cancelled
+        // the effect after the request had already been taken - and the
+        // composer was left showing the previous picture with nothing pending
+        // to retry. It is consumed at the end instead, once the load has
+        // actually landed.
+        val entry = reopenRequest ?: return@LaunchedEffect
         val restored = parseEditList(entry.edits)
         val sourceUri = restored?.sourceUri
         // Prefer re-decoding the ORIGINAL source and replaying the edits: the
@@ -299,7 +307,14 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                 // No edit list to restore, so no overlays: they are already
                 // pixels in this file. Starting on Crop rather than Text says
                 // that honestly - there is no text here to edit.
+                //
+                // The mode comes from the row. setImage keeps whatever mode was
+                // selected, so without this a saved Scottie 1 picture reopened
+                // while the composer happened to be on Robot 36 would be
+                // cropped and transmitted at the wrong geometry.
+                val savedMode = SstvMode.entries.firstOrNull { it.displayName == entry.mode }
                 composerState.composition = composerState.composition?.copy(
+                    mode = savedMode ?: composerState.composition?.mode ?: composition.mode,
                     overlays = emptyList(),
                     paths = emptyList(),
                     adjustments = ImageAdjustments(),
@@ -310,6 +325,9 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
             }
         }
         outcome = null
+        // Only now: the load has landed, so a cancellation before this point
+        // leaves the request pending and the next composition retries it.
+        composerState.consumeReopenRequest()
     }
 
     // Locale.ROOT, not the default locale: a callsign is a protocol
@@ -660,6 +678,34 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
             val composite = preview ?: return@TxConfirmSheet
             val pixels = IntArray(composite.width * composite.height)
             composite.getPixels(pixels, 0, composite.width, 0, 0, composite.width, composite.height)
+            // A camera capture lives in cacheDir/camera_captures, which is
+            // throwaway staging the system may evict whenever it likes. An edit
+            // list pointing there would outlive the picture it describes, and
+            // "Send again" would silently fall back to the flattened image. Copy
+            // it somewhere durable first and record that instead. Gallery-picked
+            // photos already live in the media store and are left alone.
+            val durableComposition = composerState.composition?.let { current ->
+                if (!isCameraStagedSource(current.sourceUri)) {
+                    current
+                } else {
+                    val staged = current.sourceUri?.let { runCatching { File(Uri.parse(it).path!!) }.getOrNull() }
+                    val copied = staged?.takeIf { it.isFile }?.let { file ->
+                        runCatching {
+                            val dest = durableSourceFile(context.filesDir, System.currentTimeMillis())
+                            file.copyTo(dest, overwrite = true)
+                            dest
+                        }.getOrNull()
+                    }
+                    if (copied == null) {
+                        // Nothing durable to point at: drop the source so the
+                        // reopen takes the honest flattened-image path rather
+                        // than a URI that will not resolve.
+                        current.copy(sourceUri = null)
+                    } else {
+                        current.copy(sourceUri = Uri.fromFile(copied).toString())
+                    }
+                }
+            }
             performTransmit(
                 pixels = pixels,
                 width = composite.width,
@@ -674,7 +720,7 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                         ImageDirection.TX, complete = true, quality = 1f,
                         // The edit list travels with the picture so it can be
                         // reopened later, not just re-sent flat.
-                        edits = TxEditList.serialize(composition),
+                        edits = TxEditList.serialize(durableComposition ?: composition),
                     )
                 },
                 log = { GeneralVariables.fileLog(it) },

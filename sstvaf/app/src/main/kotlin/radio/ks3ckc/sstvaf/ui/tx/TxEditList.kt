@@ -130,9 +130,14 @@ object TxEditList {
             val overlayArray = root.optJSONArray(KEY_OVERLAYS)
             if (overlayArray != null) {
                 for (i in 0 until overlayArray.length()) {
-                    val item = overlayArray.optJSONObject(i) ?: continue
+                    // A malformed entry rejects the whole blob rather than
+                    // being skipped. Skipping returned a composition that
+                    // looked complete but was missing an overlay, so resending
+                    // silently dropped burned-in text; the flattened-image
+                    // fallback at least shows the operator what was sent.
+                    val item = overlayArray.optJSONObject(i) ?: return null
                     val id = item.optString(KEY_ID)
-                    if (id.isEmpty()) continue
+                    if (id.isEmpty()) return null
                     overlays.add(
                         TextOverlay(
                             id = id,

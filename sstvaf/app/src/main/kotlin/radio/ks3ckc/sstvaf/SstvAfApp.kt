@@ -63,6 +63,7 @@ import radio.ks3ckc.sstvaf.ui.rx.RxScreen
 import radio.ks3ckc.sstvaf.ui.settings.RadioAudioSettings
 import radio.ks3ckc.sstvaf.ui.settings.SettingsScreen
 import radio.ks3ckc.sstvaf.ui.tx.TxComposeScreen
+import radio.ks3ckc.sstvaf.gallery.ImageDirection
 
 /**
  * A full screen reached from the header's overflow sheet. These cover the whole
@@ -203,11 +204,18 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
                 SstvTab.GALLERY -> GalleryScreen(
                     mainViewModel,
                     onSendAgain = { entry ->
-                        // Hand the picture to the composer and go there. The
-                        // composer decides whether it can be reopened as an
-                        // edit list or only loaded flat; the shell's job is
-                        // only to carry the request and switch tabs.
-                        mainViewModel.txComposerState.requestReopen(entry)
+                        // A received picture and a sent one want opposite
+                        // things. "Send again" reopens the composition that
+                        // produced it. "Reply with a picture" means send
+                        // something of your own back, so loading the other
+                        // station's image into the composer is the one thing it
+                        // must not do - an RX row has no edit list anyway, so
+                        // the reopen path would land on its flattened PNG.
+                        if (entry.direction == ImageDirection.TX) {
+                            mainViewModel.txComposerState.requestReopen(entry)
+                        } else {
+                            mainViewModel.txComposerState.clearImage()
+                        }
                         activeTab = SstvTab.TX
                     },
                 )

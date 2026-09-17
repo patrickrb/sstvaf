@@ -146,11 +146,33 @@ class TxEditListTest {
     }
 
     @Test
-    fun `an overlay with no id is dropped`() {
-        // Ids are how overlays are edited and deleted; one without an id would
-        // be unreachable on the canvas.
+    fun `an overlay with no id rejects the whole edit list`() {
+        // Ids are how overlays are edited and deleted, so one without an id is
+        // unreachable on the canvas. Skipping it returned a composition that
+        // looked complete but was quietly missing a piece of text that had been
+        // transmitted; the flattened-image fallback at least shows the operator
+        // what actually went out.
         val json = """{"v":1,"mode":"SCOTTIE_1","overlays":[{"text":"orphan"}]}"""
-        assertThat(parseEditList(json)?.overlays).isEmpty()
+        assertThat(parseEditList(json)).isNull()
+    }
+
+    @Test
+    fun `a non-object overlay entry rejects the edit list`() {
+        val json = """{"v":1,"mode":"SCOTTIE_1","overlays":["not an object"]}"""
+        assertThat(parseEditList(json)).isNull()
+    }
+
+    @Test
+    fun `one bad overlay among good ones still rejects the list`() {
+        // Partial reconstruction is the failure mode being removed: the good
+        // overlays surviving is what made the loss invisible.
+        val json = """
+            {"v":1,"mode":"SCOTTIE_1","overlays":[
+              {"id":"t1","text":"KEPT"},
+              {"text":"no id"}
+            ]}
+        """.trimIndent()
+        assertThat(parseEditList(json)).isNull()
     }
 
     @Test

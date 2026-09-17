@@ -24,6 +24,7 @@ import radio.ks3ckc.sstvaf.theme.BgSurface
 import radio.ks3ckc.sstvaf.theme.BgSurface3
 import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
+import androidx.compose.foundation.selection.selectable
 
 /**
  * The gallery's All / Received / Sent filter, as one segmented pill.
@@ -52,23 +53,39 @@ internal fun GallerySegmentedControl(
     ) {
         for (option in options) {
             val isSelected = option == selected
+            // The 32dp pill is the visual; the touch target around it is
+            // 48dp. These are the three primary gallery filters, and a 32dp
+            // target is below the minimum anyone with a motor impairment can
+            // reliably hit.
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(32.dp)
+                    .height(48.dp)
                     .clip(RoundedCornerShape(999.dp))
-                    .background(if (isSelected) BgSurface3 else Color.Transparent)
-                    .clickable(role = Role.Tab) { onSelected(option) },
+                    .selectable(
+                        selected = isSelected,
+                        role = Role.Tab,
+                        onClick = { onSelected(option) },
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = label(option),
-                    color = if (isSelected) TextPrimary else TextMuted,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(32.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(if (isSelected) BgSurface3 else Color.Transparent),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = label(option),
+                        color = if (isSelected) TextPrimary else TextMuted,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }

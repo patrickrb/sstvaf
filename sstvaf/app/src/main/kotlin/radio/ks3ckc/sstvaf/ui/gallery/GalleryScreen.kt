@@ -68,6 +68,10 @@ import radio.ks3ckc.sstvaf.theme.TextFaint
 import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
 import radio.ks3ckc.sstvaf.ui.components.EmptyStateWaves
+import radio.ks3ckc.sstvaf.ui.tx.txSourcesDir
+import radio.ks3ckc.sstvaf.ui.tx.parseEditList
+import radio.ks3ckc.sstvaf.ui.tx.orphanedSourceNames
+import java.io.File
 
 /**
  * The Gallery tab: a grid of saved SSTV images (received today; transmitted
@@ -92,6 +96,25 @@ fun GalleryScreen(
     var images by remember { mutableStateOf<List<SavedImage>>(emptyList()) }
     LaunchedEffect(refreshKey) {
         images = withContext(Dispatchers.IO) { sortGalleryImages(store.list()) }
+    }
+
+    // Sweep durable TX sources no edit list refers to any more. Done here, off
+    // the list we have just loaded, rather than hooked to each row delete: a
+    // row's file name is generated inside the store, so there is nothing to
+    // derive a source path from at delete time, and a sweep also collects
+    // sources orphaned by a crash between the copy and the save.
+    LaunchedEffect(images) {
+        if (images.isEmpty()) return@LaunchedEffect
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val dir = txSourcesDir(context.filesDir)
+                val present = dir.listFiles()?.map { it.name }.orEmpty()
+                val referenced = images.mapNotNull { parseEditList(it.edits)?.sourceUri }
+                orphanedSourceNames(present, referenced).forEach { name ->
+                    File(dir, name).delete()
+                }
+            }
+        }
     }
 
     var filter by rememberSaveable { mutableStateOf(GalleryFilter.ALL) }
