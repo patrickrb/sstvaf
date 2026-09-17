@@ -198,24 +198,65 @@ class TxEditListTest {
     }
 
     @Test
-    fun `a path with an odd point count drops the stray value`() {
-        // Pairing a lone coordinate with a default would plant a point
-        // somewhere the operator never drew.
+    fun `a path with an odd point count rejects the edit list`() {
+        // Keeping the pairs and dropping the stray returned a drawing that
+        // differed from the flattened image already in the gallery, so a resend
+        // would transmit something the operator never drew.
         val json =
             """{"v":1,"mode":"SCOTTIE_1","paths":[{"color":-1,"w":0.01,"pts":[10,20,30]}]}"""
-        assertThat(parseEditList(json)?.paths?.single()?.points).hasSize(1)
+        assertThat(parseEditList(json)).isNull()
     }
 
     @Test
-    fun `a path with no usable points is dropped`() {
+    fun `an empty point array is still a valid empty stroke set`() {
+        // Distinct from a malformed one: nothing was lost, there is just
+        // nothing to draw.
         val json = """{"v":1,"mode":"SCOTTIE_1","paths":[{"color":-1,"w":0.01,"pts":[]}]}"""
         assertThat(parseEditList(json)?.paths).isEmpty()
     }
 
     @Test
-    fun `a path with no point array is dropped`() {
+    fun `a path with no point array rejects the edit list`() {
         val json = """{"v":1,"mode":"SCOTTIE_1","paths":[{"color":-1,"w":0.01}]}"""
-        assertThat(parseEditList(json)?.paths).isEmpty()
+        assertThat(parseEditList(json)).isNull()
+    }
+
+    @Test
+    fun `a non-object path entry rejects the edit list`() {
+        val json = """{"v":1,"mode":"SCOTTIE_1","paths":["nope"]}"""
+        assertThat(parseEditList(json)).isNull()
+    }
+
+    // ----- numeric hardening --------------------------------------------------
+
+    @Test
+    fun `an overlay size is clamped to what the ui can express`() {
+        // A negative or vast size reached TextPaint.textSize during the flatten
+        // and threw, so a corrupt blob crashed the composer rather than
+        // degrading to the flattened fallback.
+        val small = """{"v":1,"mode":"SCOTTIE_1","overlays":[{"id":"t1","size":-5}]}"""
+        assertThat(parseEditList(small)?.overlays?.single()?.sizeFraction)
+            .isEqualTo(OVERLAY_SIZE_SMALL)
+        val huge = """{"v":1,"mode":"SCOTTIE_1","overlays":[{"id":"t1","size":900}]}"""
+        assertThat(parseEditList(huge)?.overlays?.single()?.sizeFraction)
+            .isEqualTo(OVERLAY_SIZE_LARGE)
+    }
+
+    @Test
+    fun `a stroke width is clamped to the offered range`() {
+        val json = """{"v":1,"mode":"SCOTTIE_1","paths":[{"w":-2,"pts":[10,20]}]}"""
+        assertThat(parseEditList(json)?.paths?.single()?.widthFraction).isEqualTo(STROKE_THIN)
+    }
+
+    @Test
+    fun `non-finite numbers fall back to the neutral value`() {
+        // JSON has no NaN literal, so this is what a hand-edited or corrupted
+        // export looks like: an unparseable token, which optDouble reports as
+        // NaN rather than throwing.
+        assertThat(clampOverlaySize(Double.NaN)).isEqualTo(OVERLAY_SIZE_MEDIUM)
+        assertThat(clampOverlaySize(Double.POSITIVE_INFINITY)).isEqualTo(OVERLAY_SIZE_MEDIUM)
+        assertThat(clampStrokeWidth(Double.NaN)).isEqualTo(STROKE_MEDIUM)
+        assertThat(clampStrokeWidth(Double.NEGATIVE_INFINITY)).isEqualTo(STROKE_MEDIUM)
     }
 
     // ----- the restorable predicate -------------------------------------------

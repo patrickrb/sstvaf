@@ -55,6 +55,9 @@ public class DatabaseOpr extends SQLiteOpenHelper {
 
     public static synchronized DatabaseOpr getInstance(@Nullable Context context, @Nullable String databaseName) {
         if (instance == null) {
+            // v21: sstv_images gains an `edits` column holding the composer's
+            //      edit list, so a sent picture can be reopened and resent
+            //      rather than only viewed (addSstvImageEditsColumn).
             // v20: QSLTable gains a submode column (SSTV mode name, e.g. "Scottie 1").
             instance = new DatabaseOpr(context, databaseName, null, 21);
         }
