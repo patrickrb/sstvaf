@@ -21,8 +21,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -106,6 +104,7 @@ fun TxComposeScreen(mainViewModel: MainViewModel) {
         ?: return // unreachable: refreshDefaults above always seeds
     val sourceBitmap = composerState.sourceBitmap
     var showConfirmSheet by remember { mutableStateOf(false) }
+    var showModeSheet by remember { mutableStateOf(false) }
     // Index into composition.overlays being edited, or -1 for a new overlay;
     // null = editor closed.
     var editingOverlay by remember { mutableStateOf<Int?>(null) }
@@ -222,14 +221,10 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
 
             Spacer(Modifier.height(12.dp))
 
-            ModeChipRow(
-                selected = composition.mode,
+            ModeCard(
+                mode = composition.mode,
                 enabled = !isTransmitting,
-                onSelect = { mode ->
-                    composerState.composition = composition.copy(mode = mode)
-                    GeneralVariables.sstvTxMode = mode.name
-                    mainViewModel.databaseOpr.writeConfig("sstvTxMode", mode.name, null)
-                },
+                onClick = { showModeSheet = true },
             )
 
             Spacer(Modifier.height(12.dp))
@@ -264,6 +259,20 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
             Spacer(Modifier.height(24.dp))
         }
     }
+
+    ModeSheet(
+        visible = showModeSheet,
+        selected = composition.mode,
+        onDismiss = { showModeSheet = false },
+        onSelect = { mode ->
+            showModeSheet = false
+            composerState.composition = composition.copy(mode = mode)
+            // Persist so the composer opens on the operator's last choice
+            // instead of resetting to Scottie 1 every launch.
+            GeneralVariables.sstvTxMode = mode.name
+            mainViewModel.databaseOpr.writeConfig("sstvTxMode", mode.name, null)
+        },
+    )
 
     if (editingOverlay != null) {
         val index = editingOverlay ?: -1
@@ -434,31 +443,6 @@ private fun CornerAffordance(text: String, enabled: Boolean, onClick: () -> Unit
             .clickable(enabled = enabled, role = Role.Button) { onClick() }
             .padding(horizontal = 8.dp, vertical = 4.dp),
     )
-}
-
-/** Horizontal mode selector, labels like "Scottie 1 · 320×256 · 111 s". */
-@Composable
-private fun ModeChipRow(
-    selected: SstvMode,
-    enabled: Boolean,
-    onSelect: (SstvMode) -> Unit,
-) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        items(SstvMode.entries) { mode ->
-            val active = mode == selected
-            Text(
-                text = modeChipLabel(mode),
-                color = if (active) Color.Black else TextPrimary,
-                fontSize = 12.sp,
-                fontFamily = GeistMonoFamily,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(if (active) Accent else BgSurface)
-                    .clickable(enabled = enabled && !active) { onSelect(mode) }
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-            )
-        }
-    }
 }
 
 /** The overlay rows + add button. */

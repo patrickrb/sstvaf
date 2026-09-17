@@ -86,25 +86,18 @@ class TxScreenLogicTest {
 
     @Test
     fun `mode resolution label is the mode's pixel dimensions`() {
-        assertThat(modeResolutionLabel(SstvMode.SCOTTIE_1)).isEqualTo("320×256")
-        assertThat(modeResolutionLabel(SstvMode.ROBOT_36)).isEqualTo("320×240")
-        assertThat(modeResolutionLabel(SstvMode.MARTIN_4)).isEqualTo("320×128")
-        assertThat(modeResolutionLabel(SstvMode.PD_290)).isEqualTo("800×616")
-    }
-
-    @Test
-    fun `mode chip label carries resolution and duration`() {
-        assertThat(modeChipLabel(SstvMode.SCOTTIE_1)).isEqualTo("Scottie 1 · 320×256 · 111 s")
-        assertThat(modeChipLabel(SstvMode.ROBOT_36)).isEqualTo("Robot 36 · 320×240 · 37 s")
-        assertThat(modeChipLabel(SstvMode.PD_120)).isEqualTo("PD 120 · 640×496 · 127 s")
+        assertThat(modeResolutionLabel(SstvMode.SCOTTIE_1)).isEqualTo("320 × 256")
+        assertThat(modeResolutionLabel(SstvMode.ROBOT_36)).isEqualTo("320 × 240")
+        assertThat(modeResolutionLabel(SstvMode.MARTIN_4)).isEqualTo("320 × 128")
+        assertThat(modeResolutionLabel(SstvMode.PD_290)).isEqualTo("800 × 616")
     }
 
     @Test
     fun `confirm sheet duration line golden`() {
         assertThat(confirmDurationLine(SstvMode.ROBOT_36))
-            .isEqualTo("Robot 36 — 320×240 — 37 seconds")
+            .isEqualTo("Robot 36 — 320 × 240 — 37 seconds")
         assertThat(confirmDurationLine(SstvMode.SCOTTIE_1))
-            .isEqualTo("Scottie 1 — 320×256 — 111 seconds")
+            .isEqualTo("Scottie 1 — 320 × 256 — 111 seconds")
     }
 
     @Test
@@ -137,20 +130,20 @@ class TxScreenLogicTest {
         // 36.91 s image + 0.8 s pre-tone = 37.71 → 38 s; sub-second leader is
         // not called out as a separate segment.
         assertThat(confirmDurationLine(SstvMode.ROBOT_36, 0.0, 0.8))
-            .isEqualTo("Robot 36 — 320×240 — 38 seconds")
+            .isEqualTo("Robot 36 — 320 × 240 — 38 seconds")
     }
 
     @Test
     fun `confirm line with no cw id is unchanged`() {
         assertThat(confirmDurationLine(SstvMode.ROBOT_36, 0.0))
-            .isEqualTo("Robot 36 — 320×240 — 37 seconds")
+            .isEqualTo("Robot 36 — 320 × 240 — 37 seconds")
     }
 
     @Test
     fun `confirm line folds in and flags the cw id tail`() {
         // 36.91 s image + 5.2 s CW = 42.11 → 42 s, flagged as including the ID.
         assertThat(confirmDurationLine(SstvMode.ROBOT_36, 5.2))
-            .isEqualTo("Robot 36 — 320×240 — 42 seconds (incl. CW ID)")
+            .isEqualTo("Robot 36 — 320 × 240 — 42 seconds (incl. CW ID)")
     }
 
     // -- txAirtimeClass ----------------------------------------------------------

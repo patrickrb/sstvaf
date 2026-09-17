@@ -50,16 +50,16 @@ internal fun transmitGate(hasImage: Boolean, isTransmitting: Boolean, tuneActive
 // ---------------------------------------------------------------------------
 
 /**
- * The mode's picture resolution as a compact "width×height" label, e.g.
- * "320×256". Surfaced next to the duration so an operator picking among the
- * (now 16) modes sees the picture-quality half of the trade-off — Robot 36 is
- * 320×240 in 37 s, PD 290 is 800×616 but takes 290 s — not just the airtime.
+ * The mode's picture resolution, e.g. "320 × 256". Surfaced next to the
+ * duration so an operator picking among the (now 16) modes sees the
+ * picture-quality half of the trade-off — Robot 36 is 320 × 240 in 37 s,
+ * PD 290 is 800 × 616 but takes 290 s — not just the airtime.
+ *
+ * Spaces around the multiplication sign because this is set in 11sp mono in the
+ * mode sheet, where "320×256" closes up into a single glyph-blur. The confirm
+ * sheet shares the helper rather than keeping its own spelling.
  */
-internal fun modeResolutionLabel(mode: SstvMode): String = "${mode.width}×${mode.height}"
-
-/** Mode selector chip label, e.g. "Scottie 1 · 320×256 · 111 s" (duration rounded to whole seconds). */
-internal fun modeChipLabel(mode: SstvMode): String =
-    "${mode.displayName} · ${modeResolutionLabel(mode)} · ${mode.txDurationSeconds.roundToInt()} s"
+internal fun modeResolutionLabel(mode: SstvMode): String = "${mode.width} × ${mode.height}"
 
 /**
  * Total on-air seconds for a transmission: the [mode] image scan plus the
@@ -80,10 +80,10 @@ internal fun totalTxDurationSeconds(
         voxPreToneSeconds.coerceAtLeast(0.0)
 
 /**
- * Confirm-sheet duration line, e.g. "Robot 36 — 320×240 — 37 seconds". When a
+ * Confirm-sheet duration line, e.g. "Robot 36 — 320 × 240 — 37 seconds". When a
  * CW station-ID tail is appended ([cwTailSeconds] > 0) the total airtime is
  * shown and flagged so the operator knows how long the rig will actually key,
- * e.g. "Robot 36 — 320×240 — 42 seconds (incl. CW ID)". A VOX pre-tone folds
+ * e.g. "Robot 36 — 320 × 240 — 42 seconds (incl. CW ID)". A VOX pre-tone folds
  * into the total silently — it is sub-second leader, not a separate segment
  * the operator would notice on air.
  */
@@ -103,7 +103,7 @@ internal fun confirmDurationLine(
  * multi-minute transmission before they tie up the frequency. It is purely a
  * function of the *total* airtime (image scan + optional CW ID tail — see
  * [totalTxDurationSeconds]); the picture-quality half of the trade-off is
- * already carried by the resolution in [confirmDurationLine]/[modeChipLabel].
+ * already carried by the resolution in [confirmDurationLine].
  */
 internal enum class TxAirtimeClass(@StringRes val labelRes: Int) {
     QUICK(R.string.tx_airtime_quick),
@@ -315,4 +315,122 @@ internal fun performTransmit(
             " ${width}x$height freqHz=$freqHz",
     )
     return true
+}
+
+// ---------------------------------------------------------------------------
+// Mode sheet: speed groups and duration colouring
+// ---------------------------------------------------------------------------
+
+/**
+ * How the mode sheet groups the mode list.
+ *
+ * Operators do not pick an SSTV mode by name, they pick by what they are
+ * willing to spend: how long the frequency is tied up, and how much detail
+ * survives the trip. The groups are that trade-off made visible.
+ */
+internal enum class ModeSpeedGroup {
+    /** Under a minute on the air. */
+    FAST,
+
+    /** A minute or two — where almost all activity sits. */
+    STANDARD,
+
+    /** Wider than the 320-pixel standard: more detail, much more air time. */
+    HIGH_RESOLUTION,
+}
+
+/**
+ * Width above which a mode counts as high resolution.
+ *
+ * 320 pixels is the SSTV standard raster; every classic Scottie/Martin/Robot
+ * mode is 320 wide. Anything wider (PD 120 at 640, PD 290 at 800) is trading
+ * a lot of air time for detail, which is a different decision from "how fast
+ * do I want this over with" — hence its own group rather than sorting by
+ * duration alongside the rest.
+ */
+internal const val HIGH_RESOLUTION_MIN_WIDTH = 320
+
+/** Duration at or above which a mode stops counting as fast, in seconds. */
+internal const val FAST_MODE_MAX_SECONDS = 60.0
+
+/**
+ * Which group a mode belongs to. Resolution is checked first: a 640-wide mode
+ * is high-resolution whatever its duration.
+ */
+internal fun modeSpeedGroup(mode: SstvMode): ModeSpeedGroup = when {
+    mode.width > HIGH_RESOLUTION_MIN_WIDTH -> ModeSpeedGroup.HIGH_RESOLUTION
+    mode.txDurationSeconds < FAST_MODE_MAX_SECONDS -> ModeSpeedGroup.FAST
+    else -> ModeSpeedGroup.STANDARD
+}
+
+/** One group of modes in the sheet, in display order. */
+internal data class ModeGroup(
+    val group: ModeSpeedGroup,
+    val modes: List<SstvMode>,
+)
+
+/**
+ * The mode sheet's contents: every mode the codec supports, grouped by the
+ * trade-off above and sorted shortest-first inside each group.
+ *
+ * All of [SstvMode.entries], not a curated nine. The handoff's sheet lists the
+ * nine classic modes, but the codec has shipped sixteen since issue #16 and the
+ * transmitter will happily send any of them — hiding seven working modes behind
+ * no UI at all would be worse than a slightly longer sheet. The grouping rule
+ * places the handoff's nine exactly where its design puts them, and gives the
+ * other seven a home without a second hand-maintained list to drift.
+ *
+ * Empty groups are omitted so the sheet never renders a header with nothing
+ * under it.
+ */
+internal fun modeGroups(modes: List<SstvMode> = SstvMode.entries): List<ModeGroup> =
+    ModeSpeedGroup.entries.mapNotNull { group ->
+        val inGroup = modes.filter { modeSpeedGroup(it) == group }
+            .sortedBy { it.txDurationSeconds }
+        if (inGroup.isEmpty()) null else ModeGroup(group, inGroup)
+    }
+
+/** How a mode's duration reads in the sheet: reassuring, neutral, or a warning. */
+internal enum class ModeDurationTone {
+    /** Under a minute — cheap to send. */
+    QUICK,
+
+    /** A minute or two — the normal case. */
+    NORMAL,
+
+    /** Long enough that the frequency is tied up for a while. */
+    LONG,
+}
+
+/** Upper bound (exclusive) of the neutral duration band, in seconds. */
+internal const val NORMAL_DURATION_MAX_SECONDS = 100.0
+
+/**
+ * The tone for a mode's duration readout. The thresholds match the groups'
+ * spirit but are deliberately independent of them: PD 120 sits in the
+ * high-resolution group and still needs its two-minute duration flagged.
+ */
+internal fun modeDurationTone(mode: SstvMode): ModeDurationTone = when {
+    mode.txDurationSeconds < FAST_MODE_MAX_SECONDS -> ModeDurationTone.QUICK
+    mode.txDurationSeconds < NORMAL_DURATION_MAX_SECONDS -> ModeDurationTone.NORMAL
+    else -> ModeDurationTone.LONG
+}
+
+/** A mode's duration as the sheet's `m:ss` readout. */
+internal fun modeDurationLabel(mode: SstvMode): String =
+    formatMinSec(mode.txDurationSeconds.roundToInt())
+
+/**
+ * The line under a mode's name in the sheet: its dimensions, plus a note when
+ * the mode has one worth saying (Scottie 1 is what you will actually hear on
+ * 20m, which is the single most useful thing a newcomer can be told here).
+ *
+ * [note] is passed in already resolved so this stays a pure function; the
+ * resource lookup lives with the composable (see `modeNoteRes`). A blank or
+ * absent note yields the dimensions alone rather than a trailing separator.
+ */
+internal fun modeSubLabel(mode: SstvMode, note: String?): String {
+    val dimensions = modeResolutionLabel(mode)
+    val trimmed = note?.trim().orEmpty()
+    return if (trimmed.isEmpty()) dimensions else "$dimensions · $trimmed"
 }
