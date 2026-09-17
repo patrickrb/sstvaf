@@ -736,7 +736,10 @@
     <string name="mode_note_most_common">most common on 20m</string>
     <string name="mode_card_label">MODE</string>
     <!-- Mode card content description. %1$s is the current mode, e.g. "Scottie 1". -->
-    <string name="mode_card_description">SSTV mode %1$s, tap to change</string>
+    <string name="mode_card_description">SSTV mode %1$s</string>
+    <!-- Names the card's tap ACTION; the card itself is described by
+         mode_card_description above. -->
+    <string name="mode_card_action">Change SSTV mode</string>
     <!-- Mode row content description. %1$s mode name, %2$s dimensions, %3$s duration. -->
     <string name="mode_row_description">%1$s, %2$s, %3$s</string>
 
