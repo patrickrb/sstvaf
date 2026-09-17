@@ -6,6 +6,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import radio.ks3ckc.sstvaf.sstv.SstvMode
+import radio.ks3ckc.sstvaf.gallery.SavedImage
+import radio.ks3ckc.sstvaf.gallery.ImageDirection
 
 /**
  * [TxComposerState] owns the TX composer's photo/crop/overlay state across
@@ -153,5 +155,74 @@ class TxComposerStateTest {
         state.clearImage()
         val after = state.refreshDefaults { default() }
         assertThat(after.mode).isEqualTo(SstvMode.ROBOT_36)
+    }
+
+    // ----- the reopen request ------------------------------------------------
+
+    private fun entry(id: Long, fileName: String = "tx.png") = SavedImage(
+        id = id,
+        fileName = fileName,
+        direction = ImageDirection.TX,
+        mode = SstvMode.SCOTTIE_1.displayName,
+        freqHz = 14_230_000L,
+        utcMillis = 1_700_000_000_000L,
+        width = SstvMode.SCOTTIE_1.width,
+        height = SstvMode.SCOTTIE_1.height,
+        complete = true,
+        quality = 1f,
+        notes = "",
+        edits = "",
+    )
+
+    @Test
+    fun `no request is pending to begin with`() {
+        assertThat(TxComposerState().pendingReopen).isNull()
+    }
+
+    @Test
+    fun `a requested entry is readable before it is consumed`() {
+        // The screen reads it to key its effect, and must be able to do that
+        // without taking it: consuming first was what let a recomposition
+        // cancel the load with the request already gone.
+        val state = TxComposerState()
+        state.requestReopen(entry(1))
+        assertThat(state.pendingReopen?.id).isEqualTo(1L)
+        assertThat(state.pendingReopen?.id).isEqualTo(1L)
+    }
+
+    @Test
+    fun `consuming returns the entry once and clears it`() {
+        val state = TxComposerState()
+        state.requestReopen(entry(7))
+        assertThat(state.consumeReopenRequest()?.id).isEqualTo(7L)
+        assertThat(state.pendingReopen).isNull()
+        assertThat(state.consumeReopenRequest()).isNull()
+    }
+
+    @Test
+    fun `consuming nothing is harmless`() {
+        assertThat(TxComposerState().consumeReopenRequest()).isNull()
+    }
+
+    @Test
+    fun `a later request replaces an unconsumed one`() {
+        // Two taps in the gallery before the first load lands: the second is
+        // what the operator wants, so it wins rather than queueing.
+        val state = TxComposerState()
+        state.requestReopen(entry(1))
+        state.requestReopen(entry(2))
+        assertThat(state.consumeReopenRequest()?.id).isEqualTo(2L)
+        assertThat(state.pendingReopen).isNull()
+    }
+
+    @Test
+    fun `a request can be made again after being consumed`() {
+        // Reopening the same row twice has to work; the id alone keys the
+        // screen's effect, so the state must not dedupe it away.
+        val state = TxComposerState()
+        state.requestReopen(entry(5))
+        state.consumeReopenRequest()
+        state.requestReopen(entry(5))
+        assertThat(state.consumeReopenRequest()?.id).isEqualTo(5L)
     }
 }

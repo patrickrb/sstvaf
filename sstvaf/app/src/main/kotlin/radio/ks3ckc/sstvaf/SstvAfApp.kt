@@ -54,6 +54,7 @@ import radio.ks3ckc.sstvaf.ui.components.controlModeLabel
 import radio.ks3ckc.sstvaf.ui.components.frequencyChipLabel
 import radio.ks3ckc.sstvaf.ui.components.headerCatDotColor
 import radio.ks3ckc.sstvaf.ui.components.operatorSummaryLine
+import radio.ks3ckc.sstvaf.ui.components.catStateDescriptionRes
 import radio.ks3ckc.sstvaf.ui.components.radioSummaryLine
 import radio.ks3ckc.sstvaf.ui.components.selectBandIndex
 import radio.ks3ckc.sstvaf.ui.gallery.GalleryScreen
@@ -62,6 +63,7 @@ import radio.ks3ckc.sstvaf.ui.rx.RxScreen
 import radio.ks3ckc.sstvaf.ui.settings.RadioAudioSettings
 import radio.ks3ckc.sstvaf.ui.settings.SettingsScreen
 import radio.ks3ckc.sstvaf.ui.tx.TxComposeScreen
+import radio.ks3ckc.sstvaf.gallery.ImageDirection
 
 /**
  * A full screen reached from the header's overflow sheet. These cover the whole
@@ -125,6 +127,18 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
         ?: ""
     val frequencyLabel = frequencyChipLabel(freqHz, bandName)
     val catDotColor = headerCatDotColor(controlMode, catState)
+    // The dot's text counterpart. Colour alone cannot answer "is the rig
+    // actually talking to us" for a TalkBack user or anyone who cannot tell the
+    // green from the amber, so the same state is carried as words into the
+    // chip's content description and the More sheet's radio row.
+    val catStateDescription = stringResource(catStateDescriptionRes(controlMode, catState))
+
+    // Whether the Frequency sheet shows the TX level slider. Honours the
+    // "Show TX volume slider" setting, which otherwise persists a preference
+    // that no longer changes anything now the TX strip is gone.
+    val showTxLevel by GeneralVariables.mutableShowTxVolumeSlider.observeAsState(
+        GeneralVariables.showTxVolumeSlider,
+    )
 
     // Live rig summary for the Frequency sheet's status line and the More
     // sheet's radio row.
@@ -137,6 +151,7 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
         rigName = rigName,
         connectionLabel = ConnectMode.getModeStr(GeneralVariables.connectMode),
         controlLabel = controlLabel,
+        connectionStateLabel = catStateDescription,
     )
     val gridLive by GeneralVariables.mutableMyMaidenheadGrid.observeAsState(
         GeneralVariables.getMyMaidenheadGrid(),
@@ -189,11 +204,18 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
                 SstvTab.GALLERY -> GalleryScreen(
                     mainViewModel,
                     onSendAgain = { entry ->
-                        // Hand the picture to the composer and go there. The
-                        // composer decides whether it can be reopened as an
-                        // edit list or only loaded flat; the shell's job is
-                        // only to carry the request and switch tabs.
-                        mainViewModel.txComposerState.requestReopen(entry)
+                        // A received picture and a sent one want opposite
+                        // things. "Send again" reopens the composition that
+                        // produced it. "Reply with a picture" means send
+                        // something of your own back, so loading the other
+                        // station's image into the composer is the one thing it
+                        // must not do - an RX row has no edit list anyway, so
+                        // the reopen path would land on its flattened PNG.
+                        if (entry.direction == ImageDirection.TX) {
+                            mainViewModel.txComposerState.requestReopen(entry)
+                        } else {
+                            mainViewModel.txComposerState.clearImage()
+                        }
                         activeTab = SstvTab.TX
                     },
                 )
@@ -277,6 +299,7 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
                             title = stringResource(activeTab.labelRes),
                             frequencyLabel = frequencyLabel,
                             catDotColor = catDotColor,
+                            catStateDescription = catStateDescription,
                             onOpenFrequency = { activeSheet = AppSheet.FREQUENCY },
                             onOpenMore = { activeSheet = AppSheet.MORE },
                         )
@@ -289,6 +312,7 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
                     title = stringResource(activeTab.labelRes),
                     frequencyLabel = frequencyLabel,
                     catDotColor = catDotColor,
+                    catStateDescription = catStateDescription,
                     onOpenFrequency = { activeSheet = AppSheet.FREQUENCY },
                     onOpenMore = { activeSheet = AppSheet.MORE },
                 )
@@ -313,6 +337,7 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
             currentFreqHz = freqHz,
             catStatusLabel = radioSummary,
             catDotColor = catDotColor,
+            showTxLevel = showTxLevel,
             txLevel = txLevel,
             isTuning = isTuning,
             tuneRemainingSec = tuneRemainingSec,

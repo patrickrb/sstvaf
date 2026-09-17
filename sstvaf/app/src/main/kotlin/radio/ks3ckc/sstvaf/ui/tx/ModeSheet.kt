@@ -3,13 +3,17 @@ package radio.ks3ckc.sstvaf.ui.tx
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -18,8 +22,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,9 +69,17 @@ internal fun ModeSheet(
     onSelect: (SstvMode) -> Unit,
 ) {
     SstvAfBottomSheet(visible = visible, onDismiss = onDismiss) {
+        // Sixteen rows, three group headings and a title do not fit a phone, and
+        // the sheet is anchored to the bottom of the screen — without a scroller
+        // the fast modes at the top are simply clipped away and unreachable, and
+        // no amount of tapping finds Robot 36. Capped below the full height so
+        // the scrim stays exposed and tap-to-dismiss still has somewhere to land.
+        val maxSheetHeight = (LocalConfiguration.current.screenHeightDp * 0.82f).dp
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(max = maxSheetHeight)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 18.dp)
                 .padding(top = 8.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -129,7 +144,18 @@ private fun ModeRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(if (selected) Accent.copy(alpha = 0.10f) else Color.Transparent)
-            .clickable(onClickLabel = description, role = Role.RadioButton, onClick = onClick)
+            // selectable, not clickable: Role.RadioButton names the control but
+            // only the `selected` state says which one is active, and this list
+            // has no other way to say it — [SelectionRing] is a drawn canvas, so
+            // its check mark does not reach an accessibility service at all.
+            // Without this the sheet announces as sixteen identical radio
+            // buttons and the operator cannot tell which mode they are on.
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            // contentDescription, not clickable's onClickLabel: the label names
+            // the ACTION ("double tap to ..."), so putting the row's description
+            // there turned it into an unreadable action name and left the row
+            // itself described only by its raw child text.
+            .semantics(mergeDescendants = true) { contentDescription = description }
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -196,17 +222,23 @@ internal fun ModeCard(
     modifier: Modifier = Modifier,
 ) {
     val description = stringResource(R.string.mode_card_description, mode.displayName)
+    val actionLabel = stringResource(R.string.mode_card_action)
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .background(BgSurface2)
             .border(1.dp, Border, RoundedCornerShape(12.dp))
+            // onClickLabel names the action, contentDescription names the
+            // control. Passing the description as the action label made TalkBack
+            // announce "double tap to SSTV mode Scottie 1" and never applied the
+            // description at all.
             .clickable(
                 enabled = enabled,
-                onClickLabel = description,
+                onClickLabel = actionLabel,
                 role = Role.Button,
                 onClick = onClick,
             )
+            .semantics(mergeDescendants = true) { contentDescription = description }
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(1.dp),
     ) {

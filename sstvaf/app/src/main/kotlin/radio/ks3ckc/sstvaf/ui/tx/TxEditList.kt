@@ -130,9 +130,14 @@ object TxEditList {
             val overlayArray = root.optJSONArray(KEY_OVERLAYS)
             if (overlayArray != null) {
                 for (i in 0 until overlayArray.length()) {
-                    val item = overlayArray.optJSONObject(i) ?: continue
+                    // A malformed entry rejects the whole blob rather than
+                    // being skipped. Skipping returned a composition that
+                    // looked complete but was missing an overlay, so resending
+                    // silently dropped burned-in text; the flattened-image
+                    // fallback at least shows the operator what was sent.
+                    val item = overlayArray.optJSONObject(i) ?: return null
                     val id = item.optString(KEY_ID)
-                    if (id.isEmpty()) continue
+                    if (id.isEmpty()) return null
                     overlays.add(
                         TextOverlay(
                             id = id,
@@ -140,9 +145,15 @@ object TxEditList {
                             xPercent = clampPercent(item.optDouble(KEY_X, 50.0).toFloat()),
                             yPercent = clampPercent(item.optDouble(KEY_Y, 50.0).toFloat()),
                             colorArgb = item.optInt(KEY_COLOR, OVERLAY_COLOR_WHITE),
-                            sizeFraction = item.optDouble(
-                                KEY_SIZE, OVERLAY_SIZE_MEDIUM.toDouble(),
-                            ).toFloat(),
+                            // Clamped, unlike the raw read this replaces. A
+                            // negative or non-finite value reached
+                            // TextPaint.textSize during rendering and threw,
+                            // and a huge one produced geometry that swallowed
+                            // the frame - so a corrupt blob could crash the
+                            // composer instead of degrading to the fallback.
+                            sizeFraction = clampOverlaySize(
+                                item.optDouble(KEY_SIZE, OVERLAY_SIZE_MEDIUM.toDouble()),
+                            ),
                             style = OverlayStyle.entries
                                 .firstOrNull { it.name == item.optString(KEY_STYLE) }
                                 ?: OverlayStyle.BAR,
@@ -155,12 +166,15 @@ object TxEditList {
             val pathArray = root.optJSONArray(KEY_PATHS)
             if (pathArray != null) {
                 for (i in 0 until pathArray.length()) {
-                    val item = pathArray.optJSONObject(i) ?: continue
-                    val flat = item.optJSONArray(KEY_POINTS) ?: continue
+                    // All-or-fallback, as with the overlays. Dropping a stray
+                    // coordinate or skipping an unreadable stroke returned a
+                    // drawing that differed from the flattened image already in
+                    // the gallery, which is worse than not restoring it: the
+                    // operator would resend something they never drew.
+                    val item = pathArray.optJSONObject(i) ?: return null
+                    val flat = item.optJSONArray(KEY_POINTS) ?: return null
+                    if (flat.length() % 2 != 0) return null
                     val points = mutableListOf<PathPoint>()
-                    // Two at a time; an odd trailing value is dropped rather
-                    // than paired with a default, which would plant a point
-                    // somewhere the operator never drew.
                     var j = 0
                     while (j + 1 < flat.length()) {
                         points.add(
@@ -175,9 +189,9 @@ object TxEditList {
                     paths.add(
                         DrawPath(
                             colorArgb = item.optInt(KEY_COLOR, OVERLAY_COLOR_WHITE),
-                            widthFraction = item.optDouble(
-                                KEY_WIDTH, STROKE_MEDIUM.toDouble(),
-                            ).toFloat(),
+                            widthFraction = clampStrokeWidth(
+                                item.optDouble(KEY_WIDTH, STROKE_MEDIUM.toDouble()),
+                            ),
                             points = points,
                         ),
                     )

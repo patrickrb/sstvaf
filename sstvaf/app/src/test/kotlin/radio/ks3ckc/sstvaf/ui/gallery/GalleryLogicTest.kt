@@ -721,4 +721,26 @@ class GalleryLogicTest {
         }
         assertThat(labels).containsExactly("D · 2", "D · 1").inOrder()
     }
+
+    // ----- the send-again action label ---------------------------------------
+
+    @Test
+    fun `a received picture offers a reply, not a resend`() {
+        // The label and the action have to agree: an RX row has no composition
+        // to reopen, so calling it "Send again" would promise the wrong thing.
+        assertThat(sendAgainLabelRes(ImageDirection.RX))
+            .isEqualTo(R.string.gallery_reply_with_picture)
+    }
+
+    @Test
+    fun `a sent picture offers a resend`() {
+        assertThat(sendAgainLabelRes(ImageDirection.TX))
+            .isEqualTo(R.string.gallery_send_again)
+    }
+
+    @Test
+    fun `the two directions never share a label`() {
+        assertThat(sendAgainLabelRes(ImageDirection.RX))
+            .isNotEqualTo(sendAgainLabelRes(ImageDirection.TX))
+    }
 }

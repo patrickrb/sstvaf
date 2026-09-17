@@ -1,6 +1,7 @@
 package radio.ks3ckc.sstvaf.ui.tx
 
 import kotlin.math.abs
+import kotlin.math.sqrt
 
 /**
  * Pure geometry for the composer canvas: converting touches to frame
@@ -145,3 +146,17 @@ internal fun panStep(
  * sliver — sends the crop from edge to edge on a few pixels of movement.
  */
 internal const val PAN_DAMPING = 6f
+
+/**
+ * The distance between two pinch pointers, in pixels.
+ *
+ * The ratio of one frame's span to the previous frame's is the zoom step. Pulled
+ * out of the gesture loop so the degenerate cases have somewhere to be tested:
+ * two fingers landing on the same pixel gives a zero span, and dividing by it
+ * would send the zoom to infinity or NaN and take the crop with it.
+ */
+internal fun pinchSpan(x1: Float, y1: Float, x2: Float, y2: Float): Float {
+    val dx = x2 - x1
+    val dy = y2 - y1
+    return sqrt(dx * dx + dy * dy)
+}

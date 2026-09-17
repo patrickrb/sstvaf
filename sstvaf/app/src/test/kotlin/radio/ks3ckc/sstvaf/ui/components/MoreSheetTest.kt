@@ -76,4 +76,30 @@ class MoreSheetTest {
         assertThat(controlModeLabel(-1)).isEqualTo("VOX")
         assertThat(controlModeLabel(99)).isEqualTo("VOX")
     }
+
+    // ----- connection state segment ------------------------------------------
+
+    @Test
+    fun radioSummary_endsWithTheLiveConnectionState() {
+        // Without this segment the row reads identically whether the rig is
+        // connected, connecting, disconnected or errored — it describes the
+        // configuration, not whether it is working.
+        assertThat(radioSummaryLine("IC-705", "USB Cable", "CAT", "connected"))
+            .isEqualTo("IC-705 · USB Cable · CAT · connected")
+        assertThat(radioSummaryLine("IC-705", "USB Cable", "CAT", "connection error"))
+            .isEqualTo("IC-705 · USB Cable · CAT · connection error")
+    }
+
+    @Test
+    fun radioSummary_distinguishesStatesThatShareAConfiguration() {
+        val connected = radioSummaryLine("IC-705", "USB Cable", "CAT", "connected")
+        val disconnected = radioSummaryLine("IC-705", "USB Cable", "CAT", "not connected")
+        assertThat(connected).isNotEqualTo(disconnected)
+    }
+
+    @Test
+    fun radioSummary_dropsABlankConnectionState() {
+        assertThat(radioSummaryLine("IC-705", "USB Cable", "CAT", "   "))
+            .isEqualTo("IC-705 · USB Cable · CAT")
+    }
 }

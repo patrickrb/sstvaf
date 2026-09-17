@@ -139,18 +139,25 @@ private fun MoreRow(
 // ---------------------------------------------------------------------------
 
 /**
- * The radio row's sub-label, e.g. `"IC-705 · USB cable · CAT"`.
+ * The radio row's sub-label, e.g. `"IC-705 · USB cable · CAT · connected"`.
  *
- * Reads as rig, then how it is wired, then what keys it — the three facts an
- * operator checks when transmit does not key. Blank segments are dropped rather
- * than rendered as empty gaps, so an unconfigured install shows the shorter
- * honest string instead of a row of separators.
+ * Reads as rig, then how it is wired, then what keys it, then whether it is
+ * actually talking to us — the four facts an operator checks when transmit does
+ * not key. The first three are configuration and read the same whether or not
+ * the rig is plugged in, which is why [connectionStateLabel] is here: without
+ * it this row answers "what is set up" while the operator is asking "is it
+ * working". See [catStateDescriptionRes].
+ *
+ * Blank segments are dropped rather than rendered as empty gaps, so an
+ * unconfigured install shows the shorter honest string instead of a row of
+ * separators.
  */
 internal fun radioSummaryLine(
     rigName: String,
     connectionLabel: String,
     controlLabel: String,
-): String = listOf(rigName, connectionLabel, controlLabel)
+    connectionStateLabel: String = "",
+): String = listOf(rigName, connectionLabel, controlLabel, connectionStateLabel)
     .map { it.trim() }
     .filter { it.isNotEmpty() }
     .joinToString(" · ")

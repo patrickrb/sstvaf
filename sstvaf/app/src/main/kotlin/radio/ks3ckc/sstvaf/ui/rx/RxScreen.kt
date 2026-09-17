@@ -4,6 +4,9 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +16,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,6 +37,7 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -46,8 +51,9 @@ import com.k1af.ft8af.R
 import com.k1af.ft8af.database.OperationBand
 import com.k1af.ft8af.rigs.BaseRigOperation
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import radio.ks3ckc.sstvaf.gallery.ImageDirection
+import radio.ks3ckc.sstvaf.gallery.RxSaveOutcome
 import radio.ks3ckc.sstvaf.gallery.SavedImage
 import radio.ks3ckc.sstvaf.sstv.LastDecodedImage
 import radio.ks3ckc.sstvaf.sstv.SstvRxState
@@ -63,6 +69,7 @@ import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
 import radio.ks3ckc.sstvaf.ui.components.EmptyStateWaves
 import radio.ks3ckc.sstvaf.ui.components.Toggle
+import java.time.ZoneId
 
 /**
  * The SSTV receive tab: watches [SstvRxState] and shows the image forming
@@ -150,29 +157,50 @@ fun RxScreen(
         }
     }
 
-    // Today's received images for the strip at the bottom. Reloaded whenever a
-    // decode completes (rxState turning Complete is the signal) rather than on
-    // a timer, so a picture that just landed is there when the operator looks.
+    // What persistence has said about the decode that just finished. Decoder
+    // completion is NOT this: RxAutoSaveController writes the image on its own
+    // thread afterwards, so anything keyed to SstvRxState.Complete reads the
+    // store before the insert lands and badges a failed save as a success.
+    // See RxAutoSaveController.saveState.
+    val saveOutcome by mainViewModel.rxAutoSaveController.saveState
+        .observeAsState(RxSaveOutcome.NONE)
+    val saveState = rxSaveState(saveOutcome)
+
+    // Today's received images for the strip at the bottom. Reloaded when a save
+    // is CONFIRMED, so a picture that just landed is there when the operator
+    // looks and one that never reached the store does not appear.
     val store = mainViewModel.receivedImageStore
     var recent by remember { mutableStateOf<List<SavedImage>>(emptyList()) }
-    val completedCount = (rxState as? SstvRxState.Complete)?.let { 1 } ?: 0
-    LaunchedEffect(completedCount, rxState is SstvRxState.Complete) {
+    // Bumped at local midnight so a receiver left running overnight stops
+    // showing yesterday's pictures under a heading that says "today".
+    var dayEpoch by remember { mutableIntStateOf(0) }
+    LaunchedEffect(saveOutcome == RxSaveOutcome.SAVED, dayEpoch) {
         recent = withContext(Dispatchers.IO) {
-            store.list()
-                .filter { it.direction == ImageDirection.RX }
-                .take(RX_RECENT_LIMIT)
+            rxImagesReceivedToday(store.list(), System.currentTimeMillis(), ZoneId.systemDefault())
         }
     }
+    LaunchedEffect(dayEpoch) {
+        delay(rxMillisUntilNextLocalDay(System.currentTimeMillis(), ZoneId.systemDefault()))
+        dayEpoch++
+    }
 
-    val statusKind = rxStatusKind(rxState)
-    val completedMode = (rxState as? SstvRxState.Complete)?.mode?.displayName
+    val statusKind = rxStatusKind(rxState, rxEnabled, saveState)
+    val completedMode = (rxState as? SstvRxState.Complete)
+        ?.takeIf { rxShowsCanvasImage(it) }
+        ?.mode?.displayName
 
+    // Scrollable, and the canvas is capped. The canvas is a full-width 4:3 box
+    // — a fixed-height child — so on a short landscape screen or in the tablet
+    // rail layout its natural height swallowed the column and the status card
+    // and recent strip were measured off the bottom (the shape of issue #20).
+    val maxCanvasHeight = rxCanvasMaxHeightDp(LocalConfiguration.current.screenHeightDp).dp
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(BgApp)
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
-            .padding(top = 6.dp),
+            .padding(top = 6.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // The receive switch. The design has no such control — it assumes
@@ -201,20 +229,26 @@ fun RxScreen(
             )
         }
 
-        RxCanvas(
-            image = liveImage,
-            aspect = liveAspect,
-            revealFraction = rxRevealFraction(rxState),
-            showsImage = rxShowsCanvasImage(rxState),
-            listening = rxRenderKind(rxState) != RxRenderKind.DECODING,
-            receiveEnabled = rxEnabled,
-            frequencyLabel = frequencyLabel,
-            completedModeName = completedMode,
-        )
+        Box(
+            modifier = Modifier.fillMaxWidth().heightIn(max = maxCanvasHeight),
+            contentAlignment = Alignment.Center,
+        ) {
+            RxCanvas(
+                image = liveImage,
+                aspect = liveAspect,
+                revealFraction = rxRevealFraction(rxState),
+                showsImage = rxShowsCanvasImage(rxState),
+                listening = rxRenderKind(rxState) != RxRenderKind.DECODING,
+                receiveEnabled = rxEnabled,
+                frequencyLabel = frequencyLabel,
+                completedModeName = completedMode,
+                showsSavedBadge = rxShowsSavedBadge(rxState, saveState),
+            )
+        }
 
         RxStatusCard(
-            statusLabel = rxStatusLabel(rxState),
-            rightLabel = rxStatusRightLabel(rxState)
+            statusLabel = rxStatusLabel(statusKind, rxState),
+            rightLabel = rxStatusRightLabel(rxState, rxEnabled)
                 ?: stringResource(R.string.rx_status_auto_detect).takeIf {
                     statusKind == RxStatusKind.LISTENING
                 },
@@ -286,7 +320,13 @@ private fun RxRecentStrip(
                 fontSize = 11.sp,
             )
         } else {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Scrollable: four 84dp cells and three 8dp gaps need 360dp, but a
+            // 360dp phone leaves 328dp inside the screen's padding, so the
+            // fourth thumbnail was clipped away with no way to reach it.
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 for (entry in images) {
                     Column(
                         modifier = Modifier
@@ -303,6 +343,10 @@ private fun RxRecentStrip(
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(BgSurface),
                             contentScale = ContentScale.Crop,
+                            // Same reason as the canvas: an SSTV frame is 320 px
+                            // wide and its scan lines are the data, so smoothing
+                            // them is smoothing away what is being judged.
+                            filterQuality = FilterQuality.None,
                         )
                         Text(
                             text = rxRecentCaption(entry),
@@ -324,12 +368,20 @@ private fun RxRecentStrip(
  * the decoding case gets its mode-name argument and the others do not.
  */
 @Composable
-private fun rxStatusLabel(state: SstvRxState): String {
-    val res = rxStatusLabelRes(state)
-    return if (rxStatusLabelTakesMode(state)) {
+private fun rxStatusLabel(kind: RxStatusKind, state: SstvRxState): String {
+    val res = rxStatusLabelRes(kind)
+    return if (rxStatusLabelTakesMode(kind)) {
         val mode = (state as? SstvRxState.Decoding)?.mode?.displayName.orEmpty()
         stringResource(res, mode)
     } else {
         stringResource(res)
     }
+}
+
+/** The save controller's outcome in the RX screen's own vocabulary. */
+private fun rxSaveState(outcome: RxSaveOutcome): RxSaveState = when (outcome) {
+    RxSaveOutcome.NONE -> RxSaveState.NONE
+    RxSaveOutcome.PENDING -> RxSaveState.PENDING
+    RxSaveOutcome.SAVED -> RxSaveState.SAVED
+    RxSaveOutcome.FAILED -> RxSaveState.FAILED
 }

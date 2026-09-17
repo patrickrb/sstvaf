@@ -415,3 +415,28 @@ fun TxComposition.withClampedView(
     panX: Float = this.panX,
     panY: Float = this.panY,
 ): TxComposition = copy(zoom = clampZoom(zoom), panX = clampPan(panX), panY = clampPan(panY))
+
+/**
+ * A persisted overlay size clamped into the range the UI can express.
+ *
+ * Taken as a Double because that is what the JSON reader returns, and because
+ * NaN and the infinities have to be caught before the narrowing to Float hides
+ * them. An unclamped value from a corrupt blob reached `TextPaint.textSize` and
+ * threw, or produced a glyph larger than the frame; either way the edit list
+ * failed to do the one thing it promises, which is to degrade safely.
+ */
+internal fun clampOverlaySize(raw: Double): Float {
+    if (raw.isNaN() || raw.isInfinite()) return OVERLAY_SIZE_MEDIUM
+    return raw.toFloat().coerceIn(OVERLAY_SIZE_SMALL, OVERLAY_SIZE_LARGE)
+}
+
+/**
+ * A persisted stroke width clamped into the range the Draw tool offers.
+ *
+ * Same reasoning as [clampOverlaySize]: the width scales a paint stroke, so a
+ * non-finite value poisons the whole flatten.
+ */
+internal fun clampStrokeWidth(raw: Double): Float {
+    if (raw.isNaN() || raw.isInfinite()) return STROKE_MEDIUM
+    return raw.toFloat().coerceIn(STROKE_THIN, STROKE_THICK)
+}

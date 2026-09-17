@@ -4,10 +4,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
@@ -42,10 +45,13 @@ class ShellChromeLayoutTest {
 
     private val chipLabel = frequencyChipLabel(14_230_000L, "20m")
     private val moreDescription = "More: radio, operator, logbook, settings"
-    private val chipDescription = "Frequency $chipLabel, tap to change"
+    private val catState = "connected"
+    private val chipDescription = "Frequency $chipLabel, $catState, tap to change"
 
     /** The header and tab bar as the compact shell stacks them. */
     private fun setShell(
+        label: String = chipLabel,
+        catStateDescription: String = catState,
         onTab: (SstvTab) -> Unit = {},
         onFrequency: () -> Unit = {},
         onMore: () -> Unit = {},
@@ -54,8 +60,9 @@ class ShellChromeLayoutTest {
             Column(modifier = Modifier.fillMaxSize()) {
                 AppHeader(
                     title = "Receive",
-                    frequencyLabel = chipLabel,
+                    frequencyLabel = label,
                     catDotColor = StatusConfirmed,
+                    catStateDescription = catStateDescription,
                     onOpenFrequency = onFrequency,
                     onOpenMore = onMore,
                 )
@@ -80,6 +87,35 @@ class ShellChromeLayoutTest {
         composeRule.onNodeWithContentDescription(chipDescription)
             .assertExists()
             .assertHasClickAction()
+    }
+
+    @Test
+    fun header_dialChipDescriptionCarriesTheCatState() {
+        // The dot is the only visual CAT indicator left, and colour alone is
+        // not available to TalkBack — or to an operator who cannot tell the
+        // green from the amber. Two states must produce two descriptions.
+        setShell(catStateDescription = "connection error")
+        composeRule.onNodeWithContentDescription(
+            "Frequency $chipLabel, connection error, tap to change",
+        ).assertExists()
+    }
+
+    @Test
+    fun header_overflowButtonSurvivesAnOversizedDialChip() {
+        // Regression: the chip used to be an unweighted child measured against
+        // the whole half-header before the fixed-size overflow button, so a
+        // label that outgrew the row on its own — a long dial at a large
+        // accessibility font scale — left the button measured at zero width and
+        // therefore invisible and untappable. Robolectric's stub font metrics
+        // are about a pixel per character, which is exactly what makes this
+        // reproducible here: a long enough label overflows the row.
+        setShell(label = "1".repeat(400))
+        val width = composeRule.onNodeWithContentDescription(moreDescription)
+            .getUnclippedBoundsInRoot().width
+        assertThat(width.value).isGreaterThan(0f)
+        // And it keeps its full 34dp: the fix reserves the button, it does not
+        // merely leave it a sliver.
+        assertThat(width.value).isWithin(0.5f).of(34.dp.value)
     }
 
     @Test
