@@ -80,7 +80,7 @@ internal fun RxStatusCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                PulsingDot(color = rxStatusDotColor(kind), pulsing = kind != RxStatusKind.LOST)
+                PulsingDot(color = rxStatusDotColor(kind), pulsing = rxStatusPulses(kind))
                 Text(
                     text = statusLabel,
                     color = TextPrimary,
@@ -225,8 +225,15 @@ private fun PulsingDot(color: Color, pulsing: Boolean) {
  * state rather than two indicators that might disagree.
  */
 internal fun rxStatusDotColor(kind: RxStatusKind): Color = when (kind) {
+    // Muted, like the header's CAT dot under VOX: receive being off is a state
+    // the operator chose, not a fault to colour red.
+    RxStatusKind.OFF -> TextMuted
     RxStatusKind.LISTENING -> Signal
     RxStatusKind.DECODING -> Accent
+    // A decode that finished but is not yet confirmed in the Gallery is not
+    // green yet — green is the store's word, not the decoder's.
+    RxStatusKind.COMPLETE -> Accent
     RxStatusKind.SAVED -> StatusConfirmed
+    RxStatusKind.SAVE_FAILED -> StatusBad
     RxStatusKind.LOST -> StatusBad
 }

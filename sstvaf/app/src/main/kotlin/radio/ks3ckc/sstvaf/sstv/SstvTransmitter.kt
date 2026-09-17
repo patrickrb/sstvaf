@@ -94,6 +94,41 @@ class SstvTransmitter @JvmOverloads constructor(
     private val mutableTxProgress = MutableLiveData(0f)
     val txProgress: LiveData<Float> get() = mutableTxProgress
 
+    private val mutableLastResult = MutableLiveData<TxResult?>(null)
+
+    /**
+     * The outcome of the most recent transmission, retained until the next one
+     * starts.
+     *
+     * [isTransmitting] going false is not enough for a UI to report on: it
+     * fires from the teardown `finally` whether the image played to the end,
+     * the operator hit Stop, or encoding threw. A screen watching only for the
+     * false edge showed a green "Sent" after a failure, and missed the end of a
+     * transmission entirely if the operator was on another tab when it
+     * finished, because the screen was not composed to see the edge.
+     *
+     * This is durable instead: the value stays put, carries what actually
+     * happened, and is stamped with a sequence number so a consumer can tell a
+     * result it has already acted on from a new one.
+     */
+    val lastResult: LiveData<TxResult?> get() = mutableLastResult
+
+    private val mutableImageWindow = MutableLiveData(TxImageWindow.WHOLE)
+
+    /**
+     * Where the image sits inside the whole transmission, as fractions of the
+     * total duration.
+     *
+     * [txProgress] covers everything that goes on the air, which includes the
+     * VOX pre-tone leader and the CW station-ID tail. A scan-line indicator
+     * driven straight off it starts moving before any image pixels are sent and
+     * only reaches the bottom during the CW tail. This window is what maps one
+     * onto the other.
+     */
+    val imageWindow: LiveData<TxImageWindow> get() = mutableImageWindow
+
+    private val resultSequence = java.util.concurrent.atomic.AtomicLong(0L)
+
     /**
      * Start transmitting [pixels] ([width] x [height], 0xAARRGGBB) in [mode].
      * Returns false without keying when a transmission is already running or
@@ -112,6 +147,10 @@ class SstvTransmitter @JvmOverloads constructor(
         suppressCwId.set(false)
         mutableIsTransmitting.postValue(true)
         mutableTxProgress.postValue(0f)
+        // Clear the previous outcome so a new transmission cannot be reported
+        // with the last one's result while it is still in flight.
+        mutableLastResult.postValue(null)
+        mutableImageWindow.postValue(TxImageWindow.WHOLE)
         workerRunner(Runnable { runTransmission(pixels, width, height, mode) })
         return true
     }
@@ -159,6 +198,16 @@ class SstvTransmitter @JvmOverloads constructor(
             val cwId = cwIdSource()
             val cwTail = CwId.tail(cwId, sampleRate)
             val durationMs = (imageAudio.size + cwTail.size) * 1000L / sampleRate
+            // The image occupies the middle of the buffer: the VOX leader is
+            // prepended and the CW ID appended, and neither is part of the
+            // picture a receiver is drawing.
+            mutableImageWindow.postValue(
+                TxImageWindow.of(
+                    preToneSamples = imageAudio.size - encoded.size,
+                    imageSamples = encoded.size,
+                    totalSamples = imageAudio.size + cwTail.size,
+                ),
+            )
             log(
                 "SSTV TX: start — mode=${mode.displayName} ${width}x$height" +
                     " samples=${imageAudio.size} rate=$sampleRate durationMs=$durationMs" +
@@ -226,6 +275,21 @@ class SstvTransmitter @JvmOverloads constructor(
                 }
             }
             mutableTxProgress.postValue(if (completed) 1f else 0f)
+            // Cancelled and failed are different things to tell an operator:
+            // one they did on purpose, the other means the picture never went
+            // out and they should look at the log. Published before the
+            // transmitting flag drops so a consumer reacting to that flag
+            // already has the result.
+            mutableLastResult.postValue(
+                TxResult(
+                    outcome = when {
+                        completed -> TxOutcome.COMPLETED
+                        cancelled.get() -> TxOutcome.CANCELLED
+                        else -> TxOutcome.FAILED
+                    },
+                    sequence = resultSequence.incrementAndGet(),
+                ),
+            )
             transmitting.set(false)
             mutableIsTransmitting.postValue(false)
             log(

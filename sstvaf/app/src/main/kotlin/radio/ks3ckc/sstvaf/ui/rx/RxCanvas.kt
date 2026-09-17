@@ -72,6 +72,7 @@ internal fun RxCanvas(
     receiveEnabled: Boolean,
     frequencyLabel: String,
     completedModeName: String?,
+    showsSavedBadge: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -99,6 +100,10 @@ internal fun RxCanvas(
         if (completedModeName != null) {
             CompletionBadges(
                 modeName = completedModeName,
+                // The "Saved ✓" half is a promise that the picture is in the
+                // Gallery, so it waits for the store to confirm the write. The
+                // mode badge is about the decode and shows either way.
+                showsSaved = showsSavedBadge,
                 modifier = Modifier.align(Alignment.BottomStart).padding(10.dp),
             )
         }
@@ -274,16 +279,22 @@ private fun ScanningBars(animated: Boolean) {
 
 /** "Saved ✓" plus the mode, over a scrim in the canvas corner. */
 @Composable
-private fun CompletionBadges(modeName: String, modifier: Modifier = Modifier) {
+private fun CompletionBadges(
+    modeName: String,
+    showsSaved: Boolean,
+    modifier: Modifier = Modifier,
+) {
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Badge(
-            text = stringResource(R.string.rx_saved_chip),
-            color = StatusConfirmed,
-            bold = true,
-        )
+        if (showsSaved) {
+            Badge(
+                text = stringResource(R.string.rx_saved_chip),
+                color = StatusConfirmed,
+                bold = true,
+            )
+        }
         Badge(text = modeName, color = TextPrimary, mono = true)
     }
 }

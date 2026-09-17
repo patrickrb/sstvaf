@@ -77,6 +77,9 @@ import radio.ks3ckc.sstvaf.theme.TextFaint
 import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
 import radio.ks3ckc.sstvaf.ui.components.SstvAfIcons
+import java.util.Locale
+import radio.ks3ckc.sstvaf.sstv.TxOutcome
+import radio.ks3ckc.sstvaf.sstv.TxImageWindow
 
 /**
  * The TX composer tab: pick a photo, crop it into the selected SSTV mode's
@@ -122,7 +125,9 @@ fun TxComposeScreen(mainViewModel: MainViewModel) {
     // Tracked here rather than derived from the transmitter, which goes back to
     // idle the instant the audio stops - there would be no state left to show
     // the confirmation from.
-    var justSent by remember { mutableStateOf(false) }
+    // The outcome being shown over the canvas, or null for none. Replaces the
+    // old boolean: a failure and a completed send must not look the same.
+    var outcome by remember { mutableStateOf<TxOutcome?>(null) }
     var tool by remember { mutableStateOf(TxTool.CROP) }
     var selectedOverlayId by remember { mutableStateOf<String?>(null) }
     var draft by remember { mutableStateOf(TxEditorDraft()) }
@@ -131,16 +136,31 @@ fun TxComposeScreen(mainViewModel: MainViewModel) {
     val txProgress by mainViewModel.sstvTransmitter.txProgress.observeAsState(0f)
     val isTuning by mainViewModel.tuneOperator.mutableIsTuning.observeAsState(false)
 
-    // A transmission ending raises the sent confirmation. Keyed on the
-    // transitions of isTransmitting rather than on progress reaching 1.0: a
-    // cancelled transmission also ends, and the operator needs the same
-    // "what next" prompt either way rather than being dropped back into an
-    // editor with no sign anything happened.
-    var wasTransmitting by remember { mutableStateOf(false) }
-    LaunchedEffect(isTransmitting) {
-        if (wasTransmitting && !isTransmitting) justSent = true
-        wasTransmitting = isTransmitting
+    // A finished transmission raises its confirmation from the transmitter's
+    // durable result, not from a screen-local edge on isTransmitting. The edge
+    // was invisible if the operator was on another tab when the transmission
+    // ended (this screen is not composed then), and it could not tell a
+    // completed image from a failure - so a failed transmission showed the
+    // green "Sent" scrim. The sequence number is kept in the composer state,
+    // which outlives the tab, so the result is shown exactly once.
+    val txResult by mainViewModel.sstvTransmitter.lastResult.observeAsState()
+    val imageWindow by mainViewModel.sstvTransmitter.imageWindow
+        .observeAsState(TxImageWindow.WHOLE)
+    LaunchedEffect(txResult, isTransmitting) {
+        val result = txResult
+        if (!isTransmitting && result != null &&
+            result.sequence > composerState.lastSeenTxSequence
+        ) {
+            composerState.lastSeenTxSequence = result.sequence
+            outcome = result.outcome
+        }
     }
+
+    // Keyed, or showing an outcome: either way the editor is read-only.
+    val controlsEnabled = editorControlsEnabled(
+        transmitting = isTransmitting,
+        showingOutcome = outcome != null,
+    )
 
     // Load a picked/captured image into the composer state (resets the crop,
     // recycles the photo it replaces). Shared by the photo picker and the
@@ -289,10 +309,14 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                 selectedOverlayId = null
             }
         }
-        justSent = false
+        outcome = null
     }
 
-    val callsign = GeneralVariables.myCallsign.orEmpty().trim().uppercase()
+    // Locale.ROOT, not the default locale: a callsign is a protocol
+    // identifier, and on a Turkish-locale device the default uppercase() turns
+    // an ASCII "i" into a dotted capital I, which is not the station that is
+    // transmitting. The composition helpers already normalise this way.
+    val callsign = GeneralVariables.myCallsign.orEmpty().trim().uppercase(Locale.ROOT)
     val grid = GeneralVariables.getMyMaidenheadGrid().orEmpty()
 
     /** Load a text-only card: a generated gradient plus its starting overlays. */
@@ -375,50 +399,71 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                 composition = composition,
                 tool = tool,
                 selectedOverlayId = selectedOverlayId,
-                editable = !isTransmitting,
+                editable = controlsEnabled,
                 transmitting = isTransmitting,
                 transmitProgress = txProgress,
-                done = justSent,
+                outcome = outcome,
+                imageWindow = imageWindow,
                 onEditAgain = {
                     // Everything survives: the composition was never cleared,
                     // so this is just dismissing the confirmation.
-                    justSent = false
+                    outcome = null
                 },
                 onNewPicture = {
-                    justSent = false
+                    outcome = null
                     composerState.clearImage()
                     selectedOverlayId = null
                     tool = TxTool.CROP
                 },
+                // Every gesture callback below reads composerState.composition
+                // rather than the `composition` captured by this composition
+                // pass. The canvas gesture coroutine is not restarted for these
+                // edits, so it keeps calling the callback instances it was
+                // launched with; computing from a captured value made each event
+                // start again from the same state and overwrite the last step
+                // instead of accumulating - a whole pan gesture collapsed to its
+                // final event, and a freehand stroke to a single dot.
                 onPanBy = { dxFraction, dyFraction ->
-                    composerState.composition = composition.copy(
-                        panX = panStep(composition.panX, dxFraction, composition.zoom),
-                        panY = panStep(composition.panY, dyFraction, composition.zoom),
-                    )
+                    composerState.composition?.let { live ->
+                        composerState.composition = live.copy(
+                            panX = panStep(live.panX, dxFraction, live.zoom),
+                            panY = panStep(live.panY, dyFraction, live.zoom),
+                        )
+                    }
+                },
+                onZoomBy = { scale ->
+                    composerState.composition?.let { live ->
+                        composerState.composition = live.withClampedView(zoom = live.zoom * scale)
+                    }
                 },
                 onOverlayTouched = { id ->
                     selectedOverlayId = id
-                    composition.overlays.firstOrNull { it.id == id }?.let { draft = draft.matching(it) }
+                    composerState.composition?.overlays
+                        ?.firstOrNull { it.id == id }
+                        ?.let { draft = draft.matching(it) }
                     // The callsign stamp belongs to the Callsign tool; anything
                     // else to Text. Switching tool on touch means the controls
                     // for the thing just grabbed are already on screen.
                     tool = if (id == CALLSIGN_OVERLAY_ID) TxTool.CALLSIGN else TxTool.TEXT
                 },
                 onOverlayMovedTo = { id, x, y ->
-                    composerState.composition = composition.withOverlayMoved(id, x, y)
+                    composerState.composition =
+                        composerState.composition?.withOverlayMoved(id, x, y)
                 },
                 onDeselect = { selectedOverlayId = null },
                 onStrokeStart = { x, y ->
-                    composerState.composition = composition.withStrokeStarted(
+                    composerState.composition = composerState.composition?.withStrokeStarted(
                         draft.colorArgb, draft.strokeWidth, PathPoint(x, y),
                     )
                 },
                 onStrokeExtend = { x, y ->
-                    composerState.composition = composition.withStrokeExtended(PathPoint(x, y))
+                    composerState.composition =
+                        composerState.composition?.withStrokeExtended(PathPoint(x, y))
                 },
                 onDeleteSelected = {
                     selectedOverlayId?.let {
-                        composerState.composition = composition.withOverlayRemoved(it)
+                        composerState.composition =
+                            composerState.composition?.withOverlayRemoved(it)
                     }
                     selectedOverlayId = null
                 },
@@ -427,11 +472,18 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
                     )
                 },
+                onClearImage = {
+                    // Back to the four-way empty state, so the CQ card, grid
+                    // card and Last sent are reachable again.
+                    composerState.clearImage()
+                    selectedOverlayId = null
+                    tool = TxTool.CROP
+                },
             )
 
             TxToolRail(
                 active = tool,
-                enabled = !isTransmitting,
+                enabled = controlsEnabled,
                 onSelect = { picked ->
                     tool = picked
                     // Leaving the text tools drops the selection: a dashed
@@ -443,6 +495,7 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
             )
 
             TxToolPanel(
+                enabled = controlsEnabled,
                 tool = tool,
                 composition = composition,
                 draft = draft,
@@ -545,7 +598,7 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
             // The mode card steps aside while keyed: the amber panel needs the
             // width, and the mode is fixed for the duration of a transmission
             // anyway - it is encoded into the audio already playing.
-            if (!isTransmitting) {
+            if (!isTransmitting && outcome == null) {
                 ModeCard(
                     mode = composition.mode,
                     enabled = true,
@@ -563,13 +616,18 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                     onCancel = { mainViewModel.sstvTransmitter.cancel() },
                     modifier = Modifier.weight(1f),
                 )
-            } else {
+            } else if (outcome == null) {
                 TransmitButton(
                     gate = gate,
                     durationLabel = modeDurationLabel(composition.mode),
                     onClick = { showConfirmSheet = true },
                     modifier = Modifier.weight(1f),
                 )
+            } else {
+                // The scrim owns the next action while an outcome is up. A live
+                // Transmit button underneath it would key the rig with the
+                // success overlay still on screen.
+                Box(modifier = Modifier.weight(1f))
             }
         }
     }

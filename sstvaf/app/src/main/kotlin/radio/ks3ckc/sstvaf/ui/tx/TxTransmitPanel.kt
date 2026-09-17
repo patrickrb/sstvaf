@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -32,6 +33,12 @@ import radio.ks3ckc.sstvaf.theme.GeistMonoFamily
 import radio.ks3ckc.sstvaf.theme.Signal
 import radio.ks3ckc.sstvaf.theme.StatusBad
 import radio.ks3ckc.sstvaf.theme.TextPrimary
+import radio.ks3ckc.sstvaf.theme.TextMuted
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Spacer
 
 /**
  * The amber card that replaces the mode row while the rig is keyed.
@@ -103,6 +110,20 @@ internal fun TxTransmitPanel(
                 maxLines = 1,
                 softWrap = false,
             )
+            Spacer(Modifier.width(8.dp))
+            // Time left, restored from the panel this replaced. On a PD 290 the
+            // difference between "0:40 / 4:48" and "4:08 left" is the
+            // difference between glancing and doing arithmetic while the rig is
+            // keyed.
+            Text(
+                text = stringResource(
+                    R.string.tx_remaining_format,
+                    txRemainingLabel(progress, totalSeconds),
+                ),
+                color = TextMuted,
+                fontSize = 11.sp,
+                fontFamily = GeistMonoFamily,
+            )
         }
 
         Row(
@@ -128,10 +149,17 @@ internal fun TxTransmitPanel(
             val stopLabel = stringResource(R.string.tx_stop_action)
             Box(
                 modifier = Modifier
+                    // 48dp minimum. This is the control that drops a keyed
+                    // transmitter, so it is the last one that should need a
+                    // careful aim - it was about text height plus 12dp.
+                    .heightIn(min = 48.dp)
+                    .widthIn(min = 48.dp)
                     .clip(RoundedCornerShape(999.dp))
                     .border(1.dp, StatusBad.copy(alpha = 0.5f), RoundedCornerShape(999.dp))
-                    .clickable(onClickLabel = stopLabel, role = Role.Button, onClick = onCancel)
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                    .clickable(role = Role.Button, onClick = onCancel)
+                    .semantics { contentDescription = stopLabel }
+                    .padding(horizontal = 14.dp),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = stopLabel,

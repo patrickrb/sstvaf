@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -164,6 +165,28 @@ internal fun callingFrequencyBandIndex(freqHz: Long, bandFreqsHz: List<Long>): I
 internal fun isCallingFrequencySelected(row: SstvCallingFrequency, currentFreqHz: Long): Boolean =
     row.freqHz == currentFreqHz
 
+/**
+ * The calling-frequency rows to show, with the operator's disabled bands
+ * removed.
+ *
+ * `excludedBands` is defined as the set of wave lengths hidden from band
+ * pickers (see [GeneralVariables.isBandExcluded]), and Radio & audio's own
+ * picker honours it. This sheet is now the app's primary band picker, so an
+ * operator who switched 80m off there should not be offered 80m here.
+ *
+ * Excluding *every* calling frequency falls back to the full list rather than
+ * rendering an empty sheet: the header chip's only job is to let the operator
+ * retune, and a picker with no rows in it is a dead end with no way out. The
+ * setting hides bands; it is not a licence to remove the tuning control.
+ */
+internal fun visibleCallingFrequencies(
+    rows: List<SstvCallingFrequency>,
+    excludedBands: Set<String>,
+): List<SstvCallingFrequency> {
+    val kept = rows.filterNot { excludedBands.contains(it.band) }
+    return if (kept.isEmpty()) rows else kept
+}
+
 // ---------------------------------------------------------------------------
 // TX level / TUNE helpers (moved here when the TX strip was deleted)
 // ---------------------------------------------------------------------------
@@ -204,6 +227,7 @@ fun FrequencyPickerSheet(
     currentFreqHz: Long,
     catStatusLabel: String,
     catDotColor: Color,
+    showTxLevel: Boolean,
     txLevel: Int,
     isTuning: Boolean,
     tuneRemainingSec: Int,
@@ -255,8 +279,14 @@ fun FrequencyPickerSheet(
             }
 
             // ---- The five calling frequencies ----
+            // Re-read on each open rather than observing: excludedBands is a
+            // plain set written by the Settings screen, and the only way to
+            // change it is to leave this sheet.
+            val rows = remember(visible) {
+                visibleCallingFrequencies(SSTV_CALLING_FREQUENCIES, GeneralVariables.excludedBands)
+            }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                for (row in SSTV_CALLING_FREQUENCIES) {
+                for (row in rows) {
                     CallingFrequencyRow(
                         row = row,
                         selected = isCallingFrequencySelected(row, currentFreqHz),
@@ -284,7 +314,12 @@ fun FrequencyPickerSheet(
             )
 
             // ---- TX level ----
-            Row(
+            // Gated on the operator's "Show TX volume slider" setting. The TX
+            // strip that setting used to hide is gone, so without this the
+            // toggle in Radio & audio persists a preference that changes
+            // nothing. Hiding it here leaves the Settings slider as the way in,
+            // which is what an operator who turned it off is asking for.
+            if (showTxLevel) Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),

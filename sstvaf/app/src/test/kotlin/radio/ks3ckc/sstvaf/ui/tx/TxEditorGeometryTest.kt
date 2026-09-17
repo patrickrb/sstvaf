@@ -227,4 +227,25 @@ class TxEditorGeometryTest {
         assertThat(draft.text).isEmpty()
         assertThat(draft.colorArgb).isEqualTo(OVERLAY_COLOR_CYAN)
     }
+
+    // ----- pinch span ---------------------------------------------------------
+
+    @Test
+    fun `pinch span is the distance between the two pointers`() {
+        assertThat(pinchSpan(0f, 0f, 3f, 4f)).isWithin(1e-4f).of(5f)
+        assertThat(pinchSpan(10f, 10f, 10f, 40f)).isWithin(1e-4f).of(30f)
+    }
+
+    @Test
+    fun `pinch span is order-independent`() {
+        assertThat(pinchSpan(3f, 4f, 0f, 0f)).isWithin(1e-4f).of(pinchSpan(0f, 0f, 3f, 4f))
+    }
+
+    @Test
+    fun `two fingers on one pixel give a zero span`() {
+        // The caller divides by the previous span to get the zoom step, so this
+        // is the value that has to be guarded rather than silently producing an
+        // infinite zoom.
+        assertThat(pinchSpan(7f, 7f, 7f, 7f)).isEqualTo(0f)
+    }
 }
