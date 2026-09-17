@@ -771,6 +771,15 @@
 
     <!-- ===== TX composer: canvas ===== -->
     <string name="tx_change_photo_pill">Change</string>
+    <string name="tx_new_picture_short">New</string>
+    <string name="tx_stroke_thin">Thin stroke</string>
+    <string name="tx_stroke_medium">Medium stroke</string>
+    <string name="tx_stroke_thick">Thick stroke</string>
+    <string name="tx_color_white">White</string>
+    <string name="tx_color_black">Black</string>
+    <string name="tx_color_cyan">Cyan</string>
+    <string name="tx_color_amber">Amber</string>
+    <string name="tx_color_green">Green</string>
     <string name="tx_overlay_delete_description">Remove the selected text</string>
     <string name="tx_transmit_action">Transmit</string>
 

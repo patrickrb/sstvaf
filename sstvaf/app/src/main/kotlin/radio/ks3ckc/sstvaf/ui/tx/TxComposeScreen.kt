@@ -76,6 +76,7 @@ import radio.ks3ckc.sstvaf.theme.TextFaint
 import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
 import radio.ks3ckc.sstvaf.ui.components.SstvAfIcons
+import java.util.Locale
 
 /**
  * The TX composer tab: pick a photo, crop it into the selected SSTV mode's
@@ -214,7 +215,11 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
         }
     }
 
-    val callsign = GeneralVariables.myCallsign.orEmpty().trim().uppercase()
+    // Locale.ROOT, not the default locale: a callsign is a protocol
+    // identifier, and on a Turkish-locale device the default uppercase() turns
+    // an ASCII "i" into a dotted capital I, which is not the station that is
+    // transmitting. The composition helpers already normalise this way.
+    val callsign = GeneralVariables.myCallsign.orEmpty().trim().uppercase(Locale.ROOT)
     val grid = GeneralVariables.getMyMaidenheadGrid().orEmpty()
 
     /** Load a text-only card: a generated gradient plus its starting overlays. */
@@ -298,35 +303,55 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                 tool = tool,
                 selectedOverlayId = selectedOverlayId,
                 editable = !isTransmitting,
+                // Every gesture callback below reads composerState.composition
+                // rather than the `composition` captured by this composition
+                // pass. The canvas gesture coroutine is not restarted for these
+                // edits, so it keeps calling the callback instances it was
+                // launched with; computing from a captured value made each event
+                // start again from the same state and overwrite the last step
+                // instead of accumulating - a whole pan gesture collapsed to its
+                // final event, and a freehand stroke to a single dot.
                 onPanBy = { dxFraction, dyFraction ->
-                    composerState.composition = composition.copy(
-                        panX = panStep(composition.panX, dxFraction, composition.zoom),
-                        panY = panStep(composition.panY, dyFraction, composition.zoom),
-                    )
+                    composerState.composition?.let { live ->
+                        composerState.composition = live.copy(
+                            panX = panStep(live.panX, dxFraction, live.zoom),
+                            panY = panStep(live.panY, dyFraction, live.zoom),
+                        )
+                    }
+                },
+                onZoomBy = { scale ->
+                    composerState.composition?.let { live ->
+                        composerState.composition = live.withClampedView(zoom = live.zoom * scale)
+                    }
                 },
                 onOverlayTouched = { id ->
                     selectedOverlayId = id
-                    composition.overlays.firstOrNull { it.id == id }?.let { draft = draft.matching(it) }
+                    composerState.composition?.overlays
+                        ?.firstOrNull { it.id == id }
+                        ?.let { draft = draft.matching(it) }
                     // The callsign stamp belongs to the Callsign tool; anything
                     // else to Text. Switching tool on touch means the controls
                     // for the thing just grabbed are already on screen.
                     tool = if (id == CALLSIGN_OVERLAY_ID) TxTool.CALLSIGN else TxTool.TEXT
                 },
                 onOverlayMovedTo = { id, x, y ->
-                    composerState.composition = composition.withOverlayMoved(id, x, y)
+                    composerState.composition =
+                        composerState.composition?.withOverlayMoved(id, x, y)
                 },
                 onDeselect = { selectedOverlayId = null },
                 onStrokeStart = { x, y ->
-                    composerState.composition = composition.withStrokeStarted(
+                    composerState.composition = composerState.composition?.withStrokeStarted(
                         draft.colorArgb, draft.strokeWidth, PathPoint(x, y),
                     )
                 },
                 onStrokeExtend = { x, y ->
-                    composerState.composition = composition.withStrokeExtended(PathPoint(x, y))
+                    composerState.composition =
+                        composerState.composition?.withStrokeExtended(PathPoint(x, y))
                 },
                 onDeleteSelected = {
                     selectedOverlayId?.let {
-                        composerState.composition = composition.withOverlayRemoved(it)
+                        composerState.composition =
+                            composerState.composition?.withOverlayRemoved(it)
                     }
                     selectedOverlayId = null
                 },
@@ -334,6 +359,13 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                     pickImage.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
                     )
+                },
+                onClearImage = {
+                    // Back to the four-way empty state, so the CQ card, grid
+                    // card and Last sent are reachable again.
+                    composerState.clearImage()
+                    selectedOverlayId = null
+                    tool = TxTool.CROP
                 },
             )
 
@@ -608,7 +640,10 @@ private fun TxProgressPanel(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        // The caller's modifier carries the row weight. Dropping it made this
+        // panel ask for the full row width on top of the fixed-width mode card,
+        // so the progress UI overflowed the row while the rig was keyed.
+        modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         LinearProgressIndicator(

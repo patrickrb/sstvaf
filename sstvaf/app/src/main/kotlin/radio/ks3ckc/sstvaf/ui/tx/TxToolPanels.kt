@@ -46,6 +46,10 @@ import radio.ks3ckc.sstvaf.theme.TextFaint
 import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
 import radio.ks3ckc.sstvaf.ui.components.IntSlider
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.selection.selectable
+import androidx.annotation.StringRes
 
 /**
  * The panel under the tool rail: the controls for whichever tool is active.
@@ -316,7 +320,12 @@ private fun PresetCell(
                 if (selected) Accent else Color.Transparent,
                 RoundedCornerShape(8.dp),
             )
-            .clickable(onClickLabel = description, role = Role.Button, onClick = onClick),
+            // A graphical cell with no text descendant: onClickLabel names the
+            // action but leaves the node itself unnamed, so TalkBack announces
+            // an unlabelled button. The description names it and the selected
+            // state says whether it is the active preset.
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .semantics { contentDescription = description },
     ) {
         val barColor = if (selected) Accent else TextFaint
         val isCentre = preset.style == OverlayStyle.BAR
@@ -503,12 +512,20 @@ private fun DrawPanel(
         Box(modifier = Modifier.weight(1f))
         for (width in STROKE_WIDTHS) {
             val selected = width == draft.strokeWidth
+            val widthDescription = stringResource(strokeWidthDescriptionRes(width))
             Box(
                 modifier = Modifier
                     .size(width = 32.dp, height = 28.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(if (selected) Accent.copy(alpha = 0.14f) else BgSurface3)
-                    .clickable(role = Role.Button) { onWidthPick(width) },
+                    // The bar inside is the only thing distinguishing these, so
+                    // they need a spoken name and a selected state.
+                    .selectable(
+                        selected = selected,
+                        role = Role.RadioButton,
+                        onClick = { onWidthPick(width) },
+                    )
+                    .semantics { contentDescription = widthDescription },
                 contentAlignment = Alignment.Center,
             ) {
                 Box(
@@ -544,6 +561,7 @@ private fun SwatchRow(selected: Int, onPick: (Int) -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         for (swatch in OVERLAY_COLOR_SWATCHES) {
             val isSelected = swatch == selected
+            val swatchDescription = stringResource(swatchDescriptionRes(swatch))
             Box(
                 modifier = Modifier
                     .size(26.dp)
@@ -554,7 +572,14 @@ private fun SwatchRow(selected: Int, onPick: (Int) -> Unit) {
                         color = if (isSelected) Accent else BorderStrong,
                         shape = CircleShape,
                     )
-                    .clickable(role = Role.Button) { onPick(swatch) },
+                    // A bare coloured circle: nothing here reaches a screen
+                    // reader without a name, and colour is the whole meaning.
+                    .selectable(
+                        selected = isSelected,
+                        role = Role.RadioButton,
+                        onClick = { onPick(swatch) },
+                    )
+                    .semantics { contentDescription = swatchDescription },
             )
         }
     }
@@ -719,4 +744,32 @@ private fun Hint(text: String) {
 @Composable
 private fun Mono(text: String) {
     Text(text = text, color = TextFaint, fontSize = 11.sp, fontFamily = GeistMonoFamily)
+}
+
+/**
+ * The spoken name for a stroke-width button.
+ *
+ * These buttons are three bars of different thickness with no text, so the
+ * name has to come from here or a screen reader reaches an unlabelled control.
+ */
+@StringRes
+internal fun strokeWidthDescriptionRes(width: Float): Int = when (width) {
+    STROKE_THIN -> R.string.tx_stroke_thin
+    STROKE_MEDIUM -> R.string.tx_stroke_medium
+    else -> R.string.tx_stroke_thick
+}
+
+/**
+ * The spoken name for a colour swatch.
+ *
+ * Colour is the entire meaning of these controls, and it is exactly the thing
+ * a screen reader cannot convey, so each one is named.
+ */
+@StringRes
+internal fun swatchDescriptionRes(colorArgb: Int): Int = when (colorArgb) {
+    OVERLAY_COLOR_WHITE -> R.string.tx_color_white
+    OVERLAY_COLOR_BLACK -> R.string.tx_color_black
+    OVERLAY_COLOR_CYAN -> R.string.tx_color_cyan
+    OVERLAY_COLOR_AMBER -> R.string.tx_color_amber
+    else -> R.string.tx_color_green
 }

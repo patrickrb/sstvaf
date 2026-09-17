@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.k1af.ft8af.R
 import radio.ks3ckc.sstvaf.theme.Accent
 import radio.ks3ckc.sstvaf.theme.TextMuted
+import androidx.compose.foundation.selection.selectable
 
 /**
  * The composer's six tools.
@@ -86,7 +87,17 @@ internal fun TxToolRail(
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
                     .background(if (isActive) Accent.copy(alpha = 0.14f) else Color.Transparent)
-                    .clickable(enabled = enabled, role = Role.Tab) { onSelect(tool) }
+                    // selectable, not clickable: Role.Tab names the control
+                    // but says nothing about which one is active, and the
+                    // active tool is otherwise conveyed only by tint. Without
+                    // the selected state a screen-reader user cannot tell which
+                    // editing mode they are in.
+                    .selectable(
+                        selected = isActive,
+                        enabled = enabled,
+                        role = Role.Tab,
+                        onClick = { onSelect(tool) },
+                    )
                     .padding(top = 8.dp, bottom = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(5.dp),

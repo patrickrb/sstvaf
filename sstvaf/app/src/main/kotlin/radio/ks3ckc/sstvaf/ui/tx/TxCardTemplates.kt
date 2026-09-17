@@ -109,11 +109,14 @@ internal fun cardGradientArgb(kind: TxCardKind): Pair<Int, Int> = when (kind) {
 internal enum class TxCardKind { CQ, GRID }
 
 /**
- * The caption on the "Last sent" row, e.g. "S1 · 14:02 · text kept, swap it".
+ * The caption on the "Last sent" row, e.g. "S1 \u00b7 14:02 \u00b7 tap to start from it".
  *
- * The trailing clause is the point of the row: it promises the overlays come
- * back with the picture, which is what makes this a shortcut rather than just
- * a thumbnail.
+ * The trailing clause says what the row actually does. It loads the flattened
+ * PNG that was transmitted, so the overlays arrive burned into the pixels and
+ * are no longer editable; the caption must not imply otherwise, because an
+ * operator who took it as a promise would try to change the callsign on a
+ * picture where it is part of the image. Restoring an editable edit list is a
+ * separate piece of work on the gallery side.
  */
 internal fun lastSentCaption(entry: SavedImage, keptNote: String): String {
     val shortCode = SstvMode.entries.firstOrNull { it.displayName == entry.mode }?.shortCode

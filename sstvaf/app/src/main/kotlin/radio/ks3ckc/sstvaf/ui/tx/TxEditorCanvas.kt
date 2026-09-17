@@ -7,9 +7,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,6 +20,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,8 +39,11 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -71,6 +79,7 @@ internal fun TxEditorCanvas(
     selectedOverlayId: String?,
     editable: Boolean,
     onPanBy: (dxFraction: Float, dyFraction: Float) -> Unit,
+    onZoomBy: (scale: Float) -> Unit,
     onOverlayTouched: (String) -> Unit,
     onOverlayMovedTo: (id: String, xPercent: Float, yPercent: Float) -> Unit,
     onDeselect: () -> Unit,
@@ -78,13 +87,42 @@ internal fun TxEditorCanvas(
     onStrokeExtend: (xPercent: Float, yPercent: Float) -> Unit,
     onDeleteSelected: () -> Unit,
     onChangePhoto: () -> Unit,
+    onClearImage: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val aspect = composition.mode.width.toFloat() / composition.mode.height
-    BoxWithConstraints(
-        modifier = modifier
+
+    // On a landscape or desktop-shaped window, filling the width and deriving
+    // the height from the aspect makes the canvas taller than the viewport and
+    // pushes the tool rail, the tool panel and Transmit off the bottom. This
+    // screen does not scroll, so those controls become unreachable - the same
+    // shape of regression as the TX pick-image button on tablets (issue #20).
+    // Landscape therefore sizes by height and centres, as the pre-redesign
+    // preview frame did; [previewMaxHeightDp] returns null in portrait, where
+    // filling the width is correct.
+    val configuration = LocalConfiguration.current
+    val capDp = previewMaxHeightDp(
+        screenWidthDp = configuration.screenWidthDp,
+        screenHeightDp = configuration.screenHeightDp,
+        aspect = aspect,
+    )
+    val frameModifier = if (capDp != null) {
+        Modifier
+            .heightIn(max = capDp.dp)
+            .aspectRatio(aspect)
+    } else {
+        Modifier
             .fillMaxWidth()
             .aspectRatio(aspect)
+    }
+
+    // The overlay list has to be read live inside the gesture loop rather than
+    // captured: see the note on [canvasGestures].
+    val overlaysNow by rememberUpdatedState(composition.overlays)
+
+    BoxWithConstraints(
+        modifier = modifier
+            .then(frameModifier)
             .clip(RoundedCornerShape(12.dp))
             .background(BgSurface),
     ) {
@@ -112,13 +150,18 @@ internal fun TxEditorCanvas(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .pointerInput(tool, composition.overlays, selectedOverlayId) {
+                    // Keyed on the tool and the frame size only. Keying it on
+                    // the overlay list restarted the gesture coroutine on the
+                    // first move of an overlay drag, cancelling the drag the
+                    // operator was halfway through.
+                    .pointerInput(tool, widthPx, heightPx) {
                         canvasGestures(
                             tool = tool,
-                            overlays = composition.overlays,
+                            overlays = { overlaysNow },
                             widthPx = widthPx,
                             heightPx = heightPx,
                             onPanBy = onPanBy,
+                            onZoomBy = onZoomBy,
                             onOverlayTouched = onOverlayTouched,
                             onOverlayMovedTo = onOverlayMovedTo,
                             onDeselect = onDeselect,
@@ -145,10 +188,23 @@ internal fun TxEditorCanvas(
         }
 
         if (preview != null && editable) {
-            ChangePill(
-                onClick = onChangePhoto,
+            // Change reopens the photo picker; New drops back to the four-way
+            // empty state. Without New there is no route back to the CQ card,
+            // grid card or Last sent once a picture is loaded - the operator
+            // would have to restart the app to reach them.
+            Row(
                 modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
-            )
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                CanvasPill(
+                    label = stringResource(R.string.tx_change_photo_pill),
+                    onClick = onChangePhoto,
+                )
+                CanvasPill(
+                    label = stringResource(R.string.tx_new_picture_short),
+                    onClick = onClearImage,
+                )
+            }
         }
     }
 }
@@ -159,13 +215,21 @@ internal fun TxEditorCanvas(
  * Extracted from the composable so the hit-testing and coordinate conversion it
  * relies on ([overlayHitTest], [toFramePercent]) can be unit-tested; the gesture
  * loop itself is thin.
+ *
+ * [overlays] is a provider rather than a list because this coroutine outlives
+ * the composition that started it. The gesture loop must hit-test against the
+ * overlays as they are *now*, and the callbacks it invokes must likewise read
+ * the live composition: a callback closing over a stale one turns every
+ * incremental edit into a no-op, because each event recomputes from the same
+ * starting value and overwrites the previous step rather than building on it.
  */
 private suspend fun PointerInputScope.canvasGestures(
     tool: TxTool,
-    overlays: List<TextOverlay>,
+    overlays: () -> List<TextOverlay>,
     widthPx: Float,
     heightPx: Float,
     onPanBy: (Float, Float) -> Unit,
+    onZoomBy: (Float) -> Unit,
     onOverlayTouched: (String) -> Unit,
     onOverlayMovedTo: (String, Float, Float) -> Unit,
     onDeselect: () -> Unit,
@@ -178,7 +242,7 @@ private suspend fun PointerInputScope.canvasGestures(
 
         // An overlay under the finger always wins, whatever the tool: the
         // operator is reaching for the thing they can see.
-        val hit = overlayHitTest(overlays, startPercent.first, startPercent.second)
+        val hit = overlayHitTest(overlays(), startPercent.first, startPercent.second)
         var dragging: String? = null
         if (hit != null) {
             dragging = hit.id
@@ -192,8 +256,30 @@ private suspend fun PointerInputScope.canvasGestures(
         }
 
         var previous: PointerInputChange = down
+        var previousSpan: Float? = null
         while (true) {
             val event = awaitPointerEvent()
+            val pressed = event.changes.filter { it.pressed }
+
+            // Two fingers on the crop tool is a pinch. Handled here rather than
+            // through detectTransformGestures because the same surface also has
+            // to serve overlay drags and freehand strokes, which that detector
+            // would swallow.
+            if (tool == TxTool.CROP && dragging == null && pressed.size >= 2) {
+                val span = pinchSpan(
+                    pressed[0].position.x, pressed[0].position.y,
+                    pressed[1].position.x, pressed[1].position.y,
+                )
+                val last = previousSpan
+                if (last != null && last > 0f && span > 0f) {
+                    onZoomBy(span / last)
+                }
+                previousSpan = span
+                pressed.forEach { it.consume() }
+                continue
+            }
+            previousSpan = null
+
             val change = event.changes.firstOrNull { it.id == down.id } ?: break
             if (!change.pressed) break
             val percent = toFramePercent(change.position.x, change.position.y, widthPx, heightPx)
@@ -245,33 +331,50 @@ private fun DeleteButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     val description = stringResource(R.string.tx_overlay_delete_description)
     Box(
         modifier = modifier
-            .size(28.dp)
-            .clip(CircleShape)
-            .background(BgApp.copy(alpha = 0.85f))
-            .clickable(onClickLabel = description, role = Role.Button, onClick = onClick),
+            // 48dp of touch target around a 28dp visual: this is a destructive
+            // control sitting on top of the picture.
+            .size(48.dp)
+            .clickable(role = Role.Button, onClick = onClick)
+            // onClickLabel names the *action*, not the node, so an icon-only
+            // control still reaches TalkBack unnamed without this.
+            .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
-        SstvAfIcons.Close(
-            size = 14.dp,
-            color = StatusBad,
-            strokeWidth = 2.2f,
-        )
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(CircleShape)
+                .background(BgApp.copy(alpha = 0.85f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            SstvAfIcons.Close(
+                size = 14.dp,
+                color = StatusBad,
+                strokeWidth = 2.2f,
+            )
+        }
     }
 }
 
-/** The "Change" pill that reopens the photo picker. */
+/** A small pill over the canvas, for the picture-management actions. */
 @Composable
-private fun ChangePill(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Text(
-        text = stringResource(R.string.tx_change_photo_pill),
+private fun CanvasPill(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
         modifier = modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(BgApp.copy(alpha = 0.7f))
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        color = TextPrimary,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Medium,
-        fontFamily = GeistMonoFamily,
-    )
+            .heightIn(min = 48.dp)
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .background(BgApp.copy(alpha = 0.7f))
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            color = TextPrimary,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            fontFamily = GeistMonoFamily,
+        )
+    }
 }
