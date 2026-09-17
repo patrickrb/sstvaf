@@ -46,7 +46,7 @@ class TxComposerStateTest {
         // not re-seed over it.
         val state = TxComposerState()
         state.refreshDefaults { default() }
-        val edited = state.composition!!.withOverlayAdded(TextOverlay(text = "73"))
+        val edited = state.composition!!.withOverlayStamped(TextOverlay(id = "t1", text = "73"))
         state.composition = edited
         assertThat(state.refreshDefaults { default() }).isEqualTo(edited)
         assertThat(state.composition).isEqualTo(edited)
@@ -98,7 +98,7 @@ class TxComposerStateTest {
         state.refreshDefaults { default() }
         val edited = state.composition!!
             .copy(mode = SstvMode.ROBOT_36)
-            .withOverlayAdded(TextOverlay(text = "73"))
+            .withOverlayStamped(TextOverlay(id = "t1", text = "73"))
         state.composition = edited
         val photo = bitmap()
         state.setImage(photo, "content://photo/1")

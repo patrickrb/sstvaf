@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -50,13 +51,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.k1af.ft8af.GeneralVariables
 import com.k1af.ft8af.MainViewModel
 import com.k1af.ft8af.R
 import com.k1af.ft8af.transmit.PttController
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import radio.ks3ckc.sstvaf.gallery.ImageDirection
+import radio.ks3ckc.sstvaf.gallery.SavedImage
 import radio.ks3ckc.sstvaf.sstv.CwId
 import radio.ks3ckc.sstvaf.sstv.CwIdSettings
 import radio.ks3ckc.sstvaf.sstv.SstvMode
@@ -67,8 +72,11 @@ import radio.ks3ckc.sstvaf.theme.BgSurface
 import radio.ks3ckc.sstvaf.theme.BgSurface3
 import radio.ks3ckc.sstvaf.theme.GeistMonoFamily
 import radio.ks3ckc.sstvaf.theme.StatusWarn
+import radio.ks3ckc.sstvaf.theme.TextFaint
 import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
+import radio.ks3ckc.sstvaf.ui.components.SstvAfIcons
+import java.util.Locale
 
 /**
  * The TX composer tab: pick a photo, crop it into the selected SSTV mode's
@@ -104,9 +112,15 @@ fun TxComposeScreen(mainViewModel: MainViewModel) {
     val sourceBitmap = composerState.sourceBitmap
     var showConfirmSheet by remember { mutableStateOf(false) }
     var showModeSheet by remember { mutableStateOf(false) }
-    // Index into composition.overlays being edited, or -1 for a new overlay;
-    // null = editor closed.
-    var editingOverlay by remember { mutableStateOf<Int?>(null) }
+
+    // The editor's own state: which tool is open, which overlay is selected,
+    // and the pending brush settings. Held in remember{} rather than the
+    // view-model-scoped composer state because these are not part of the
+    // picture - the composition is what gets transmitted, this is just where
+    // the operator's hands are (see TxEditorDraft).
+    var tool by remember { mutableStateOf(TxTool.CROP) }
+    var selectedOverlayId by remember { mutableStateOf<String?>(null) }
+    var draft by remember { mutableStateOf(TxEditorDraft()) }
 
     val isTransmitting by mainViewModel.sstvTransmitter.isTransmitting.observeAsState(false)
     val txProgress by mainViewModel.sstvTransmitter.txProgress.observeAsState(0f)
@@ -186,60 +200,294 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
             )
         }
 
+    // Selecting an overlay pulls its settings into the draft, so the panel's
+    // controls show that overlay's colour/size/style and changing one edits it.
+    val selectedOverlay = composition.overlays.firstOrNull { it.id == selectedOverlayId }
+
+    // "Last sent" - the most recent transmitted picture, for the empty state.
+    val store = mainViewModel.receivedImageStore
+    var lastSent by remember { mutableStateOf<SavedImage?>(null) }
+    LaunchedEffect(preview == null) {
+        if (preview == null) {
+            lastSent = withContext(Dispatchers.IO) {
+                store.list().firstOrNull { it.direction == ImageDirection.TX }
+            }
+        }
+    }
+
+    // Locale.ROOT, not the default locale: a callsign is a protocol
+    // identifier, and on a Turkish-locale device the default uppercase() turns
+    // an ASCII "i" into a dotted capital I, which is not the station that is
+    // transmitting. The composition helpers already normalise this way.
+    val callsign = GeneralVariables.myCallsign.orEmpty().trim().uppercase(Locale.ROOT)
+    val grid = GeneralVariables.getMyMaidenheadGrid().orEmpty()
+
+    /** Load a text-only card: a generated gradient plus its starting overlays. */
+    val loadCard: (TxCardKind) -> Unit = { kind ->
+        val bitmap = buildCardBitmap(kind, composition.mode.width, composition.mode.height)
+        composerState.setImage(bitmap, "card:" + kind.name)
+        composerState.composition = composerState.composition?.copy(
+            overlays = when (kind) {
+                TxCardKind.CQ -> cqCardOverlays(callsign)
+                TxCardKind.GRID -> gridCardOverlays(callsign, grid)
+            },
+            paths = emptyList(),
+            adjustments = ImageAdjustments(),
+            frame = ImageFrame.NONE,
+        )
+        // Straight to Text: a card is text, so that is the next thing the
+        // operator will want to change. The draft adopts the card's own style so
+        // the next overlay they add matches the ones already on it - otherwise
+        // typing onto a card of outlined text produces a barred line that looks
+        // like it belongs to a different picture.
+        tool = TxTool.TEXT
+        selectedOverlayId = null
+        draft = when (kind) {
+            TxCardKind.CQ -> draft.copy(
+                colorArgb = OVERLAY_COLOR_CYAN,
+                sizeFraction = OVERLAY_SIZE_LARGE,
+                style = OverlayStyle.OUTLINE,
+            )
+            TxCardKind.GRID -> draft.copy(
+                colorArgb = OVERLAY_COLOR_WHITE,
+                sizeFraction = OVERLAY_SIZE_MEDIUM,
+                style = OverlayStyle.BAR,
+            )
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BgApp),
+            .background(BgApp)
+            .padding(horizontal = 16.dp)
+            .padding(top = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         // Title comes from the app shell's header ([AppHeader]).
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Spacer(Modifier.height(12.dp))
-
-            TxPreviewFrame(
-                preview = preview,
-                mode = composition.mode,
-                gesturesEnabled = !isTransmitting,
-                onPickImage = { pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                onTakePhoto = launchCamera,
-                onGesture = { panDx, panDy, zoomFactor, previewW, previewH ->
-                    val src = sourceBitmap ?: return@TxPreviewFrame
-                    composerState.composition = applyPanZoomGesture(
-                        composition, src.width, src.height,
-                        previewW, previewH, panDx, panDy, zoomFactor,
+        if (preview == null) {
+            TxEmptyState(
+                callsign = callsign.ifEmpty { stringResource(R.string.op_no_call) },
+                grid = grid,
+                lastSent = lastSent,
+                lastSentFile = lastSent?.let { store.imageFile(it) },
+                lastSentCaption = lastSent?.let {
+                    lastSentCaption(it, stringResource(R.string.tx_last_sent_note))
+                }.orEmpty(),
+                onChoosePhoto = {
+                    pickImage.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
                     )
                 },
-                onClearImage = { composerState.clearImage() },
+                onTakePhoto = launchCamera,
+                onCqCard = { loadCard(TxCardKind.CQ) },
+                onGridCard = { loadCard(TxCardKind.GRID) },
+                onLastSent = {
+                    val entry = lastSent
+                    if (entry != null) {
+                        val bitmap = loadSavedBitmap(store.imageFile(entry))
+                        if (bitmap != null) {
+                            composerState.setImage(bitmap, store.imageFile(entry).toString())
+                            tool = TxTool.TEXT
+                            selectedOverlayId = null
+                        }
+                    }
+                },
+            )
+            Box(modifier = Modifier.weight(1f))
+        } else {
+            TxEditorCanvas(
+                preview = preview,
+                composition = composition,
+                tool = tool,
+                selectedOverlayId = selectedOverlayId,
+                editable = !isTransmitting,
+                // Every gesture callback below reads composerState.composition
+                // rather than the `composition` captured by this composition
+                // pass. The canvas gesture coroutine is not restarted for these
+                // edits, so it keeps calling the callback instances it was
+                // launched with; computing from a captured value made each event
+                // start again from the same state and overwrite the last step
+                // instead of accumulating - a whole pan gesture collapsed to its
+                // final event, and a freehand stroke to a single dot.
+                onPanBy = { dxFraction, dyFraction ->
+                    composerState.composition?.let { live ->
+                        composerState.composition = live.copy(
+                            panX = panStep(live.panX, dxFraction, live.zoom),
+                            panY = panStep(live.panY, dyFraction, live.zoom),
+                        )
+                    }
+                },
+                onZoomBy = { scale ->
+                    composerState.composition?.let { live ->
+                        composerState.composition = live.withClampedView(zoom = live.zoom * scale)
+                    }
+                },
+                onOverlayTouched = { id ->
+                    selectedOverlayId = id
+                    composerState.composition?.overlays
+                        ?.firstOrNull { it.id == id }
+                        ?.let { draft = draft.matching(it) }
+                    // The callsign stamp belongs to the Callsign tool; anything
+                    // else to Text. Switching tool on touch means the controls
+                    // for the thing just grabbed are already on screen.
+                    tool = if (id == CALLSIGN_OVERLAY_ID) TxTool.CALLSIGN else TxTool.TEXT
+                },
+                onOverlayMovedTo = { id, x, y ->
+                    composerState.composition =
+                        composerState.composition?.withOverlayMoved(id, x, y)
+                },
+                onDeselect = { selectedOverlayId = null },
+                onStrokeStart = { x, y ->
+                    composerState.composition = composerState.composition?.withStrokeStarted(
+                        draft.colorArgb, draft.strokeWidth, PathPoint(x, y),
+                    )
+                },
+                onStrokeExtend = { x, y ->
+                    composerState.composition =
+                        composerState.composition?.withStrokeExtended(PathPoint(x, y))
+                },
+                onDeleteSelected = {
+                    selectedOverlayId?.let {
+                        composerState.composition =
+                            composerState.composition?.withOverlayRemoved(it)
+                    }
+                    selectedOverlayId = null
+                },
+                onChangePhoto = {
+                    pickImage.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                    )
+                },
+                onClearImage = {
+                    // Back to the four-way empty state, so the CQ card, grid
+                    // card and Last sent are reachable again.
+                    composerState.clearImage()
+                    selectedOverlayId = null
+                    tool = TxTool.CROP
+                },
             )
 
-            Spacer(Modifier.height(12.dp))
+            TxToolRail(
+                active = tool,
+                enabled = !isTransmitting,
+                onSelect = { picked ->
+                    tool = picked
+                    // Leaving the text tools drops the selection: a dashed
+                    // outline with no controls to act on it is just clutter.
+                    if (picked != TxTool.TEXT && picked != TxTool.CALLSIGN) {
+                        selectedOverlayId = null
+                    }
+                },
+            )
 
+            TxToolPanel(
+                tool = tool,
+                composition = composition,
+                draft = draft,
+                selectedOverlay = selectedOverlay,
+                callsign = callsign.ifEmpty { stringResource(R.string.op_no_call) },
+                callsignSet = callsign.isNotEmpty(),
+                modifier = Modifier.weight(1f),
+                onZoomChange = { composerState.composition = composition.withClampedView(zoom = it) },
+                onResetCrop = {
+                    composerState.composition = composition.copy(zoom = 1f, panX = 0f, panY = 0f)
+                },
+                onFillFrame = {
+                    composerState.composition = composition.withClampedView(zoom = FILL_FRAME_ZOOM)
+                },
+                onDraftTextChange = { text ->
+                    draft = draft.copy(text = text)
+                    // Typing with an overlay selected edits it live, so the
+                    // operator sees the text land on the picture as they type.
+                    val id = selectedOverlayId
+                    if (id != null) {
+                        composerState.composition =
+                            composition.withOverlayPatched(id) { it.copy(text = text) }
+                    }
+                },
+                onCommitText = {
+                    if (selectedOverlayId != null) {
+                        // Committing with a selection just ends the edit.
+                        selectedOverlayId = null
+                        draft = draft.cleared()
+                    } else if (draft.text.isNotBlank()) {
+                        val id = composition.nextOverlayId()
+                        composerState.composition = composition.withOverlayStamped(
+                            TextOverlay(
+                                id = id,
+                                text = draft.text.trim(),
+                                xPercent = 50f,
+                                yPercent = 50f,
+                                colorArgb = draft.colorArgb,
+                                sizeFraction = draft.sizeFraction,
+                                style = draft.style,
+                            ),
+                        )
+                        selectedOverlayId = id
+                    }
+                },
+                onColorPick = { color ->
+                    draft = draft.copy(colorArgb = color)
+                    selectedOverlayId?.let { id ->
+                        composerState.composition =
+                            composition.withOverlayPatched(id) { it.copy(colorArgb = color) }
+                    }
+                },
+                onSizePick = { size ->
+                    draft = draft.copy(sizeFraction = size)
+                    selectedOverlayId?.let { id ->
+                        composerState.composition =
+                            composition.withOverlayPatched(id) { it.copy(sizeFraction = size) }
+                    }
+                },
+                onStylePick = { style ->
+                    draft = draft.copy(style = style)
+                    selectedOverlayId?.let { id ->
+                        composerState.composition =
+                            composition.withOverlayPatched(id) { it.copy(style = style) }
+                    }
+                },
+                onStampCallsign = { preset ->
+                    composerState.composition = composition.withOverlayStamped(
+                        TextOverlay(
+                            id = CALLSIGN_OVERLAY_ID,
+                            text = callsign,
+                            xPercent = preset.xPercent,
+                            yPercent = preset.yPercent,
+                            colorArgb = draft.colorArgb,
+                            sizeFraction = draft.sizeFraction,
+                            // The preset decides the style: a centre stamp is a
+                            // full-width bar, a corner stamp needs a halo.
+                            style = preset.style,
+                        ),
+                    )
+                    draft = draft.copy(style = preset.style)
+                    selectedOverlayId = CALLSIGN_OVERLAY_ID
+                },
+                onFramePick = { composerState.composition = composition.withFrame(it) },
+                onAdjustmentsChange = { composerState.composition = composition.withAdjustments(it) },
+                onResetAdjustments = {
+                    composerState.composition = composition.withAdjustmentsReset()
+                },
+                onStrokeWidthPick = { draft = draft.copy(strokeWidth = it) },
+                onUndoStroke = { composerState.composition = composition.withStrokeUndone() },
+                onClearStrokes = { composerState.composition = composition.withStrokesCleared() },
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             ModeCard(
                 mode = composition.mode,
                 enabled = !isTransmitting,
                 onClick = { showModeSheet = true },
+                modifier = Modifier.width(118.dp),
             )
-
-            Spacer(Modifier.height(12.dp))
-
-            OverlayList(
-                overlays = composition.overlays,
-                enabled = !isTransmitting,
-                onEdit = { index -> editingOverlay = index },
-                onAdd = { editingOverlay = -1 },
-                onRemove = { index ->
-                    composerState.composition = composition.withOverlayRemoved(index)
-                },
-            )
-
-            Spacer(Modifier.height(16.dp))
-
             if (isTransmitting) {
                 TxProgressPanel(
                     progress = txProgress,
@@ -247,15 +495,16 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                         composition.mode, cwTailSeconds, voxPreToneSeconds,
                     ),
                     onCancel = { mainViewModel.sstvTransmitter.cancel() },
+                    modifier = Modifier.weight(1f),
                 )
             } else {
                 TransmitButton(
                     gate = gate,
+                    durationLabel = modeDurationLabel(composition.mode),
                     onClick = { showConfirmSheet = true },
+                    modifier = Modifier.weight(1f),
                 )
             }
-
-            Spacer(Modifier.height(24.dp))
         }
     }
 
@@ -272,22 +521,6 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
             mainViewModel.databaseOpr.writeConfig("sstvTxMode", mode.name, null)
         },
     )
-
-    if (editingOverlay != null) {
-        val index = editingOverlay ?: -1
-        OverlayEditorSheet(
-            initial = composition.overlays.getOrNull(index),
-            onDismiss = { editingOverlay = null },
-            onSave = { overlay ->
-                composerState.composition = if (index in composition.overlays.indices) {
-                    composition.withOverlayReplaced(index, overlay)
-                } else {
-                    composition.withOverlayAdded(overlay)
-                }
-                editingOverlay = null
-            },
-        )
-    }
 
     TxConfirmSheet(
         visible = showConfirmSheet,
@@ -324,200 +557,55 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
 // Pieces
 // ---------------------------------------------------------------------------
 
-/** The mode-aspect preview: image + pinch/drag when set, pick prompt when not. */
+/**
+ * The Transmit button: accent, 52dp tall, with the mode's duration beside the
+ * label.
+ *
+ * The duration is on the button because that is the moment it matters. Tapping
+ * this commits the frequency for that long, and an operator about to send a
+ * four-minute Scottie DX should see the number before they tap, not after.
+ *
+ * Disabled with no picture or while TUNE holds the rig, with the reason stated
+ * underneath rather than left for the operator to work out.
+ */
 @Composable
-private fun TxPreviewFrame(
-    preview: Bitmap?,
-    mode: SstvMode,
-    gesturesEnabled: Boolean,
-    onPickImage: () -> Unit,
-    onTakePhoto: () -> Unit,
-    onGesture: (panDx: Float, panDy: Float, zoomFactor: Float, previewW: Float, previewH: Float) -> Unit,
-    onClearImage: () -> Unit,
+private fun TransmitButton(
+    gate: TxGate,
+    durationLabel: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val aspect = mode.width.toFloat() / mode.height.toFloat()
-    val config = LocalConfiguration.current
-    // Landscape gets a height cap so the frame doesn't stretch to full width
-    // and push the controls off-screen; portrait fills the width as before.
-    val maxHeightDp = previewMaxHeightDp(config.screenWidthDp, config.screenHeightDp, aspect)
-    val sizeModifier = if (maxHeightDp == null) {
-        Modifier.fillMaxWidth()
-    } else {
-        Modifier.height(maxHeightDp.dp)
-    }
-    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-      Box(
-        modifier = sizeModifier
-            .aspectRatio(aspect)
-            .clip(RoundedCornerShape(12.dp))
-            .background(BgSurface)
-            .border(1.dp, BgSurface3, RoundedCornerShape(12.dp)),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (preview == null) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = stringResource(R.string.tx_empty_title),
-                    color = TextPrimary,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = stringResource(R.string.tx_empty_body),
-                    color = TextMuted,
-                    fontSize = 13.sp,
-                )
-                Spacer(Modifier.height(16.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(
-                        onClick = onPickImage,
-                        colors = ButtonDefaults.buttonColors(containerColor = Accent),
-                    ) {
-                        Text(stringResource(R.string.tx_pick_button), color = Color.Black)
-                    }
-                    OutlinedButton(onClick = onTakePhoto) {
-                        Text(stringResource(R.string.tx_camera_button), color = TextPrimary)
-                    }
-                }
-            }
-        } else {
-            Image(
-                bitmap = preview.asImageBitmap(),
-                contentDescription = stringResource(R.string.tx_preview_description),
-                contentScale = ContentScale.FillBounds,
-                filterQuality = FilterQuality.None,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .pointerInput(gesturesEnabled) {
-                        if (gesturesEnabled) {
-                            detectTransformGestures { _, pan, zoom, _ ->
-                                onGesture(pan.x, pan.y, zoom, size.width.toFloat(), size.height.toFloat())
-                            }
-                        }
-                    },
+    val enabled = gate == TxGate.READY
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(if (enabled) Accent else BgSurface3)
+                .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            SstvAfIcons.Transmit(
+                size = 18.dp,
+                color = if (enabled) BgApp else TextFaint,
+                strokeWidth = 2f,
             )
-            // Corner affordances: camera, library (CHANGE), and the only way
-            // the composed image is ever dropped — the user's explicit CLEAR.
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp),
-            ) {
-                CornerAffordance(
-                    text = stringResource(R.string.tx_camera_photo),
-                    enabled = gesturesEnabled,
-                    onClick = onTakePhoto,
-                )
-                CornerAffordance(
-                    text = stringResource(R.string.tx_change_photo),
-                    enabled = gesturesEnabled,
-                    onClick = onPickImage,
-                )
-                CornerAffordance(
-                    text = stringResource(R.string.tx_clear_photo),
-                    enabled = gesturesEnabled,
-                    onClick = onClearImage,
-                )
-            }
-        }
-      }
-    }
-}
-
-/** A small dark-pill tap target over the preview corner (CHANGE / CAMERA). */
-@Composable
-private fun CornerAffordance(text: String, enabled: Boolean, onClick: () -> Unit) {
-    Text(
-        text = text,
-        color = TextPrimary,
-        fontSize = 11.sp,
-        fontFamily = GeistMonoFamily,
-        modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(Color.Black.copy(alpha = 0.55f))
-            // Role.Button so TalkBack announces this pill as a button rather
-            // than plain text (CHANGE / CAMERA are actionable, not labels).
-            .clickable(enabled = enabled, role = Role.Button) { onClick() }
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-    )
-}
-
-/** The overlay rows + add button. */
-@Composable
-private fun OverlayList(
-    overlays: List<TextOverlay>,
-    enabled: Boolean,
-    onEdit: (Int) -> Unit,
-    onAdd: () -> Unit,
-    onRemove: (Int) -> Unit,
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        overlays.forEachIndexed { index, overlay ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 2.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(BgSurface)
-                    .clickable(enabled = enabled) { onEdit(index) }
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(14.dp)
-                        .clip(CircleShape)
-                        .background(Color(overlay.colorArgb))
-                        .border(1.dp, BgSurface3, CircleShape),
-                )
-                Spacer(Modifier.size(10.dp))
-                Text(
-                    text = overlay.text,
-                    color = TextPrimary,
-                    fontSize = 13.sp,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    text = overlay.position.name.replace('_', ' '),
-                    color = TextMuted,
-                    fontSize = 10.sp,
-                    fontFamily = GeistMonoFamily,
-                )
-                Spacer(Modifier.size(10.dp))
-                Text(
-                    text = stringResource(R.string.tx_overlay_remove),
-                    color = StatusWarn,
-                    fontSize = 12.sp,
-                    modifier = Modifier.clickable(enabled = enabled) { onRemove(index) },
-                )
-            }
-        }
-        OutlinedButton(
-            onClick = onAdd,
-            enabled = enabled,
-            modifier = Modifier.padding(top = 6.dp),
-        ) {
-            Text(stringResource(R.string.tx_overlay_add), fontSize = 12.sp)
-        }
-    }
-}
-
-/** TRANSMIT button with the gate reason underneath when blocked. */
-@Composable
-private fun TransmitButton(gate: TxGate, onClick: () -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Button(
-            onClick = onClick,
-            enabled = gate == TxGate.READY,
-            colors = ButtonDefaults.buttonColors(containerColor = Accent),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
+            Spacer(Modifier.width(8.dp))
             Text(
-                text = stringResource(R.string.tx_transmit_button),
-                color = Color.Black,
+                text = stringResource(R.string.tx_transmit_action),
+                color = if (enabled) BgApp else TextFaint,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = durationLabel,
+                color = (if (enabled) BgApp else TextFaint).copy(alpha = 0.75f),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                fontFamily = GeistMonoFamily,
             )
         }
         val reason = when (gate) {
@@ -527,7 +615,13 @@ private fun TransmitButton(gate: TxGate, onClick: () -> Unit) {
         }
         if (reason != null) {
             Spacer(Modifier.height(4.dp))
-            Text(text = reason, color = TextMuted, fontSize = 12.sp)
+            Text(
+                text = reason,
+                modifier = Modifier.fillMaxWidth(),
+                color = TextMuted,
+                fontSize = 11.sp,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }
@@ -539,9 +633,17 @@ private fun TransmitButton(gate: TxGate, onClick: () -> Unit) {
  * through the CW station-ID tail.
  */
 @Composable
-private fun TxProgressPanel(progress: Float, totalSeconds: Double, onCancel: () -> Unit) {
+private fun TxProgressPanel(
+    progress: Float,
+    totalSeconds: Double,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        // The caller's modifier carries the row weight. Dropping it made this
+        // panel ask for the full row width on top of the fixed-width mode card,
+        // so the progress UI overflowed the row while the rig was keyed.
+        modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         LinearProgressIndicator(
