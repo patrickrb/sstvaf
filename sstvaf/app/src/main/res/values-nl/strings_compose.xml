@@ -36,10 +36,6 @@
     <string name="continent_an">Antarctica</string>
 
     <!-- ===== Bottom navigation tabs ===== -->
-    <string name="tab_decode">Decoderen</string>
-    <string name="tab_waterfall">Waterval</string>
-    <string name="tab_logbook">Logboek</string>
-    <string name="tab_settings">Instellingen</string>
 
     <!-- ===== Status pills (decode list badges) ===== -->
     <string name="status_new_dxcc">NIEUW DXCC</string>
@@ -68,10 +64,6 @@
     <string name="exit_message">Weet je zeker dat je de app wilt sluiten? Een actieve QSO wordt geannuleerd.</string>
 
     <!-- ===== Frequency picker ===== -->
-    <string name="freq_select_title">FREQUENTIE KIEZEN</string>
-    <string name="freq_show_alternates">ALTERNATIEVEN TONEN</string>
-    <string name="freq_hide_alternates">ALTERNATIEVEN VERBERGEN</string>
-    <string name="freq_alt_prefix">"ALT "</string>
 
     <!-- ===== Operator card ===== -->
     <string name="op_no_call">GEEN ROEPNAAM</string>
@@ -115,12 +107,6 @@
     <string name="hound_call_frequency">Roepfrequentie (Hz, 1000–4000)</string>
     <string name="hound_start">Starten</string>
 
-    <!-- ===== CAT status chip ===== -->
-    <string name="cat_status_chip_label">CAT</string>
-    <string name="cat_status_connected">CAT verbonden — tik om opnieuw te verbinden</string>
-    <string name="cat_status_connecting">CAT verbinden…</string>
-    <string name="cat_status_disconnected">CAT verbroken — tik om te verbinden</string>
-    <string name="cat_status_error">CAT-verbindingsfout — tik om opnieuw te proberen</string>
 
     <!-- ===== SWR lockout banner ===== -->
     <string name="swr_lockout_title">TX GESTOPT — Hoge SWR gedetecteerd (%1$s)</string>
@@ -318,10 +304,6 @@
     <string name="map_info_distance">Afstand</string>
     <string name="map_info_bearing">Peiling</string>
     <string name="map_info_snr">SNR</string>
-    <string name="waterfall_title">Waterval</string>
-    <string name="waterfall_toggle_nr">NR</string>
-    <string name="waterfall_toggle_msg">MSG</string>
-    <string name="waterfall_status_live">LIVE</string>
 
     <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d min</string>

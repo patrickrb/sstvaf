@@ -40,13 +40,24 @@ import radio.ks3ckc.sstvaf.ui.motion.MotionTokens
 import radio.ks3ckc.sstvaf.ui.motion.rememberHaptics
 import com.k1af.ft8af.R
 
+/**
+ * The three bottom tabs: watch for pictures, send one, browse what you have.
+ *
+ * Down from six. Waterfall is gone outright — SSTV carries its mode in the VIS
+ * header, so the decoder auto-detects it and there is nothing for the operator
+ * to tune by eye. Logbook and Settings moved behind the header's overflow
+ * button ([MoreSheet]): both are places you visit, not places you operate from,
+ * and spending two of six tabs on them pushed the three screens that matter into
+ * a crowd.
+ *
+ * The label resource doubles as the screen title — the header shows the same
+ * word as the tab (see [AppHeader]), so there is only one name per screen to
+ * translate and they can never drift apart.
+ */
 enum class SstvTab(@StringRes val labelRes: Int) {
-    RX(R.string.tab_rx),
+    RX(R.string.tab_receive),
+    TX(R.string.tab_send),
     GALLERY(R.string.tab_gallery),
-    TX(R.string.tab_tx),
-    WATERFALL(R.string.tab_waterfall),
-    LOG(R.string.tab_logbook),
-    SETTINGS(R.string.tab_settings),
 }
 
 @Composable
@@ -88,7 +99,9 @@ fun TabBar(
                 )
             )
             .padding(horizontal = 12.dp)
-            .padding(top = 8.dp, bottom = 30.dp)
+            // Bottom padding is deeper than the design's 22px so the row clears
+            // the gesture-nav pill on a modern phone; the top edge matches.
+            .padding(top = 6.dp, bottom = 30.dp)
             // drawBehind sits AFTER both padding modifiers so its draw scope matches the inner
             // content area — the same coordinate space the tab Columns report from
             // [LayoutCoordinates.positionInParent]. This keeps the pill horizontally aligned
@@ -163,14 +176,7 @@ fun TabBar(
                         scaleY = bounceScale.value
                     }
                 ) {
-                    when (tab) {
-                        SstvTab.RX -> SstvAfIcons.RxImage(color = color, strokeWidth = strokeWidth)
-                        SstvTab.GALLERY -> SstvAfIcons.Gallery(color = color, strokeWidth = strokeWidth)
-                        SstvTab.TX -> SstvAfIcons.Transmit(color = color, strokeWidth = strokeWidth)
-                        SstvTab.WATERFALL -> SstvAfIcons.Waterfall(color = color, strokeWidth = strokeWidth)
-                        SstvTab.LOG -> SstvAfIcons.Book(color = color, strokeWidth = strokeWidth)
-                        SstvTab.SETTINGS -> SstvAfIcons.Cog(color = color, strokeWidth = strokeWidth)
-                    }
+                    TabIcon(tab = tab, color = color, strokeWidth = strokeWidth)
                 }
                 Text(
                     text = stringResource(tab.labelRes),
@@ -181,5 +187,19 @@ fun TabBar(
                 )
             }
         }
+    }
+}
+
+/**
+ * The glyph for one tab. Shared by [TabBar] and [TabRail] so the two navigation
+ * surfaces — which are the same control re-flowed for width (see
+ * [AdaptiveShell]) — can never show different icons for the same tab.
+ */
+@Composable
+internal fun TabIcon(tab: SstvTab, color: Color, strokeWidth: Float) {
+    when (tab) {
+        SstvTab.RX -> SstvAfIcons.RxImage(color = color, strokeWidth = strokeWidth)
+        SstvTab.TX -> SstvAfIcons.Send(color = color, strokeWidth = strokeWidth)
+        SstvTab.GALLERY -> SstvAfIcons.Gallery(color = color, strokeWidth = strokeWidth)
     }
 }

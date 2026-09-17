@@ -152,7 +152,7 @@ private data class AwardProgress(
 // ---------------------------------------------------------------------------
 
 @Composable
-fun LogbookScreen(mainViewModel: MainViewModel) {
+fun LogbookScreen(mainViewModel: MainViewModel, onBack: () -> Unit) {
     var activeTab by remember { mutableStateOf(LogbookTab.STATS) }
     var exportSheetVisible by remember { mutableStateOf(false) }
     var manualQsoVisible by remember { mutableStateOf(false) }
@@ -268,6 +268,7 @@ fun LogbookScreen(mainViewModel: MainViewModel) {
             // Top bar
             TopBar(
                 title = stringResource(R.string.log_title),
+                onBack = onBack,
                 subtitle = {
                     val count = if (stats.totalQsos > 0) stats.totalQsos else records.size
                     TopBarSubtitle(text = stringResource(R.string.log_subtitle_qsos_all_bands, count))

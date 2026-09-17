@@ -55,8 +55,11 @@ public class DatabaseOpr extends SQLiteOpenHelper {
 
     public static synchronized DatabaseOpr getInstance(@Nullable Context context, @Nullable String databaseName) {
         if (instance == null) {
+            // v21: sstv_images gains an `edits` column holding the composer's
+            //      edit list, so a sent picture can be reopened and resent
+            //      rather than only viewed (addSstvImageEditsColumn).
             // v20: QSLTable gains a submode column (SSTV mode name, e.g. "Scottie 1").
-            instance = new DatabaseOpr(context, databaseName, null, 20);
+            instance = new DatabaseOpr(context, databaseName, null, 21);
         }
         return instance;
     }
@@ -128,6 +131,11 @@ public class DatabaseOpr extends SQLiteOpenHelper {
 
         //Create SSTV image metadata table (v18 -> v19)
         createSstvImagesTable(sqLiteDatabase);
+
+        //Add the SSTV edit list to installs that already had the table (v20 -> v21).
+        //Separate from createSstvImagesTable, which only creates when missing:
+        //an existing install has the table and would never see a changed CREATE.
+        addSstvImageEditsColumn(sqLiteDatabase);
 
         //Create indexes
         createIndex(sqLiteDatabase);
@@ -494,7 +502,30 @@ public class DatabaseOpr extends SQLiteOpenHelper {
                     "height INTEGER,\n" +
                     "complete INTEGER,\n" +//1 = full decode, 0 = partial
                     "quality REAL,\n" +
-                    "notes TEXT DEFAULT '')");
+                    "notes TEXT DEFAULT '',\n" +
+                    //The operator's edit list as JSON, so a sent picture can be
+                    //reopened in the composer rather than only re-sent flat.
+                    //See TxEditList. Empty string = no edits recorded.
+                    "edits TEXT DEFAULT '')");
+        }
+    }
+
+    /**
+     * Add the {@code edits} column to an existing {@code sstv_images} table
+     * (DB v21).
+     *
+     * The column holds the operator's edit list as JSON so a transmitted
+     * picture can be reopened in the composer, rather than only re-sent as the
+     * flattened image it became. Defaults to the empty string, which every
+     * reader treats as "no edits recorded" — so rows written before v21 keep
+     * working and simply cannot be reopened.
+     *
+     * {@link #alterTable} is a no-op when the column is already present, which
+     * is what makes running this on every upgrade safe.
+     */
+    private void addSstvImageEditsColumn(SQLiteDatabase sqLiteDatabase) {
+        if (checkTableExists(sqLiteDatabase, "sstv_images")) {
+            alterTable(sqLiteDatabase, "sstv_images", "edits", "edits TEXT DEFAULT ''");
         }
     }
 

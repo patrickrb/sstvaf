@@ -38,12 +38,14 @@ import radio.ks3ckc.sstvaf.ui.motion.rememberHaptics
 
 /**
  * Vertical navigation rail — the wide-screen counterpart to [TabBar]. Shown by
- * the shell on tablets and landscape phones (see [AdaptiveShell]) so the six
+ * the shell on tablets and landscape phones (see [AdaptiveShell]) so the
  * SSTV tabs live down the left edge and the content area keeps its full height.
  *
  * Mirrors TabBar's icon set, labels, active-accent colour and haptic tick so the
  * two navigation surfaces feel like one control that merely re-flows with size.
- * The rail scrolls if the canvas is ever too short for all six entries.
+ * The rail keeps its scroll wrapper even though three entries fit anywhere a
+ * rail is used, so a future tab (or a very short split-screen canvas) can't
+ * silently push an entry out of reach.
  */
 @Composable
 fun TabRail(
@@ -115,14 +117,7 @@ fun TabRail(
                     contentAlignment = Alignment.Center,
                 ) {
                     Box(modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center) {
-                        when (tab) {
-                            SstvTab.RX -> SstvAfIcons.RxImage(color = color, strokeWidth = strokeWidth)
-                            SstvTab.GALLERY -> SstvAfIcons.Gallery(color = color, strokeWidth = strokeWidth)
-                            SstvTab.TX -> SstvAfIcons.Transmit(color = color, strokeWidth = strokeWidth)
-                            SstvTab.WATERFALL -> SstvAfIcons.Waterfall(color = color, strokeWidth = strokeWidth)
-                            SstvTab.LOG -> SstvAfIcons.Book(color = color, strokeWidth = strokeWidth)
-                            SstvTab.SETTINGS -> SstvAfIcons.Cog(color = color, strokeWidth = strokeWidth)
-                        }
+                        TabIcon(tab = tab, color = color, strokeWidth = strokeWidth)
                     }
                 }
                 Text(

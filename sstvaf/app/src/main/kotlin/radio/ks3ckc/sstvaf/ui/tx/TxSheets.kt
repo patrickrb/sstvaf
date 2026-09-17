@@ -1,5 +1,7 @@
 package radio.ks3ckc.sstvaf.ui.tx
 
+import android.graphics.Bitmap
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -8,10 +10,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -29,7 +33,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,8 +45,10 @@ import com.k1af.ft8af.GeneralVariables
 import com.k1af.ft8af.R
 import radio.ks3ckc.sstvaf.sstv.SstvMode
 import radio.ks3ckc.sstvaf.theme.Accent
+import radio.ks3ckc.sstvaf.theme.BgApp
 import radio.ks3ckc.sstvaf.theme.BgSurface
 import radio.ks3ckc.sstvaf.theme.BgSurface3
+import radio.ks3ckc.sstvaf.theme.BorderStrong
 import radio.ks3ckc.sstvaf.theme.GeistMonoFamily
 import radio.ks3ckc.sstvaf.theme.StatusWarn
 import radio.ks3ckc.sstvaf.theme.TextMuted
@@ -57,201 +67,137 @@ import radio.ks3ckc.sstvaf.ui.rx.formatDialFrequency
 internal fun TxConfirmSheet(
     visible: Boolean,
     mode: SstvMode,
+    preview: Bitmap?,
+    txLevelPercent: Int,
+    bandLabel: String,
     cwTailSeconds: Double,
     voxPreToneSeconds: Double = 0.0,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
     SstvAfBottomSheet(visible = visible, onDismiss = onDismiss) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp)
+                .padding(top = 8.dp, bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             Text(
                 text = stringResource(R.string.tx_confirm_title),
                 color = TextPrimary,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
             )
-            Spacer(Modifier.height(12.dp))
-            Text(
-                text = confirmDurationLine(mode, cwTailSeconds, voxPreToneSeconds),
-                color = TextPrimary,
-                fontSize = 14.sp,
-                fontFamily = GeistMonoFamily,
-            )
-            Spacer(Modifier.height(2.dp))
-            // Plain-language airtime class under the exact seconds, so the
-            // operator gauges the on-air commitment at the moment they commit.
-            Text(
-                text = stringResource(txAirtimeClass(mode, cwTailSeconds).labelRes),
-                color = TextMuted,
-                fontSize = 12.sp,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = formatDialFrequency(GeneralVariables.band),
-                color = TextMuted,
-                fontSize = 13.sp,
-                fontFamily = GeistMonoFamily,
-            )
-            Spacer(Modifier.height(12.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                // The actual flattened composite, at the mode's aspect ratio.
+                // This is the last chance to notice a missing callsign or a
+                // crop that cut someone's head off, so it has to be the real
+                // thing rather than a thumbnail of the source photo.
+                if (preview != null) {
+                    Image(
+                        bitmap = preview.asImageBitmap(),
+                        contentDescription = stringResource(R.string.tx_preview_description),
+                        modifier = Modifier
+                            .width(120.dp)
+                            .aspectRatio(mode.width.toFloat() / mode.height)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(BgSurface),
+                        contentScale = ContentScale.FillBounds,
+                        filterQuality = FilterQuality.None,
+                    )
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = confirmDurationLine(mode, cwTailSeconds, voxPreToneSeconds),
+                        color = TextPrimary,
+                        fontSize = 13.sp,
+                        fontFamily = GeistMonoFamily,
+                    )
+                    Text(
+                        text = stringResource(txAirtimeClass(mode, cwTailSeconds).labelRes),
+                        color = TextMuted,
+                        fontSize = 12.sp,
+                    )
+                    Text(
+                        text = confirmFrequencyLine(GeneralVariables.band, bandLabel),
+                        color = TextMuted,
+                        fontSize = 13.sp,
+                        fontFamily = GeistMonoFamily,
+                    )
+                    Text(
+                        // TX level belongs on this sheet: it is the one setting
+                        // that decides whether the transmission is clean or
+                        // over-driven, it lives two taps away in the Frequency
+                        // sheet, and this is the moment it stops being
+                        // adjustable.
+                        text = stringResource(R.string.tx_confirm_level, txLevelPercent),
+                        color = TextMuted,
+                        fontSize = 13.sp,
+                        fontFamily = GeistMonoFamily,
+                    )
+                }
+            }
+
             Text(
                 text = stringResource(R.string.tx_confirm_warning),
                 color = StatusWarn,
                 fontSize = 12.sp,
             )
-            Spacer(Modifier.height(16.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.tx_confirm_cancel))
-                }
-                Button(
-                    onClick = onConfirm,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = Accent),
-                ) {
-                    Text(stringResource(R.string.tx_confirm_go), color = Color.Black)
-                }
-            }
-        }
-    }
-}
 
-/**
- * Add/edit one [TextOverlay]: text, color swatch, S/M/L size, position
- * preset grid, BAR/OUTLINE style.
- */
-@Composable
-internal fun OverlayEditorSheet(
-    initial: TextOverlay?,
-    onDismiss: () -> Unit,
-    onSave: (TextOverlay) -> Unit,
-) {
-    var text by remember { mutableStateOf(initial?.text ?: "") }
-    var colorArgb by remember { mutableStateOf(initial?.colorArgb ?: OVERLAY_COLOR_WHITE) }
-    var sizeFraction by remember { mutableStateOf(initial?.sizeFraction ?: OVERLAY_SIZE_MEDIUM) }
-    var position by remember { mutableStateOf(initial?.position ?: OverlayPosition.TOP_BAR) }
-    var style by remember { mutableStateOf(initial?.style ?: OverlayStyle.BAR) }
-
-    SstvAfBottomSheet(visible = true, onDismiss = onDismiss) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                text = stringResource(
-                    if (initial == null) R.string.tx_overlay_add else R.string.tx_overlay_edit,
-                ),
-                color = TextPrimary,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-            )
-            Spacer(Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                singleLine = true,
-                label = { Text(stringResource(R.string.tx_overlay_text_label)) },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Accent,
-                    focusedLabelColor = Accent,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(12.dp))
-
-            // Color swatches
+            // Equal-weight buttons, 48dp: confirming keys a transmitter, so
+            // Cancel is the same size and just as easy to hit. The accent fill
+            // marks which one proceeds without making the other a hard target.
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OVERLAY_COLOR_SWATCHES.forEach { swatch ->
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(Color(swatch))
-                            .border(
-                                width = if (swatch == colorArgb) 3.dp else 1.dp,
-                                color = if (swatch == colorArgb) Accent else BgSurface3,
-                                shape = CircleShape,
-                            )
-                            .clickable { colorArgb = swatch },
-                    )
-                }
-            }
-            Spacer(Modifier.height(12.dp))
-
-            // Size presets
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(
-                    "S" to OVERLAY_SIZE_SMALL,
-                    "M" to OVERLAY_SIZE_MEDIUM,
-                    "L" to OVERLAY_SIZE_LARGE,
-                ).forEach { (label, fraction) ->
-                    SelectChip(
-                        label = label,
-                        selected = sizeFraction == fraction,
-                        onClick = { sizeFraction = fraction },
-                    )
-                }
-                Spacer(Modifier.weight(1f))
-                // Style toggle
-                OverlayStyle.entries.forEach { s ->
-                    SelectChip(
-                        label = s.name,
-                        selected = style == s,
-                        onClick = { style = s },
-                    )
-                }
-            }
-            Spacer(Modifier.height(12.dp))
-
-            // Position preset grid (two rows)
-            listOf(
-                listOf(OverlayPosition.TOP_LEFT, OverlayPosition.TOP_BAR, OverlayPosition.TOP_RIGHT),
-                listOf(OverlayPosition.BOTTOM_LEFT, OverlayPosition.BOTTOM_BAR, OverlayPosition.BOTTOM_RIGHT),
-                listOf(OverlayPosition.CENTER),
-            ).forEach { rowPositions ->
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(vertical = 2.dp),
-                ) {
-                    rowPositions.forEach { p ->
-                        SelectChip(
-                            label = p.name.replace('_', ' '),
-                            selected = position == p,
-                            onClick = { position = p },
-                        )
-                    }
-                }
-            }
-            Spacer(Modifier.height(16.dp))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.tx_confirm_cancel))
-                }
-                Button(
-                    onClick = {
-                        onSave(TextOverlay(text.trim(), colorArgb, sizeFraction, position, style))
-                    },
-                    enabled = text.isNotBlank(),
+                ConfirmButton(
+                    label = stringResource(R.string.tx_confirm_cancel),
+                    background = Color.Transparent,
+                    textColor = TextPrimary,
+                    borderColor = BorderStrong,
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = Accent),
-                ) {
-                    Text(stringResource(R.string.tx_overlay_save), color = Color.Black)
-                }
+                    onClick = onDismiss,
+                )
+                ConfirmButton(
+                    label = stringResource(R.string.tx_confirm_go),
+                    background = Accent,
+                    textColor = BgApp,
+                    borderColor = Color.Transparent,
+                    modifier = Modifier.weight(1f),
+                    onClick = onConfirm,
+                )
             }
         }
     }
 }
 
-/** Small selectable chip used by the editor's preset rows. */
+/** One of the confirm sheet's two equal 48dp buttons. */
 @Composable
-private fun SelectChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    Text(
-        text = label,
-        color = if (selected) Color.Black else TextPrimary,
-        fontSize = 11.sp,
-        fontFamily = GeistMonoFamily,
-        modifier = Modifier
+private fun ConfirmButton(
+    label: String,
+    background: Color,
+    textColor: Color,
+    borderColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .height(48.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) Accent else BgSurface)
-            .clickable(enabled = !selected) { onClick() }
-            .padding(horizontal = 10.dp, vertical = 5.dp),
-    )
+            .background(background)
+            .border(1.dp, borderColor, RoundedCornerShape(12.dp))
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            color = textColor,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+        )
+    }
 }

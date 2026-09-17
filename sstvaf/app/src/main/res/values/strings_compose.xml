@@ -36,11 +36,11 @@
     <string name="continent_oc">Oceania</string>
     <string name="continent_an">Antarctica</string>
 
-    <!-- ===== Bottom navigation tabs ===== -->
-    <string name="tab_decode">Decode</string>
-    <string name="tab_waterfall">Waterfall</string>
-    <string name="tab_logbook">Logbook</string>
-    <string name="tab_settings">Settings</string>
+    <!-- ===== Bottom navigation tabs =====
+         Three tabs, and each label doubles as its screen's title in the header,
+         so there is one name per screen to translate. -->
+    <string name="tab_receive">Receive</string>
+    <string name="tab_send">Send</string>
 
     <!-- ===== Status pills (decode list badges) ===== -->
     <string name="status_new_dxcc">NEW DXCC</string>
@@ -68,11 +68,43 @@
     <string name="exit_title">EXIT SSTVAF?</string>
     <string name="exit_message">Are you sure you want to close the app? Any active QSO will be cancelled.</string>
 
-    <!-- ===== Frequency picker ===== -->
-    <string name="freq_select_title">SELECT FREQUENCY</string>
-    <string name="freq_show_alternates">SHOW ALTERNATES</string>
-    <string name="freq_hide_alternates">HIDE ALTERNATES</string>
-    <string name="freq_alt_prefix">"ALT "</string>
+    <!-- ===== App header (every tab) ===== -->
+    <string name="action_back">Back</string>
+    <!-- Frequency chip content description. %1$s is the chip's own label, e.g.
+         "14.230 · 20m"; %2$s is the CAT link state, which the chip otherwise
+         shows only as a coloured dot. -->
+    <string name="header_frequency_chip_description">Frequency %1$s, %2$s, tap to change</string>
+    <!-- CAT link state. Reads as one segment of a "IC-705 · USB cable · CAT ·
+         connected" summary as well as inside the chip description above, so
+         these stay lowercase phrases. -->
+    <string name="cat_state_connected">connected</string>
+    <string name="cat_state_connecting">connecting</string>
+    <string name="cat_state_disconnected">not connected</string>
+    <string name="cat_state_error">connection error</string>
+    <string name="cat_state_vox">no CAT link</string>
+    <string name="header_more_description">More: radio, operator, logbook, settings</string>
+
+    <!-- ===== More sheet (header overflow) ===== -->
+    <string name="more_title">More</string>
+    <string name="more_radio_audio">Radio &amp; audio</string>
+    <string name="more_operator">Operator</string>
+    <string name="more_logbook">Logbook</string>
+    <string name="more_logbook_sub">SSTV QSOs · ADIF export · Cloudlog</string>
+    <string name="more_settings">Settings</string>
+    <string name="more_settings_sub">Everything else</string>
+
+    <!-- ===== Frequency sheet ===== -->
+    <string name="freq_sheet_title">Frequency</string>
+    <string name="freq_unit_mhz">MHz</string>
+    <!-- When each SSTV calling frequency is worth sitting on. -->
+    <string name="freq_note_night">night</string>
+    <string name="freq_note_evenings">evenings</string>
+    <string name="freq_note_daytime_busiest">daytime · busiest</string>
+    <string name="freq_note_daytime">daytime</string>
+    <string name="freq_note_when_open">when open</string>
+    <string name="freq_tx_level">TX level</string>
+    <!-- %1$d is the operator's configured tune timeout in seconds (Transmission settings). -->
+    <string name="freq_tune_explain">Keys a steady carrier for antenna tuning. Stops itself after %1$d s.</string>
 
     <!-- ===== Operator card ===== -->
     <string name="op_no_call">NO CALL</string>
@@ -119,12 +151,6 @@
     <string name="hound_call_frequency">Call frequency (Hz, 1000–4000)</string>
     <string name="hound_start">Start</string>
 
-    <!-- ===== CAT status chip ===== -->
-    <string name="cat_status_chip_label">CAT</string>
-    <string name="cat_status_connected">CAT connected — tap to reconnect</string>
-    <string name="cat_status_connecting">CAT connecting…</string>
-    <string name="cat_status_disconnected">CAT disconnected — tap to connect</string>
-    <string name="cat_status_error">CAT connection error — tap to retry</string>
 
     <!-- ===== SWR lockout banner ===== -->
     <string name="swr_lockout_title">TX HALTED — High SWR detected (%1$s)</string>
@@ -355,10 +381,6 @@
     <string name="map_info_distance">Distance</string>
     <string name="map_info_bearing">Bearing</string>
     <string name="map_info_snr">SNR</string>
-    <string name="waterfall_title">Waterfall</string>
-    <string name="waterfall_toggle_nr">NR</string>
-    <string name="waterfall_toggle_msg">MSG</string>
-    <string name="waterfall_status_live">LIVE</string>
 
     <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d min</string>
@@ -634,8 +656,6 @@
     <string name="tune_unavailable_route">Tune is not yet supported on this audio route</string>
 
     <!-- ===== SSTV RX tab + received-image storage (PR 6) ===== -->
-    <string name="tab_rx" translatable="false">RX</string>
-    <string name="rx_title">Receive</string>
     <string name="rx_listening">Listening for SSTV…</string>
     <string name="rx_disabled">Receive is off</string>
     <string name="rx_signal_detected">Signal detected…</string>
@@ -648,12 +668,30 @@
     <!-- RX decode status: estimated time left in the current image.
          %1$s is a preformatted m:ss ETA (e.g. "1:23"). -->
     <string name="rx_eta_format">%1$s left</string>
+    <!-- ===== Receive screen (redesign) ===== -->
+    <string name="rx_canvas_description">Received SSTV picture</string>
+    <string name="rx_status_listening">Listening</string>
+    <!-- %1$s is the SSTV mode the decoder locked onto, e.g. "Scottie 1". -->
+    <string name="rx_status_decoding">Decoding %1$s</string>
+    <string name="rx_status_off">Receive is off</string>
+    <!-- Decoding finished; the image has not been confirmed in the Gallery yet. -->
+    <string name="rx_status_complete">Image complete</string>
+    <string name="rx_status_saved">Saved to Gallery</string>
+    <string name="rx_status_save_failed">Save failed</string>
+    <string name="rx_status_lost">Signal lost</string>
+    <!-- Right of the status row while idle: the operator picks no mode on receive. -->
+    <string name="rx_status_auto_detect">auto-detect</string>
+    <!-- %1$s is a percentage or an em dash when nothing has decoded. -->
+    <string name="rx_quality_value">Quality %1$s</string>
+    <string name="rx_received_today">RECEIVED TODAY</string>
+    <string name="rx_received_all">All</string>
+    <string name="rx_received_none">Nothing received yet</string>
+
     <string name="settings_save_rx_photos">Save received images to Photos</string>
     <string name="settings_save_rx_photos_desc">Completed SSTV images also appear in the Photos app under Pictures/SSTVAF (Android 10+)</string>
 
     <!-- ===== Gallery tab (PR 7) ===== -->
     <string name="tab_gallery">Gallery</string>
-    <string name="gallery_title">Gallery</string>
     <string name="gallery_filter_all">All</string>
     <string name="gallery_filter_rx">Received</string>
     <string name="gallery_filter_tx">Sent</string>
@@ -675,6 +713,8 @@
          "Today · 3". %1$s is the day label (Today/Yesterday/date); %2$d is the
          count. Reorder or change the separator if the target language needs it. -->
     <string name="gallery_section_count_label">%1$s · %2$d</string>
+    <string name="gallery_send_again">Send again</string>
+    <string name="gallery_reply_with_picture">Reply with a picture</string>
     <string name="gallery_share">Share</string>
     <string name="gallery_save_photos">Save to Photos</string>
     <string name="gallery_delete">Delete</string>
@@ -710,8 +750,6 @@
     <string name="rx_view_in_gallery">View in Gallery</string>
 
     <!-- ===== TX composer tab (PR 8) ===== -->
-    <string name="tab_tx" translatable="false">TX</string>
-    <string name="tx_title">Transmit</string>
     <string name="tx_empty_title">Pick a picture to send</string>
     <string name="tx_empty_body">Photos are cropped to the SSTV mode\'s frame</string>
     <string name="tx_pick_button">Pick picture</string>
@@ -725,10 +763,129 @@
     <string name="tx_overlay_remove">Remove</string>
     <string name="tx_overlay_save">Save</string>
     <string name="tx_overlay_text_label">Text</string>
+    <!-- ===== TX composer: tool rail ===== -->
+    <string name="tx_tool_crop">Crop</string>
+    <string name="tx_tool_text">Text</string>
+    <string name="tx_tool_callsign">Callsign</string>
+    <string name="tx_tool_frame">Frame</string>
+    <string name="tx_tool_adjust">Adjust</string>
+    <string name="tx_tool_draw">Draw</string>
+
+    <!-- ===== TX transmit flow ===== -->
+    <!-- %1$s is the SSTV mode, e.g. "Scottie 1". -->
+    <string name="tx_transmitting_label">TRANSMITTING · %1$s</string>
+    <string name="tx_stop_action">Stop</string>
+    <string name="tx_sent_saved">Sent · saved to Gallery</string>
+    <string name="tx_outcome_sent">Sent</string>
+    <string name="tx_outcome_sent_detail">Saved to Gallery</string>
+    <string name="tx_outcome_stopped">Stopped</string>
+    <string name="tx_outcome_stopped_detail">Part of the picture went out</string>
+    <string name="tx_outcome_failed">Transmit failed</string>
+    <string name="tx_outcome_failed_detail">Nothing went out · check the debug log</string>
+    <string name="tx_sent_edit_again">Edit &amp; send again</string>
+    <string name="tx_sent_new_picture">New picture</string>
+
+    <!-- ===== TX composer: canvas ===== -->
+    <string name="tx_change_photo_pill">Change</string>
+    <string name="tx_new_picture_short">New</string>
+    <string name="tx_stroke_thin">Thin stroke</string>
+    <string name="tx_stroke_medium">Medium stroke</string>
+    <string name="tx_stroke_thick">Thick stroke</string>
+    <string name="tx_color_white">White</string>
+    <string name="tx_color_black">Black</string>
+    <string name="tx_color_cyan">Cyan</string>
+    <string name="tx_color_amber">Amber</string>
+    <string name="tx_color_green">Green</string>
+    <string name="tx_overlay_delete_description">Remove the selected text</string>
+    <string name="tx_transmit_action">Transmit</string>
+
+    <!-- ===== TX composer: empty state ===== -->
+    <string name="tx_choose_photo">Choose a photo</string>
+    <string name="tx_choose_photo_sub">Cropped to the SSTV frame \u00b7 you can move it after</string>
+    <string name="tx_card_cq">CQ card</string>
+    <string name="tx_card_cq_headline">CQ SSTV</string>
+    <!-- %1$s is the operator\'s callsign. -->
+    <string name="tx_card_cq_sub">de %1$s</string>
+    <string name="tx_card_grid">Grid card</string>
+    <string name="tx_last_sent">Last sent</string>
+    <!-- Trailing clause of the Last sent caption: the picture comes back ready to edit. -->
+    <string name="tx_last_sent_note">tap to start from it</string>
+
+    <!-- ===== TX composer: crop tool ===== -->
+    <string name="tx_crop_hint">Drag the picture to reposition it. Slide to zoom.</string>
+    <string name="tx_zoom_min">1\u00d7</string>
+    <string name="tx_zoom_max">2.5\u00d7</string>
+    <string name="tx_crop_reset">Reset</string>
+    <string name="tx_crop_fill">Fill frame</string>
+
+    <!-- ===== TX composer: text tool ===== -->
+    <string name="tx_text_placeholder">Type, then drag it on the picture</string>
+    <string name="tx_text_add">Add</string>
+    <string name="tx_text_done">Done</string>
+    <string name="tx_text_hint_selected">Editing the selected text \u2014 drag it to move, \u2715 to remove.</string>
+    <string name="tx_text_hint_tap">Tap text on the picture to edit it.</string>
+    <string name="tx_text_hint_bar">Bar style is easiest to read through noise.</string>
+    <string name="tx_size_small">S</string>
+    <string name="tx_size_medium">M</string>
+    <string name="tx_size_large">L</string>
+    <string name="tx_style_bar">Bar</string>
+    <string name="tx_style_outline">Outline</string>
+
+    <!-- ===== TX composer: callsign tool ===== -->
+    <!-- %1$s is the operator\'s callsign, from Settings. -->
+    <string name="tx_callsign_prompt">Stamp %1$s \u2014 pick a spot</string>
+    <string name="tx_callsign_source">from Settings</string>
+    <string name="tx_callsign_unset">Set your callsign in Settings first — the stamp uses it.</string>
+    <string name="tx_preset_top_left">Top left</string>
+    <string name="tx_preset_top_center">Top bar</string>
+    <string name="tx_preset_top_right">Top right</string>
+    <string name="tx_preset_bottom_left">Bottom left</string>
+    <string name="tx_preset_bottom_center">Bottom bar</string>
+    <string name="tx_preset_bottom_right">Bottom right</string>
+
+    <!-- ===== TX composer: frame tool ===== -->
+    <string name="tx_frame_none">None</string>
+    <string name="tx_frame_thin">Thin</string>
+    <string name="tx_frame_bold">Bold</string>
+    <string name="tx_frame_amber">Amber</string>
+    <string name="tx_frame_hint">Frames are burned into the picture, so they survive the trip.</string>
+
+    <!-- ===== TX composer: adjust tool ===== -->
+    <string name="tx_adjust_brightness">Brightness</string>
+    <string name="tx_adjust_contrast">Contrast</string>
+    <string name="tx_adjust_saturation">Saturation</string>
+    <string name="tx_adjust_reset">Reset</string>
+    <string name="tx_adjust_hint">A little extra contrast reads better over the air.</string>
+
+    <!-- ===== TX composer: draw tool ===== -->
+    <string name="tx_draw_hint">Draw on the picture with your finger.</string>
+    <string name="tx_draw_undo">Undo</string>
+    <string name="tx_draw_clear">Clear</string>
+
+    <!-- ===== SSTV mode sheet ===== -->
+    <string name="mode_sheet_title">SSTV mode</string>
+    <!-- Right of the sheet title: receive needs no mode, only transmit does. -->
+    <string name="mode_sheet_rx_note">receive auto-detects</string>
+    <string name="mode_group_fast">FAST · UNDER A MINUTE</string>
+    <string name="mode_group_standard">STANDARD</string>
+    <string name="mode_group_high_resolution">HIGH RESOLUTION</string>
+    <!-- Appended after a mode's dimensions; only Scottie 1 carries a note. -->
+    <string name="mode_note_most_common">most common on 20m</string>
+    <string name="mode_card_label">MODE</string>
+    <!-- Mode card content description. %1$s is the current mode, e.g. "Scottie 1". -->
+    <string name="mode_card_description">SSTV mode %1$s</string>
+    <!-- Names the card's tap ACTION; the card itself is described by
+         mode_card_description above. -->
+    <string name="mode_card_action">Change SSTV mode</string>
+    <!-- Mode row content description. %1$s mode name, %2$s dimensions, %3$s duration. -->
+    <string name="mode_row_description">%1$s, %2$s, %3$s</string>
+
     <string name="tx_transmit_button" translatable="false">TRANSMIT</string>
     <string name="tx_gate_no_image">Pick a picture first</string>
     <string name="tx_gate_tune_active">Stop Tune before transmitting</string>
     <string name="tx_confirm_title">Transmit this image?</string>
+    <!-- %1$d is the TX audio level percentage. -->
+    <string name="tx_confirm_level">TX level %1$d%%</string>
     <string name="tx_confirm_warning">Confirming keys the transmitter</string>
     <string name="tx_confirm_cancel">Cancel</string>
     <string name="tx_confirm_go">Transmit</string>
@@ -744,8 +901,6 @@
          %1$s is a preformatted m:ss countdown (e.g. "1:09"). Mirrors
          rx_eta_format on the receive side. -->
     <string name="tx_remaining_format">%1$s left</string>
-    <string name="cat_status_linked">Radio linked</string>
-    <string name="cat_status_not_linked">Radio not linked</string>
     <string name="settings_cat_usb_diagnostics">USB Diagnostics</string>
     <string name="settings_cat_usb_diagnostics_desc">Check USB device discovery and CAT communication</string>
     <string name="usb_diag_title">USB Diagnostics</string>
@@ -780,4 +935,67 @@
     <string name="tune_method_internal">Internal tuner</string>
     <string name="tune_method_tone">Low power tone</string>
 
+    <!-- ===== Redesign: Settings landing ===== -->
+    <string name="action_edit">Edit</string>
+    <string name="settings_cat_radio_audio_desc">Rig model, connection, PTT and audio devices</string>
+    <string name="settings_cat_transmission_desc">How TUNE keys the rig</string>
+    <string name="settings_cat_appearance">Appearance</string>
+    <string name="settings_cat_appearance_desc">Theme and app language</string>
+    <string name="settings_cat_logging_desc">Cloudlog upload and saving to Photos</string>
+    <string name="settings_cat_advanced_desc">VOX pre-tone, CW identification, backup and restore</string>
+    <string name="settings_cat_about_desc">Version, licences and credits</string>
+    <string name="settings_rig_status_connected">%1$s linked over %2$s</string>
+    <string name="settings_rig_status_idle">No rig linked · %1$s</string>
+    <string name="settings_value_usb_ok">Linked</string>
+    <string name="settings_value_no_link">No link</string>
+    <string name="settings_value_cloudlog_on">Cloudlog on</string>
+    <string name="settings_value_off">Off</string>
+    <string name="settings_footer">SSTVAF v%1$s · Export and import settings in Advanced</string>
+
+    <!-- ===== Redesign: operator sheet ===== -->
+    <string name="operator_sheet_title">Operator</string>
+    <string name="operator_antenna">Antenna</string>
+    <string name="operator_antenna_hint">e.g. EFHW 40-10m</string>
+    <string name="operator_power">Power (watts)</string>
+    <string name="operator_power_hint">e.g. 100</string>
+
+    <!-- ===== Redesign: Radio &amp; audio ===== -->
+    <string name="radio_link_connected">%1$s connected</string>
+    <string name="radio_link_connecting">Connecting to %1$s</string>
+    <string name="radio_link_disconnected">%1$s not responding</string>
+    <string name="radio_link_vox">VOX · audio only</string>
+    <string name="radio_link_no_model">No rig model selected</string>
+    <string name="radio_action_reconnect">Reconnect</string>
+    <string name="radio_action_connecting">Connecting</string>
+    <string name="radio_action_connect">Connect</string>
+    <string name="radio_action_test_ptt">Test PTT</string>
+    <string name="radio_action_stop_test">Stop test</string>
+    <string name="radio_action_choose_rig">Choose rig</string>
+    <string name="radio_detail_vox">The rig keys itself from transmit audio</string>
+    <string name="radio_detail_waiting">waiting for the rig</string>
+    <string name="radio_detail_check_cable">check the cable and rig settings</string>
+    <string name="radio_hint_usb">Needs an OTG cable. Android asks permission the first time the rig is plugged in.</string>
+    <string name="radio_hint_bluetooth">Pair the rig in Android Bluetooth settings first.</string>
+    <string name="radio_hint_network">For a remote rig, e.g. rigctld at 192.168.1.10:4532.</string>
+    <string name="radio_ptt_cat">Keys the rig with a CAT command over the serial link.</string>
+    <string name="radio_ptt_rts">Keys the rig by raising the serial RTS line.</string>
+    <string name="radio_ptt_dtr">Keys the rig by raising the serial DTR line.</string>
+    <string name="radio_ptt_vox">The rig keys itself when it hears transmit audio. No control link.</string>
+    <string name="radio_section_connection">CONNECTION</string>
+    <string name="radio_ptt_method">PTT method</string>
+    <string name="radio_baud_rate">Baud rate</string>
+    <string name="radio_ptt_delay">PTT delay</string>
+    <string name="radio_ptt_delay_desc">Settling time after keying, before audio starts</string>
+    <string name="radio_ms_format">%1$d ms</string>
+    <string name="radio_rig_picker_title">Rig model</string>
+    <string name="radio_rig_search_hint">Search models</string>
+    <string name="radio_rig_search_clear">Clear search</string>
+    <string name="radio_rig_no_matches">No models match that search</string>
+    <string name="radio_input_level">Input level</string>
+    <string name="radio_level_silent">Silent</string>
+    <string name="radio_level_advice_silent">No audio reaching the app. Check the cable and the input device.</string>
+    <string name="radio_level_advice_low">Too quiet. Raise the rig or input gain.</string>
+    <string name="radio_level_advice_good">In the healthy range.</string>
+    <string name="radio_level_advice_high">Close to clipping. Lower the gain a little.</string>
+    <string name="radio_level_advice_clipping">Clipping. Lower the gain until peaks stay below the mark.</string>
 </resources>

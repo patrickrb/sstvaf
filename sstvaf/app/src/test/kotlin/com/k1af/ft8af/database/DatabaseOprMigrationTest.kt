@@ -11,9 +11,14 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * DB v18 -> v19 migration (SSTVAF transformation PR 6): upgrading an existing
- * install must add the `sstv_images` table without touching the legacy tables
- * or their data.
+ * The SSTV image table's migrations: v18 -> v19 created it, v20 -> v21 added
+ * the `edits` column that lets a sent picture be reopened in the composer.
+ *
+ * Upgrading an existing install must reach the current schema without touching
+ * the legacy tables or their data. Note that [DatabaseOpr.onUpgrade] is
+ * version-agnostic — it re-runs every create-if-missing and add-column-if-
+ * missing helper — so any upgrade lands on the *current* schema, which is why
+ * the v19 test below expects the `edits` column too.
  *
  * A named on-disk database is used (not in-memory) so a second helper instance
  * can reopen the same file at the higher version and trigger onUpgrade.
@@ -74,7 +79,7 @@ class DatabaseOprMigrationTest {
             assertThat(tableExists(v19.db, "sstv_images")).isTrue()
             assertThat(columnNames(v19.db, "sstv_images")).containsExactly(
                 "id", "fileName", "direction", "mode", "freqHz", "utcMillis",
-                "width", "height", "complete", "quality", "notes",
+                "width", "height", "complete", "quality", "notes", "edits",
             )
         } finally {
             v19.close()
@@ -196,6 +201,76 @@ class DatabaseOprMigrationTest {
             }
         } finally {
             fresh.close()
+        }
+    }
+
+    /**
+     * Builds an on-disk v20 install: it has `sstv_images` as v20 shipped it —
+     * every column except `edits` — plus a saved row that must survive.
+     */
+    private fun createVersion20Database(): Unit {
+        val v20 = DatabaseOpr(context, dbName, null, 20)
+        // Recreate the table exactly as v20 had it, without `edits`.
+        v20.db.execSQL("DROP TABLE IF EXISTS sstv_images")
+        v20.db.execSQL(
+            "CREATE TABLE sstv_images (id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "fileName TEXT, direction TEXT, mode TEXT, freqHz INTEGER, " +
+                "utcMillis INTEGER, width INTEGER, height INTEGER, " +
+                "complete INTEGER, quality REAL, notes TEXT DEFAULT '')",
+        )
+        v20.db.execSQL(
+            "INSERT INTO sstv_images (fileName, direction, mode, freqHz, utcMillis, " +
+                "width, height, complete, quality, notes) VALUES " +
+                "('old.png', 'TX', 'Scottie 1', 14230000, 1700000000000, " +
+                "320, 256, 1, 1.0, 'kept')",
+        )
+        v20.close()
+    }
+
+    @Test
+    fun upgrade20to21_addsEditsColumn() {
+        createVersion20Database()
+
+        val v21 = DatabaseOpr(context, dbName, null, 21)
+        try {
+            assertThat(columnNames(v21.db, "sstv_images")).contains("edits")
+        } finally {
+            v21.close()
+        }
+    }
+
+    @Test
+    fun upgrade20to21_keepsExistingImageRows() {
+        // The column is added with ALTER TABLE, so rows written before v21 stay
+        // put and simply read back with no edit list.
+        createVersion20Database()
+
+        val v21 = DatabaseOpr(context, dbName, null, 21)
+        try {
+            v21.db.rawQuery("select fileName, notes, edits from sstv_images", null).use { cursor ->
+                assertThat(cursor.moveToFirst()).isTrue()
+                assertThat(cursor.getString(0)).isEqualTo("old.png")
+                assertThat(cursor.getString(1)).isEqualTo("kept")
+                // Empty, not null: every reader treats "" as "no edits recorded".
+                assertThat(cursor.getString(2)).isEmpty()
+            }
+        } finally {
+            v21.close()
+        }
+    }
+
+    @Test
+    fun upgrade20to21_isIdempotent() {
+        // onUpgrade re-runs the add-column helper on every upgrade, so opening
+        // again must not fail on an already-present column.
+        createVersion20Database()
+        DatabaseOpr(context, dbName, null, 21).close()
+
+        val again = DatabaseOpr(context, dbName, null, 22)
+        try {
+            assertThat(columnNames(again.db, "sstv_images").count { it == "edits" }).isEqualTo(1)
+        } finally {
+            again.close()
         }
     }
 }

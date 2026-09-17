@@ -34,6 +34,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.k1af.ft8af.R
+import java.io.File
 import radio.ks3ckc.sstvaf.gallery.IMAGE_NOTES_MAX_LENGTH
 import radio.ks3ckc.sstvaf.gallery.SavedImage
 import radio.ks3ckc.sstvaf.theme.Accent
@@ -49,7 +50,6 @@ import radio.ks3ckc.sstvaf.theme.StatusBad
 import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
 import radio.ks3ckc.sstvaf.ui.components.SstvAfBottomSheet
-import java.io.File
 
 /**
  * Bottom-sheet viewer for one saved SSTV image: the picture at its native
@@ -67,6 +67,7 @@ fun ImageViewerSheet(
     onSaveToPhotos: (SavedImage) -> Unit,
     onDelete: (SavedImage) -> Unit,
     onSaveNote: (SavedImage, String) -> Unit,
+    onSendAgain: (SavedImage) -> Unit = {},
 ) {
     var confirmDelete by remember { mutableStateOf(false) }
     var editingNote by remember { mutableStateOf(false) }
@@ -143,6 +144,23 @@ fun ImageViewerSheet(
                 NoteRow(note = entry.notes, onEdit = { editingNote = true })
 
                 Spacer(modifier = Modifier.height(18.dp))
+
+                // The primary action, and it differs by direction: a received
+                // picture invites a reply (a fresh composer), a sent one
+                // invites sending it again (the same picture, reopened where an
+                // edit list was recorded). Naming the action rather than
+                // offering one generic button is what makes the difference
+                // obvious before the operator taps it.
+                ViewerActionButton(
+                    label = stringResource(sendAgainLabelRes(entry.direction)),
+                    modifier = Modifier.fillMaxWidth(),
+                    background = Accent,
+                    borderColor = Accent,
+                    textColor = BgApp,
+                    onClick = { onSendAgain(entry) },
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     ViewerActionButton(

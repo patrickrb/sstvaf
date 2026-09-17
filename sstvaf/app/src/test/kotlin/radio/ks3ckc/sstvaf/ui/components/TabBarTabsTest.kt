@@ -7,35 +7,46 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Guards the tab set. The RX tab (live SSTV decode view, SSTVAF transformation
- * PR 6) is the FIRST tab and the app's landing screen, with GALLERY (saved
- * images, PR 7) and TX (the composer, PR 8) right after it; the bottom bar
- * must offer exactly the six screens in order, and each tab's label resource
- * must stay wired to the matching string. Robolectric because the labels are
- * Android string resources.
+ * Guards the tab set after the three-tab restructure.
+ *
+ * The bottom bar offers exactly Receive, Send and Gallery, in that order, and
+ * nothing else. The two deletions this locks in are deliberate and worth being
+ * hard to undo by accident:
+ *
+ *  - **Waterfall is gone.** SSTV transmits its mode in the VIS header, so the
+ *    decoder identifies the mode itself. There was nothing on that screen an
+ *    operator could act on.
+ *  - **Logbook and Settings are not tabs.** They live behind the header's
+ *    overflow sheet ([MoreSheet]); a tab each meant two thirds of the bar went
+ *    to screens you visit rather than operate from.
+ *
+ * Robolectric because the labels are Android string resources.
  */
 @RunWith(RobolectricTestRunner::class)
 class TabBarTabsTest {
 
     @Test
-    fun `tab set is exactly the six screens in order`() {
+    fun `tab set is exactly the three screens in order`() {
         assertThat(SstvTab.entries.map { it.name })
-            .containsExactly("RX", "GALLERY", "TX", "WATERFALL", "LOG", "SETTINGS")
+            .containsExactly("RX", "TX", "GALLERY")
             .inOrder()
     }
 
     @Test
-    fun `rx is the first (default landing) tab`() {
+    fun `receive is the first (default landing) tab`() {
         assertThat(SstvTab.entries.first()).isEqualTo(SstvTab.RX)
     }
 
     @Test
     fun `each tab is wired to its own label resource`() {
-        assertThat(SstvTab.RX.labelRes).isEqualTo(R.string.tab_rx)
+        assertThat(SstvTab.RX.labelRes).isEqualTo(R.string.tab_receive)
+        assertThat(SstvTab.TX.labelRes).isEqualTo(R.string.tab_send)
         assertThat(SstvTab.GALLERY.labelRes).isEqualTo(R.string.tab_gallery)
-        assertThat(SstvTab.TX.labelRes).isEqualTo(R.string.tab_tx)
-        assertThat(SstvTab.WATERFALL.labelRes).isEqualTo(R.string.tab_waterfall)
-        assertThat(SstvTab.LOG.labelRes).isEqualTo(R.string.tab_logbook)
-        assertThat(SstvTab.SETTINGS.labelRes).isEqualTo(R.string.tab_settings)
+    }
+
+    @Test
+    fun `no two tabs share a label`() {
+        val labels = SstvTab.entries.map { it.labelRes }
+        assertThat(labels).containsNoDuplicates()
     }
 }

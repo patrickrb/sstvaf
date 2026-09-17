@@ -36,10 +36,6 @@
     <string name="continent_an">القارة القطبية الجنوبية</string>
 
     <!-- ===== Bottom navigation tabs ===== -->
-    <string name="tab_decode">فك التشفير</string>
-    <string name="tab_waterfall">الشلال</string>
-    <string name="tab_logbook">السجل</string>
-    <string name="tab_settings">الإعدادات</string>
 
     <!-- ===== Status pills (decode list badges) ===== -->
     <string name="status_new_dxcc">DXCC جديد</string>
@@ -68,10 +64,6 @@
     <string name="exit_message">هل أنت متأكد أنك تريد إغلاق التطبيق؟ سيُلغى أي QSO نشط.</string>
 
     <!-- ===== Frequency picker ===== -->
-    <string name="freq_select_title">اختر التردد</string>
-    <string name="freq_show_alternates">إظهار البدائل</string>
-    <string name="freq_hide_alternates">إخفاء البدائل</string>
-    <string name="freq_alt_prefix">"ALT "</string>
 
     <!-- ===== Operator card ===== -->
     <string name="op_no_call">لا نداء</string>
@@ -115,12 +107,6 @@
     <string name="hound_call_frequency">تردد النداء (Hz، 1000–4000)</string>
     <string name="hound_start">بدء</string>
 
-    <!-- ===== CAT status chip ===== -->
-    <string name="cat_status_chip_label">CAT</string>
-    <string name="cat_status_connected">CAT متصل — انقر لإعادة الاتصال</string>
-    <string name="cat_status_connecting">جارٍ اتصال CAT…</string>
-    <string name="cat_status_disconnected">CAT غير متصل — انقر للاتصال</string>
-    <string name="cat_status_error">خطأ في اتصال CAT — انقر لإعادة المحاولة</string>
 
     <!-- ===== SWR lockout banner ===== -->
     <string name="swr_lockout_title">توقف TX — تم رصد SWR مرتفع (%1$s)</string>
@@ -318,10 +304,6 @@
     <string name="map_info_distance">المسافة</string>
     <string name="map_info_bearing">الاتجاه</string>
     <string name="map_info_snr">SNR</string>
-    <string name="waterfall_title">الشلال</string>
-    <string name="waterfall_toggle_nr">NR</string>
-    <string name="waterfall_toggle_msg">MSG</string>
-    <string name="waterfall_status_live">مباشر</string>
 
     <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d min</string>

@@ -36,10 +36,6 @@
     <string name="continent_an">남극</string>
 
     <!-- ===== Bottom navigation tabs ===== -->
-    <string name="tab_decode">디코드</string>
-    <string name="tab_waterfall">워터폴</string>
-    <string name="tab_logbook">로그북</string>
-    <string name="tab_settings">설정</string>
 
     <!-- ===== Status pills (decode list badges) ===== -->
     <string name="status_new_dxcc">신규 DXCC</string>
@@ -68,10 +64,6 @@
     <string name="exit_message">앱을 닫으시겠습니까? 진행 중인 QSO는 취소됩니다.</string>
 
     <!-- ===== Frequency picker ===== -->
-    <string name="freq_select_title">주파수 선택</string>
-    <string name="freq_show_alternates">대체 주파수 표시</string>
-    <string name="freq_hide_alternates">대체 주파수 숨기기</string>
-    <string name="freq_alt_prefix">"ALT "</string>
 
     <!-- ===== Operator card ===== -->
     <string name="op_no_call">콜사인 없음</string>
@@ -115,12 +107,6 @@
     <string name="hound_call_frequency">호출 주파수 (Hz, 1000–4000)</string>
     <string name="hound_start">시작</string>
 
-    <!-- ===== CAT status chip ===== -->
-    <string name="cat_status_chip_label">CAT</string>
-    <string name="cat_status_connected">CAT 연결됨 — 탭하여 재연결</string>
-    <string name="cat_status_connecting">CAT 연결 중…</string>
-    <string name="cat_status_disconnected">CAT 연결 끊김 — 탭하여 연결</string>
-    <string name="cat_status_error">CAT 연결 오류 — 탭하여 재시도</string>
 
     <!-- ===== SWR lockout banner ===== -->
     <string name="swr_lockout_title">TX 중단 — 높은 SWR 감지 (%1$s)</string>
@@ -318,10 +304,6 @@
     <string name="map_info_distance">거리</string>
     <string name="map_info_bearing">방위</string>
     <string name="map_info_snr">SNR</string>
-    <string name="waterfall_title">워터폴</string>
-    <string name="waterfall_toggle_nr">NR</string>
-    <string name="waterfall_toggle_msg">MSG</string>
-    <string name="waterfall_status_live">LIVE</string>
 
     <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d min</string>

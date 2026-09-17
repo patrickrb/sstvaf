@@ -152,10 +152,10 @@ class TxImageComposerTest {
         val plain = renderComposite(src, TxComposition(mode = mode), mode.width, mode.height)
         val withBar = renderComposite(
             src,
-            TxComposition(mode = mode).withOverlayAdded(
-                TextOverlay(
+            TxComposition(mode = mode).withOverlayStamped(
+                TextOverlay(id = "t1", 
                     text = "KS3CKC",
-                    position = OverlayPosition.TOP_BAR,
+                    yPercent = TOP_BAR_Y_PERCENT,
                     style = OverlayStyle.BAR,
                 ),
             ),
@@ -163,10 +163,14 @@ class TxImageComposerTest {
             mode.height,
         )
 
-        // Inside the band (band height = 0.07 * 256 * 1.6 ≈ 29 px): the 70 %
-        // black fill must change the pixel vs the overlay-free render.
-        val inBand = withBar.getPixel(4, 4)
-        assertThat(inBand).isNotEqualTo(plain.getPixel(4, 4))
+        // The band is centred on the overlay (y = 8 % of 256 ≈ 20 px) and is
+        // ~29 px tall, so it covers roughly y = 6..35. Sampling its centre: the
+        // 70 % black fill must change the pixel vs the overlay-free render.
+        assertThat(withBar.getPixel(4, 20)).isNotEqualTo(plain.getPixel(4, 20))
+        // Above the band is now untouched — the band follows the overlay rather
+        // than being pinned to the frame's top edge, which is what lets an
+        // operator drag a bar away from the edge.
+        assertThat(withBar.getPixel(4, 1)).isEqualTo(plain.getPixel(4, 1))
         // Far corner (bottom-right) is outside the band: identical renders.
         val corner = mode.width - 2 to mode.height - 2
         assertThat(withBar.getPixel(corner.first, corner.second))
@@ -180,8 +184,8 @@ class TxImageComposerTest {
         val plain = renderComposite(src, TxComposition(mode = mode), mode.width, mode.height)
         val blank = renderComposite(
             src,
-            TxComposition(mode = mode).withOverlayAdded(
-                TextOverlay(text = "   ", position = OverlayPosition.TOP_BAR),
+            TxComposition(mode = mode).withOverlayStamped(
+                TextOverlay(id = "t1", text = "   ", yPercent = TOP_BAR_Y_PERCENT),
             ),
             mode.width,
             mode.height,
@@ -198,12 +202,12 @@ class TxImageComposerTest {
         val mode = SstvMode.SCOTTIE_1
         val out = renderComposite(
             src,
-            TxComposition(mode = mode).withOverlayAdded(
-                TextOverlay(
+            TxComposition(mode = mode).withOverlayStamped(
+                TextOverlay(id = "t1", 
                     text = "KS3CKC",
                     colorArgb = OVERLAY_COLOR_WHITE,
                     sizeFraction = OVERLAY_SIZE_LARGE,
-                    position = OverlayPosition.CENTER,
+                    yPercent = 50f,
                     style = OverlayStyle.OUTLINE,
                 ),
             ),
@@ -232,20 +236,33 @@ class TxImageComposerTest {
     // -- barBandRect / contrastColorFor / outlineOffsets ---------------------------
 
     @Test
-    fun `barBandRect spans the full width at top or bottom and is null elsewhere`() {
-        // 0.07 * 256 * 1.6 = 28.672 -> 29 px band.
-        assertThat(barBandRect(OverlayPosition.TOP_BAR, 0.07f, 320, 256))
-            .isEqualTo(Rect(0, 0, 320, 29))
-        assertThat(barBandRect(OverlayPosition.BOTTOM_BAR, 0.07f, 320, 256))
-            .isEqualTo(Rect(0, 227, 320, 256))
-        assertThat(barBandRect(OverlayPosition.CENTER, 0.07f, 320, 256)).isNull()
-        assertThat(barBandRect(OverlayPosition.TOP_LEFT, 0.07f, 320, 256)).isNull()
-        assertThat(barBandRect(OverlayPosition.BOTTOM_RIGHT, 0.07f, 320, 256)).isNull()
+    fun `barBandRect spans the full width and follows the overlay`() {
+        // The band is centred on the overlay rather than pinned to an edge, so
+        // dragging a bar up and down carries its band with it.
+        // 0.07 * 256 * 1.6 = 28.672 -> a 29 px band.
+        assertThat(barBandRect(TOP_BAR_Y_PERCENT, 0.07f, 320, 256))
+            .isEqualTo(Rect(0, 6, 320, 35))
+        assertThat(barBandRect(BOTTOM_BAR_Y_PERCENT, 0.07f, 320, 256))
+            .isEqualTo(Rect(0, 221, 320, 250))
+        assertThat(barBandRect(50f, 0.07f, 320, 256))
+            .isEqualTo(Rect(0, 114, 320, 143))
+    }
+
+    @Test
+    fun `barBandRect keeps a bar dragged to the edge fully inside the frame`() {
+        // Pinned rather than half off: a bar at the very edge must still show
+        // its whole height, or the text inside it gets clipped.
+        val top = barBandRect(0f, 0.07f, 320, 256)
+        assertThat(top.top).isEqualTo(0)
+        assertThat(top.height()).isEqualTo(29)
+        val bottom = barBandRect(100f, 0.07f, 320, 256)
+        assertThat(bottom.bottom).isEqualTo(256)
+        assertThat(bottom.height()).isEqualTo(29)
     }
 
     @Test
     fun `barBandRect clamps an oversize band to the frame height`() {
-        assertThat(barBandRect(OverlayPosition.TOP_BAR, 5f, 320, 256))
+        assertThat(barBandRect(TOP_BAR_Y_PERCENT, 5f, 320, 256))
             .isEqualTo(Rect(0, 0, 320, 256))
     }
 

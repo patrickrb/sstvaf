@@ -1,6 +1,5 @@
 package radio.ks3ckc.sstvaf.ui.gallery
 
-import androidx.compose.ui.unit.dp
 import com.google.common.truth.Truth.assertThat
 import com.k1af.ft8af.R
 import org.junit.Test
@@ -427,28 +426,6 @@ class GalleryLogicTest {
         assertThat(galleryEmptyStateRes(GalleryFilter.TX)).isEqualTo(R.string.gallery_empty_tx)
     }
 
-    // ----- empty-state bottom padding (#24) ----------------------------------
-
-    @Test
-    fun emptyStatePadding_reservesStripHeight() {
-        // The default reserves the approximate TX-strip height so the centered
-        // illustration clears the always-on strip in a short/landscape canvas.
-        assertThat(emptyStateBottomPadding()).isEqualTo(TxStripApproxHeight)
-        assertThat(TxStripApproxHeight.value).isGreaterThan(0f)
-    }
-
-    @Test
-    fun emptyStatePadding_passesThroughPositiveHeight() {
-        assertThat(emptyStateBottomPadding(64.dp)).isEqualTo(64.dp)
-        assertThat(emptyStateBottomPadding(0.dp)).isEqualTo(0.dp)
-    }
-
-    @Test
-    fun emptyStatePadding_clampsNegativeToZero() {
-        // A bad/negative measurement must never yield negative padding.
-        assertThat(emptyStateBottomPadding((-20).dp)).isEqualTo(0.dp)
-    }
-
     // ----- viewer metadata ---------------------------------------------------
 
     @Test
@@ -743,5 +720,27 @@ class GalleryLogicTest {
             gallerySectionCountLabel(SECTION_PATTERN, "D", it.images.size)
         }
         assertThat(labels).containsExactly("D · 2", "D · 1").inOrder()
+    }
+
+    // ----- the send-again action label ---------------------------------------
+
+    @Test
+    fun `a received picture offers a reply, not a resend`() {
+        // The label and the action have to agree: an RX row has no composition
+        // to reopen, so calling it "Send again" would promise the wrong thing.
+        assertThat(sendAgainLabelRes(ImageDirection.RX))
+            .isEqualTo(R.string.gallery_reply_with_picture)
+    }
+
+    @Test
+    fun `a sent picture offers a resend`() {
+        assertThat(sendAgainLabelRes(ImageDirection.TX))
+            .isEqualTo(R.string.gallery_send_again)
+    }
+
+    @Test
+    fun `the two directions never share a label`() {
+        assertThat(sendAgainLabelRes(ImageDirection.RX))
+            .isNotEqualTo(sendAgainLabelRes(ImageDirection.TX))
     }
 }

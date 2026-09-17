@@ -47,6 +47,18 @@ public final class AudioInputLevel {
     // RMS below this (but above SILENT) is too quiet for reliable weak-signal decode.
     static final float LOW_RMS_DBFS = -45f;
 
+    /**
+     * The linear peak magnitude at which {@link #classify} starts reporting
+     * {@link Status#HIGH} — i.e. where the healthy gain window ends.
+     *
+     * <p>Exposed for the Radio &amp; audio meter, which draws a tick at this
+     * level so the operator can see the target they are aiming below. It is
+     * derived from {@link #HIGH_PEAK_DBFS} rather than written out as a
+     * literal, so moving the threshold moves the tick with it and the mark can
+     * never drift away from the behaviour it is marking.
+     */
+    public static final float HOT_PEAK = (float) Math.pow(10.0, HIGH_PEAK_DBFS / 20.0);
+
     /** Immutable result of metering one buffer. */
     public static final class Reading {
         /** Largest sample magnitude in the buffer, linear (0..~1). */
