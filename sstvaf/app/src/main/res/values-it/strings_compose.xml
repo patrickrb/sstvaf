@@ -25,10 +25,6 @@
     <string name="continent_an">Antartide</string>
 
     <!-- ===== Bottom navigation tabs ===== -->
-    <string name="tab_decode">Decodifica</string>
-    <string name="tab_waterfall">Waterfall</string>
-    <string name="tab_logbook">Log</string>
-    <string name="tab_settings">Impostazioni</string>
 
     <!-- ===== Status pills (decode list badges) ===== -->
     <string name="status_new_dxcc">NUOVO DXCC</string>
@@ -57,10 +53,6 @@
     <string name="exit_message">Vuoi davvero chiudere l\'app? Qualsiasi QSO attivo verrà annullato.</string>
 
     <!-- ===== Frequency picker ===== -->
-    <string name="freq_select_title">SELEZIONA FREQUENZA</string>
-    <string name="freq_show_alternates">MOSTRA ALTERNATIVE</string>
-    <string name="freq_hide_alternates">NASCONDI ALTERNATIVE</string>
-    <string name="freq_alt_prefix">"ALT "</string>
 
     <!-- ===== Operator card ===== -->
     <string name="op_no_call">NESSUN NOMINATIVO</string>
@@ -104,12 +96,6 @@
     <string name="hound_call_frequency">Frequenza di chiamata (Hz, 1000–4000)</string>
     <string name="hound_start">Avvia</string>
 
-    <!-- ===== CAT status chip ===== -->
-    <string name="cat_status_chip_label">CAT</string>
-    <string name="cat_status_connected">CAT connesso — tocca per riconnettere</string>
-    <string name="cat_status_connecting">Connessione CAT…</string>
-    <string name="cat_status_disconnected">CAT disconnesso — tocca per connettere</string>
-    <string name="cat_status_error">Errore connessione CAT — tocca per riprovare</string>
 
     <!-- ===== SWR lockout banner ===== -->
     <string name="swr_lockout_title">TX BLOCCATA — SWR alto rilevato (%1$s)</string>
@@ -307,10 +293,6 @@
     <string name="map_info_distance">Distanza</string>
     <string name="map_info_bearing">Direzione</string>
     <string name="map_info_snr">SNR</string>
-    <string name="waterfall_title">Waterfall</string>
-    <string name="waterfall_toggle_nr">NR</string>
-    <string name="waterfall_toggle_msg">MSG</string>
-    <string name="waterfall_status_live">LIVE</string>
 
     <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d min</string>

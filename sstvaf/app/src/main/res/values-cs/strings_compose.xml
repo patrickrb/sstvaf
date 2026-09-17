@@ -36,10 +36,6 @@
     <string name="continent_an">Antarktida</string>
 
     <!-- ===== Bottom navigation tabs ===== -->
-    <string name="tab_decode">Dekódování</string>
-    <string name="tab_waterfall">Vodopád</string>
-    <string name="tab_logbook">Deník</string>
-    <string name="tab_settings">Nastavení</string>
 
     <!-- ===== Status pills (decode list badges) ===== -->
     <string name="status_new_dxcc">NOVÉ DXCC</string>
@@ -68,10 +64,6 @@
     <string name="exit_message">Opravdu chcete aplikaci zavřít? Každé aktivní QSO bude zrušeno.</string>
 
     <!-- ===== Frequency picker ===== -->
-    <string name="freq_select_title">VYBRAT FREKVENCI</string>
-    <string name="freq_show_alternates">ZOBRAZIT ALTERNATIVY</string>
-    <string name="freq_hide_alternates">SKRÝT ALTERNATIVY</string>
-    <string name="freq_alt_prefix">"ALT "</string>
 
     <!-- ===== Operator card ===== -->
     <string name="op_no_call">BEZ ZNAČKY</string>
@@ -115,12 +107,6 @@
     <string name="hound_call_frequency">Frekvence volání (Hz, 1000–4000)</string>
     <string name="hound_start">Start</string>
 
-    <!-- ===== CAT status chip ===== -->
-    <string name="cat_status_chip_label">CAT</string>
-    <string name="cat_status_connected">CAT připojen — klepnutím znovu připojit</string>
-    <string name="cat_status_connecting">CAT se připojuje…</string>
-    <string name="cat_status_disconnected">CAT odpojen — klepnutím připojit</string>
-    <string name="cat_status_error">Chyba připojení CAT — klepnutím opakovat</string>
 
     <!-- ===== SWR lockout banner ===== -->
     <string name="swr_lockout_title">TX ZASTAVENO — Zjištěn vysoký SWR (%1$s)</string>
@@ -318,10 +304,6 @@
     <string name="map_info_distance">Vzdálenost</string>
     <string name="map_info_bearing">Azimut</string>
     <string name="map_info_snr">SNR</string>
-    <string name="waterfall_title">Vodopád</string>
-    <string name="waterfall_toggle_nr">NR</string>
-    <string name="waterfall_toggle_msg">MSG</string>
-    <string name="waterfall_status_live">ŽIVĚ</string>
 
     <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d min</string>

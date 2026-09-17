@@ -25,10 +25,6 @@
     <string name="continent_an">Antarktika</string>
 
     <!-- ===== Bottom navigation tabs ===== -->
-    <string name="tab_decode">Çözümle</string>
-    <string name="tab_waterfall">Şelale</string>
-    <string name="tab_logbook">Günlük</string>
-    <string name="tab_settings">Ayarlar</string>
 
     <!-- ===== Status pills (decode list badges) ===== -->
     <string name="status_new_dxcc">YENİ DXCC</string>
@@ -57,10 +53,6 @@
     <string name="exit_message">Uygulamayı kapatmak istediğinizden emin misiniz? Aktif tüm QSO\'lar iptal edilecek.</string>
 
     <!-- ===== Frequency picker ===== -->
-    <string name="freq_select_title">FREKANS SEÇ</string>
-    <string name="freq_show_alternates">ALTERNATİFLERİ GÖSTER</string>
-    <string name="freq_hide_alternates">ALTERNATİFLERİ GİZLE</string>
-    <string name="freq_alt_prefix">"ALT "</string>
 
     <!-- ===== Operator card ===== -->
     <string name="op_no_call">ÇAĞRI YOK</string>
@@ -104,12 +96,6 @@
     <string name="hound_call_frequency">Çağrı frekansı (Hz, 1000–4000)</string>
     <string name="hound_start">Başlat</string>
 
-    <!-- ===== CAT status chip ===== -->
-    <string name="cat_status_chip_label">CAT</string>
-    <string name="cat_status_connected">CAT bağlı — yeniden bağlanmak için dokunun</string>
-    <string name="cat_status_connecting">CAT bağlanıyor…</string>
-    <string name="cat_status_disconnected">CAT bağlı değil — bağlanmak için dokunun</string>
-    <string name="cat_status_error">CAT bağlantı hatası — yeniden denemek için dokunun</string>
 
     <!-- ===== SWR lockout banner ===== -->
     <string name="swr_lockout_title">TX DURDURULDU — Yüksek SWR algılandı (%1$s)</string>
@@ -307,10 +293,6 @@
     <string name="map_info_distance">Mesafe</string>
     <string name="map_info_bearing">Yön</string>
     <string name="map_info_snr">SNR</string>
-    <string name="waterfall_title">Şelale</string>
-    <string name="waterfall_toggle_nr">NR</string>
-    <string name="waterfall_toggle_msg">MSG</string>
-    <string name="waterfall_status_live">CANLI</string>
 
     <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d min</string>

@@ -36,10 +36,6 @@
     <string name="continent_an">Antarktika</string>
 
     <!-- ===== Bottom navigation tabs ===== -->
-    <string name="tab_decode">Dekode</string>
-    <string name="tab_waterfall">Waterfall</string>
-    <string name="tab_logbook">Buku Log</string>
-    <string name="tab_settings">Setelan</string>
 
     <!-- ===== Status pills (decode list badges) ===== -->
     <string name="status_new_dxcc">DXCC BARU</string>
@@ -68,10 +64,6 @@
     <string name="exit_message">Yakin ingin menutup aplikasi? QSO yang aktif akan dibatalkan.</string>
 
     <!-- ===== Frequency picker ===== -->
-    <string name="freq_select_title">PILIH FREKUENSI</string>
-    <string name="freq_show_alternates">TAMPILKAN ALTERNATIF</string>
-    <string name="freq_hide_alternates">SEMBUNYIKAN ALTERNATIF</string>
-    <string name="freq_alt_prefix">"ALT "</string>
 
     <!-- ===== Operator card ===== -->
     <string name="op_no_call">TANPA PANGGIL</string>
@@ -115,12 +107,6 @@
     <string name="hound_call_frequency">Frekuensi panggil (Hz, 1000–4000)</string>
     <string name="hound_start">Mulai</string>
 
-    <!-- ===== CAT status chip ===== -->
-    <string name="cat_status_chip_label">CAT</string>
-    <string name="cat_status_connected">CAT terhubung — ketuk untuk sambung ulang</string>
-    <string name="cat_status_connecting">CAT menyambung…</string>
-    <string name="cat_status_disconnected">CAT terputus — ketuk untuk menyambung</string>
-    <string name="cat_status_error">Galat koneksi CAT — ketuk untuk coba lagi</string>
 
     <!-- ===== SWR lockout banner ===== -->
     <string name="swr_lockout_title">TX DIHENTIKAN — SWR tinggi terdeteksi (%1$s)</string>
@@ -318,10 +304,6 @@
     <string name="map_info_distance">Jarak</string>
     <string name="map_info_bearing">Arah</string>
     <string name="map_info_snr">SNR</string>
-    <string name="waterfall_title">Waterfall</string>
-    <string name="waterfall_toggle_nr">NR</string>
-    <string name="waterfall_toggle_msg">MSG</string>
-    <string name="waterfall_status_live">LIVE</string>
 
     <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d min</string>

@@ -25,10 +25,6 @@
     <string name="continent_an">南極</string>
 
     <!-- ===== Bottom navigation tabs ===== -->
-    <string name="tab_decode">デコード</string>
-    <string name="tab_waterfall">ウォーターフォール</string>
-    <string name="tab_logbook">ログブック</string>
-    <string name="tab_settings">設定</string>
 
     <!-- ===== Status pills (decode list badges) ===== -->
     <string name="status_new_dxcc">新規 DXCC</string>
@@ -55,10 +51,6 @@
     <string name="exit_message">アプリを閉じてよろしいですか？進行中の QSO はキャンセルされます。</string>
 
     <!-- ===== Frequency picker ===== -->
-    <string name="freq_select_title">周波数を選択</string>
-    <string name="freq_show_alternates">代替を表示</string>
-    <string name="freq_hide_alternates">代替を非表示</string>
-    <string name="freq_alt_prefix">"ALT "</string>
 
     <!-- ===== Operator card ===== -->
     <string name="op_no_call">コールなし</string>
@@ -253,10 +245,6 @@
     <string name="map_info_distance">距離</string>
     <string name="map_info_bearing">方位</string>
     <string name="map_info_snr">SNR</string>
-    <string name="waterfall_title">ウォーターフォール</string>
-    <string name="waterfall_toggle_nr">NR</string>
-    <string name="waterfall_toggle_msg">MSG</string>
-    <string name="waterfall_status_live">ライブ</string>
 
     <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d 分</string>
@@ -460,12 +448,6 @@
     <string name="hound_call_frequency">呼び出し周波数（Hz、1000〜4000）</string>
     <string name="hound_start">開始</string>
 
-    <!-- ===== CAT status chip ===== -->
-    <string name="cat_status_chip_label">CAT</string>
-    <string name="cat_status_connected">CAT接続済み — タップで再接続</string>
-    <string name="cat_status_connecting">CAT接続中…</string>
-    <string name="cat_status_disconnected">CAT未接続 — タップで接続</string>
-    <string name="cat_status_error">CAT接続エラー — タップで再試行</string>
     <string name="qsopanel_log_action">LOG</string>
     <string name="qsopanel_queue">キュー</string>
     <string name="swr_lockout_title">送信停止 — 高SWR検出 (%1$s)</string>

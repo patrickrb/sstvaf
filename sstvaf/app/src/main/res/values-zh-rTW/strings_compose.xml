@@ -25,10 +25,6 @@
     <string name="continent_an">南極洲</string>
 
     <!-- ===== Bottom navigation tabs ===== -->
-    <string name="tab_decode">解碼</string>
-    <string name="tab_waterfall">瀑布圖</string>
-    <string name="tab_logbook">日誌</string>
-    <string name="tab_settings">設定</string>
 
     <!-- ===== Status pills (decode list badges) ===== -->
     <string name="status_new_dxcc">新 DXCC</string>
@@ -55,10 +51,6 @@
     <string name="exit_message">確定要關閉應用程式嗎？任何進行中的 QSO 都將被取消。</string>
 
     <!-- ===== Frequency picker ===== -->
-    <string name="freq_select_title">選擇頻率</string>
-    <string name="freq_show_alternates">顯示備用頻率</string>
-    <string name="freq_hide_alternates">隱藏備用頻率</string>
-    <string name="freq_alt_prefix">"備用 "</string>
 
     <!-- ===== Operator card ===== -->
     <string name="op_no_call">無呼號</string>
@@ -253,10 +245,6 @@
     <string name="map_info_distance">距離</string>
     <string name="map_info_bearing">方位</string>
     <string name="map_info_snr">SNR</string>
-    <string name="waterfall_title">瀑布圖</string>
-    <string name="waterfall_toggle_nr">NR</string>
-    <string name="waterfall_toggle_msg">MSG</string>
-    <string name="waterfall_status_live">即時</string>
 
     <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d 分鐘</string>
@@ -460,12 +448,6 @@
     <string name="hound_call_frequency">呼叫頻率（Hz，1000–4000）</string>
     <string name="hound_start">開始</string>
 
-    <!-- ===== CAT status chip ===== -->
-    <string name="cat_status_chip_label">CAT</string>
-    <string name="cat_status_connected">CAT 已連線 — 點按重新連線</string>
-    <string name="cat_status_connecting">CAT 連線中…</string>
-    <string name="cat_status_disconnected">CAT 未連線 — 點按連線</string>
-    <string name="cat_status_error">CAT 連線錯誤 — 點按重試</string>
     <string name="qsopanel_log_action">LOG</string>
     <string name="qsopanel_queue">佇列</string>
     <string name="swr_lockout_title">發射已停止 — 偵測到高駐波比 (%1$s)</string>

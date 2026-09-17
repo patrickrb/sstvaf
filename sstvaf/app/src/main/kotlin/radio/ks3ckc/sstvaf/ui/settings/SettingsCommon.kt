@@ -90,8 +90,9 @@ internal fun SectionDivider() {
  * chevron and the category title, followed by a scrolling content column with
  * the standard 16dp horizontal padding and 20dp inter-section spacing.
  *
- * [TopBar] has no built-in back affordance, so we prepend a rotated [SstvAfIcons.Chevron]
- * rather than change TopBar's signature (it's shared by every top-level tab).
+ * The back chevron comes from [TopBar]'s own `onBack` slot, so a detail screen,
+ * the Settings landing and the Logbook all render the identical control in the
+ * identical place.
  */
 @Composable
 internal fun SettingsDetailScaffold(
@@ -104,19 +105,7 @@ internal fun SettingsDetailScaffold(
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onBack) {
-                SstvAfIcons.Chevron(
-                    color = TextPrimary,
-                    size = 22.dp,
-                    modifier = Modifier.rotate(180f),
-                )
-            }
-            TopBar(title = title, modifier = Modifier.weight(1f))
-        }
+        TopBar(title = title, onBack = onBack)
         Column(
             modifier = Modifier
                 .fillMaxWidth()

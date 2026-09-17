@@ -25,10 +25,6 @@
     <string name="continent_an">Antarctique</string>
 
     <!-- ===== Bottom navigation tabs ===== -->
-    <string name="tab_decode">Décodage</string>
-    <string name="tab_waterfall">Cascade</string>
-    <string name="tab_logbook">Journal</string>
-    <string name="tab_settings">Réglages</string>
 
     <!-- ===== Status pills (decode list badges) ===== -->
     <string name="status_new_dxcc">NOUVEAU DXCC</string>
@@ -55,10 +51,6 @@
     <string name="exit_message">Voulez-vous vraiment fermer l\'application ? Tout QSO en cours sera annulé.</string>
 
     <!-- ===== Frequency picker ===== -->
-    <string name="freq_select_title">SÉLECTIONNER LA FRÉQUENCE</string>
-    <string name="freq_show_alternates">AFFICHER LES VARIANTES</string>
-    <string name="freq_hide_alternates">MASQUER LES VARIANTES</string>
-    <string name="freq_alt_prefix">"ALT "</string>
 
     <!-- ===== Operator card ===== -->
     <string name="op_no_call">PAS D\'INDICATIF</string>
@@ -253,10 +245,6 @@
     <string name="map_info_distance">Distance</string>
     <string name="map_info_bearing">Cap</string>
     <string name="map_info_snr">SNR</string>
-    <string name="waterfall_title">Cascade</string>
-    <string name="waterfall_toggle_nr">NR</string>
-    <string name="waterfall_toggle_msg">MSG</string>
-    <string name="waterfall_status_live">EN DIRECT</string>
 
     <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d min</string>
@@ -460,12 +448,6 @@
     <string name="hound_call_frequency">Fréquence d\'appel (Hz, 1000–4000)</string>
     <string name="hound_start">Démarrer</string>
 
-    <!-- ===== CAT status chip ===== -->
-    <string name="cat_status_chip_label">CAT</string>
-    <string name="cat_status_connected">CAT connecté — appuyez pour reconnecter</string>
-    <string name="cat_status_connecting">Connexion CAT…</string>
-    <string name="cat_status_disconnected">CAT déconnecté — appuyez pour connecter</string>
-    <string name="cat_status_error">Erreur de connexion CAT — appuyez pour réessayer</string>
     <string name="qsopanel_log_action">LOG</string>
     <string name="qsopanel_queue">FILE</string>
     <string name="swr_lockout_title">TX ARRÊTÉ — SWR élevé détecté (%1$s)</string>

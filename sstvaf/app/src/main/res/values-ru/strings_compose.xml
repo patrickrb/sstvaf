@@ -25,10 +25,6 @@
     <string name="continent_an">Антарктида</string>
 
     <!-- ===== Bottom navigation tabs ===== -->
-    <string name="tab_decode">Декод</string>
-    <string name="tab_waterfall">Водопад</string>
-    <string name="tab_logbook">Журнал</string>
-    <string name="tab_settings">Настройки</string>
 
     <!-- ===== Status pills (decode list badges) ===== -->
     <string name="status_new_dxcc">НОВЫЙ DXCC</string>
@@ -55,10 +51,6 @@
     <string name="exit_message">Закрыть приложение? Любой активный QSO будет отменён.</string>
 
     <!-- ===== Frequency picker ===== -->
-    <string name="freq_select_title">ВЫБОР ЧАСТОТЫ</string>
-    <string name="freq_show_alternates">ПОКАЗАТЬ АЛЬТЕРНАТИВНЫЕ</string>
-    <string name="freq_hide_alternates">СКРЫТЬ АЛЬТЕРНАТИВНЫЕ</string>
-    <string name="freq_alt_prefix">"ALT "</string>
 
     <!-- ===== Operator card ===== -->
     <string name="op_no_call">НЕТ ПОЗЫВНОГО</string>
@@ -253,10 +245,6 @@
     <string name="map_info_distance">Расстояние</string>
     <string name="map_info_bearing">Азимут</string>
     <string name="map_info_snr">SNR</string>
-    <string name="waterfall_title">Водопад</string>
-    <string name="waterfall_toggle_nr">NR</string>
-    <string name="waterfall_toggle_msg">MSG</string>
-    <string name="waterfall_status_live">LIVE</string>
 
     <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d мин</string>
@@ -460,12 +448,6 @@
     <string name="hound_call_frequency">Частота вызова (Гц, 1000–4000)</string>
     <string name="hound_start">Старт</string>
 
-    <!-- ===== CAT status chip ===== -->
-    <string name="cat_status_chip_label">CAT</string>
-    <string name="cat_status_connected">CAT подключён — нажмите для переподключения</string>
-    <string name="cat_status_connecting">Подключение CAT…</string>
-    <string name="cat_status_disconnected">CAT отключён — нажмите для подключения</string>
-    <string name="cat_status_error">Ошибка подключения CAT — нажмите для повтора</string>
     <string name="qsopanel_log_action">LOG</string>
     <string name="qsopanel_queue">ОЧЕРЕДЬ</string>
     <string name="swr_lockout_title">TX ОСТАНОВЛЕН — Высокий КСВ (%1$s)</string>

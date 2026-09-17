@@ -25,10 +25,6 @@
     <string name="continent_an">Antarktyda</string>
 
     <!-- ===== Bottom navigation tabs ===== -->
-    <string name="tab_decode">Dekodowanie</string>
-    <string name="tab_waterfall">Wodospad</string>
-    <string name="tab_logbook">Dziennik</string>
-    <string name="tab_settings">Ustawienia</string>
 
     <!-- ===== Status pills (decode list badges) ===== -->
     <string name="status_new_dxcc">NOWY DXCC</string>
@@ -57,10 +53,6 @@
     <string name="exit_message">Na pewno chcesz zamknąć aplikację? Każde aktywne QSO zostanie anulowane.</string>
 
     <!-- ===== Frequency picker ===== -->
-    <string name="freq_select_title">WYBIERZ CZĘSTOTLIWOŚĆ</string>
-    <string name="freq_show_alternates">POKAŻ ALTERNATYWNE</string>
-    <string name="freq_hide_alternates">UKRYJ ALTERNATYWNE</string>
-    <string name="freq_alt_prefix">"ALT "</string>
 
     <!-- ===== Operator card ===== -->
     <string name="op_no_call">BRAK ZNAKU</string>
@@ -104,12 +96,6 @@
     <string name="hound_call_frequency">Częstotliwość wywołania (Hz, 1000–4000)</string>
     <string name="hound_start">Start</string>
 
-    <!-- ===== CAT status chip ===== -->
-    <string name="cat_status_chip_label">CAT</string>
-    <string name="cat_status_connected">CAT połączony — dotknij, aby połączyć ponownie</string>
-    <string name="cat_status_connecting">Łączenie CAT…</string>
-    <string name="cat_status_disconnected">CAT rozłączony — dotknij, aby połączyć</string>
-    <string name="cat_status_error">Błąd połączenia CAT — dotknij, aby spróbować ponownie</string>
 
     <!-- ===== SWR lockout banner ===== -->
     <string name="swr_lockout_title">TX WSTRZYMANY — Wykryto wysokie SWR (%1$s)</string>
@@ -307,10 +293,6 @@
     <string name="map_info_distance">Odległość</string>
     <string name="map_info_bearing">Namiar</string>
     <string name="map_info_snr">SNR</string>
-    <string name="waterfall_title">Wodospad</string>
-    <string name="waterfall_toggle_nr">NR</string>
-    <string name="waterfall_toggle_msg">MSG</string>
-    <string name="waterfall_status_live">NA ŻYWO</string>
 
     <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d min</string>

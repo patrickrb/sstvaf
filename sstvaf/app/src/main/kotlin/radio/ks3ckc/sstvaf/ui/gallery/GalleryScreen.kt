@@ -69,7 +69,6 @@ import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
 import radio.ks3ckc.sstvaf.ui.components.EmptyStateWaves
 import radio.ks3ckc.sstvaf.ui.components.FilterChips
-import radio.ks3ckc.sstvaf.ui.components.TopBar
 
 /**
  * The Gallery tab: a grid of saved SSTV images (received today; transmitted
@@ -136,7 +135,7 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
             .fillMaxSize()
             .background(BgApp),
     ) {
-        TopBar(title = stringResource(R.string.gallery_title))
+        // Title comes from the app shell's header ([AppHeader]).
 
         FilterChips(
             options = GalleryFilter.entries,
@@ -171,13 +170,7 @@ fun GalleryScreen(mainViewModel: MainViewModel) {
                 reason = reason,
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
-                    // Center within the visible band, not the full content Box: in a
-                    // short/landscape canvas the illustration is taller than this Box
-                    // and (a Box doesn't clip) overflows its bottom edge, where the
-                    // later-composed TX strip draws over the spill. See
-                    // emptyStateBottomPadding (#24).
-                    .padding(bottom = emptyStateBottomPadding()),
+                    .fillMaxWidth(),
             )
         } else {
             LazyVerticalGrid(

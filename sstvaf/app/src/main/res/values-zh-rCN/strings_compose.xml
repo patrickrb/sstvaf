@@ -25,10 +25,6 @@
     <string name="continent_an">南极洲</string>
 
     <!-- ===== 底部导航标签 ===== -->
-    <string name="tab_decode">解码</string>
-    <string name="tab_waterfall">瀑布图</string>
-    <string name="tab_logbook">日志本</string>
-    <string name="tab_settings">设置</string>
 
     <!-- ===== 状态标记（解码列表徽章） ===== -->
     <string name="status_new_dxcc">新 DXCC</string>
@@ -55,10 +51,6 @@
     <string name="exit_message">确定要关闭应用吗？任何进行中的 QSO 将被取消。</string>
 
     <!-- ===== 频率选择器 ===== -->
-    <string name="freq_select_title">选择频率</string>
-    <string name="freq_show_alternates">显示备用</string>
-    <string name="freq_hide_alternates">隐藏备用</string>
-    <string name="freq_alt_prefix">"备用 "</string>
 
     <!-- ===== 操作员卡片 ===== -->
     <string name="op_no_call">无呼号</string>
@@ -253,10 +245,6 @@
     <string name="map_info_distance">距离</string>
     <string name="map_info_bearing">方位</string>
     <string name="map_info_snr">SNR</string>
-    <string name="waterfall_title">瀑布图</string>
-    <string name="waterfall_toggle_nr">NR</string>
-    <string name="waterfall_toggle_msg">MSG</string>
-    <string name="waterfall_status_live">实时</string>
 
     <!-- ===== 设置：格式辅助 ===== -->
     <string name="settings_minutes_format">%1$d 分钟</string>
@@ -460,12 +448,6 @@
     <string name="hound_call_frequency">呼叫频率（Hz，1000–4000）</string>
     <string name="hound_start">开始</string>
 
-    <!-- ===== CAT status chip ===== -->
-    <string name="cat_status_chip_label">CAT</string>
-    <string name="cat_status_connected">CAT 已连接 — 点按重新连接</string>
-    <string name="cat_status_connecting">CAT 连接中…</string>
-    <string name="cat_status_disconnected">CAT 未连接 — 点按连接</string>
-    <string name="cat_status_error">CAT 连接错误 — 点按重试</string>
     <string name="qsopanel_log_action">LOG</string>
     <string name="qsopanel_queue">队列</string>
     <string name="swr_lockout_title">发射已停止 — 检测到高驻波比 (%1$s)</string>

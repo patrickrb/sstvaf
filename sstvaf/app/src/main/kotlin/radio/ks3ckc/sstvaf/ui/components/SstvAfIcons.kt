@@ -509,6 +509,59 @@ object SstvAfIcons {
         }
     }
 
+    /**
+     * Upward arrow rising out of a baseline — the Send tab.
+     *
+     * Deliberately not [Transmit] (the broadcast-waves glyph): the tab means
+     * "send this picture", an outbound action, while the waves read as "the rig
+     * is radiating" and are reserved for live-TX indicators. The baseline is the
+     * picture the arrow lifts off.
+     */
+    @Composable
+    fun Send(
+        modifier: Modifier = Modifier,
+        color: Color = Color.Unspecified,
+        size: Dp = 22.dp,
+        strokeWidth: Float = 1.6f,
+    ) {
+        val tint = if (color == Color.Unspecified) androidx.compose.material3.MaterialTheme.colorScheme.onSurface else color
+        Canvas(modifier = modifier.then(Modifier.sizeOf(size))) {
+            val s = this.size.width / 24f
+            val stroke = strokeStyle(strokeWidth * s)
+            // Baseline the arrow lifts away from.
+            drawLine(tint, Offset(5f * s, 4f * s), Offset(19f * s, 4f * s), stroke.width, StrokeCap.Round)
+            // Shaft.
+            drawLine(tint, Offset(12f * s, 20f * s), Offset(12f * s, 9f * s), stroke.width, StrokeCap.Round)
+            // Arrowhead.
+            val head = Path().apply {
+                moveTo(6f * s, 15f * s)
+                lineTo(12f * s, 9f * s)
+                lineTo(18f * s, 15f * s)
+            }
+            drawPath(head, tint, style = stroke)
+        }
+    }
+
+    /**
+     * Three filled dots in a row — the header's overflow ("more") button.
+     * Filled rather than stroked: at 18dp a stroked 1.7-radius ring collapses
+     * into a smudge, so the dots are drawn solid like the prototype's.
+     */
+    @Composable
+    fun Dots(
+        modifier: Modifier = Modifier,
+        color: Color = Color.Unspecified,
+        size: Dp = 22.dp,
+    ) {
+        val tint = if (color == Color.Unspecified) androidx.compose.material3.MaterialTheme.colorScheme.onSurface else color
+        Canvas(modifier = modifier.then(Modifier.sizeOf(size))) {
+            val s = this.size.width / 24f
+            for (cx in listOf(6f, 12f, 18f)) {
+                drawCircle(tint, 1.7f * s, Offset(cx * s, 12f * s))
+            }
+        }
+    }
+
     /** Triangular pine tree on a small trunk — POTA tab. */
     @Composable
     fun Tree(
