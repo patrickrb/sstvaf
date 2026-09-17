@@ -30,19 +30,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.k1af.ft8af.GeneralVariables
 import com.k1af.ft8af.MainViewModel
 import com.k1af.ft8af.R
 import com.k1af.ft8af.database.OperationBand
 import com.k1af.ft8af.rigs.BaseRigOperation
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import radio.ks3ckc.sstvaf.gallery.ImageDirection
+import radio.ks3ckc.sstvaf.gallery.SavedImage
 import radio.ks3ckc.sstvaf.sstv.LastDecodedImage
 import radio.ks3ckc.sstvaf.sstv.SstvRxState
 import radio.ks3ckc.sstvaf.theme.Accent
@@ -52,6 +58,7 @@ import radio.ks3ckc.sstvaf.theme.BgSurface3
 import radio.ks3ckc.sstvaf.theme.GeistMonoFamily
 import radio.ks3ckc.sstvaf.theme.StatusConfirmed
 import radio.ks3ckc.sstvaf.theme.StatusWarn
+import radio.ks3ckc.sstvaf.theme.TextFaint
 import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
 import radio.ks3ckc.sstvaf.ui.components.EmptyStateWaves
@@ -143,19 +150,38 @@ fun RxScreen(
         }
     }
 
+    // Today's received images for the strip at the bottom. Reloaded whenever a
+    // decode completes (rxState turning Complete is the signal) rather than on
+    // a timer, so a picture that just landed is there when the operator looks.
+    val store = mainViewModel.receivedImageStore
+    var recent by remember { mutableStateOf<List<SavedImage>>(emptyList()) }
+    val completedCount = (rxState as? SstvRxState.Complete)?.let { 1 } ?: 0
+    LaunchedEffect(completedCount, rxState is SstvRxState.Complete) {
+        recent = withContext(Dispatchers.IO) {
+            store.list()
+                .filter { it.direction == ImageDirection.RX }
+                .take(RX_RECENT_LIMIT)
+        }
+    }
+
+    val statusKind = rxStatusKind(rxState)
+    val completedMode = (rxState as? SstvRxState.Complete)?.mode?.displayName
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BgApp),
+            .background(BgApp)
+            .padding(horizontal = 16.dp)
+            .padding(top = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // No title bar here: the app shell's header ([AppHeader]) carries the
-        // screen title and the dial, so a second one would double up. The dial
-        // moved there too — this screen only keeps the receive switch, which the
-        // shell has no business owning.
+        // The receive switch. The design has no such control — it assumes
+        // receive simply runs — but the app has always let an operator stop the
+        // decoder, and silently removing the off switch would be a behaviour
+        // change hiding inside a visual one. It sits above the canvas, small,
+        // rather than in the shell's header, which has no business owning it.
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 6.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.End,
         ) {
@@ -175,92 +201,116 @@ fun RxScreen(
             )
         }
 
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentAlignment = Alignment.Center,
+        RxCanvas(
+            image = liveImage,
+            aspect = liveAspect,
+            revealFraction = rxRevealFraction(rxState),
+            showsImage = rxShowsCanvasImage(rxState),
+            listening = rxRenderKind(rxState) != RxRenderKind.DECODING,
+            receiveEnabled = rxEnabled,
+            frequencyLabel = frequencyLabel,
+            completedModeName = completedMode,
+        )
+
+        RxStatusCard(
+            statusLabel = rxStatusLabel(rxState),
+            rightLabel = rxStatusRightLabel(rxState)
+                ?: stringResource(R.string.rx_status_auto_detect).takeIf {
+                    statusKind == RxStatusKind.LISTENING
+                },
+            progress = rxProgressFraction(rxState),
+            rowsLabel = rxRowsLabel(rxState),
+            qualityLabel = stringResource(R.string.rx_quality_value, rxQualityLabel(rxState)),
+            slantLabel = rxSlantLabel(rxState),
+            kind = statusKind,
+        )
+
+        RxRecentStrip(
+            images = recent,
+            imageFile = { store.imageFile(it) },
+            onViewAll = onViewInGallery,
+            onOpen = { onViewInGallery() },
+        )
+    }
+}
+
+/**
+ * "Received today": a horizontal row of up to [RX_RECENT_LIMIT] thumbnails with
+ * an "All" link into the Gallery.
+ *
+ * A glance, not a browser. It answers the question an operator has when they
+ * pick the phone back up — "did anything come in?" — and hands off to the
+ * Gallery for anything more. Tapping a thumbnail goes to the Gallery too rather
+ * than opening a viewer here: one place that shows a saved picture properly is
+ * better than two that disagree.
+ */
+@Composable
+private fun RxRecentStrip(
+    images: List<SavedImage>,
+    imageFile: (SavedImage) -> java.io.File,
+    onViewAll: () -> Unit,
+    onOpen: (SavedImage) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            when (rxRenderKind(rxState)) {
-                RxRenderKind.LISTENING -> RxEmptyState(rxEnabled, frequencyLabel)
+            Text(
+                text = stringResource(R.string.rx_received_today),
+                color = TextFaint,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.06.sp,
+            )
+            if (images.isNotEmpty()) {
+                Text(
+                    text = stringResource(R.string.rx_received_all),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable(role = Role.Button, onClick = onViewAll)
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                    color = Accent,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
 
-                RxRenderKind.SIGNAL_DETECTED -> RxSignalDetected()
-
-                RxRenderKind.DECODING -> {
-                    val s = rxState as SstvRxState.Decoding
+        if (images.isEmpty()) {
+            Text(
+                text = stringResource(R.string.rx_received_none),
+                modifier = Modifier.padding(horizontal = 2.dp),
+                color = TextFaint,
+                fontSize = 11.sp,
+            )
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                for (entry in images) {
                     Column(
-                        modifier = Modifier.fillMaxSize().padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .width(84.dp)
+                            .clickable(role = Role.Button) { onOpen(entry) },
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        RxImageView(liveImage, liveAspect, modifier = Modifier.weight(1f))
-                        Spacer(modifier = Modifier.height(12.dp))
-                        RxStatusStrip(
-                            modeName = s.mode.displayName,
-                            rowsReady = s.rowsReady,
-                            totalRows = s.totalRows,
-                            txDurationSeconds = s.mode.txDurationSeconds,
-                            quality = s.quality,
-                            slantPpm = s.slantPpm,
-                            etaLabel = rxEtaLabel(s.mode, s.rowsReady, s.totalRows),
+                        AsyncImage(
+                            model = imageFile(entry),
+                            contentDescription = entry.fileName,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(4f / 3f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(BgSurface),
+                            contentScale = ContentScale.Crop,
                         )
-                    }
-                }
-
-                RxRenderKind.COMPLETE -> {
-                    val s = rxState as SstvRxState.Complete
-                    Column(
-                        modifier = Modifier.fillMaxSize().padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        RxImageView(liveImage, liveAspect, modifier = Modifier.weight(1f))
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = s.mode.displayName,
-                                color = TextPrimary,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            SavedChip()
-                            Spacer(modifier = Modifier.width(10.dp))
-                            // Jumps to the Gallery tab, where the just-saved
-                            // image is the newest cell.
-                            Text(
-                                text = stringResource(R.string.rx_view_in_gallery),
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .clickable(onClick = onViewInGallery)
-                                    .padding(horizontal = 8.dp, vertical = 3.dp),
-                                color = Accent,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                            )
-                        }
-                    }
-                }
-
-                RxRenderKind.ABORTED -> {
-                    val s = rxState as SstvRxState.Aborted
-                    Column(
-                        modifier = Modifier.fillMaxSize().padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        if (showsPartialImage(s) && liveImage != null) {
-                            RxImageView(
-                                liveImage, liveAspect,
-                                modifier = Modifier.weight(1f).alpha(0.45f),
-                            )
-                        } else {
-                            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                                EmptyStateWaves()
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = stringResource(R.string.rx_signal_lost),
-                            color = StatusWarn,
-                            fontSize = 12.sp,
+                            text = rxRecentCaption(entry),
+                            color = TextMuted,
+                            fontSize = 10.sp,
+                            fontFamily = GeistMonoFamily,
+                            maxLines = 1,
+                            softWrap = false,
                         )
                     }
                 }
@@ -269,186 +319,17 @@ fun RxScreen(
     }
 }
 
-/** Empty/hunting state: waves + "Listening for SSTV…" (or "off") + frequency. */
-@Composable
-private fun RxEmptyState(rxEnabled: Boolean, frequencyLabel: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        EmptyStateWaves()
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = stringResource(if (rxEnabled) R.string.rx_listening else R.string.rx_disabled),
-            color = TextPrimary,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = frequencyLabel,
-            color = TextMuted,
-            fontFamily = GeistMonoFamily,
-            fontSize = 12.sp,
-        )
-    }
-}
-
-/** Leader/VIS heard: a transmission may be starting. */
-@Composable
-private fun RxSignalDetected() {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        EmptyStateWaves(accent = Accent)
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = stringResource(R.string.rx_signal_detected),
-            color = Accent,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
-    }
-}
-
 /**
- * The (forming or finished) image: nearest-neighbor upscale, aspect preserved,
- * letterboxed inside the available space.
+ * The status card's label, resolved. A thin wrapper over [rxStatusLabelRes] so
+ * the decoding case gets its mode-name argument and the others do not.
  */
 @Composable
-private fun RxImageView(image: ImageBitmap?, aspect: Float, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (image != null) {
-            Image(
-                bitmap = image,
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(aspect)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(BgSurface),
-                contentScale = ContentScale.Fit,
-                filterQuality = FilterQuality.None,
-            )
-        }
+private fun rxStatusLabel(state: SstvRxState): String {
+    val res = rxStatusLabelRes(state)
+    return if (rxStatusLabelTakesMode(state)) {
+        val mode = (state as? SstvRxState.Decoding)?.mode?.displayName.orEmpty()
+        stringResource(res, mode)
+    } else {
+        stringResource(res)
     }
-}
-
-/** Status strip under the forming image: mode, progress, ETA, quality, slant. */
-@Composable
-private fun RxStatusStrip(
-    modeName: String,
-    rowsReady: Int,
-    totalRows: Int,
-    txDurationSeconds: Double,
-    quality: Float,
-    slantPpm: Float,
-    etaLabel: String,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
-            .background(BgSurface)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = modeName,
-            color = TextPrimary,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-
-        Spacer(modifier = Modifier.width(10.dp))
-
-        Text(
-            text = stringResource(R.string.rx_progress_format, rxProgressPercent(rowsReady, totalRows)),
-            color = Accent,
-            fontFamily = GeistMonoFamily,
-            fontSize = 12.sp,
-        )
-
-        Spacer(modifier = Modifier.width(6.dp))
-
-        // Estimated time until the picture completes (replaces the raw row
-        // count, which duplicated the percentage). Row bookkeeping still drives
-        // both readouts; this one is the operator-facing countdown.
-        Text(
-            text = etaLabel,
-            color = TextMuted,
-            fontFamily = GeistMonoFamily,
-            fontSize = 10.sp,
-        )
-
-        Spacer(modifier = Modifier.width(6.dp))
-
-        // Estimated scan time left, derived from rows-done vs the mode's TX
-        // duration (image scan rate is constant), e.g. "1:23 left".
-        Text(
-            text = stringResource(
-                R.string.rx_eta_format,
-                formatRxEta(rxSecondsRemaining(rowsReady, totalRows, txDurationSeconds)),
-            ),
-            color = TextMuted,
-            fontFamily = GeistMonoFamily,
-            fontSize = 10.sp,
-            maxLines = 1,
-        )
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Quality meter: label + small filled bar.
-        Text(
-            text = stringResource(R.string.rx_quality_label),
-            color = TextMuted,
-            fontSize = 9.sp,
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        QualityMeter(fraction = rxQualityFraction(quality))
-
-        Spacer(modifier = Modifier.width(10.dp))
-
-        Text(
-            text = stringResource(R.string.rx_slant_format, formatSlantPpm(slantPpm)),
-            color = TextMuted,
-            fontFamily = GeistMonoFamily,
-            fontSize = 9.sp,
-        )
-    }
-}
-
-/** Tiny horizontal bar, filled [fraction] of its width. */
-@Composable
-private fun QualityMeter(fraction: Float) {
-    Box(
-        modifier = Modifier
-            .width(46.dp)
-            .height(5.dp)
-            .clip(RoundedCornerShape(2.5.dp))
-            .background(BgSurface3),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(fraction.coerceIn(0f, 1f))
-                .height(5.dp)
-                .clip(RoundedCornerShape(2.5.dp))
-                .background(Accent),
-        )
-    }
-}
-
-/** "Saved" confirmation chip shown once the completed image was auto-saved. */
-@Composable
-private fun SavedChip() {
-    Text(
-        text = stringResource(R.string.rx_saved_chip),
-        modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(BgSurface3)
-            .padding(horizontal = 8.dp, vertical = 3.dp),
-        color = StatusConfirmed,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Bold,
-    )
 }

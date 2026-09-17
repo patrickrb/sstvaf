@@ -1,7 +1,11 @@
 package radio.ks3ckc.sstvaf.ui.rx
 
+import com.k1af.ft8af.R
+import radio.ks3ckc.sstvaf.gallery.SavedImage
 import radio.ks3ckc.sstvaf.sstv.SstvMode
 import radio.ks3ckc.sstvaf.sstv.SstvRxState
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -140,3 +144,174 @@ internal fun formatRxEta(secondsRemaining: Int): String {
  */
 internal fun showsPartialImage(state: SstvRxState.Aborted): Boolean =
     state.partialRows > 0 && state.mode != null
+
+// ---------------------------------------------------------------------------
+// Status card (the redesigned Receive screen)
+// ---------------------------------------------------------------------------
+
+/**
+ * What the status card under the canvas is reporting. Distinct from
+ * [RxRenderKind], which decides what the *canvas* draws: the canvas has a
+ * separate "signal detected" look while the card treats a heard leader as
+ * still listening — nothing has been decoded yet, so promising the operator a
+ * picture would be premature.
+ */
+internal enum class RxStatusKind {
+    /** Waiting for a transmission, or receive switched off. */
+    LISTENING,
+
+    /** Rows are arriving. */
+    DECODING,
+
+    /** A full image finished and was saved. */
+    SAVED,
+
+    /** Signal lost mid-picture. */
+    LOST,
+}
+
+/** Engine state → status card. */
+internal fun rxStatusKind(state: SstvRxState): RxStatusKind = when (state) {
+    is SstvRxState.Idle, is SstvRxState.Leader -> RxStatusKind.LISTENING
+    is SstvRxState.Decoding -> RxStatusKind.DECODING
+    is SstvRxState.Complete -> RxStatusKind.SAVED
+    is SstvRxState.Aborted -> RxStatusKind.LOST
+}
+
+/**
+ * The card's right-hand readout.
+ *
+ * While listening it says "auto-detect" rather than a mode or a dash: the most
+ * useful thing to tell an operator staring at an idle receiver is that they do
+ * not have to pick anything. Decoding shows the countdown to the end of the
+ * picture; a finished decode shows how long the picture took, which is the
+ * number an operator compares against the mode they expected.
+ */
+internal fun rxStatusRightLabel(state: SstvRxState): String? = when (state) {
+    is SstvRxState.Idle, is SstvRxState.Leader -> null
+    is SstvRxState.Decoding ->
+        formatRxEta(rxSecondsRemaining(state.rowsReady, state.totalRows, state.mode.txDurationSeconds))
+    // formatRxEta already renders "m:ss"; reused rather than adding a second
+    // identical formatter. Here it is a total, not a countdown.
+    is SstvRxState.Complete -> formatRxEta(state.mode.txDurationSeconds.roundToInt())
+    is SstvRxState.Aborted -> null
+}
+
+/**
+ * The 0..1 fill of the card's progress bar. Empty while listening (there is no
+ * picture in progress to measure), the decode fraction while rows arrive, full
+ * on a completed decode, and — deliberately — the fraction reached when a
+ * signal was lost, so the bar shows how much of the picture made it rather
+ * than snapping back to zero.
+ */
+internal fun rxProgressFraction(state: SstvRxState): Float = when (state) {
+    is SstvRxState.Idle, is SstvRxState.Leader -> 0f
+    is SstvRxState.Decoding ->
+        if (state.totalRows <= 0) 0f
+        else (state.rowsReady.toFloat() / state.totalRows).coerceIn(0f, 1f)
+    is SstvRxState.Complete -> 1f
+    is SstvRxState.Aborted -> {
+        val total = state.mode?.totalRows ?: 0
+        if (total <= 0) 0f else (state.partialRows.toFloat() / total).coerceIn(0f, 1f)
+    }
+}
+
+/** The rows counter, e.g. `"159 / 256"`, or em dashes before a decode starts. */
+internal fun rxRowsLabel(state: SstvRxState): String = when (state) {
+    is SstvRxState.Decoding -> "${state.rowsReady} / ${state.totalRows}"
+    is SstvRxState.Complete -> "${state.mode.totalRows} / ${state.mode.totalRows}"
+    is SstvRxState.Aborted -> {
+        val total = state.mode?.totalRows
+        if (total == null) "— / —" else "${state.partialRows} / $total"
+    }
+    else -> "— / —"
+}
+
+/** The quality readout as a whole percent, or an em dash when nothing decoded. */
+internal fun rxQualityLabel(state: SstvRxState): String = when (state) {
+    is SstvRxState.Decoding -> "${(rxQualityFraction(state.quality) * 100f).roundToInt()}%"
+    is SstvRxState.Complete -> "${(rxQualityFraction(state.quality) * 100f).roundToInt()}%"
+    else -> "—"
+}
+
+/** The slant readout, e.g. `"+12 ppm"`, or blank when there is nothing to measure. */
+internal fun rxSlantLabel(state: SstvRxState): String = when (state) {
+    is SstvRxState.Decoding -> "${formatSlantPpm(state.slantPpm)} ppm"
+    else -> ""
+}
+
+/**
+ * Whether the canvas should be drawing an image at all. False while listening,
+ * so the canvas shows its idle animation instead of a stale picture from the
+ * previous decode.
+ */
+internal fun rxShowsCanvasImage(state: SstvRxState): Boolean = when (state) {
+    is SstvRxState.Decoding, is SstvRxState.Complete -> true
+    is SstvRxState.Aborted -> showsPartialImage(state)
+    else -> false
+}
+
+/**
+ * The top-down reveal fraction for a decoding canvas: how much of the image
+ * height is filled in. The design clips the image to this and rides a glowing
+ * line at the boundary, which is the same thing an operator sees on a real
+ * SSTV monitor — the picture painting itself downward.
+ *
+ * A finished picture is fully revealed; anything else is 0.
+ */
+internal fun rxRevealFraction(state: SstvRxState): Float = when (state) {
+    is SstvRxState.Decoding -> rxProgressFraction(state)
+    is SstvRxState.Complete -> 1f
+    is SstvRxState.Aborted -> rxProgressFraction(state)
+    else -> 0f
+}
+
+/**
+ * How many thumbnails the "Received today" strip shows.
+ *
+ * Four. The strip is a glance, not a browser — it answers "did anything come
+ * in while I was away?" and hands off to the Gallery for everything else. Four
+ * 84dp cells plus gaps is also what fits across a compact phone without the
+ * last one being a sliver that invites a scroll the row does not have.
+ */
+internal const val RX_RECENT_LIMIT = 4
+
+/**
+ * The caption under a "Received today" thumbnail: mode short code and the
+ * decode time, e.g. `"S1 · 14:02"`.
+ *
+ * Local wall-clock time, not UTC, and not a relative age. The strip answers
+ * "when did this come in?" for someone who was in the room, and "14:02" is
+ * what they compare against their own memory of the afternoon. The Gallery,
+ * which is for going back through a log, uses UTC.
+ */
+internal fun rxRecentCaption(entry: SavedImage): String {
+    val shortCode = SstvMode.entries.firstOrNull { it.displayName == entry.mode }?.shortCode
+        ?: entry.mode
+    val time = SimpleDateFormat("HH:mm", Locale.US).format(Date(entry.utcMillis))
+    return "$shortCode · $time"
+}
+
+/**
+ * The status card's label resource.
+ *
+ * Decoding's string takes the mode name as a format argument ("Decoding
+ * Scottie 1") — naming the mode is the moment the operator learns what is
+ * arriving, since they never chose it. The other three take no arguments; see
+ * [rxStatusLabelTakesMode].
+ */
+internal fun rxStatusLabelRes(state: SstvRxState): Int = when (rxStatusKind(state)) {
+    RxStatusKind.LISTENING -> R.string.rx_status_listening
+    RxStatusKind.DECODING -> R.string.rx_status_decoding
+    RxStatusKind.SAVED -> R.string.rx_status_saved
+    RxStatusKind.LOST -> R.string.rx_status_lost
+}
+
+/**
+ * Whether [rxStatusLabelRes] returns a format string needing the mode name.
+ * Only the decoding label does. Kept as its own predicate so the caller cannot
+ * pass an argument to a string that has no placeholder (which silently formats
+ * to the bare text) or omit one from the string that does.
+ */
+internal fun rxStatusLabelTakesMode(state: SstvRxState): Boolean =
+    rxStatusKind(state) == RxStatusKind.DECODING
