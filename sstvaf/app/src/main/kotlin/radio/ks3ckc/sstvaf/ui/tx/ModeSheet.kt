@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -207,12 +208,25 @@ private fun SelectionRing(selected: Boolean) {
 }
 
 /**
+ * The height of the controls in the Send screen's bottom row.
+ *
+ * Shared by [ModeCard] and the Transmit button so the two cannot drift apart.
+ * They sit side by side, and the mode card used to take its height from its
+ * own content - about 47dp against the button's fixed 52 - which read as a
+ * misalignment rather than as a deliberate difference.
+ */
+internal val TX_CONTROL_HEIGHT = 52.dp
+
+/**
  * The Send screen's mode card: an uppercase MODE label over the current mode
  * name, with a chevron. Tapping opens [ModeSheet].
  *
  * Replaces the chip row. One mode is shown because one mode is what the
  * operator is sending; the rest are a tap away rather than permanently
  * occupying a scroller.
+ *
+ * Fixed to [TX_CONTROL_HEIGHT] and vertically centred, so it matches the
+ * Transmit button beside it.
  */
 @Composable
 internal fun ModeCard(
@@ -225,6 +239,7 @@ internal fun ModeCard(
     val actionLabel = stringResource(R.string.mode_card_action)
     Column(
         modifier = modifier
+            .height(TX_CONTROL_HEIGHT)
             .clip(RoundedCornerShape(12.dp))
             .background(BgSurface2)
             .border(1.dp, Border, RoundedCornerShape(12.dp))
@@ -239,8 +254,11 @@ internal fun ModeCard(
                 onClick = onClick,
             )
             .semantics(mergeDescendants = true) { contentDescription = description }
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(1.dp),
+            .padding(horizontal = 12.dp),
+        // Centred rather than top-aligned: the card is now taller than its
+        // content, and the label/value pair should sit on the button's
+        // centre line rather than riding the top edge.
+        verticalArrangement = Arrangement.Center,
     ) {
         Text(
             text = stringResource(R.string.mode_card_label),
