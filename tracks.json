@@ -2,13 +2,6 @@
   "beta": [],
   "internal": [
     {
-      "name": "android-dev.205",
-      "status": "draft",
-      "versionCodes": [
-        1205
-      ]
-    },
-    {
       "name": "android-dev.179",
       "status": "completed",
       "versionCodes": [
