@@ -24,12 +24,22 @@ static def getCurrentTime() {
 
 android {
 
-    compileSdk 35
+    // API 36 (Android 16). Google Play requires new releases to target 36 from
+    // 2026-08-31; a v35 bundle is rejected at the "create release" step with
+    // "must target at least API level 36".
+    //
+    // AGP 8.7.3 was tested up to compileSdk 35, so it warns about 36 unless
+    // android.suppressUnsupportedCompileSdk is set (see gradle.properties).
+    // Moving to an AGP that knows about 36 natively means Gradle 8.11+ as well,
+    // which is a toolchain upgrade with its own risk surface (the CMake/NDK
+    // build, detekt and ktlint plugin compatibility) and does not belong in a
+    // release-unblocking change.
+    compileSdk 36
 
     defaultConfig {
         applicationId "radio.ks3ckc.sstvaf"
         minSdk 23
-        targetSdk 35
+        targetSdk 36
         // Required for the androidTest suite to actually run: our instrumented
         // tests use @RunWith(AndroidJUnit4::class). Without this, AGP falls back
         // to the legacy android.test.InstrumentationTestRunner, which discovers
