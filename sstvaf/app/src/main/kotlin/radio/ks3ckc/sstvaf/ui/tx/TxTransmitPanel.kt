@@ -63,6 +63,9 @@ internal fun TxTransmitPanel(
 ) {
     Column(
         modifier = modifier
+            // Matches the controls it replaces, so the row does
+            // not change height the moment the rig is keyed.
+            .heightIn(min = TX_CONTROL_HEIGHT)
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(

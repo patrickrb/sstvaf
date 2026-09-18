@@ -610,7 +610,12 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
 
         Row(
             modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            // Top, not centre. The Transmit button is a column: the button
+            // itself plus an optional reason line underneath ("Pick a picture
+            // first"). Centring made the mode card drop by half that line's
+            // height whenever a reason appeared, so the two controls slid out
+            // of alignment depending on whether an image was loaded.
+            verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             // The mode card steps aside while keyed: the amber panel needs the
@@ -756,7 +761,7 @@ private fun TransmitButton(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
+                .height(TX_CONTROL_HEIGHT)
                 .clip(RoundedCornerShape(12.dp))
                 .background(if (enabled) Accent else BgSurface3)
                 .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
