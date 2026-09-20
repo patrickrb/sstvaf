@@ -2520,9 +2520,6 @@ public class DatabaseOpr extends SQLiteOpenHelper {
                 if (name.equalsIgnoreCase("usbAudioOutputPid")) {
                     GeneralVariables.usbAudioOutputProductId = result.equals("") ? 0 : Integer.parseInt(result);
                 }
-                if (name.equalsIgnoreCase("debugModeEnabled")) {//Hidden debug screen unlock
-                    GeneralVariables.debugModeEnabled = result.equals("1");
-                }
                 if (name.equalsIgnoreCase("dataBits")) {//Serial data bits
                     GeneralVariables.serialDataBits =Integer.parseInt(result);
                 }
