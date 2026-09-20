@@ -673,6 +673,14 @@ public class MainViewModel extends ViewModel {
             sstvTransmitter.cancel(false);
             transmitAudioSink.cancel();
         });
+
+        // A failed USB capture session schedules a device reinit; that reinit
+        // force-reclaims the shared USB audio device and would kill an
+        // in-flight transmission seconds after key-down. Give MicRecorder the
+        // TX-on-the-air check so it defers the reopen until the over ends.
+        hamRecorder.getMicRecorder().setTxActiveCheck(() ->
+                (sstvTransmitter != null && sstvTransmitter.isTransmittingNow())
+                        || (tuneOperator != null && tuneOperator.isTuning()));
     }
 
     /** The continuous SSTV receive engine (decode state via {@code getRxState()}). */
