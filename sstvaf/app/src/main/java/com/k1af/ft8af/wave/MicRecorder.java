@@ -131,6 +131,50 @@ public class MicRecorder {
     private static final long MIN_REINIT_INTERVAL_MS = 2000;
     static final int FALLBACK_BUFFER_SIZE = 4096;
 
+    // A USB reinit must never run while a transmission is on the air: the
+    // reopen force-claims the very interfaces the in-flight TX write is
+    // streaming on, killing the whole image 1-3s in (the reinit is typically
+    // triggered BY the TX's own activity on the shared device). RX is useless
+    // during TX on the same device anyway, so the reinit just waits.
+    static final long TX_IDLE_POLL_MS = 250;
+    // Longest SSTV mode plus the CW-ID tail with margin; a wedged TX flag
+    // must not park the reinit worker forever.
+    static final long TX_IDLE_MAX_WAIT_MS = 5 * 60 * 1000;
+
+    /** Millisecond sleeper, injected by {@link #awaitTxIdle} tests. */
+    interface MsSleeper {
+        void sleepMs(long ms) throws InterruptedException;
+    }
+
+    /** Whether a transmission (SSTV image or tune carrier) is on the air. */
+    private volatile java.util.function.BooleanSupplier txActiveCheck = () -> false;
+
+    /** Wire the "TX on the air" check (null restores the never-active default). */
+    public void setTxActiveCheck(java.util.function.BooleanSupplier check) {
+        this.txActiveCheck = check != null ? check : () -> false;
+    }
+
+    /**
+     * Block until {@code txActive} reports idle, polling every {@code pollMs},
+     * up to {@code maxWaitMs}. Returns how long it waited. An interrupt stops
+     * the wait and re-asserts the flag so the caller's shutdown path sees it.
+     * Static and injected so the gate is unit-tested without threads.
+     */
+    static long awaitTxIdle(java.util.function.BooleanSupplier txActive,
+                            MsSleeper sleeper, long pollMs, long maxWaitMs) {
+        long waited = 0;
+        while (txActive.getAsBoolean() && waited < maxWaitMs) {
+            try {
+                sleeper.sleepMs(pollMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return waited;
+            }
+            waited += pollMs;
+        }
+        return waited;
+    }
+
     public interface OnDataListener{
         void onDataReceived(float[] data,int len);
     }
@@ -553,6 +597,23 @@ public class MicRecorder {
                         GeneralVariables.fileLog(
                                 "startUsbCapture: not re-arming USB capture "
                                         + "(isRunning=false)");
+                        return;
+                    }
+                    // Never reopen the shared USB device out from under an
+                    // in-flight transmission — that force-claim is what killed
+                    // SSTV images seconds after key-down. Wait out the TX (and
+                    // its CW-ID tail), then re-arm capture.
+                    long deferredMs = awaitTxIdle(txActiveCheck, Thread::sleep,
+                            TX_IDLE_POLL_MS, TX_IDLE_MAX_WAIT_MS);
+                    if (deferredMs > 0) {
+                        GeneralVariables.fileLog(
+                                "startUsbCapture: USB reinit deferred " + deferredMs
+                                        + "ms until TX idle");
+                    }
+                    if (!isRunning) {
+                        GeneralVariables.fileLog(
+                                "startUsbCapture: not re-arming USB capture "
+                                        + "(isRunning=false after TX-idle wait)");
                         return;
                     }
                     lastReinitMs = System.currentTimeMillis();
