@@ -86,6 +86,11 @@ public class UsbAudioDevice {
     private static UsbAudioDevice activeInputDevice;
     private static UsbAudioDevice activeOutputDevice;
 
+    // How long the most recent writeAudio() native attempt streamed before
+    // returning (success or failure); 0 when the native path didn't run.
+    // The TX resume loop reads it to compute where to pick the audio back up.
+    private volatile long lastWriteStreamedMs;
+
     public interface AudioInputCallback {
         void onAudioData(float[] data, int length);
         /**
@@ -991,9 +996,15 @@ public class UsbAudioDevice {
      * @return true if successful
      */
     @SuppressWarnings("deprecation")
+    /** Streaming time of the last {@link #writeAudio} native attempt (0 = unknown). */
+    public long getLastWriteStreamedMs() {
+        return lastWriteStreamedMs;
+    }
+
     public boolean writeAudio(float[] audioData, int sourceSampleRate) {
         if (endpointOut == null || connection == null) return false;
 
+        lastWriteStreamedMs = 0;
         // Start this transmission with a clear cancel flag. STOP sets it (via
         // UsbAudioNative.cancelWrite) to abort either the native or fallback path.
         UsbAudioNative.resetCancel();
@@ -1045,6 +1056,11 @@ public class UsbAudioDevice {
                     outputSampleRate, outputChannels, /*bytesPerSample=*/2,
                     pcmData);
             long writeElapsedMs = android.os.SystemClock.elapsedRealtime() - writeStartMs;
+            // How long the native path actually streamed, success or failure —
+            // the TX resume logic maps this to consumed samples without the
+            // resample/interleave setup time a wall clock around writeAudio()
+            // would include.
+            lastWriteStreamedMs = writeElapsedMs;
 
             if (rc == 0) {
                 com.k1af.ft8af.GeneralVariables.fileLog(

@@ -54,6 +54,21 @@ import com.k1af.ft8af.wave.UsbAudioNative;
 public class TransmitAudioSink {
     private static final String TAG = "TransmitAudioSink";
 
+    /**
+     * Consecutive AudioTrack reopens with no net playback progress before a
+     * transmission is abandoned. A transient sink death (route change, USB
+     * hiccup) recovers on the first reopen; a genuinely dead sink burns
+     * through these in well under a second.
+     */
+    static final int MAX_WRITE_REOPEN_ATTEMPTS = 3;
+
+    /**
+     * Pause before reopening the USB output device after a mid-stream write
+     * failure, so a kernel-driver alt-setting flip (another sound routed to
+     * the still-registered card) finishes before we re-claim the endpoint.
+     */
+    private static final long USB_REOPEN_DELAY_MS = 250;
+
     /** Live TX volume source, read fresh per chunk. */
     public interface VolumeSource {
         /** Gain 0.0-1.0. */
@@ -314,81 +329,127 @@ public class TransmitAudioSink {
     }
 
     /**
-     * The chunked MODE_STREAM playback loop, extracted intact from the FT8
-     * engine. Package-visible core so tests can drive it with a fake output.
+     * The chunked MODE_STREAM playback loop, extracted from the FT8 engine.
+     * Package-visible core so tests can drive it with a fake output.
+     *
+     * <p>Unlike the FT8 version, a write error does not drop the transmission:
+     * an SSTV image is a one-shot multi-minute buffer with no next cycle, so a
+     * transient sink death (ERROR_DEAD_OBJECT from a route change, a USB sink
+     * hiccup) reopens the output and resumes from where playback stopped —
+     * rewound by whatever the dead track had buffered but not yet played. Only
+     * {@link #MAX_WRITE_REOPEN_ATTEMPTS} consecutive reopens with no progress
+     * give up, so a genuinely dead sink still fails fast.
      */
     PlayResult playViaPcmOutput(float[] buffer, int sampleRate, boolean float32,
                                 VolumeSource volume) {
-        PcmOutput out;
-        try {
-            out = outputFactory.open(sampleRate, float32);
-        } catch (Exception e) {
-            Log.e(TAG, "play: failed to open output: " + e);
-            return PlayResult.ERROR;
-        }
-        activeOutput = out;
-        try {
-            final int chunkSamples = Math.max(1, sampleRate / 20); // ~50ms
-            int framesWritten = 0;
-            boolean writeError = false;
-            int offset = 0;
-            while (offset < buffer.length) {
-                if (cancelled) break;
-                int chunkLen = Math.min(chunkSamples, buffer.length - offset);
-                // applyVolume reads the volume source fresh for this chunk (live gain).
-                float[] chunk = applyVolume(buffer, offset, chunkLen, volume.volume());
-
-                int writeResult = float32
-                        ? out.writeFloats(chunk, chunkLen)
-                        : out.writeShorts(floatToInt16NoPad(chunk, chunkLen), chunkLen);
-                if (writeResult < 0) {
-                    Log.e(TAG, String.format("Playback error: %d", writeResult));
-                    writeError = true;
-                    break;
-                }
-                framesWritten += writeResult;
-                offset += chunkLen;
+        final int chunkSamples = Math.max(1, sampleRate / 20); // ~50ms
+        int offset = 0;
+        // Consecutive reopen attempts that wrote nothing before failing again.
+        int stalledReopens = 0;
+        while (true) {
+            PcmOutput out;
+            try {
+                out = outputFactory.open(sampleRate, float32);
+            } catch (Exception e) {
+                Log.e(TAG, "play: failed to open output: " + e);
+                return PlayResult.ERROR;
             }
+            activeOutput = out;
+            try {
+                final int attemptStartOffset = offset;
+                int framesWritten = 0; // frames written to THIS output instance
+                boolean writeError = false;
+                while (offset < buffer.length) {
+                    if (cancelled) break;
+                    int chunkLen = Math.min(chunkSamples, buffer.length - offset);
+                    // applyVolume reads the volume source fresh for this chunk (live gain).
+                    float[] chunk = applyVolume(buffer, offset, chunkLen, volume.volume());
 
-            // Append the 8-sample zero pad once at the end (QP-7C RP2040 audio
-            // detection compatibility), only for the int16 path.
-            if (!writeError && !cancelled && !float32) {
-                short[] pad = new short[8];
-                int padResult = out.writeShorts(pad, pad.length);
-                if (padResult > 0) framesWritten += padResult;
-            }
-
-            // Blocking writes return once data is *buffered*, not played. Wait for
-            // the tail to actually drain before releasing, so the end of the
-            // message isn't truncated. A cancel skips the wait (the canceller has
-            // already paused+flushed for immediate silence).
-            if (!writeError && !cancelled) {
-                while (!cancelled) {
-                    if (out.playbackHeadPosition() >= framesWritten) break;
-                    try {
-                        sleeper.sleepMs(20);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
+                    int writeResult = float32
+                            ? out.writeFloats(chunk, chunkLen)
+                            : out.writeShorts(floatToInt16NoPad(chunk, chunkLen), chunkLen);
+                    if (writeResult < 0) {
+                        Log.e(TAG, String.format("Playback error: %d", writeResult));
+                        writeError = true;
                         break;
                     }
+                    framesWritten += writeResult;
+                    offset += chunkLen;
                 }
-            }
 
-            if (writeError) return PlayResult.ERROR;
-            return cancelled ? PlayResult.CANCELLED : PlayResult.COMPLETED;
-        } finally {
-            activeOutput = null;
-            out.release();
+                if (writeError) {
+                    if (cancelled) return PlayResult.CANCELLED;
+                    // Samples the dead track buffered but never played would be
+                    // skipped on resume; rewind so the receiver loses nothing it
+                    // was owed. A head the wrapper can no longer read (released
+                    // underneath us reports MAX_VALUE) just resumes in place.
+                    int head = out.playbackHeadPosition();
+                    int unplayed = (head >= 0 && head < framesWritten)
+                            ? framesWritten - head : 0;
+                    offset = Math.max(0, offset - unplayed);
+                    // Progress is judged net of the rewind: an output that only
+                    // ever buffers a chunk and dies would otherwise count every
+                    // attempt as progress while the offset never advances.
+                    stalledReopens = offset > attemptStartOffset ? 1 : stalledReopens + 1;
+                    if (stalledReopens > MAX_WRITE_REOPEN_ATTEMPTS) {
+                        GeneralVariables.fileLog(String.format(
+                                "TransmitAudioSink: giving up after %d sink reopens "
+                                        + "with no progress (offset=%d/%d)",
+                                MAX_WRITE_REOPEN_ATTEMPTS, offset, buffer.length));
+                        return PlayResult.ERROR;
+                    }
+                    GeneralVariables.fileLog(String.format(
+                            "TransmitAudioSink: sink write failed, reopening and "
+                                    + "resuming at sample %d/%d (rewound %d unplayed)",
+                            offset, buffer.length, unplayed));
+                    continue; // finally releases this output; loop reopens
+                }
+
+                // Append the 8-sample zero pad once at the end (QP-7C RP2040 audio
+                // detection compatibility), only for the int16 path.
+                if (!cancelled && !float32) {
+                    short[] pad = new short[8];
+                    int padResult = out.writeShorts(pad, pad.length);
+                    if (padResult > 0) framesWritten += padResult;
+                }
+
+                // Blocking writes return once data is *buffered*, not played. Wait for
+                // the tail to actually drain before releasing, so the end of the
+                // message isn't truncated. A cancel skips the wait (the canceller has
+                // already paused+flushed for immediate silence).
+                if (!cancelled) {
+                    while (!cancelled) {
+                        if (out.playbackHeadPosition() >= framesWritten) break;
+                        try {
+                            sleeper.sleepMs(20);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                    }
+                }
+
+                return cancelled ? PlayResult.CANCELLED : PlayResult.COMPLETED;
+            } finally {
+                activeOutput = null;
+                out.release();
+            }
         }
     }
 
     /**
-     * Direct USB audio output, extracted intact from the FT8 engine. TX volume
-     * is applied live inside the native write loop (UsbAudioNative.setTxVolume),
-     * so the buffer is handed over at full scale, and the TX channel selection
-     * (GeneralVariables.txAudioChannel) is applied by the device's interleave.
-     * The iso-packet-length math in cpp/usb_audio_capture.cpp is load-bearing
-     * (see CLAUDE.md) and untouched.
+     * Direct USB audio output. TX volume is applied live inside the native
+     * write loop (UsbAudioNative.setTxVolume), so the buffer is handed over at
+     * full scale, and the TX channel selection (GeneralVariables.txAudioChannel)
+     * is applied by the device's interleave. The iso-packet-length math in
+     * cpp/usb_audio_capture.cpp is load-bearing (see CLAUDE.md) and untouched.
+     *
+     * <p>Unlike the FT8 engine this was extracted from, a mid-stream write
+     * failure does not drop the transmission: the device is closed, reopened
+     * (a fresh open/alt-setting restores an endpoint the kernel driver tore
+     * down), and the write resumes from the sample the device had clocked out
+     * when it died — see {@link UsbTxResumePolicy} for why and for the give-up
+     * rule.
      */
     private PlayResult playViaUsbAudio(float[] buffer, int sampleRate) {
         GeneralVariables.fileLog(String.format(
@@ -397,10 +458,99 @@ public class TransmitAudioSink {
                 GeneralVariables.usbAudioOutputProductId,
                 buffer.length, sampleRate));
 
+        int offset = 0;
+        int stalledAttempts = 0;
+        while (true) {
+            if (cancelled) return PlayResult.CANCELLED;
+
+            UsbAudioDevice usbDev = openUsbOutputDevice();
+            if (usbDev == null) {
+                // Device setup failed outright (gone from the bus, permission
+                // revoked, descriptor/alt-setting failure). Nothing to resume.
+                if (!cancelled) {
+                    ToastMessage.show(
+                            GeneralVariables.getStringFromResource(R.string.tx_audio_dropped));
+                }
+                return cancelled ? PlayResult.CANCELLED : PlayResult.ERROR;
+            }
+
+            boolean success;
+            long attemptElapsedMs;
+            try {
+                float[] slice = offset == 0 ? buffer
+                        : java.util.Arrays.copyOfRange(buffer, offset, buffer.length);
+                GeneralVariables.fileLog(String.format(
+                        "playViaUsbAudio: calling writeAudio playLength=%d rate=%d offset=%d",
+                        slice.length, sampleRate, offset));
+                long startedAt = android.os.SystemClock.elapsedRealtime();
+                success = usbDev.writeAudio(slice, sampleRate);
+                long wallMs = android.os.SystemClock.elapsedRealtime() - startedAt;
+                // Prefer the device's own streaming time when available: the
+                // wall clock also counts resample/interleave setup, which
+                // would over-estimate the consumed audio and skip real samples
+                // on resume.
+                long streamedMs = usbDev.getLastWriteStreamedMs();
+                attemptElapsedMs = streamedMs > 0 ? Math.min(streamedMs, wallMs) : wallMs;
+            } finally {
+                usbDev.close();
+            }
+            if (success) {
+                GeneralVariables.fileLog(buildWriteAudioResultLog(true));
+                return PlayResult.COMPLETED;
+            }
+            boolean wasCancelled = UsbAudioNative.writeCancelled;
+            if (wasCancelled || cancelled) return PlayResult.CANCELLED;
+            // Not "TX DROPPED" yet — the resume/give-up decision below says
+            // which this failure turns out to be.
+            GeneralVariables.fileLog("playViaUsbAudio: writeAudio attempt failed after "
+                    + attemptElapsedMs + "ms");
+
+            UsbTxResumePolicy.Decision decision = UsbTxResumePolicy.onWriteFailure(
+                    offset, buffer.length, attemptElapsedMs, sampleRate, stalledAttempts);
+            if (decision.treatAsComplete) {
+                GeneralVariables.fileLog(
+                        "playViaUsbAudio: write failed with <100ms of audio left — "
+                                + "transmission counts as complete");
+                return PlayResult.COMPLETED;
+            }
+            if (!decision.retry) {
+                GeneralVariables.fileLog(String.format(
+                        "playViaUsbAudio: giving up after %d stalled attempts "
+                                + "(offset=%d/%d) — TX DROPPED",
+                        decision.stalledAttempts, decision.nextOffsetSamples, buffer.length));
+                // A drop is invisible at the rig (it keys and shows normal
+                // behavior but transmits dead air), so tell the operator.
+                ToastMessage.show(
+                        GeneralVariables.getStringFromResource(R.string.tx_audio_dropped));
+                return PlayResult.ERROR;
+            }
+            offset = decision.nextOffsetSamples;
+            stalledAttempts = decision.stalledAttempts;
+            GeneralVariables.fileLog(String.format(
+                    "playViaUsbAudio: resuming at sample %d/%d (%.0f%%) after "
+                            + "%dms attempt, stalledAttempts=%d",
+                    offset, buffer.length, 100f * offset / buffer.length,
+                    attemptElapsedMs, stalledAttempts));
+            try {
+                sleeper.sleepMs(USB_REOPEN_DELAY_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return PlayResult.ERROR;
+            }
+        }
+    }
+
+    /**
+     * Find, open, and activate the selected USB audio output device, or null
+     * with the reason logged. One attempt of the resume loop — each retry
+     * reopens from scratch because a torn-down endpoint needs the full
+     * open/alt-setting sequence to come back.
+     */
+    private UsbAudioDevice openUsbOutputDevice() {
         Context context = GeneralVariables.getMainContext();
         if (context == null) {
             GeneralVariables.fileLog("playViaUsbAudio: ABORT no main context");
-            return PlayResult.ERROR;
+            return null;
         }
 
         UsbDevice device = UsbAudioDevice.findDeviceByVidPid(context,
@@ -411,19 +561,19 @@ public class TransmitAudioSink {
                     "playViaUsbAudio: ABORT USB audio output device not found by VID:PID %04X:%04X",
                     GeneralVariables.usbAudioOutputVendorId,
                     GeneralVariables.usbAudioOutputProductId));
-            return PlayResult.ERROR;
+            return null;
         }
 
         UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
         if (usbManager == null) {
             GeneralVariables.fileLog("playViaUsbAudio: ABORT UsbManager is null");
-            return PlayResult.ERROR;
+            return null;
         }
         if (!usbManager.hasPermission(device)) {
             GeneralVariables.fileLog(
                     "playViaUsbAudio: ABORT no USB permission for output device "
                             + "(re-pick (USB direct) in Settings to re-grant)");
-            return PlayResult.ERROR;
+            return null;
         }
 
         UsbAudioDevice usbDev = new UsbAudioDevice();
@@ -431,40 +581,23 @@ public class TransmitAudioSink {
             GeneralVariables.fileLog(
                     "playViaUsbAudio: ABORT UsbAudioDevice.open() failed "
                             + "(descriptor parse or claimInterface failed)");
-            return PlayResult.ERROR;
+            return null;
         }
 
-        try {
-            if (!usbDev.hasOutput()) {
-                GeneralVariables.fileLog("playViaUsbAudio: ABORT device has no output endpoint");
-                return PlayResult.ERROR;
-            }
-
-            if (!usbDev.activateOutput(48000)) {
-                GeneralVariables.fileLog(
-                        "playViaUsbAudio: ABORT activateOutput(48000) failed "
-                                + "(alt-setting select or rate setup failed)");
-                return PlayResult.ERROR;
-            }
-            GeneralVariables.fileLog("playViaUsbAudio: device opened, output activated at 48000 Hz");
-
-            GeneralVariables.fileLog(String.format(
-                    "playViaUsbAudio: calling writeAudio playLength=%d rate=%d",
-                    buffer.length, sampleRate));
-            boolean success = usbDev.writeAudio(buffer, sampleRate);
-            GeneralVariables.fileLog(buildWriteAudioResultLog(success));
-            boolean wasCancelled = UsbAudioNative.writeCancelled;
-            // A drop is invisible at the rig (it keys and shows normal behavior
-            // but transmits dead air), so tell the operator — unless the
-            // "failure" is just the user cancelling mid-message.
-            if (shouldWarnTxDropped(success, wasCancelled)) {
-                ToastMessage.show(GeneralVariables.getStringFromResource(R.string.tx_audio_dropped));
-            }
-            if (success) return PlayResult.COMPLETED;
-            return wasCancelled ? PlayResult.CANCELLED : PlayResult.ERROR;
-        } finally {
+        if (!usbDev.hasOutput()) {
+            GeneralVariables.fileLog("playViaUsbAudio: ABORT device has no output endpoint");
             usbDev.close();
+            return null;
         }
+        if (!usbDev.activateOutput(48000)) {
+            GeneralVariables.fileLog(
+                    "playViaUsbAudio: ABORT activateOutput(48000) failed "
+                            + "(alt-setting select or rate setup failed)");
+            usbDev.close();
+            return null;
+        }
+        GeneralVariables.fileLog("playViaUsbAudio: device opened, output activated at 48000 Hz");
+        return usbDev;
     }
 
     /**
