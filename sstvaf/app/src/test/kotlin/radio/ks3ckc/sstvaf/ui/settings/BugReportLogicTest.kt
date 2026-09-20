@@ -47,9 +47,9 @@ class BugReportLogicTest {
     }
 
     @Test
-    fun `github url targets the FT8AF new-issue endpoint`() {
+    fun `github url targets the sstvaf new-issue endpoint`() {
         val url = buildGithubIssueUrl("hello world", info())
-        assertThat(url).startsWith("https://github.com/patrickrb/FT8AF/issues/new")
+        assertThat(url).startsWith("https://github.com/patrickrb/sstvaf/issues/new")
         assertThat(url).contains("title=")
         assertThat(url).contains("body=")
     }
@@ -64,5 +64,13 @@ class BugReportLogicTest {
         val decoded = URLDecoder.decode(bodyParam, "UTF-8")
         assertThat(decoded).contains("two words")
         assertThat(decoded).contains("next line")
+    }
+
+    @Test
+    fun `github url points operators at the Share logs row for debug log`() {
+        val url = buildGithubIssueUrl("hello", info())
+        val body = URLDecoder.decode(url.substringAfter("body="), "UTF-8")
+        assertThat(body).contains("Settings -> About -> Share logs")
+        assertThat(body).doesNotContain("About -> Debug")
     }
 }
