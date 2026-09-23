@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <!-- ===== Common / shared ===== -->
     <string name="action_cancel">Отмена</string>
     <string name="action_save">Сохранить</string>
     <string name="action_done">Готово</string>
@@ -10,12 +8,11 @@
     <string name="common_none">Нет</string>
     <string name="common_off">Выкл.</string>
     <string name="common_not_configured">Не настроено</string>
+    <string name="common_configured">Настроено</string>
     <string name="common_not_connected">Не подключено</string>
     <string name="common_pass">Успех</string>
     <string name="common_fail">Сбой</string>
     <string name="common_test_connection">Проверить соединение</string>
-
-    <!-- ===== Continents ===== -->
     <string name="continent_na">Северная Америка</string>
     <string name="continent_sa">Южная Америка</string>
     <string name="continent_eu">Европа</string>
@@ -23,10 +20,8 @@
     <string name="continent_as">Азия</string>
     <string name="continent_oc">Океания</string>
     <string name="continent_an">Антарктида</string>
-
-    <!-- ===== Bottom navigation tabs ===== -->
-
-    <!-- ===== Status pills (decode list badges) ===== -->
+    <string name="tab_receive">Приём</string>
+    <string name="tab_send">Передача</string>
     <string name="status_new_dxcc">НОВЫЙ DXCC</string>
     <string name="status_new_grid">НОВЫЙ QTH</string>
     <string name="status_new_band">НОВЫЙ ДИАПАЗОН</string>
@@ -36,31 +31,47 @@
     <string name="status_confirmed">ПОДТВЕРЖДЁН</string>
     <string name="status_cq">CQ</string>
     <string name="status_pending">ОЖИДАНИЕ</string>
-
-    <!-- ===== Splash / app-level ===== -->
-    <string name="splash_tagline">FT8 · МОБИЛЬНЫЙ КОМПАНЬОН</string>
+    <string name="splash_tagline">SSTV · ИЗОБРАЖЕНИЯ В ЭФИРЕ</string>
     <string name="splash_initializing">ИНИЦИАЛИЗАЦИЯ РАДИО</string>
     <string name="splash_version">v%1$s · сборка %2$s</string>
     <string name="app_set_callsign_first">Укажите свой позывной в настройках перед вызовом CQ</string>
     <string name="app_hunt_on">Охота вкл. — автоответ на CQ</string>
     <string name="app_hunt_off">Охота выкл. — даём CQ, отвечаем только на ответы</string>
+    <string name="app_mode_switched">Режим: %1$s</string>
+    <string name="app_mode_switch_busy">Нельзя сменить режим во время передачи</string>
     <string name="main_tx_volume">Громкость TX: %1$d%%</string>
-
-    <!-- ===== Exit dialog ===== -->
     <string name="exit_title">ВЫЙТИ ИЗ SSTVAF?</string>
     <string name="exit_message">Закрыть приложение? Любой активный QSO будет отменён.</string>
-
-    <!-- ===== Frequency picker ===== -->
-
-    <!-- ===== Operator card ===== -->
+    <string name="action_back">Назад</string>
+    <string name="header_frequency_chip_description">Частота %1$s, %2$s, нажмите для изменения</string>
+    <string name="cat_state_connected">подключено</string>
+    <string name="cat_state_connecting">подключение</string>
+    <string name="cat_state_disconnected">не подключено</string>
+    <string name="cat_state_error">ошибка подключения</string>
+    <string name="cat_state_vox">нет CAT-связи</string>
+    <string name="header_more_description">Ещё: радио, оператор, журнал, настройки</string>
+    <string name="more_title">Ещё</string>
+    <string name="more_radio_audio">Радио и звук</string>
+    <string name="more_operator">Оператор</string>
+    <string name="more_logbook">Журнал</string>
+    <string name="more_logbook_sub">SSTV QSO · экспорт ADIF · Cloudlog</string>
+    <string name="more_settings">Настройки</string>
+    <string name="more_settings_sub">Всё остальное</string>
+    <string name="freq_sheet_title">Частота</string>
+    <string name="freq_unit_mhz">MHz</string>
+    <string name="freq_note_night">ночь</string>
+    <string name="freq_note_evenings">вечера</string>
+    <string name="freq_note_daytime_busiest">день · самое активное</string>
+    <string name="freq_note_daytime">день</string>
+    <string name="freq_note_when_open">когда открыт</string>
+    <string name="freq_tx_level">Уровень TX</string>
+    <string name="freq_tune_explain">Включает постоянную несущую для настройки антенны. Останавливается сам через %1$d с.</string>
     <string name="op_no_call">НЕТ ПОЗЫВНОГО</string>
     <string name="op_no_grid">QTH не задан</string>
     <string name="op_tap_to_edit">Нажмите для изменения</string>
     <string name="op_stat_rig">RIG</string>
     <string name="op_stat_antenna">ANTENNA</string>
     <string name="op_stat_power">POWER</string>
-
-    <!-- ===== Export log sheet ===== -->
     <string name="export_title">ЭКСПОРТ QSOs</string>
     <string name="export_date_range">ДИАПАЗОН ДАТ</string>
     <string name="export_date_from_placeholder">"С  ГГГГММДД"</string>
@@ -79,8 +90,23 @@
     <string name="export_saved_to">Сохранено в %1$s</string>
     <string name="export_save_failed">Сохранение в «Загрузки» не удалось</string>
     <string name="export_temp_file_failed">Не удалось создать временный файл</string>
-
-    <!-- ===== Active QSO panel ===== -->
+    <string name="tx_transmitting">ПЕРЕДАЧА</string>
+    <string name="tx_listening">ПРИЁМ</string>
+    <string name="tx_hunt">Охота</string>
+    <string name="tx_call_cq">Вызов CQ</string>
+    <string name="tx_stop">Стоп</string>
+    <string name="tx_volume_decrease">Decrease TX volume</string>
+    <string name="tx_volume_increase">Increase TX volume</string>
+    <string name="tx_cq_options">Параметры сообщения CQ (модификатор, свободный текст, Field Day)</string>
+    <string name="hound_title">Работа с DX-экспедицией (Hound)</string>
+    <string name="hound_help">Сначала настройте трансивер на опубликованную частоту Fox. Вы вызываете на высокой частоте (1000–4000 Гц); приложение автоматически переходит (QSY) туда, где отвечает Fox, и отправляет ваш рапорт.</string>
+    <string name="hound_fox_callsign">Позывной Fox</string>
+    <string name="hound_call_frequency">Частота вызова (Гц, 1000–4000)</string>
+    <string name="hound_start">Старт</string>
+    <string name="swr_lockout_title">TX ОСТАНОВЛЕН — Высокий КСВ (%1$s)</string>
+    <string name="swr_lockout_body">Проверьте антенну / фидер перед передачей.</string>
+    <string name="swr_lockout_dismiss">ЗАКРЫТЬ</string>
+    <string name="swr_lockout_toast">TX заблокирован — блокировка КСВ активна. Сначала закройте баннер.</string>
     <string name="qsopanel_calling_cq">Даём CQ</string>
     <string name="qsopanel_searching">Поиск...</string>
     <string name="qsopanel_qsoing_with">QSO с %1$s</string>
@@ -88,8 +114,8 @@
     <string name="qsopanel_tap_to_view">нажмите для просмотра ↗</string>
     <string name="qsopanel_tx_message">TX: %1$s</string>
     <string name="qsopanel_waiting_messages">Ожидание сообщений...</string>
-
-    <!-- ===== Decode screen ===== -->
+    <string name="qsopanel_log_action">LOG</string>
+    <string name="qsopanel_queue">ОЧЕРЕДЬ</string>
     <string name="decode_title">Декод</string>
     <string name="decode_subtitle">"%1$s  •  %2$d декодировано за цикл"</string>
     <string name="decode_clear_list">Очистить список декодов</string>
@@ -114,12 +140,11 @@
     <string name="decode_label_calling">→ ВЫЗЫВАЕТ</string>
     <string name="decode_label_cq">CQ</string>
     <string name="decode_label_to_you">↓ ВАМ</string>
-
-    <!-- ===== QSO sheet ===== -->
     <string name="qso_complete">QSO завершён</string>
     <string name="qso_call_action">Вызвать %1$s</string>
     <string name="qso_qrz_link">QRZ ↗</string>
     <string name="qso_stat_signal">Сигнал</string>
+    <string name="qso_stat_distance">Расстояние</string>
     <string name="qso_stat_azimuth">Азимут</string>
     <string name="qso_stat_band">Диапазон</string>
     <string name="qso_sequence_header">ПОСЛЕДОВАТЕЛЬНОСТЬ QSO</string>
@@ -134,8 +159,6 @@
     <string name="qso_live_step_fallback">сообщение</string>
     <string name="qso_tx_now">TX СЕЙЧАС</string>
     <string name="qso_tx_next">TX СЛЕДУЮЩИЙ</string>
-
-    <!-- ===== Logbook ===== -->
     <string name="log_tab_stats">Статистика</string>
     <string name="log_tab_recent">Недавние</string>
     <string name="log_tab_awards">Дипломы</string>
@@ -156,6 +179,10 @@
     <string name="log_section_signal_trend">Динамика сигнала</string>
     <string name="log_no_qsos_yet">Пока нет QSOs</string>
     <string name="log_no_qsos_recorded_yet">QSOs пока не записаны</string>
+    <string name="log_search_placeholder">Поиск по позывному, локатору, диапазону…</string>
+    <string name="log_search_no_matches">Нет QSO по запросу «%1$s»</string>
+    <string name="log_cd_search">Поиск QSO</string>
+    <string name="log_cd_clear_search">Очистить поиск</string>
     <string name="log_state_usa">%1$s, USA</string>
     <string name="log_cd_qso_actions">Действия с QSO</string>
     <string name="log_action_edit">Изменить</string>
@@ -184,8 +211,18 @@
     <string name="log_sync_cloudlog_accepted">Cloudlog / Wavelog / Nextlog: принято %1$d</string>
     <string name="log_sync_nothing_to_upload">В журнале пока нет QSOs для загрузки.</string>
     <string name="log_sync_working">Работа…</string>
-
-    <!-- ===== POTA ===== -->
+    <string name="log_cd_add_qso">Записать QSO вручную</string>
+    <string name="log_manual_title">ЗАПИСАТЬ SSTV QSO</string>
+    <string name="log_manual_callsign">Позывной</string>
+    <string name="log_manual_grid">Локатор (необязательно)</string>
+    <string name="log_manual_rsv_sent">RSV передан</string>
+    <string name="log_manual_rsv_rcvd">RSV принят</string>
+    <string name="log_manual_freq_mhz">Частота (MHz)</string>
+    <string name="log_manual_mode">Режим SSTV</string>
+    <string name="log_manual_comment">Комментарий (необязательно)</string>
+    <string name="log_manual_save">Сохранить QSO</string>
+    <string name="log_manual_cancel">Отмена</string>
+    <string name="log_manual_time_note">Записано по текущему времени UTC</string>
     <string name="pota_tab_activate">Активация</string>
     <string name="pota_tab_hunt">Охота</string>
     <string name="pota_tab_history">История</string>
@@ -210,8 +247,8 @@
     <string name="pota_end_activation">Завершить активацию</string>
     <string name="pota_notes_quote">“%1$s”</string>
     <string name="pota_tx_cq_preview">TX CQ будет передан как «CQ POTA %1$s %2$s».</string>
-    <string name="pota_no_spots">Сейчас нет спотов FT8 POTA.</string>
-    <string name="pota_active_spots">%1$d активных спотов FT8</string>
+    <string name="pota_no_spots">Сейчас нет SSTV-споты POTA.</string>
+    <string name="pota_active_spots">%1$d активных SSTV-спотов</string>
     <string name="pota_targeting">Цель %1$s @ %2$s kHz (%3$s) — перейдите в Декод для вызова</string>
     <string name="pota_no_past_activations">Прошлых активаций пока нет.</string>
     <string name="pota_no_browser_available">Браузер недоступен</string>
@@ -220,8 +257,36 @@
     <string name="pota_qso_count">%1$d QSO</string>
     <string name="pota_share_adif">Поделиться ADIF</string>
     <string name="pota_open_pota_app">Открыть pota.app</string>
-
-    <!-- ===== Debug log / Map / Waterfall ===== -->
+    <string name="pota_upload_to_pota">Загрузить в POTA</string>
+    <string name="pota_upload_success">Загружено журналов парков в POTA: %1$d</string>
+    <string name="pota_upload_failed">Ошибка загрузки: %1$s</string>
+    <string name="pota_upload_server_error">POTA не смог обработать загрузку. Проверьте, что ссылка на парк верна, а ваш позывной зарегистрирован в POTA, затем повторите попытку.</string>
+    <string name="pota_upload_busy">Серверы POTA временно недоступны. Мы повторили попытку несколько раз безуспешно — попробуйте снова через несколько минут.</string>
+    <string name="pota_upload_network_error">Не удалось связаться с POTA. Проверьте подключение к интернету и повторите попытку.</string>
+    <string name="pota_login_title">Вход в POTA</string>
+    <string name="pota_login_desc">Используйте email и пароль вашей учётной записи pota.app.</string>
+    <string name="pota_login_email">Email</string>
+    <string name="pota_login_password">Пароль</string>
+    <string name="pota_login_button">Войти</string>
+    <string name="pota_login_cancel">Отмена</string>
+    <string name="pota_login_failed">Ошибка входа: %1$s</string>
+    <string name="pota_login_or">или</string>
+    <string name="pota_login_social">Войти через Google / Facebook / Amazon</string>
+    <string name="pota_oauth_title">Вход в POTA</string>
+    <string name="pota_add_park">Добавить парк</string>
+    <string name="pota_remove_park">Удалить</string>
+    <string name="pota_max_parks_reached">Достигнут максимум в 10 парков</string>
+    <string name="pota_spotted_n_parks">Замечено в парках: %1$d</string>
+    <string name="pota_parks_more">+%1$d ещё</string>
+    <string name="pota_search_parks">Поиск парков</string>
+    <string name="pota_search_parks_hint">Фильтр по названию или ссылке</string>
+    <string name="pota_recent_parks">НЕДАВНИЕ ПАРКИ</string>
+    <string name="pota_nearby_parks">БЛИЖАЙШИЕ ПАРКИ</string>
+    <string name="pota_no_recent_parks">Нет недавних активаций</string>
+    <string name="pota_no_nearby_parks">Парков поблизости не найдено</string>
+    <string name="pota_loading_nearby">Загрузка ближайших парков…</string>
+    <string name="pota_loading_recent">Загрузка недавних парков…</string>
+    <string name="pota_location_unavailable">Местоположение недоступно — включите GPS</string>
     <string name="debug_title">Отладка</string>
     <string name="debug_line_count">%1$d строк</string>
     <string name="debug_logcat_on_suffix">" · logcat ВКЛ"</string>
@@ -237,16 +302,23 @@
     <string name="map_no_grid_set">QTH не задан</string>
     <string name="map_station_count">%1$d станций</string>
     <string name="map_station_count_with_heard">%1$d станций · %2$d услышано</string>
+    <string name="map_psk_error">PSK Reporter недоступен: %1$s</string>
     <string name="map_projection_equirectangular">Равнопромежуточная</string>
     <string name="map_projection_azimuthal">Азимутальная равнопромежуточная</string>
     <string name="map_mode_standard">STD</string>
     <string name="map_mode_azimuthal">AZ</string>
     <string name="map_overlay_psk">PSK</string>
+    <string name="map_filter">Фильтр</string>
+    <string name="map_filter_title">Фильтры PSK</string>
+    <string name="map_filter_done">Готово</string>
+    <string name="map_filter_time">Время</string>
+    <string name="map_filter_band">Диапазон</string>
+    <string name="map_filter_mode">Режим</string>
+    <string name="map_filter_direction">Направление</string>
+    <string name="map_filter_all">Все</string>
     <string name="map_info_distance">Расстояние</string>
     <string name="map_info_bearing">Азимут</string>
     <string name="map_info_snr">SNR</string>
-
-    <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d мин</string>
     <string name="settings_tries_format">%1$d попыток</string>
     <string name="settings_milliseconds_format">%1$d ms</string>
@@ -257,8 +329,6 @@
     <string name="settings_min_max_suffix">%1$d–%2$d %3$s</string>
     <string name="settings_build_date_format">Сборка %1$s</string>
     <string name="settings_version_value">v%1$s</string>
-
-    <!-- ===== Settings: sections ===== -->
     <string name="settings_title">Настройки</string>
     <string name="settings_section_operator_identity">ИДЕНТИФИКАЦИЯ ОПЕРАТОРА</string>
     <string name="settings_section_radio">РАДИО</string>
@@ -272,20 +342,35 @@
     <string name="settings_section_advanced">ДОПОЛНИТЕЛЬНО</string>
     <string name="settings_section_about">О ПРИЛОЖЕНИИ</string>
     <string name="settings_section_language">ЯЗЫК</string>
-
-    <!-- ===== Settings: drill-down category labels ===== -->
+    <string name="settings_section_appearance">ВНЕШНИЙ ВИД</string>
+    <string name="settings_section_backup">РЕЗЕРВНАЯ КОПИЯ И ВОССТАНОВЛЕНИЕ</string>
+    <string name="settings_export">Экспорт настроек</string>
+    <string name="settings_export_desc">Сохранить все настройки в файл резервной копии</string>
+    <string name="settings_import">Импорт настроек</string>
+    <string name="settings_import_desc">Восстановить настройки из файла резервной копии</string>
+    <string name="settings_export_dialog_title">Экспорт настроек</string>
+    <string name="settings_backup_include_sensitive">Включить конфиденциальные данные</string>
+    <string name="settings_backup_include_sensitive_desc">API-ключи и пароли (Cloudlog, QRZ, вход в трансивер)</string>
+    <string name="action_export">Экспорт</string>
+    <string name="action_import">Импорт</string>
+    <string name="settings_import_confirm_title">Импортировать настройки?</string>
+    <string name="settings_import_confirm_msg">Это перезапишет настройки (%1$d) значениями из резервной копии, созданной %2$s.</string>
+    <string name="settings_export_success">Настройки экспортированы</string>
+    <string name="settings_export_failed">Ошибка экспорта: %1$s</string>
+    <string name="settings_import_success">Настройки импортированы — перезапустите приложение, чтобы применить все изменения</string>
+    <string name="settings_import_failed">Ошибка импорта: %1$s</string>
+    <string name="settings_theme">Тема</string>
+    <string name="settings_theme_desc">Цветовая тема приложения</string>
+    <string name="theme_name_dark">Тёмная</string>
+    <string name="theme_name_light">Светлая</string>
     <string name="settings_cat_radio_audio">Радио и звук</string>
     <string name="settings_cat_transmission">Передача</string>
     <string name="settings_cat_decode_filters">Декодирование и фильтры</string>
     <string name="settings_cat_logging">Журнал и награды</string>
     <string name="settings_cat_advanced">Дополнительно</string>
     <string name="settings_cat_about">О программе</string>
-
-    <!-- ===== Settings: operator identity ===== -->
     <string name="settings_auto_update_grid">Автообновление QTH (GPS)</string>
     <string name="settings_auto_update_grid_desc">Использовать GPS устройства для актуального локатора Maidenhead</string>
-
-    <!-- ===== Settings: radio ===== -->
     <string name="settings_rig_model">Модель трансивера</string>
     <string name="settings_control_mode">Режим управления</string>
     <string name="settings_connection_mode">Режим подключения</string>
@@ -294,32 +379,35 @@
     <string name="settings_enabled_bands">Включённые диапазоны</string>
     <string name="settings_audio_frequency">Аудиочастота</string>
     <string name="settings_spectrum_width">Ширина спектра</string>
-
-    <!-- ===== Settings: audio ===== -->
     <string name="settings_audio_input">Аудиовход</string>
     <string name="settings_audio_output">Аудиовыход</string>
     <string name="settings_tx_volume">Громкость TX</string>
-    <string name="settings_tx_volume_desc" formatted="false">Уровень аудио передачи (аппаратные кнопки ±5%)</string>
-
-    <!-- ===== Settings: transmission ===== -->
+    <string name="settings_tx_volume_desc">Уровень аудио передачи (аппаратные кнопки ±5%)</string>
+    <string name="settings_show_volume_slider">Show Volume Slider</string>
+    <string name="settings_show_volume_slider_desc">Display TX volume slider on main screen</string>
+    <string name="settings_per_band_volume">Сохранять уровень вывода для каждого диапазона</string>
+    <string name="settings_per_band_volume_desc">Запоминать громкость TX отдельно для каждого диапазона и восстанавливать её при смене диапазона</string>
+    <string name="per_band_volume_restored">Громкость TX %1$d%% восстановлена для %2$s</string>
     <string name="settings_tx_rx_split">TX/RX Split</string>
     <string name="settings_tx_rx_split_desc">Передавать на другой частоте, чем приём</string>
+    <string name="settings_hold_tx_freq">Удерживать частоту TX</string>
+    <string name="settings_hold_tx_freq_desc">Сохранять ваше смещение TX при ответе станции, а не переходить на её частоту</string>
+    <string name="settings_clear_on_change">Очищать декодирования при смене диапазона/режима</string>
+    <string name="settings_clear_on_change_desc">Очищать список декодирований и сбрасывать цель TX на CQ при смене диапазона или режима</string>
     <string name="settings_tx_watchdog">TX Watchdog</string>
     <string name="settings_tx_watchdog_desc">Автоостановка передачи по тайм-ауту</string>
     <string name="settings_stop_after">Остановка после</string>
     <string name="settings_stop_after_desc">Прекратить вызов после N неотвеченных попыток</string>
-
-    <!-- ===== Settings: auto-sequence ===== -->
     <string name="settings_hunt">Охота (автоответ на CQ)</string>
     <string name="settings_hunt_desc">Активно вызывать станции, дающие CQ. То же, что кнопка HUNT на панели TX. Выкл. = давать CQ и работать только с теми, кто вам ответит.</string>
+    <string name="settings_hunt_cq">Hunt + CQ</string>
+    <string name="settings_hunt_cq_desc">Call CQ when Hunt is idle (no stations heard). When a CQ is detected, automatically stop CQ and answer it.</string>
     <string name="settings_auto_call_followed">Автовызов отслеживаемых</string>
     <string name="settings_auto_call_followed_desc">Автоматически продолжать вызывать отслеживаемые позывные</string>
     <string name="settings_fast_turnaround">Быстрый оборот</string>
     <string name="settings_fast_turnaround_desc">Декодировать ~на 1 с раньше, чтобы ответить на CQ в следующем слоте, а не ждать. Можно пропустить станции с большим сдвигом часов.</string>
     <string name="settings_auto_cq_after_qso">Авто-CQ после QSO</string>
     <string name="settings_auto_cq_after_qso_desc">Продолжать давать CQ автоматически после каждого завершённого QSO — без повторного нажатия. Остаётся на вашей частоте (игнорирует Охоту). Работает, пока вы не остановите или TX Watchdog не сработает без ответов.</string>
-
-    <!-- ===== Settings: decode highlights ===== -->
     <string name="settings_highlight_new_dxcc">Новый DXCC</string>
     <string name="settings_highlight_new_dxcc_desc">Подсвечивать станции из непроведённой DXCC-территории</string>
     <string name="settings_highlight_new_grid">Новый QTH</string>
@@ -330,16 +418,12 @@
     <string name="settings_highlight_worked_desc">Отмечать станции, уже имеющиеся в журнале</string>
     <string name="settings_distance_unit">Расстояние в милях</string>
     <string name="settings_distance_unit_desc">Показывать расстояния в милях вместо километров</string>
-
-    <!-- ===== Settings: callsign blocklist ===== -->
     <string name="settings_exact_callsigns">Точные позывные</string>
     <string name="settings_exact_callsigns_desc">Блокировать полное совпадение позывного</string>
     <string name="settings_prefixes">Префиксы</string>
     <string name="settings_prefixes_desc">Блокировать по префиксу позывного (напр. RA)</string>
     <string name="settings_keywords">Ключевые слова</string>
     <string name="settings_keywords_desc">Блокировать по подстроке в позывном или сообщении (напр. POTA, /P)</string>
-
-    <!-- ===== Settings: decode filters ===== -->
     <string name="settings_show_only_cq">Показывать только CQ</string>
     <string name="settings_show_only_cq_desc">Скрывать всё, кроме сообщений типа CQ</string>
     <string name="settings_dx_only">Только DX</string>
@@ -353,26 +437,31 @@
     <string name="settings_skip_directional_cq_desc">Не отвечать автоматически на CQ DX/EU/JA…, нацеленные на другой DXCC</string>
     <string name="settings_hide_directional_cq">Скрывать направленные CQ не для меня</string>
     <string name="settings_hide_directional_cq_desc">Скрывать региональные CQ, не нацеленные на ваш DXCC</string>
-
-    <!-- ===== Settings: needed-DX alerts ===== -->
-
-    <!-- ===== Settings: logging &amp; awards ===== -->
+    <string name="alert_cq_reply_title">Вас вызывает: %1$s</string>
+    <string name="alert_qso_complete_title">QSO завершено</string>
+    <string name="rx_service_channel_name">Фоновый приём</string>
+    <string name="rx_service_channel_desc">Продолжает декодирование SSTV, пока приложение в фоне или экран выключен</string>
+    <string name="rx_service_title">SSTVAF слушает изображения SSTV</string>
+    <string name="rx_service_text">Декодирование SSTV в фоне</string>
     <string name="settings_save_swl_decodes">Сохранять SWL-декоды</string>
     <string name="settings_save_swl_decodes_desc">Записывать все декодированные сообщения в базу данных</string>
     <string name="settings_save_swl_qsos">Сохранять SWL QSOs</string>
     <string name="settings_save_swl_qsos_desc">Записывать QSO, обнаруженные между другими станциями</string>
     <string name="settings_cloudlog">Cloudlog / Wavelog / Nextlog</string>
     <string name="settings_cloudlog_desc">Автозагрузка QSO в экземпляр Cloudlog, Wavelog или Nextlog</string>
-
-    <!-- ===== Settings: advanced ===== -->
     <string name="settings_ptt_delay">Задержка PTT</string>
     <string name="settings_ptt_delay_desc">Задержка после PTT до начала аудио передачи</string>
+    <string name="settings_vox_pre_tone">Предтон VOX</string>
+    <string name="settings_vox_pre_tone_desc">Дополнительный вводный тон 1900 Hz перед каждым изображением, чтобы VOX или кабель авто-PTT (носимые радиостанции) включались без обрезания заголовка SSTV. Действует только в режиме VOX.</string>
+    <string name="settings_cw_id">Позывной CW</string>
+    <string name="settings_cw_id_desc">Передавать ваш позывной кодом Морзе после каждого изображения SSTV</string>
+    <string name="settings_cw_id_speed">Скорость CW ID</string>
+    <string name="settings_cw_id_speed_desc">Скорость передачи кода Морзе для позывного станции</string>
+    <string name="settings_cw_id_wpm_format">%1$d WPM</string>
     <string name="settings_tx_delay">Задержка TX</string>
     <string name="settings_tx_delay_desc">Задержка перед передачей для декода предыдущего цикла</string>
     <string name="settings_late_start_tolerance">Допуск позднего старта</string>
     <string name="settings_late_start_tolerance_desc">Разрешить старт TX до N ms в цикл; ведущее аудио обрезается, чтобы TX закончился на границе цикла</string>
-
-    <!-- ===== Settings: about ===== -->
     <string name="settings_faq_support">FAQ и поддержка</string>
     <string name="settings_report_bug">Сообщить об ошибке</string>
     <string name="settings_share_logs">Поделиться логами</string>
@@ -384,12 +473,10 @@
     <string name="bug_report_no_email_app">Не найдено приложение для отправки отчёта по почте</string>
     <string name="bug_report_open_github">Открыть issue на GitHub</string>
     <string name="settings_debug_desc">Просмотр / отправка debug.log</string>
-    <string name="settings_about_body">Версия %1$s (сборка %2$s)\nДата сборки %3$s\n\nFT8 — это просто.\n\nАвтономное приложение FT8-трансивера для Android. Управление трансивером по USB, Bluetooth и сети с автопоследовательностью и журналированием.</string>
+    <string name="settings_about_body">Версия %1$s (сборка %2$s)\nДата сборки %3$s\n\nSSTV — это просто.\n\nПринимайте и передавайте изображения медленной развёртки (slow-scan television) на вашем телефоне Android. Управление трансивером через USB CAT, Bluetooth и сеть со встроенной галереей и журналом.</string>
     <string name="settings_website">Веб-сайт</string>
     <string name="settings_community">Сообщество</string>
     <string name="settings_built_by">Разработано</string>
-
-    <!-- ===== Settings: dialogs ===== -->
     <string name="settings_block_exact_title">Блокировать точные позывные</string>
     <string name="settings_block_exact_desc">Полное совпадение позывного. Через запятую или пробел, напр. W1AW, K1ABC.</string>
     <string name="settings_block_prefix_title">Блокировать префиксы позывных</string>
@@ -402,6 +489,7 @@
     <string name="settings_conn_bluetooth">Bluetooth</string>
     <string name="settings_conn_network">Сеть</string>
     <string name="settings_no_usb_serial">USB-устройства последовательного порта не обнаружены. Подключите USB-кабель к трансиверу и повторите.</string>
+    <string name="settings_no_bluetooth_devices">Сопряжённых устройств Bluetooth не найдено. Сначала выполните сопряжение в настройках Bluetooth Android.</string>
     <string name="settings_edit_operator_identity">Изменить данные оператора</string>
     <string name="settings_callsign">Позывной</string>
     <string name="settings_callsign_hint">напр. W1AW</string>
@@ -426,43 +514,15 @@
     <string name="settings_select_serial_port">Выберите последовательный порт</string>
     <string name="settings_tx_volume_advice">Регулируйте вживую — следующая передача использует этот уровень. Следите за ALC трансивера и убавляйте, пока он лишь слегка касается линии.</string>
     <string name="settings_input_volume">Громкость входа</string>
-    <string name="settings_input_volume_desc" formatted="false">Усиление принимаемого звука перед декодированием (100% = без изменений)</string>
+    <string name="settings_input_volume_desc">Усиление принимаемого звука перед декодированием (100% = без изменений)</string>
     <string name="settings_input_volume_advice">Применяется к входящему звуку перед декодированием. Следите за индикатором уровня RX на водопаде и держитесь зелёной зоны; красный означает клиппинг.</string>
     <string name="input_level_too_low">Низкий</string>
     <string name="input_level_good">Норма</string>
     <string name="input_level_too_high">Высокий</string>
     <string name="input_level_clipping">Клип</string>
-
-    <!-- ===== Settings: language picker ===== -->
     <string name="settings_language">Язык</string>
     <string name="settings_language_desc">Язык интерфейса приложения</string>
     <string name="settings_language_system">Системный по умолчанию</string>
-
-    <string name="tx_transmitting">ПЕРЕДАЧА</string>
-    <string name="tx_listening">ПРИЁМ</string>
-    <string name="tx_hunt">Охота</string>
-    <string name="tx_call_cq">Вызов CQ</string>
-    <string name="tx_stop">Стоп</string>
-    <string name="hound_title">Работа с DX-экспедицией (Hound)</string>
-    <string name="hound_help">Сначала настройте трансивер на опубликованную частоту Fox. Вы вызываете на высокой частоте (1000–4000 Гц); приложение автоматически переходит (QSY) туда, где отвечает Fox, и отправляет ваш рапорт.</string>
-    <string name="hound_fox_callsign">Позывной Fox</string>
-    <string name="hound_call_frequency">Частота вызова (Гц, 1000–4000)</string>
-    <string name="hound_start">Старт</string>
-
-    <string name="qsopanel_log_action">LOG</string>
-    <string name="qsopanel_queue">ОЧЕРЕДЬ</string>
-    <string name="swr_lockout_title">TX ОСТАНОВЛЕН — Высокий КСВ (%1$s)</string>
-    <string name="swr_lockout_body">Проверьте антенну / фидер перед передачей.</string>
-    <string name="swr_lockout_dismiss">ЗАКРЫТЬ</string>
-    <string name="swr_lockout_toast">TX заблокирован — блокировка КСВ активна. Сначала закройте баннер.</string>
-
-    <!-- Untranslated — added for parity; translate when localization pass runs -->
-    <string name="settings_show_volume_slider">Show Volume Slider</string>
-    <string name="settings_show_volume_slider_desc">Display TX volume slider on main screen</string>
-    <string name="settings_hunt_cq">Hunt + CQ</string>
-    <string name="settings_hunt_cq_desc">Call CQ when Hunt is idle (no stations heard). When a CQ is detected, automatically stop CQ and answer it.</string>
-    <string name="tx_volume_decrease">Decrease TX volume</string>
-    <string name="tx_volume_increase">Increase TX volume</string>
     <string name="tx_audio_dropped">Сбой TX-аудио — в этом цикле сигнал не передан (ошибка USB-аудио)</string>
     <string name="cq_offset_moved">Смещение CQ перенесено на свободное место: %1$d Гц</string>
     <string name="settings_auto_clear_tx">Автовыбор свободного смещения TX</string>
@@ -471,6 +531,213 @@
     <string name="tune_stopped_timeout">Tune остановлен через %1$d с</string>
     <string name="tune_blocked_tx">Остановите CQ/QSO перед использованием Tune</string>
     <string name="tune_unavailable_route">Tune пока не поддерживается на этом аудиотракте</string>
+    <string name="rx_listening">Прослушивание SSTV…</string>
+    <string name="rx_disabled">Приём выключен</string>
+    <string name="rx_signal_detected">Обнаружен сигнал…</string>
+    <string name="rx_saved_chip">Сохранено ✓</string>
+    <string name="rx_signal_lost">Сигнал потерян — неполное изображение не сохранено</string>
+    <string name="rx_quality_label">Качество</string>
+    <string name="rx_eta_format">осталось %1$s</string>
+    <string name="rx_canvas_description">Принятое изображение SSTV</string>
+    <string name="rx_status_listening">Прослушивание</string>
+    <string name="rx_status_decoding">Декодирование %1$s</string>
+    <string name="rx_status_off">Приём выключен</string>
+    <string name="rx_status_complete">Изображение получено</string>
+    <string name="rx_status_saved">Сохранено в галерею</string>
+    <string name="rx_status_save_failed">Ошибка сохранения</string>
+    <string name="rx_status_lost">Сигнал потерян</string>
+    <string name="rx_status_auto_detect">автоопределение</string>
+    <string name="rx_quality_value">Качество %1$s</string>
+    <string name="rx_received_today">ПРИНЯТО СЕГОДНЯ</string>
+    <string name="rx_received_all">Все</string>
+    <string name="rx_received_none">Пока ничего не принято</string>
+    <string name="settings_save_rx_photos">Сохранять принятые изображения в Photos</string>
+    <string name="settings_save_rx_photos_desc">Готовые изображения SSTV также появляются в приложении Photos в разделе Pictures/SSTVAF (Android 10+)</string>
+    <string name="tab_gallery">Галерея</string>
+    <string name="gallery_filter_all">Все</string>
+    <string name="gallery_filter_rx">Принятые</string>
+    <string name="gallery_filter_tx">Отправленные</string>
+    <string name="gallery_filter_chip_label">%1$s %2$d</string>
+    <string name="gallery_empty_rx">Здесь появятся принятые изображения</string>
+    <string name="gallery_empty_tx">Здесь появятся отправленные изображения</string>
+    <string name="gallery_search_placeholder">Поиск по режиму, диапазону, заметке…</string>
+    <string name="gallery_search_no_matches">Нет изображений по запросу «%1$s»</string>
+    <string name="gallery_cd_search">Поиск изображений</string>
+    <string name="gallery_cd_clear_search">Очистить поиск</string>
+    <string name="gallery_section_today">Сегодня</string>
+    <string name="gallery_section_yesterday">Вчера</string>
+    <string name="gallery_section_count_label">%1$s · %2$d</string>
+    <string name="gallery_send_again">Отправить снова</string>
+    <string name="gallery_reply_with_picture">Ответить изображением</string>
+    <string name="gallery_share">Поделиться</string>
+    <string name="gallery_save_photos">Сохранить в Photos</string>
+    <string name="gallery_delete">Удалить</string>
+    <string name="gallery_delete_title">Удалить изображение?</string>
+    <string name="gallery_delete_message">Это удалит сохранённое изображение из приложения. Отменить будет нельзя.</string>
+    <string name="gallery_share_chooser_title">Поделиться изображением SSTV</string>
+    <string name="gallery_saved_to_photos">Сохранено в Photos</string>
+    <string name="gallery_save_photos_failed">Не удалось сохранить в Photos</string>
+    <string name="gallery_meta_mode">Режим</string>
+    <string name="gallery_meta_frequency">Частота</string>
+    <string name="gallery_meta_band">Диапазон</string>
+    <string name="gallery_meta_time">Время</string>
+    <string name="gallery_meta_size">Размер</string>
+    <string name="gallery_meta_airtime">Время в эфире</string>
+    <string name="gallery_meta_quality">Качество</string>
+    <string name="gallery_quality_value">%1$s · %2$s</string>
+    <string name="gallery_quality_grade_excellent">Отличное</string>
+    <string name="gallery_quality_grade_good">Хорошее</string>
+    <string name="gallery_quality_grade_fair">Среднее</string>
+    <string name="gallery_quality_grade_poor">Плохое</string>
+    <string name="gallery_meta_direction">Направление</string>
+    <string name="gallery_meta_direction_rx">Принято</string>
+    <string name="gallery_meta_direction_tx">Отправлено</string>
+    <string name="gallery_meta_status">Статус</string>
+    <string name="gallery_meta_complete">Полное</string>
+    <string name="gallery_meta_partial">Частичное</string>
+    <string name="gallery_meta_note">Заметка</string>
+    <string name="gallery_note_add">Добавить заметку</string>
+    <string name="gallery_note_title">Заметка к изображению</string>
+    <string name="gallery_note_hint">Позывной, QTH или комментарий</string>
+    <string name="gallery_note_save">Сохранить</string>
+    <string name="rx_view_in_gallery">Открыть в галерее</string>
+    <string name="tx_empty_title">Выберите изображение для отправки</string>
+    <string name="tx_empty_body">Фото обрезаются под кадр режима SSTV</string>
+    <string name="tx_pick_button">Выбрать изображение</string>
+    <string name="tx_camera_button">Камера</string>
+    <string name="tx_preview_description">Предпросмотр передачи</string>
+    <string name="tx_change_photo">ИЗМЕНИТЬ</string>
+    <string name="tx_camera_photo">КАМЕРА</string>
+    <string name="tx_clear_photo">ОЧИСТИТЬ</string>
+    <string name="tx_overlay_add">Добавить текст</string>
+    <string name="tx_overlay_edit">Изменить текст</string>
+    <string name="tx_overlay_remove">Удалить</string>
+    <string name="tx_overlay_save">Сохранить</string>
+    <string name="tx_overlay_text_label">Текст</string>
+    <string name="tx_tool_crop">Обрезка</string>
+    <string name="tx_tool_text">Текст</string>
+    <string name="tx_tool_callsign">Позывной</string>
+    <string name="tx_tool_frame">Рамка</string>
+    <string name="tx_tool_adjust">Коррекция</string>
+    <string name="tx_tool_draw">Рисование</string>
+    <string name="tx_transmitting_label">ПЕРЕДАЧА · %1$s</string>
+    <string name="tx_stop_action">Стоп</string>
+    <string name="tx_sent_saved">Отправлено · сохранено в галерею</string>
+    <string name="tx_outcome_sent">Отправлено</string>
+    <string name="tx_outcome_sent_detail">Сохранено в галерею</string>
+    <string name="tx_outcome_stopped">Остановлено</string>
+    <string name="tx_outcome_stopped_detail">Часть изображения ушла в эфир</string>
+    <string name="tx_outcome_failed">Ошибка передачи</string>
+    <string name="tx_outcome_failed_detail">Ничего не ушло в эфир · проверьте журнал отладки</string>
+    <string name="tx_sent_edit_again">Изменить и отправить снова</string>
+    <string name="tx_sent_new_picture">Новое изображение</string>
+    <string name="tx_change_photo_pill">Изменить</string>
+    <string name="tx_new_picture_short">Новое</string>
+    <string name="tx_stroke_thin">Тонкая линия</string>
+    <string name="tx_stroke_medium">Средняя линия</string>
+    <string name="tx_stroke_thick">Толстая линия</string>
+    <string name="tx_color_white">Белый</string>
+    <string name="tx_color_black">Чёрный</string>
+    <string name="tx_color_cyan">Голубой</string>
+    <string name="tx_color_amber">Янтарный</string>
+    <string name="tx_color_green">Зелёный</string>
+    <string name="tx_overlay_delete_description">Удалить выбранный текст</string>
+    <string name="tx_transmit_action">Передать</string>
+    <string name="tx_choose_photo">Выберите фото</string>
+    <string name="tx_choose_photo_sub">Обрезано под кадр SSTV · можно сдвинуть после</string>
+    <string name="tx_card_cq">Карточка CQ</string>
+    <string name="tx_card_cq_headline">CQ SSTV</string>
+    <string name="tx_card_cq_sub">de %1$s</string>
+    <string name="tx_card_grid">Карточка локатора</string>
+    <string name="tx_last_sent">Последнее отправленное</string>
+    <string name="tx_last_sent_note">нажмите, чтобы начать с него</string>
+    <string name="tx_crop_hint">Перетащите изображение, чтобы изменить его положение. Двигайте, чтобы масштабировать.</string>
+    <string name="tx_zoom_min">1×</string>
+    <string name="tx_zoom_max">2.5×</string>
+    <string name="tx_crop_reset">Сбросить</string>
+    <string name="tx_crop_fill">Заполнить кадр</string>
+    <string name="tx_text_placeholder">Введите текст, затем перетащите его на изображение</string>
+    <string name="tx_text_add">Добавить</string>
+    <string name="tx_text_done">Готово</string>
+    <string name="tx_text_hint_selected">Редактирование выбранного текста — перетащите, чтобы переместить, ✕ чтобы удалить.</string>
+    <string name="tx_text_hint_tap">Нажмите на текст на изображении, чтобы изменить его.</string>
+    <string name="tx_text_hint_bar">Стиль с плашкой легче читается сквозь помехи.</string>
+    <string name="tx_size_small">S</string>
+    <string name="tx_size_medium">M</string>
+    <string name="tx_size_large">L</string>
+    <string name="tx_style_bar">Плашка</string>
+    <string name="tx_style_outline">Контур</string>
+    <string name="tx_callsign_prompt">Нанести %1$s — выберите место</string>
+    <string name="tx_callsign_source">из настроек</string>
+    <string name="tx_callsign_unset">Сначала укажите ваш позывной в настройках — штамп использует его.</string>
+    <string name="tx_preset_top_left">Сверху слева</string>
+    <string name="tx_preset_top_center">Верхняя плашка</string>
+    <string name="tx_preset_top_right">Сверху справа</string>
+    <string name="tx_preset_bottom_left">Снизу слева</string>
+    <string name="tx_preset_bottom_center">Нижняя плашка</string>
+    <string name="tx_preset_bottom_right">Снизу справа</string>
+    <string name="tx_frame_none">Нет</string>
+    <string name="tx_frame_thin">Тонкая</string>
+    <string name="tx_frame_bold">Жирная</string>
+    <string name="tx_frame_amber">Янтарная</string>
+    <string name="tx_frame_hint">Рамки впечатываются в изображение, поэтому они переживают передачу.</string>
+    <string name="tx_adjust_brightness">Яркость</string>
+    <string name="tx_adjust_contrast">Контраст</string>
+    <string name="tx_adjust_saturation">Насыщенность</string>
+    <string name="tx_adjust_reset">Сбросить</string>
+    <string name="tx_adjust_hint">Немного больше контраста читается лучше в эфире.</string>
+    <string name="tx_draw_hint">Рисуйте на изображении пальцем.</string>
+    <string name="tx_draw_undo">Отменить</string>
+    <string name="tx_draw_clear">Очистить</string>
+    <string name="mode_sheet_title">Режим SSTV</string>
+    <string name="mode_sheet_rx_note">приём определяется автоматически</string>
+    <string name="mode_group_fast">БЫСТРЫЕ · МЕНЕЕ МИНУТЫ</string>
+    <string name="mode_group_standard">СТАНДАРТНЫЕ</string>
+    <string name="mode_group_high_resolution">ВЫСОКОЕ РАЗРЕШЕНИЕ</string>
+    <string name="mode_note_most_common">самый частый на 20m</string>
+    <string name="mode_card_label">РЕЖИМ</string>
+    <string name="mode_card_description">Режим SSTV %1$s</string>
+    <string name="mode_card_action">Сменить режим SSTV</string>
+    <string name="mode_row_description">%1$s, %2$s, %3$s</string>
+    <string name="tx_gate_no_image">Сначала выберите изображение</string>
+    <string name="tx_gate_tune_active">Остановите Tune перед передачей</string>
+    <string name="tx_confirm_title">Передать это изображение?</string>
+    <string name="tx_confirm_level">Уровень TX %1$d%%</string>
+    <string name="tx_confirm_warning">Подтверждение включает передатчик</string>
+    <string name="tx_confirm_cancel">Отмена</string>
+    <string name="tx_confirm_go">Передать</string>
+    <string name="tx_airtime_quick">Быстрая передача</string>
+    <string name="tx_airtime_moderate">Умеренная передача</string>
+    <string name="tx_airtime_long">Долгая передача</string>
+    <string name="tx_airtime_very_long">Очень долгая передача</string>
+    <string name="tx_cancel_button">ОТМЕНИТЬ TX</string>
+    <string name="tx_remaining_format">осталось %1$s</string>
+    <string name="settings_cat_usb_diagnostics">Диагностика USB</string>
+    <string name="settings_cat_usb_diagnostics_desc">Проверка обнаружения USB-устройств и связи CAT</string>
+    <string name="usb_diag_title">Диагностика USB</string>
+    <string name="usb_diag_desc">Актуальный статус обнаружения USB-устройств и связи CAT. Используйте, чтобы точно определить, где сбоит подключение трансивера.</string>
+    <string name="usb_diag_device_found">Устройство найдено</string>
+    <string name="usb_diag_vendor_id">Vendor ID</string>
+    <string name="usb_diag_product_id">Product ID</string>
+    <string name="usb_diag_permission">Разрешение USB</string>
+    <string name="usb_diag_cdc_serial">CDC Serial найден</string>
+    <string name="usb_diag_audio_device">Аудиоустройство найдено</string>
+    <string name="usb_diag_port_open">Порт открыт</string>
+    <string name="usb_diag_cat_response">Ответ CAT</string>
+    <string name="usb_diag_value_none">—</string>
+    <string name="usb_diag_status_pass">пройдено</string>
+    <string name="usb_diag_status_fail">не пройдено</string>
+    <string name="settings_rx_channel">Канал приёма звука</string>
+    <string name="settings_rx_channel_desc">Какую сторону стереовхода декодировать. Используйте «Левый» или «Правый», когда радио подаёт только один канал.</string>
+    <string name="settings_rx_channel_mix">Микс</string>
+    <string name="settings_tx_channel">Канал передачи звука</string>
+    <string name="settings_tx_channel_desc">Какая сторона стереовыхода несёт передаваемый звук. Используйте «Левый» или «Правый», чтобы управлять одним радио на разветвительном кабеле.</string>
+    <string name="settings_tx_channel_both">Оба</string>
+    <string name="settings_channel_left">Левый</string>
+    <string name="settings_channel_right">Правый</string>
+    <string name="settings_channel_mono_device">У этого устройства только один аудиоканал, поэтому выбирать сторону не из чего.</string>
+    <string name="settings_tx_channel_default_sink">Выберите конкретное устройство вывода звука, чтобы указать сторону. На выводе по умолчанию приложение не может определить, куда Android направляет звук, поэтому он отправляется в оба канала.</string>
+    <string name="settings_rx_channel_network_source">Звук этого радио приходит по его сетевому каналу, а не через аудиовход, поэтому выбирать сторону не из чего.</string>
     <string name="tune_atu_started">Антенный тюнер трансивера запущен</string>
     <string name="tune_atu_unavailable">Тюнер недоступен — подключите CAT-трансивер со встроенным тюнером</string>
     <string name="settings_tune_method">Метод Tune</string>
@@ -478,5 +745,62 @@
     <string name="tune_method_automatic">Автоматически</string>
     <string name="tune_method_internal">Встроенный тюнер</string>
     <string name="tune_method_tone">Маломощный тон</string>
-
+    <string name="action_edit">Изменить</string>
+    <string name="settings_cat_radio_audio_desc">Модель трансивера, подключение, PTT и аудиоустройства</string>
+    <string name="settings_cat_transmission_desc">Как TUNE включает трансивер</string>
+    <string name="settings_cat_appearance">Внешний вид</string>
+    <string name="settings_cat_appearance_desc">Тема и язык приложения</string>
+    <string name="settings_cat_logging_desc">Загрузка в Cloudlog и сохранение в Photos</string>
+    <string name="settings_cat_advanced_desc">Предтон VOX, идентификация CW, резервное копирование и восстановление</string>
+    <string name="settings_cat_about_desc">Версия, лицензии и благодарности</string>
+    <string name="settings_rig_status_connected">%1$s подключён через %2$s</string>
+    <string name="settings_rig_status_idle">Трансивер не подключён · %1$s</string>
+    <string name="settings_value_usb_ok">Подключено</string>
+    <string name="settings_value_no_link">Нет связи</string>
+    <string name="settings_value_cloudlog_on">Cloudlog вкл</string>
+    <string name="settings_value_off">Выкл</string>
+    <string name="settings_footer">SSTVAF v%1$s · Экспорт и импорт настроек в разделе «Дополнительно»</string>
+    <string name="operator_sheet_title">Оператор</string>
+    <string name="operator_antenna">Антенна</string>
+    <string name="operator_antenna_hint">напр. EFHW 40-10m</string>
+    <string name="operator_power">Мощность (ватты)</string>
+    <string name="operator_power_hint">напр. 100</string>
+    <string name="radio_link_connected">%1$s подключён</string>
+    <string name="radio_link_connecting">Подключение к %1$s</string>
+    <string name="radio_link_disconnected">%1$s не отвечает</string>
+    <string name="radio_link_vox">VOX · только звук</string>
+    <string name="radio_link_no_model">Модель трансивера не выбрана</string>
+    <string name="radio_action_reconnect">Переподключить</string>
+    <string name="radio_action_connecting">Подключение</string>
+    <string name="radio_action_connect">Подключить</string>
+    <string name="radio_action_test_ptt">Проверить PTT</string>
+    <string name="radio_action_stop_test">Остановить проверку</string>
+    <string name="radio_action_choose_rig">Выбрать трансивер</string>
+    <string name="radio_detail_vox">Трансивер включается сам от передаваемого звука</string>
+    <string name="radio_detail_waiting">ожидание трансивера</string>
+    <string name="radio_detail_check_cable">проверьте кабель и настройки трансивера</string>
+    <string name="radio_hint_usb">Нужен кабель OTG. Android запрашивает разрешение при первом подключении трансивера.</string>
+    <string name="radio_hint_bluetooth">Сначала выполните сопряжение трансивера в настройках Bluetooth Android.</string>
+    <string name="radio_hint_network">Для удалённого трансивера, напр. rigctld на 192.168.1.10:4532.</string>
+    <string name="radio_ptt_cat">Включает трансивер командой CAT по последовательному каналу.</string>
+    <string name="radio_ptt_rts">Включает трансивер, поднимая последовательную линию RTS.</string>
+    <string name="radio_ptt_dtr">Включает трансивер, поднимая последовательную линию DTR.</string>
+    <string name="radio_ptt_vox">Трансивер включается сам, когда слышит передаваемый звук. Без канала управления.</string>
+    <string name="radio_section_connection">ПОДКЛЮЧЕНИЕ</string>
+    <string name="radio_ptt_method">Метод PTT</string>
+    <string name="radio_baud_rate">Скорость (бод)</string>
+    <string name="radio_ptt_delay">Задержка PTT</string>
+    <string name="radio_ptt_delay_desc">Время установления после включения, до начала звука</string>
+    <string name="radio_ms_format">%1$d ms</string>
+    <string name="radio_rig_picker_title">Модель трансивера</string>
+    <string name="radio_rig_search_hint">Поиск моделей</string>
+    <string name="radio_rig_search_clear">Очистить поиск</string>
+    <string name="radio_rig_no_matches">Нет моделей по этому запросу</string>
+    <string name="radio_input_level">Уровень входа</string>
+    <string name="radio_level_silent">Тишина</string>
+    <string name="radio_level_advice_silent">Звук не доходит до приложения. Проверьте кабель и устройство входа.</string>
+    <string name="radio_level_advice_low">Слишком тихо. Поднимите усиление трансивера или входа.</string>
+    <string name="radio_level_advice_good">В нормальном диапазоне.</string>
+    <string name="radio_level_advice_high">Близко к ограничению. Немного уменьшите усиление.</string>
+    <string name="radio_level_advice_clipping">Ограничение. Уменьшайте усиление, пока пики не станут ниже отметки.</string>
 </resources>

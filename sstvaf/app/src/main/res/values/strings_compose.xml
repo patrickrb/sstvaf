@@ -307,8 +307,8 @@
     <string name="pota_end_activation">End activation</string>
     <string name="pota_notes_quote">“%1$s”</string>
     <string name="pota_tx_cq_preview">TX CQ will go out as “CQ POTA %1$s %2$s”.</string>
-    <string name="pota_no_spots">No FT8 POTA spots right now.</string>
-    <string name="pota_active_spots">%1$d active FT8 spots</string>
+    <string name="pota_no_spots">No SSTV POTA spots right now.</string>
+    <string name="pota_active_spots">%1$d active SSTV spots</string>
     <string name="pota_targeting">Targeting %1$s @ %2$s kHz (%3$s) — switch to Decode to call</string>
     <string name="pota_no_past_activations">No past activations yet.</string>
     <string name="pota_no_browser_available">No browser available</string>

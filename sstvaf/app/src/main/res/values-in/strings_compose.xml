@@ -1,18 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  ~ Compose UI strings (SSTVAF). The live app is the Jetpack Compose UI under
-  ~ radio.ks3ckc.sstvaf; these are its user-facing strings, externalized for
-  ~ localization. The legacy strings.xml entries belong to the unreachable old
-  ~ XML/Fragment UI and are NOT used by the running app.
-  ~
-  ~ Translations live in values-<locale>/strings_compose.xml. English here is the
-  ~ source of truth — keep it byte-identical to the original UI text so the English
-  ~ layout never changes. Ham-radio abbreviations (CQ, QSO, DXCC, POTA, SOTA, RST)
-  ~ are intentionally left untranslated across all locales.
--->
 <resources>
-
-    <!-- ===== Common / shared ===== -->
     <string name="action_cancel">Batal</string>
     <string name="action_save">Simpan</string>
     <string name="action_done">Selesai</string>
@@ -21,12 +8,11 @@
     <string name="common_none">Tidak ada</string>
     <string name="common_off">Mati</string>
     <string name="common_not_configured">Belum dikonfigurasi</string>
+    <string name="common_configured">Dikonfigurasi</string>
     <string name="common_not_connected">Tidak terhubung</string>
     <string name="common_pass">Lulus</string>
     <string name="common_fail">Gagal</string>
     <string name="common_test_connection">Uji Koneksi</string>
-
-    <!-- ===== Continents ===== -->
     <string name="continent_na">Amerika Utara</string>
     <string name="continent_sa">Amerika Selatan</string>
     <string name="continent_eu">Eropa</string>
@@ -34,10 +20,8 @@
     <string name="continent_as">Asia</string>
     <string name="continent_oc">Oseania</string>
     <string name="continent_an">Antarktika</string>
-
-    <!-- ===== Bottom navigation tabs ===== -->
-
-    <!-- ===== Status pills (decode list badges) ===== -->
+    <string name="tab_receive">Terima</string>
+    <string name="tab_send">Kirim</string>
     <string name="status_new_dxcc">DXCC BARU</string>
     <string name="status_new_grid">GRID BARU</string>
     <string name="status_new_band">BAND BARU</string>
@@ -47,9 +31,7 @@
     <string name="status_confirmed">DIKONFIRMASI</string>
     <string name="status_cq">CQ</string>
     <string name="status_pending">TERTUNDA</string>
-
-    <!-- ===== Splash / app-level ===== -->
-    <string name="splash_tagline">FT8 · PENDAMPING SELULER</string>
+    <string name="splash_tagline">SSTV · GAMBAR DI UDARA</string>
     <string name="splash_initializing">MENGINISIALISASI RADIO</string>
     <string name="splash_version">v%1$s · build %2$s</string>
     <string name="app_set_callsign_first">Atur tanda panggil Anda di Setelan sebelum memanggil CQ</string>
@@ -58,22 +40,38 @@
     <string name="app_mode_switched">Mode: %1$s</string>
     <string name="app_mode_switch_busy">Tidak bisa ganti mode saat transmisi</string>
     <string name="main_tx_volume">Volume TX: %1$d%%</string>
-
-    <!-- ===== Exit dialog ===== -->
     <string name="exit_title">KELUAR DARI SSTVAF?</string>
     <string name="exit_message">Yakin ingin menutup aplikasi? QSO yang aktif akan dibatalkan.</string>
-
-    <!-- ===== Frequency picker ===== -->
-
-    <!-- ===== Operator card ===== -->
+    <string name="action_back">Kembali</string>
+    <string name="header_frequency_chip_description">Frekuensi %1$s, %2$s, ketuk untuk mengubah</string>
+    <string name="cat_state_connected">terhubung</string>
+    <string name="cat_state_connecting">menghubungkan</string>
+    <string name="cat_state_disconnected">tidak terhubung</string>
+    <string name="cat_state_error">kesalahan koneksi</string>
+    <string name="cat_state_vox">tanpa tautan CAT</string>
+    <string name="header_more_description">Lainnya: radio, operator, buku log, pengaturan</string>
+    <string name="more_title">Lainnya</string>
+    <string name="more_radio_audio">Radio &amp; audio</string>
+    <string name="more_operator">Operator</string>
+    <string name="more_logbook">Buku Log</string>
+    <string name="more_logbook_sub">QSO SSTV · ekspor ADIF · Cloudlog</string>
+    <string name="more_settings">Pengaturan</string>
+    <string name="more_settings_sub">Semua lainnya</string>
+    <string name="freq_sheet_title">Frekuensi</string>
+    <string name="freq_unit_mhz">MHz</string>
+    <string name="freq_note_night">malam</string>
+    <string name="freq_note_evenings">petang</string>
+    <string name="freq_note_daytime_busiest">siang · tersibuk</string>
+    <string name="freq_note_daytime">siang</string>
+    <string name="freq_note_when_open">saat terbuka</string>
+    <string name="freq_tx_level">Level TX</string>
+    <string name="freq_tune_explain">Memancarkan carrier tetap untuk tuning antena. Berhenti sendiri setelah %1$d d.</string>
     <string name="op_no_call">TANPA PANGGIL</string>
     <string name="op_no_grid">Grid belum diatur</string>
     <string name="op_tap_to_edit">Ketuk untuk ubah</string>
     <string name="op_stat_rig">RIG</string>
     <string name="op_stat_antenna">ANTENA</string>
     <string name="op_stat_power">DAYA</string>
-
-    <!-- ===== Export log sheet ===== -->
     <string name="export_title">EKSPOR QSO</string>
     <string name="export_date_range">RENTANG TANGGAL</string>
     <string name="export_date_from_placeholder">"Dari  YYYYMMDD"</string>
@@ -92,29 +90,23 @@
     <string name="export_saved_to">Disimpan ke %1$s</string>
     <string name="export_save_failed">Gagal menyimpan ke Unduhan</string>
     <string name="export_temp_file_failed">Tidak dapat membuat berkas sementara</string>
-
-    <!-- ===== TX strip ===== -->
     <string name="tx_transmitting">TRANSMISI</string>
     <string name="tx_listening">MENDENGARKAN</string>
     <string name="tx_hunt">Hunt</string>
     <string name="tx_call_cq">Panggil CQ</string>
     <string name="tx_stop">Hentikan</string>
-
-    <!-- ===== Hound (DXpedition) setup ===== -->
+    <string name="tx_volume_decrease">Decrease TX volume</string>
+    <string name="tx_volume_increase">Increase TX volume</string>
+    <string name="tx_cq_options">Opsi pesan CQ (modifier, teks bebas, Field Day)</string>
     <string name="hound_title">Kerjakan DXpedition (Hound)</string>
     <string name="hound_help">Tune rig ke frekuensi dial yang dipublikasikan Fox terlebih dahulu. Anda memanggil di frekuensi tinggi (1000–4000 Hz); aplikasi otomatis QSY menurunkan Anda ke tempat Fox menjawab dan membalas dengan laporan Anda.</string>
     <string name="hound_fox_callsign">Tanda panggil Fox</string>
     <string name="hound_call_frequency">Frekuensi panggil (Hz, 1000–4000)</string>
     <string name="hound_start">Mulai</string>
-
-
-    <!-- ===== SWR lockout banner ===== -->
     <string name="swr_lockout_title">TX DIHENTIKAN — SWR tinggi terdeteksi (%1$s)</string>
     <string name="swr_lockout_body">Periksa antena / saluran umpan sebelum transmisi.</string>
     <string name="swr_lockout_dismiss">TUTUP</string>
     <string name="swr_lockout_toast">TX diblokir — penguncian SWR aktif. Tutup banner penguncian terlebih dahulu.</string>
-
-    <!-- ===== Active QSO panel ===== -->
     <string name="qsopanel_calling_cq">Memanggil CQ</string>
     <string name="qsopanel_searching">Mencari...</string>
     <string name="qsopanel_qsoing_with">QSO dengan %1$s</string>
@@ -124,8 +116,6 @@
     <string name="qsopanel_waiting_messages">Menunggu pesan...</string>
     <string name="qsopanel_log_action">LOG</string>
     <string name="qsopanel_queue">ANTRE</string>
-
-    <!-- ===== Decode screen ===== -->
     <string name="decode_title">Dekode</string>
     <string name="decode_subtitle">"%1$s  •  %2$d didekode siklus ini"</string>
     <string name="decode_clear_list">Bersihkan daftar dekode</string>
@@ -150,8 +140,6 @@
     <string name="decode_label_calling">→ MEMANGGIL</string>
     <string name="decode_label_cq">CQ</string>
     <string name="decode_label_to_you">↓ UNTUK ANDA</string>
-
-    <!-- ===== QSO sheet ===== -->
     <string name="qso_complete">QSO Selesai</string>
     <string name="qso_call_action">Panggil %1$s</string>
     <string name="qso_qrz_link">QRZ ↗</string>
@@ -171,8 +159,6 @@
     <string name="qso_live_step_fallback">pesan</string>
     <string name="qso_tx_now">TX SEKARANG</string>
     <string name="qso_tx_next">TX BERIKUTNYA</string>
-
-    <!-- ===== Logbook ===== -->
     <string name="log_tab_stats">Statistik</string>
     <string name="log_tab_recent">Terbaru</string>
     <string name="log_tab_awards">Penghargaan</string>
@@ -193,6 +179,10 @@
     <string name="log_section_signal_trend">Tren Sinyal</string>
     <string name="log_no_qsos_yet">Belum ada QSO</string>
     <string name="log_no_qsos_recorded_yet">Belum ada QSO yang tercatat</string>
+    <string name="log_search_placeholder">Cari callsign, grid, band…</string>
+    <string name="log_search_no_matches">Tidak ada QSO yang cocok dengan “%1$s”</string>
+    <string name="log_cd_search">Cari QSO</string>
+    <string name="log_cd_clear_search">Hapus pencarian</string>
     <string name="log_state_usa">%1$s, USA</string>
     <string name="log_cd_qso_actions">Tindakan QSO</string>
     <string name="log_action_edit">Ubah</string>
@@ -221,8 +211,18 @@
     <string name="log_sync_cloudlog_accepted">Cloudlog / Wavelog / Nextlog: %1$d diterima</string>
     <string name="log_sync_nothing_to_upload">Belum ada QSO di buku log untuk diunggah.</string>
     <string name="log_sync_working">Memproses…</string>
-
-    <!-- ===== POTA ===== -->
+    <string name="log_cd_add_qso">Catat QSO secara manual</string>
+    <string name="log_manual_title">CATAT QSO SSTV</string>
+    <string name="log_manual_callsign">Callsign</string>
+    <string name="log_manual_grid">Grid (opsional)</string>
+    <string name="log_manual_rsv_sent">RSV dikirim</string>
+    <string name="log_manual_rsv_rcvd">RSV diterima</string>
+    <string name="log_manual_freq_mhz">Frekuensi (MHz)</string>
+    <string name="log_manual_mode">Mode SSTV</string>
+    <string name="log_manual_comment">Komentar (opsional)</string>
+    <string name="log_manual_save">Simpan QSO</string>
+    <string name="log_manual_cancel">Batal</string>
+    <string name="log_manual_time_note">Dicatat pada waktu UTC saat ini</string>
     <string name="pota_tab_activate">Aktivasi</string>
     <string name="pota_tab_hunt">Hunt</string>
     <string name="pota_tab_history">Riwayat</string>
@@ -247,8 +247,8 @@
     <string name="pota_end_activation">Akhiri aktivasi</string>
     <string name="pota_notes_quote">“%1$s”</string>
     <string name="pota_tx_cq_preview">TX CQ akan dikirim sebagai “CQ POTA %1$s %2$s”.</string>
-    <string name="pota_no_spots">Tidak ada spot FT8 POTA saat ini.</string>
-    <string name="pota_active_spots">%1$d spot FT8 aktif</string>
+    <string name="pota_no_spots">Tidak ada spot POTA SSTV saat ini.</string>
+    <string name="pota_active_spots">%1$d spot SSTV aktif</string>
     <string name="pota_targeting">Menargetkan %1$s @ %2$s kHz (%3$s) — beralih ke Dekode untuk memanggil</string>
     <string name="pota_no_past_activations">Belum ada aktivasi sebelumnya.</string>
     <string name="pota_no_browser_available">Tidak ada browser tersedia</string>
@@ -278,8 +278,15 @@
     <string name="pota_max_parks_reached">Maksimum 10 taman tercapai</string>
     <string name="pota_spotted_n_parks">Di-spot di %1$d taman</string>
     <string name="pota_parks_more">+%1$d lagi</string>
-
-    <!-- ===== Debug log / Map / Waterfall ===== -->
+    <string name="pota_search_parks">Cari taman</string>
+    <string name="pota_search_parks_hint">Saring berdasarkan nama atau referensi</string>
+    <string name="pota_recent_parks">TAMAN TERBARU</string>
+    <string name="pota_nearby_parks">TAMAN TERDEKAT</string>
+    <string name="pota_no_recent_parks">Tidak ada aktivasi terbaru</string>
+    <string name="pota_no_nearby_parks">Tidak ada taman ditemukan di dekat sini</string>
+    <string name="pota_loading_nearby">Memuat taman terdekat…</string>
+    <string name="pota_loading_recent">Memuat taman terbaru…</string>
+    <string name="pota_location_unavailable">Lokasi tidak tersedia — aktifkan GPS</string>
     <string name="debug_title">Debug</string>
     <string name="debug_line_count">%1$d baris</string>
     <string name="debug_logcat_on_suffix">" · logcat ON"</string>
@@ -301,11 +308,17 @@
     <string name="map_mode_standard">STD</string>
     <string name="map_mode_azimuthal">AZ</string>
     <string name="map_overlay_psk">PSK</string>
+    <string name="map_filter">Saring</string>
+    <string name="map_filter_title">Filter PSK</string>
+    <string name="map_filter_done">Selesai</string>
+    <string name="map_filter_time">Waktu</string>
+    <string name="map_filter_band">Band</string>
+    <string name="map_filter_mode">Mode</string>
+    <string name="map_filter_direction">Arah</string>
+    <string name="map_filter_all">Semua</string>
     <string name="map_info_distance">Jarak</string>
     <string name="map_info_bearing">Arah</string>
     <string name="map_info_snr">SNR</string>
-
-    <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d min</string>
     <string name="settings_tries_format">%1$d percobaan</string>
     <string name="settings_milliseconds_format">%1$d ms</string>
@@ -316,8 +329,6 @@
     <string name="settings_min_max_suffix">%1$d–%2$d %3$s</string>
     <string name="settings_build_date_format">Build %1$s</string>
     <string name="settings_version_value">v%1$s</string>
-
-    <!-- ===== Settings: sections ===== -->
     <string name="settings_title">Setelan</string>
     <string name="settings_section_operator_identity">IDENTITAS OPERATOR</string>
     <string name="settings_section_radio">RADIO</string>
@@ -331,20 +342,35 @@
     <string name="settings_section_advanced">LANJUTAN</string>
     <string name="settings_section_about">TENTANG</string>
     <string name="settings_section_language">BAHASA</string>
-
-    <!-- ===== Settings: drill-down category labels ===== -->
+    <string name="settings_section_appearance">TAMPILAN</string>
+    <string name="settings_section_backup">CADANGKAN &amp; PULIHKAN</string>
+    <string name="settings_export">Ekspor pengaturan</string>
+    <string name="settings_export_desc">Simpan semua pengaturan ke file cadangan</string>
+    <string name="settings_import">Impor pengaturan</string>
+    <string name="settings_import_desc">Pulihkan pengaturan dari file cadangan</string>
+    <string name="settings_export_dialog_title">Ekspor pengaturan</string>
+    <string name="settings_backup_include_sensitive">Sertakan data sensitif</string>
+    <string name="settings_backup_include_sensitive_desc">Kunci API dan kata sandi (Cloudlog, QRZ, login rig)</string>
+    <string name="action_export">Ekspor</string>
+    <string name="action_import">Impor</string>
+    <string name="settings_import_confirm_title">Impor pengaturan?</string>
+    <string name="settings_import_confirm_msg">Ini akan menimpa %1$d pengaturan dengan nilai dari cadangan yang dibuat %2$s.</string>
+    <string name="settings_export_success">Pengaturan diekspor</string>
+    <string name="settings_export_failed">Ekspor gagal: %1$s</string>
+    <string name="settings_import_success">Pengaturan diimpor — mulai ulang aplikasi untuk menerapkan semua perubahan</string>
+    <string name="settings_import_failed">Impor gagal: %1$s</string>
+    <string name="settings_theme">Tema</string>
+    <string name="settings_theme_desc">Tema warna aplikasi</string>
+    <string name="theme_name_dark">Gelap</string>
+    <string name="theme_name_light">Terang</string>
     <string name="settings_cat_radio_audio">Radio &amp; Audio</string>
     <string name="settings_cat_transmission">Transmisi</string>
     <string name="settings_cat_decode_filters">Dekode &amp; Filter</string>
     <string name="settings_cat_logging">Logging &amp; Penghargaan</string>
     <string name="settings_cat_advanced">Lanjutan</string>
     <string name="settings_cat_about">Tentang</string>
-
-    <!-- ===== Settings: operator identity ===== -->
     <string name="settings_auto_update_grid">Perbarui Grid Otomatis (GPS)</string>
     <string name="settings_auto_update_grid_desc">Gunakan GPS perangkat untuk menjaga grid Maidenhead tetap terkini</string>
-
-    <!-- ===== Settings: radio ===== -->
     <string name="settings_rig_model">Model Rig</string>
     <string name="settings_control_mode">Mode Kontrol</string>
     <string name="settings_connection_mode">Mode Koneksi</string>
@@ -353,32 +379,35 @@
     <string name="settings_enabled_bands">Band Aktif</string>
     <string name="settings_audio_frequency">Frekuensi Audio</string>
     <string name="settings_spectrum_width">Lebar Spektrum</string>
-
-    <!-- ===== Settings: audio ===== -->
     <string name="settings_audio_input">Input Audio</string>
     <string name="settings_audio_output">Output Audio</string>
     <string name="settings_tx_volume">Volume TX</string>
-    <string name="settings_tx_volume_desc" formatted="false">Tingkat audio transmisi (tombol perangkat keras ±5%)</string>
-
-    <!-- ===== Settings: transmission ===== -->
+    <string name="settings_tx_volume_desc">Tingkat audio transmisi (tombol perangkat keras ±5%)</string>
+    <string name="settings_show_volume_slider">Show Volume Slider</string>
+    <string name="settings_show_volume_slider_desc">Display TX volume slider on main screen</string>
+    <string name="settings_per_band_volume">Simpan Level Output per Band</string>
+    <string name="settings_per_band_volume_desc">Ingat volume TX secara terpisah untuk setiap band dan pulihkan saat berpindah band</string>
+    <string name="per_band_volume_restored">Volume TX %1$d%% dipulihkan untuk %2$s</string>
     <string name="settings_tx_rx_split">Split TX/RX</string>
     <string name="settings_tx_rx_split_desc">Transmisi pada frekuensi berbeda dari penerimaan</string>
+    <string name="settings_hold_tx_freq">Tahan frekuensi TX</string>
+    <string name="settings_hold_tx_freq_desc">Pertahankan offset TX Anda saat menjawab stasiun alih-alih memindahkannya ke frekuensi mereka</string>
+    <string name="settings_clear_on_change">Hapus dekode saat ganti band/mode</string>
+    <string name="settings_clear_on_change_desc">Bersihkan daftar dekode dan setel ulang target TX ke CQ saat Anda mengganti band atau mode</string>
     <string name="settings_tx_watchdog">TX Watchdog</string>
     <string name="settings_tx_watchdog_desc">Hentikan transmisi otomatis setelah waktu habis</string>
     <string name="settings_stop_after">Hentikan Setelah</string>
     <string name="settings_stop_after_desc">Berhenti memanggil setelah N percobaan tak terjawab</string>
-
-    <!-- ===== Settings: auto-sequence ===== -->
     <string name="settings_hunt">Hunt (jawab CQ otomatis)</string>
     <string name="settings_hunt_desc">Secara proaktif memanggil stasiun yang memanggil CQ. Sama dengan tombol HUNT di bilah TX. Mati = memanggil CQ dan hanya mengerjakan stasiun yang menjawab Anda.</string>
+    <string name="settings_hunt_cq">Hunt + CQ</string>
+    <string name="settings_hunt_cq_desc">Call CQ when Hunt is idle (no stations heard). When a CQ is detected, automatically stop CQ and answer it.</string>
     <string name="settings_auto_call_followed">Panggil Otomatis yang Diikuti</string>
     <string name="settings_auto_call_followed_desc">Terus memanggil tanda panggil yang diikuti secara otomatis</string>
     <string name="settings_fast_turnaround">Turnaround cepat</string>
     <string name="settings_fast_turnaround_desc">Dekode ~1s lebih awal sehingga Anda bisa menjawab CQ pada slot berikutnya tanpa menunggu. Mungkin melewatkan stasiun dengan offset jam besar.</string>
     <string name="settings_auto_cq_after_qso">Auto-CQ setelah QSO</string>
     <string name="settings_auto_cq_after_qso_desc">Terus memanggil CQ otomatis setelah setiap kontak selesai — tanpa ketuk ulang. Tetap di frekuensi Anda (abaikan Hunt). Berjalan sampai Anda berhenti atau TX Watchdog habis tanpa jawaban.</string>
-
-    <!-- ===== Settings: decode highlights ===== -->
     <string name="settings_highlight_new_dxcc">DXCC Baru</string>
     <string name="settings_highlight_new_dxcc_desc">Sorot stasiun dari entitas DXCC yang belum dikerjakan</string>
     <string name="settings_highlight_new_grid">Grid Baru</string>
@@ -389,16 +418,12 @@
     <string name="settings_highlight_worked_desc">Tandai stasiun yang sudah ada di log Anda</string>
     <string name="settings_distance_unit">Jarak dalam Mil</string>
     <string name="settings_distance_unit_desc">Tampilkan jarak dalam mil bukan kilometer</string>
-
-    <!-- ===== Settings: callsign blocklist ===== -->
     <string name="settings_exact_callsigns">Tanda Panggil Persis</string>
     <string name="settings_exact_callsigns_desc">Blokir kecocokan panggilan penuh</string>
     <string name="settings_prefixes">Prefiks</string>
     <string name="settings_prefixes_desc">Blokir berdasarkan prefiks tanda panggil (mis. RA)</string>
     <string name="settings_keywords">Kata Kunci</string>
     <string name="settings_keywords_desc">Blokir berdasarkan substring di panggilan atau pesan (mis. POTA, /P)</string>
-
-    <!-- ===== Settings: decode filters ===== -->
     <string name="settings_show_only_cq">Tampilkan Hanya CQ</string>
     <string name="settings_show_only_cq_desc">Sembunyikan semua kecuali pesan tipe CQ</string>
     <string name="settings_dx_only">Hanya DX</string>
@@ -412,26 +437,31 @@
     <string name="settings_skip_directional_cq_desc">Jangan menjawab otomatis CQ DX/EU/JA… yang ditujukan ke DXCC berbeda</string>
     <string name="settings_hide_directional_cq">Sembunyikan CQ Terarah Bukan Untuk Saya</string>
     <string name="settings_hide_directional_cq_desc">Sembunyikan CQ terarah wilayah yang tidak menargetkan DXCC Anda</string>
-
-    <!-- ===== Settings: needed-DX alerts ===== -->
-
-    <!-- ===== Settings: logging &amp; awards ===== -->
+    <string name="alert_cq_reply_title">Memanggil Anda: %1$s</string>
+    <string name="alert_qso_complete_title">QSO selesai</string>
+    <string name="rx_service_channel_name">Penerimaan latar belakang</string>
+    <string name="rx_service_channel_desc">Menjaga dekode SSTV tetap berjalan saat aplikasi berada di latar belakang atau layar mati</string>
+    <string name="rx_service_title">SSTVAF sedang mendengarkan gambar SSTV</string>
+    <string name="rx_service_text">Mendekode SSTV di latar belakang</string>
     <string name="settings_save_swl_decodes">Simpan Dekode SWL</string>
     <string name="settings_save_swl_decodes_desc">Catat semua pesan yang didekode ke basis data</string>
     <string name="settings_save_swl_qsos">Simpan QSO SWL</string>
     <string name="settings_save_swl_qsos_desc">Catat QSO yang terdeteksi antara stasiun lain</string>
     <string name="settings_cloudlog">Cloudlog / Wavelog / Nextlog</string>
     <string name="settings_cloudlog_desc">Unggah QSO otomatis ke instans Cloudlog, Wavelog, atau Nextlog</string>
-
-    <!-- ===== Settings: advanced ===== -->
     <string name="settings_ptt_delay">Penundaan PTT</string>
     <string name="settings_ptt_delay_desc">Penundaan setelah PTT sebelum audio transmisi dimulai</string>
+    <string name="settings_vox_pre_tone">Pra-nada VOX</string>
+    <string name="settings_vox_pre_tone_desc">Tambahan leader 1900 Hz sebelum setiap gambar agar VOX atau kabel auto-PTT (radio genggam) mengunci tanpa memotong header SSTV. Berlaku hanya dalam mode VOX.</string>
+    <string name="settings_cw_id">ID stasiun CW</string>
+    <string name="settings_cw_id_desc">Kirim callsign Anda dalam kode Morse setelah setiap gambar SSTV</string>
+    <string name="settings_cw_id_speed">Kecepatan ID CW</string>
+    <string name="settings_cw_id_speed_desc">Kecepatan keying Morse untuk ID stasiun</string>
+    <string name="settings_cw_id_wpm_format">%1$d WPM</string>
     <string name="settings_tx_delay">Penundaan TX</string>
     <string name="settings_tx_delay_desc">Penundaan sebelum transmisi untuk memungkinkan dekode siklus sebelumnya</string>
     <string name="settings_late_start_tolerance">Toleransi Mulai Terlambat</string>
     <string name="settings_late_start_tolerance_desc">Izinkan memulai TX hingga N ms ke dalam siklus; audio awal dipotong sehingga TX berakhir pada batas siklus</string>
-
-    <!-- ===== Settings: about ===== -->
     <string name="settings_faq_support">FAQ &amp; Dukungan</string>
     <string name="settings_report_bug">Laporkan Bug</string>
     <string name="settings_share_logs">Bagikan log</string>
@@ -443,12 +473,10 @@
     <string name="bug_report_no_email_app">Tidak ditemukan aplikasi email untuk mengirim laporan</string>
     <string name="bug_report_open_github">Buka isu GitHub</string>
     <string name="settings_debug_desc">Lihat / bagikan debug.log</string>
-    <string name="settings_about_body">Versi %1$s (build %2$s)\nTanggal build %3$s\n\nFT8, dipermudah.\n\nAplikasi transceiver FT8 mandiri untuk Android. Kontrol rig via USB, Bluetooth, dan jaringan dengan sequencing dan logging otomatis.</string>
+    <string name="settings_about_body">Versi %1$s (build %2$s)\nTanggal build %3$s\n\nSSTV, dibuat mudah.\n\nTerima dan pancarkan gambar slow-scan television di ponsel Android Anda. Kontrol rig USB CAT, Bluetooth, dan jaringan dengan galeri dan buku log bawaan.</string>
     <string name="settings_website">Situs Web</string>
     <string name="settings_community">Komunitas</string>
     <string name="settings_built_by">Dibuat oleh</string>
-
-    <!-- ===== Settings: dialogs ===== -->
     <string name="settings_block_exact_title">Blokir Tanda Panggil Persis</string>
     <string name="settings_block_exact_desc">Kecocokan panggilan penuh. Dipisah koma atau spasi, mis. W1AW, K1ABC.</string>
     <string name="settings_block_prefix_title">Blokir Prefiks Tanda Panggil</string>
@@ -486,25 +514,15 @@
     <string name="settings_select_serial_port">Pilih Port Serial</string>
     <string name="settings_tx_volume_advice">Sesuaikan langsung — TX berikutnya menggunakan tingkat ini. Perhatikan ALC radio Anda dan turunkan sampai hanya menyentuh garis.</string>
     <string name="settings_input_volume">Volume Masukan</string>
-    <string name="settings_input_volume_desc" formatted="false">Penguatan audio RX yang diterapkan sebelum dekode (100% = tidak berubah)</string>
+    <string name="settings_input_volume_desc">Penguatan audio RX yang diterapkan sebelum dekode (100% = tidak berubah)</string>
     <string name="settings_input_volume_advice">Diterapkan pada audio masuk sebelum dekode. Perhatikan meter level RX di waterfall dan bidik zona hijau; merah berarti clipping.</string>
     <string name="input_level_too_low">Rendah</string>
     <string name="input_level_good">Baik</string>
     <string name="input_level_too_high">Tinggi</string>
     <string name="input_level_clipping">Clip</string>
-
-    <!-- ===== Settings: language picker ===== -->
     <string name="settings_language">Bahasa</string>
     <string name="settings_language_desc">Bahasa tampilan aplikasi</string>
     <string name="settings_language_system">Default sistem</string>
-
-    <!-- Untranslated — added for parity; translate when localization pass runs -->
-    <string name="settings_show_volume_slider">Show Volume Slider</string>
-    <string name="settings_show_volume_slider_desc">Display TX volume slider on main screen</string>
-    <string name="settings_hunt_cq">Hunt + CQ</string>
-    <string name="settings_hunt_cq_desc">Call CQ when Hunt is idle (no stations heard). When a CQ is detected, automatically stop CQ and answer it.</string>
-    <string name="tx_volume_decrease">Decrease TX volume</string>
-    <string name="tx_volume_increase">Increase TX volume</string>
     <string name="tx_audio_dropped">Audio TX gagal — tidak ada sinyal terkirim pada siklus ini (kesalahan audio USB)</string>
     <string name="cq_offset_moved">Offset CQ dipindahkan ke tempat kosong: %1$d Hz</string>
     <string name="settings_auto_clear_tx">Offset TX kosong otomatis</string>
@@ -513,6 +531,213 @@
     <string name="tune_stopped_timeout">Tune dihentikan setelah %1$d dtk</string>
     <string name="tune_blocked_tx">Hentikan CQ/QSO sebelum menggunakan Tune</string>
     <string name="tune_unavailable_route">Tune belum didukung pada jalur audio ini</string>
+    <string name="rx_listening">Mendengarkan SSTV…</string>
+    <string name="rx_disabled">Penerimaan mati</string>
+    <string name="rx_signal_detected">Sinyal terdeteksi…</string>
+    <string name="rx_saved_chip">Tersimpan ✓</string>
+    <string name="rx_signal_lost">Sinyal hilang — gambar parsial tidak disimpan</string>
+    <string name="rx_quality_label">Kualitas</string>
+    <string name="rx_eta_format">%1$s tersisa</string>
+    <string name="rx_canvas_description">Gambar SSTV yang diterima</string>
+    <string name="rx_status_listening">Mendengarkan</string>
+    <string name="rx_status_decoding">Mendekode %1$s</string>
+    <string name="rx_status_off">Penerimaan mati</string>
+    <string name="rx_status_complete">Gambar selesai</string>
+    <string name="rx_status_saved">Tersimpan ke Galeri</string>
+    <string name="rx_status_save_failed">Gagal menyimpan</string>
+    <string name="rx_status_lost">Sinyal hilang</string>
+    <string name="rx_status_auto_detect">deteksi-otomatis</string>
+    <string name="rx_quality_value">Kualitas %1$s</string>
+    <string name="rx_received_today">DITERIMA HARI INI</string>
+    <string name="rx_received_all">Semua</string>
+    <string name="rx_received_none">Belum ada yang diterima</string>
+    <string name="settings_save_rx_photos">Simpan gambar diterima ke Photos</string>
+    <string name="settings_save_rx_photos_desc">Gambar SSTV yang selesai juga muncul di aplikasi Photos di bawah Pictures/SSTVAF (Android 10+)</string>
+    <string name="tab_gallery">Galeri</string>
+    <string name="gallery_filter_all">Semua</string>
+    <string name="gallery_filter_rx">Diterima</string>
+    <string name="gallery_filter_tx">Dikirim</string>
+    <string name="gallery_filter_chip_label">%1$s %2$d</string>
+    <string name="gallery_empty_rx">Gambar yang diterima akan muncul di sini</string>
+    <string name="gallery_empty_tx">Gambar yang dikirim akan muncul di sini</string>
+    <string name="gallery_search_placeholder">Cari mode, band, catatan…</string>
+    <string name="gallery_search_no_matches">Tidak ada gambar yang cocok dengan “%1$s”</string>
+    <string name="gallery_cd_search">Cari gambar</string>
+    <string name="gallery_cd_clear_search">Hapus pencarian</string>
+    <string name="gallery_section_today">Hari ini</string>
+    <string name="gallery_section_yesterday">Kemarin</string>
+    <string name="gallery_section_count_label">%1$s · %2$d</string>
+    <string name="gallery_send_again">Kirim lagi</string>
+    <string name="gallery_reply_with_picture">Balas dengan gambar</string>
+    <string name="gallery_share">Bagikan</string>
+    <string name="gallery_save_photos">Simpan ke Photos</string>
+    <string name="gallery_delete">Hapus</string>
+    <string name="gallery_delete_title">Hapus gambar?</string>
+    <string name="gallery_delete_message">Ini menghapus gambar tersimpan dari aplikasi. Ini tidak dapat dibatalkan.</string>
+    <string name="gallery_share_chooser_title">Bagikan gambar SSTV</string>
+    <string name="gallery_saved_to_photos">Tersimpan ke Photos</string>
+    <string name="gallery_save_photos_failed">Tidak dapat menyimpan ke Photos</string>
+    <string name="gallery_meta_mode">Mode</string>
+    <string name="gallery_meta_frequency">Frekuensi</string>
+    <string name="gallery_meta_band">Band</string>
+    <string name="gallery_meta_time">Waktu</string>
+    <string name="gallery_meta_size">Ukuran</string>
+    <string name="gallery_meta_airtime">Waktu udara</string>
+    <string name="gallery_meta_quality">Kualitas</string>
+    <string name="gallery_quality_value">%1$s · %2$s</string>
+    <string name="gallery_quality_grade_excellent">Sangat baik</string>
+    <string name="gallery_quality_grade_good">Baik</string>
+    <string name="gallery_quality_grade_fair">Cukup</string>
+    <string name="gallery_quality_grade_poor">Buruk</string>
+    <string name="gallery_meta_direction">Arah</string>
+    <string name="gallery_meta_direction_rx">Diterima</string>
+    <string name="gallery_meta_direction_tx">Dikirim</string>
+    <string name="gallery_meta_status">Status</string>
+    <string name="gallery_meta_complete">Selesai</string>
+    <string name="gallery_meta_partial">Parsial</string>
+    <string name="gallery_meta_note">Catatan</string>
+    <string name="gallery_note_add">Tambah catatan</string>
+    <string name="gallery_note_title">Catatan gambar</string>
+    <string name="gallery_note_hint">Callsign, QTH, atau komentar</string>
+    <string name="gallery_note_save">Simpan</string>
+    <string name="rx_view_in_gallery">Lihat di Galeri</string>
+    <string name="tx_empty_title">Pilih gambar untuk dikirim</string>
+    <string name="tx_empty_body">Foto dipotong sesuai bingkai mode SSTV</string>
+    <string name="tx_pick_button">Pilih gambar</string>
+    <string name="tx_camera_button">Kamera</string>
+    <string name="tx_preview_description">Pratinjau pancar</string>
+    <string name="tx_change_photo">UBAH</string>
+    <string name="tx_camera_photo">KAMERA</string>
+    <string name="tx_clear_photo">HAPUS</string>
+    <string name="tx_overlay_add">Tambah teks</string>
+    <string name="tx_overlay_edit">Edit teks</string>
+    <string name="tx_overlay_remove">Hapus</string>
+    <string name="tx_overlay_save">Simpan</string>
+    <string name="tx_overlay_text_label">Teks</string>
+    <string name="tx_tool_crop">Potong</string>
+    <string name="tx_tool_text">Teks</string>
+    <string name="tx_tool_callsign">Callsign</string>
+    <string name="tx_tool_frame">Bingkai</string>
+    <string name="tx_tool_adjust">Sesuaikan</string>
+    <string name="tx_tool_draw">Gambar</string>
+    <string name="tx_transmitting_label">MEMANCARKAN · %1$s</string>
+    <string name="tx_stop_action">Berhenti</string>
+    <string name="tx_sent_saved">Dikirim · tersimpan ke Galeri</string>
+    <string name="tx_outcome_sent">Dikirim</string>
+    <string name="tx_outcome_sent_detail">Tersimpan ke Galeri</string>
+    <string name="tx_outcome_stopped">Dihentikan</string>
+    <string name="tx_outcome_stopped_detail">Sebagian gambar telah dikirim</string>
+    <string name="tx_outcome_failed">Pancar gagal</string>
+    <string name="tx_outcome_failed_detail">Tidak ada yang terkirim · periksa log debug</string>
+    <string name="tx_sent_edit_again">Edit &amp; kirim lagi</string>
+    <string name="tx_sent_new_picture">Gambar baru</string>
+    <string name="tx_change_photo_pill">Ubah</string>
+    <string name="tx_new_picture_short">Baru</string>
+    <string name="tx_stroke_thin">Goresan tipis</string>
+    <string name="tx_stroke_medium">Goresan sedang</string>
+    <string name="tx_stroke_thick">Goresan tebal</string>
+    <string name="tx_color_white">Putih</string>
+    <string name="tx_color_black">Hitam</string>
+    <string name="tx_color_cyan">Sian</string>
+    <string name="tx_color_amber">Kuning tua</string>
+    <string name="tx_color_green">Hijau</string>
+    <string name="tx_overlay_delete_description">Hapus teks yang dipilih</string>
+    <string name="tx_transmit_action">Pancarkan</string>
+    <string name="tx_choose_photo">Pilih foto</string>
+    <string name="tx_choose_photo_sub">Dipotong sesuai bingkai SSTV · Anda bisa memindahkannya setelahnya</string>
+    <string name="tx_card_cq">Kartu CQ</string>
+    <string name="tx_card_cq_headline">CQ SSTV</string>
+    <string name="tx_card_cq_sub">de %1$s</string>
+    <string name="tx_card_grid">Kartu grid</string>
+    <string name="tx_last_sent">Terakhir dikirim</string>
+    <string name="tx_last_sent_note">ketuk untuk memulai dari sana</string>
+    <string name="tx_crop_hint">Seret gambar untuk mengatur ulang posisinya. Geser untuk memperbesar.</string>
+    <string name="tx_zoom_min">1×</string>
+    <string name="tx_zoom_max">2.5×</string>
+    <string name="tx_crop_reset">Setel ulang</string>
+    <string name="tx_crop_fill">Isi bingkai</string>
+    <string name="tx_text_placeholder">Ketik, lalu seret ke gambar</string>
+    <string name="tx_text_add">Tambah</string>
+    <string name="tx_text_done">Selesai</string>
+    <string name="tx_text_hint_selected">Mengedit teks yang dipilih — seret untuk memindahkan, ✕ untuk menghapus.</string>
+    <string name="tx_text_hint_tap">Ketuk teks pada gambar untuk mengeditnya.</string>
+    <string name="tx_text_hint_bar">Gaya bilah paling mudah dibaca di tengah derau.</string>
+    <string name="tx_size_small">S</string>
+    <string name="tx_size_medium">M</string>
+    <string name="tx_size_large">L</string>
+    <string name="tx_style_bar">Bilah</string>
+    <string name="tx_style_outline">Garis luar</string>
+    <string name="tx_callsign_prompt">Cap %1$s — pilih tempatnya</string>
+    <string name="tx_callsign_source">dari Pengaturan</string>
+    <string name="tx_callsign_unset">Setel callsign Anda di Pengaturan terlebih dahulu — cap menggunakannya.</string>
+    <string name="tx_preset_top_left">Kiri atas</string>
+    <string name="tx_preset_top_center">Bilah atas</string>
+    <string name="tx_preset_top_right">Kanan atas</string>
+    <string name="tx_preset_bottom_left">Kiri bawah</string>
+    <string name="tx_preset_bottom_center">Bilah bawah</string>
+    <string name="tx_preset_bottom_right">Kanan bawah</string>
+    <string name="tx_frame_none">Tidak ada</string>
+    <string name="tx_frame_thin">Tipis</string>
+    <string name="tx_frame_bold">Tebal</string>
+    <string name="tx_frame_amber">Kuning tua</string>
+    <string name="tx_frame_hint">Bingkai dibakar ke dalam gambar, jadi tetap bertahan selama perjalanan.</string>
+    <string name="tx_adjust_brightness">Kecerahan</string>
+    <string name="tx_adjust_contrast">Kontras</string>
+    <string name="tx_adjust_saturation">Saturasi</string>
+    <string name="tx_adjust_reset">Setel ulang</string>
+    <string name="tx_adjust_hint">Sedikit kontras tambahan lebih mudah terbaca di udara.</string>
+    <string name="tx_draw_hint">Gambar pada foto dengan jari Anda.</string>
+    <string name="tx_draw_undo">Urungkan</string>
+    <string name="tx_draw_clear">Bersihkan</string>
+    <string name="mode_sheet_title">Mode SSTV</string>
+    <string name="mode_sheet_rx_note">penerimaan deteksi-otomatis</string>
+    <string name="mode_group_fast">CEPAT · KURANG DARI SEMENIT</string>
+    <string name="mode_group_standard">STANDAR</string>
+    <string name="mode_group_high_resolution">RESOLUSI TINGGI</string>
+    <string name="mode_note_most_common">paling umum di 20m</string>
+    <string name="mode_card_label">MODE</string>
+    <string name="mode_card_description">Mode SSTV %1$s</string>
+    <string name="mode_card_action">Ubah mode SSTV</string>
+    <string name="mode_row_description">%1$s, %2$s, %3$s</string>
+    <string name="tx_gate_no_image">Pilih gambar terlebih dahulu</string>
+    <string name="tx_gate_tune_active">Hentikan Tune sebelum memancarkan</string>
+    <string name="tx_confirm_title">Pancarkan gambar ini?</string>
+    <string name="tx_confirm_level">Level TX %1$d%%</string>
+    <string name="tx_confirm_warning">Konfirmasi akan mengunci pemancar</string>
+    <string name="tx_confirm_cancel">Batal</string>
+    <string name="tx_confirm_go">Pancarkan</string>
+    <string name="tx_airtime_quick">Pancaran cepat</string>
+    <string name="tx_airtime_moderate">Pancaran sedang</string>
+    <string name="tx_airtime_long">Pancaran panjang</string>
+    <string name="tx_airtime_very_long">Pancaran sangat panjang</string>
+    <string name="tx_cancel_button">BATALKAN TX</string>
+    <string name="tx_remaining_format">%1$s tersisa</string>
+    <string name="settings_cat_usb_diagnostics">Diagnostik USB</string>
+    <string name="settings_cat_usb_diagnostics_desc">Periksa penemuan perangkat USB dan komunikasi CAT</string>
+    <string name="usb_diag_title">Diagnostik USB</string>
+    <string name="usb_diag_desc">Status langsung penemuan perangkat USB dan komunikasi CAT. Gunakan untuk menentukan di mana koneksi rig gagal.</string>
+    <string name="usb_diag_device_found">Perangkat Ditemukan</string>
+    <string name="usb_diag_vendor_id">Vendor ID</string>
+    <string name="usb_diag_product_id">Product ID</string>
+    <string name="usb_diag_permission">Izin USB</string>
+    <string name="usb_diag_cdc_serial">CDC Serial Ditemukan</string>
+    <string name="usb_diag_audio_device">Perangkat Audio Ditemukan</string>
+    <string name="usb_diag_port_open">Port Terbuka</string>
+    <string name="usb_diag_cat_response">Respons CAT</string>
+    <string name="usb_diag_value_none">—</string>
+    <string name="usb_diag_status_pass">lulus</string>
+    <string name="usb_diag_status_fail">gagal</string>
+    <string name="settings_rx_channel">Kanal Audio Terima</string>
+    <string name="settings_rx_channel_desc">Sisi mana dari input stereo yang akan didekode. Gunakan Kiri atau Kanan bila radio hanya memberi satu kanal.</string>
+    <string name="settings_rx_channel_mix">Campur</string>
+    <string name="settings_tx_channel">Kanal Audio Pancar</string>
+    <string name="settings_tx_channel_desc">Sisi mana dari output stereo yang membawa audio yang dipancarkan. Gunakan Kiri atau Kanan untuk menggerakkan satu radio pada kabel splitter.</string>
+    <string name="settings_tx_channel_both">Keduanya</string>
+    <string name="settings_channel_left">Kiri</string>
+    <string name="settings_channel_right">Kanan</string>
+    <string name="settings_channel_mono_device">Perangkat ini hanya memiliki satu kanal audio, jadi tidak ada sisi untuk dipilih.</string>
+    <string name="settings_tx_channel_default_sink">Pilih perangkat output audio tertentu untuk memilih sisi. Pada output default, aplikasi tidak dapat mengetahui ke mana Android mengarahkan audio, jadi audio dikirim ke kedua kanal.</string>
+    <string name="settings_rx_channel_network_source">Audio untuk radio ini datang melalui tautan jaringannya, bukan melalui input audio, jadi tidak ada sisi untuk dipilih.</string>
     <string name="tune_atu_started">Tuner antena radio dimulai</string>
     <string name="tune_atu_unavailable">Tuner tidak tersedia — hubungkan radio CAT dengan tuner internal</string>
     <string name="settings_tune_method">Metode Tune</string>
@@ -520,5 +745,62 @@
     <string name="tune_method_automatic">Otomatis</string>
     <string name="tune_method_internal">Tuner internal</string>
     <string name="tune_method_tone">Nada daya rendah</string>
-
+    <string name="action_edit">Edit</string>
+    <string name="settings_cat_radio_audio_desc">Model rig, koneksi, PTT dan perangkat audio</string>
+    <string name="settings_cat_transmission_desc">Cara TUNE mengunci rig</string>
+    <string name="settings_cat_appearance">Tampilan</string>
+    <string name="settings_cat_appearance_desc">Tema dan bahasa aplikasi</string>
+    <string name="settings_cat_logging_desc">Unggah Cloudlog dan simpan ke Photos</string>
+    <string name="settings_cat_advanced_desc">Pra-nada VOX, identifikasi CW, cadangkan dan pulihkan</string>
+    <string name="settings_cat_about_desc">Versi, lisensi dan kredit</string>
+    <string name="settings_rig_status_connected">%1$s tertaut melalui %2$s</string>
+    <string name="settings_rig_status_idle">Tidak ada rig tertaut · %1$s</string>
+    <string name="settings_value_usb_ok">Tertaut</string>
+    <string name="settings_value_no_link">Tidak ada tautan</string>
+    <string name="settings_value_cloudlog_on">Cloudlog aktif</string>
+    <string name="settings_value_off">Mati</string>
+    <string name="settings_footer">SSTVAF v%1$s · Ekspor dan impor pengaturan di Lanjutan</string>
+    <string name="operator_sheet_title">Operator</string>
+    <string name="operator_antenna">Antena</string>
+    <string name="operator_antenna_hint">mis. EFHW 40-10m</string>
+    <string name="operator_power">Daya (watt)</string>
+    <string name="operator_power_hint">mis. 100</string>
+    <string name="radio_link_connected">%1$s terhubung</string>
+    <string name="radio_link_connecting">Menghubungkan ke %1$s</string>
+    <string name="radio_link_disconnected">%1$s tidak merespons</string>
+    <string name="radio_link_vox">VOX · audio saja</string>
+    <string name="radio_link_no_model">Tidak ada model rig yang dipilih</string>
+    <string name="radio_action_reconnect">Hubungkan ulang</string>
+    <string name="radio_action_connecting">Menghubungkan</string>
+    <string name="radio_action_connect">Hubungkan</string>
+    <string name="radio_action_test_ptt">Uji PTT</string>
+    <string name="radio_action_stop_test">Hentikan uji</string>
+    <string name="radio_action_choose_rig">Pilih rig</string>
+    <string name="radio_detail_vox">Rig mengunci dirinya sendiri dari audio pancar</string>
+    <string name="radio_detail_waiting">menunggu rig</string>
+    <string name="radio_detail_check_cable">periksa kabel dan pengaturan rig</string>
+    <string name="radio_hint_usb">Perlu kabel OTG. Android meminta izin saat pertama kali rig dicolokkan.</string>
+    <string name="radio_hint_bluetooth">Pasangkan rig di pengaturan Bluetooth Android terlebih dahulu.</string>
+    <string name="radio_hint_network">Untuk rig jarak jauh, mis. rigctld di 192.168.1.10:4532.</string>
+    <string name="radio_ptt_cat">Mengunci rig dengan perintah CAT melalui tautan serial.</string>
+    <string name="radio_ptt_rts">Mengunci rig dengan menaikkan jalur RTS serial.</string>
+    <string name="radio_ptt_dtr">Mengunci rig dengan menaikkan jalur DTR serial.</string>
+    <string name="radio_ptt_vox">Rig mengunci dirinya sendiri saat mendengar audio pancar. Tanpa tautan kontrol.</string>
+    <string name="radio_section_connection">KONEKSI</string>
+    <string name="radio_ptt_method">Metode PTT</string>
+    <string name="radio_baud_rate">Baud rate</string>
+    <string name="radio_ptt_delay">Jeda PTT</string>
+    <string name="radio_ptt_delay_desc">Waktu penenangan setelah keying, sebelum audio dimulai</string>
+    <string name="radio_ms_format">%1$d ms</string>
+    <string name="radio_rig_picker_title">Model rig</string>
+    <string name="radio_rig_search_hint">Cari model</string>
+    <string name="radio_rig_search_clear">Hapus pencarian</string>
+    <string name="radio_rig_no_matches">Tidak ada model yang cocok dengan pencarian itu</string>
+    <string name="radio_input_level">Level input</string>
+    <string name="radio_level_silent">Senyap</string>
+    <string name="radio_level_advice_silent">Tidak ada audio yang mencapai aplikasi. Periksa kabel dan perangkat input.</string>
+    <string name="radio_level_advice_low">Terlalu pelan. Naikkan rig atau gain input.</string>
+    <string name="radio_level_advice_good">Dalam rentang sehat.</string>
+    <string name="radio_level_advice_high">Mendekati clipping. Turunkan gain sedikit.</string>
+    <string name="radio_level_advice_clipping">Clipping. Turunkan gain hingga puncak tetap di bawah tanda.</string>
 </resources>
