@@ -76,4 +76,42 @@ public class Yaesu2RigConstantTest {
         assertThat(Yaesu2RigConstant.sendConnectData()[4] & 0xFF).isEqualTo(0x00);
         assertThat(Yaesu2RigConstant.sendDisconnectData()[4] & 0xFF).isEqualTo(0x80);
     }
+
+    // ---- normalizeSwr817 ------------------------------------------------------
+    // Expected values are the hamlib FT817_SWR_CAL ratios (measured by WA4YA/DL4YA)
+    // pushed through MeterProtectionController.swrRatioToNormalized.
+
+    @Test
+    public void normalizeSwr817_negativeMeansNoReading() {
+        assertThat(Yaesu2RigConstant.normalizeSwr817(-1)).isEqualTo(-1);
+    }
+
+    @Test
+    public void normalizeSwr817_zeroIsPerfectMatch() {
+        // Direct scale: raw 0 = 1.0:1 -> normalized 0 (NOT a high-SWR reading).
+        assertThat(Yaesu2RigConstant.normalizeSwr817(0)).isEqualTo(0);
+    }
+
+    @Test
+    public void normalizeSwr817_straddlesDefaultHaltThreshold() {
+        // Raw 4 = 2.25:1 -> 90, below the default 120 (~3:1) halt threshold;
+        // raw 5 = 3.7:1 -> 134, above it. The old linear nibble*17 put raw 5 at 85
+        // and did not cross 120 until raw 8 (~8:1 actual) — protection far too late.
+        assertThat(Yaesu2RigConstant.normalizeSwr817(4)).isEqualTo(90);
+        assertThat(Yaesu2RigConstant.normalizeSwr817(5)).isEqualTo(134);
+    }
+
+    @Test
+    public void normalizeSwr817_upperScale() {
+        // Raw 7 = 7.0:1 -> 200; raw 10+ saturates at 10:1 -> 255.
+        assertThat(Yaesu2RigConstant.normalizeSwr817(7)).isEqualTo(200);
+        assertThat(Yaesu2RigConstant.normalizeSwr817(10)).isEqualTo(255);
+        assertThat(Yaesu2RigConstant.normalizeSwr817(15)).isEqualTo(255);
+    }
+
+    @Test
+    public void normalizeSwr817_clampsAboveNibbleRange() {
+        // Defensive: values past the 4-bit range clamp to the saturated top entry.
+        assertThat(Yaesu2RigConstant.normalizeSwr817(20)).isEqualTo(255);
+    }
 }

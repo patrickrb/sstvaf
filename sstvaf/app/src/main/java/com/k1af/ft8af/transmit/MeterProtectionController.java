@@ -11,8 +11,10 @@ import com.k1af.ft8af.GeneralVariables;
  * values during TX and takes protective action:
  *   - ALC auto-volume: adjusts {@link GeneralVariables#volumePercent} to keep
  *     ALC in a target window, reducing overdrive distortion.
- *   - SWR TX halt + lockout: immediately stops TX and prevents re-activation
- *     when SWR exceeds a threshold, protecting the PA/feedline.
+ *   - SWR TX halt + lockout: stops TX and prevents re-activation when SWR
+ *     exceeds a threshold for {@link #SWR_HALT_CONSECUTIVE_READINGS} consecutive
+ *     readings, protecting the PA/feedline without letting a single key-down
+ *     transient cancel a multi-minute image.
  *
  * Rig classes call {@link #onMeterUpdate(int, int)} from their showAlert()
  * methods, passing values already normalized to 0-255.
@@ -48,6 +50,15 @@ public class MeterProtectionController {
     // Holds the SWR ratio string (e.g. "3.2:1") that triggered lockout, for the banner.
     public final MutableLiveData<String> lockoutSwrRatio = new MutableLiveData<>("");
 
+    // SWR halt debounce: a single over-threshold reading must not kill a multi-minute
+    // image. The first in-TX meter poll lands ~2s after key-down, where an ATU still
+    // settling, PA power ramp, or a garbled first meter reply can produce one bogus
+    // high reading (issue #97). Requiring consecutive confirmations means a genuine
+    // fault halts one poll (~2s) later, which the PA tolerates, while a key-down
+    // transient no longer cancels the image.
+    static final int SWR_HALT_CONSECUTIVE_READINGS = 2;
+    private int swrOverThresholdStreak = 0;
+
     // Throttle for the per-reading SWR diagnostic log line (meter polls ~every 2s).
     private static final long SWR_LOG_THROTTLE_MS = 1500;
     private long lastSwrLogMs = 0;
@@ -66,6 +77,17 @@ public class MeterProtectionController {
     }
 
     /**
+     * Pure debounce step: the over-threshold streak after one more meter reading.
+     * An over-threshold reading extends the streak, a valid under-threshold reading
+     * breaks it, and a "no reading" (-1, e.g. an ALC-only rig update) leaves it
+     * untouched rather than masking a genuine fault.
+     */
+    static int nextSwrStreak(int streak, int normalizedSwr, boolean enabled, int threshold) {
+        if (shouldHaltForSwr(normalizedSwr, enabled, threshold)) return streak + 1;
+        return normalizedSwr >= 0 ? 0 : streak;
+    }
+
+    /**
      * Called by each rig's showAlert() with normalized 0-255 meter values.
      * A value of -1 means the rig does not report that meter.
      */
@@ -74,30 +96,40 @@ public class MeterProtectionController {
         if (normalizedAlc >= 0) lastAlc.postValue(normalizedAlc);
         if (normalizedSwr >= 0) lastSwr.postValue(normalizedSwr);
 
+        // --- SWR halt check (debounced, see SWR_HALT_CONSECUTIVE_READINGS) ---
+        // Update the streak first so the diagnostic below reflects the actual
+        // debounced decision, not just whether this lone reading is over threshold.
+        swrOverThresholdStreak = nextSwrStreak(swrOverThresholdStreak, normalizedSwr,
+                GeneralVariables.swrHaltEnabled, GeneralVariables.swrHaltThreshold);
+        boolean willHalt = swrOverThresholdStreak >= SWR_HALT_CONSECUTIVE_READINGS;
+
         // Diagnostics: when SWR protection is on, record each SWR reading we actually
         // receive so the debug.log shows whether meter data even reaches here during TX, the
-        // values, and the halt decision. Without this a halt that never fires leaves no trace
-        // — we can't tell "no meter data" from "value below threshold" from a wiring problem.
-        // (Reported: "SWR protection not working".) Log whenever the SWR value CHANGES (so a
-        // real SWR update isn't suppressed when ALC and SWR arrive as separate callbacks
-        // close together), plus a periodic time-throttled line for a stable value.
+        // values, the streak, and the halt decision. Without this a halt that never fires
+        // leaves no trace — we can't tell "no meter data" from "value below threshold" from
+        // a debounce still building from a wiring problem. (Reported: "SWR protection not
+        // working".) Log whenever the SWR value CHANGES (so a real SWR update isn't
+        // suppressed when ALC and SWR arrive as separate callbacks close together), plus a
+        // periodic time-throttled line for a stable value.
         if (GeneralVariables.swrHaltEnabled && normalizedSwr >= 0) {
             long now = System.currentTimeMillis();
             boolean changed = normalizedSwr != lastLoggedSwr;
             if (changed || now - lastSwrLogMs >= SWR_LOG_THROTTLE_MS) {
                 lastSwrLogMs = now;
                 lastLoggedSwr = normalizedSwr;
+                String verdict = willHalt ? "HALT"
+                        : swrOverThresholdStreak > 0
+                        ? String.format("over-threshold (%d/%d), awaiting confirmation",
+                                swrOverThresholdStreak, SWR_HALT_CONSECUTIVE_READINGS)
+                        : "ok";
                 GeneralVariables.fileLog(String.format(
                         "MeterProtection: SWR reading swr=%d threshold=%d -> %s",
-                        normalizedSwr, GeneralVariables.swrHaltThreshold,
-                        shouldHaltForSwr(normalizedSwr, GeneralVariables.swrHaltEnabled,
-                                GeneralVariables.swrHaltThreshold) ? "HALT" : "ok"));
+                        normalizedSwr, GeneralVariables.swrHaltThreshold, verdict));
             }
         }
 
-        // --- SWR halt check ---
-        if (shouldHaltForSwr(normalizedSwr, GeneralVariables.swrHaltEnabled,
-                GeneralVariables.swrHaltThreshold)) {
+        if (willHalt) {
+            swrOverThresholdStreak = 0;
             haltForSwr(normalizedSwr);
             return; // no point adjusting volume if we just killed TX
         }
@@ -216,6 +248,9 @@ public class MeterProtectionController {
     private void resetAccumulators() {
         alcWindowIndex = 0;
         alcWindowCount = 0;
+        // An SWR streak must not span TX cycles or survive a disconnect: one high
+        // reading at the tail of image A must not let image B's first reading halt it.
+        swrOverThresholdStreak = 0;
     }
 
     private void persistVolume() {
