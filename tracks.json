@@ -1,20 +1,27 @@
 {
-  "beta": [],
+  "beta": [
+    {
+      "name": "",
+      "status": "draft",
+      "versionCodes": []
+    }
+  ],
   "internal": [
     {
       "name": "android-dev.219",
-      "status": "draft",
+      "status": "completed",
       "versionCodes": [
         1219
       ]
-    },
-    {
-      "name": "android-dev.213",
-      "status": "completed",
-      "versionCodes": [
-        1213
-      ]
     }
   ],
-  "production": []
+  "production": [
+    {
+      "name": "android-dev.219",
+      "status": "completed",
+      "versionCodes": [
+        1219
+      ]
+    }
+  ]
 }
