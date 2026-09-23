@@ -70,6 +70,27 @@ public class Yaesu2RigConstant {
         return GET_METER;
     }
 
+    // Measured FT-817/818 SWR meter calibration: raw 0xBD SWR nibble -> approximate
+    // SWR ratio (hamlib FT817_SWR_CAL, values measured on real rigs by WA4YA/DL4YA).
+    // The scale is DIRECT — 0 = 1.0:1 match, saturating at ~10:1 from raw 10 up.
+    // The curve is far from linear (raw 5 is already 3.7:1), so a linear nibble*17
+    // normalization under-reports mid-scale SWR badly.
+    private static final float[] SWR_817_NIBBLE_TO_RATIO = {
+            1.0f, 1.4f, 1.8f, 2.13f, 2.25f, 3.7f, 6.0f, 7.0f,
+            8.0f, 9.0f, 10.0f, 10.0f, 10.0f, 10.0f, 10.0f, 10.0f};
+
+    /**
+     * Normalize a raw FT-817/818 SWR meter nibble (0-15) to the app-wide 0-255 SWR
+     * scale used by MeterProtectionController, via the measured calibration curve.
+     *
+     * @return normalized 0-255 value, or -1 for a negative input ("no reading").
+     */
+    public static int normalizeSwr817(int nibble) {
+        if (nibble < 0) return -1;
+        float ratio = SWR_817_NIBBLE_TO_RATIO[Math.min(nibble, SWR_817_NIBBLE_TO_RATIO.length - 1)];
+        return com.k1af.ft8af.transmit.MeterProtectionController.swrRatioToNormalized(ratio);
+    }
+
     public static byte[] sendConnectData() {
         return GET_CONNECT;
     }
