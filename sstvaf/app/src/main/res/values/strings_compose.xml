@@ -54,7 +54,7 @@
     <string name="status_pending">PENDING</string>
 
     <!-- ===== Splash / app-level ===== -->
-    <string name="splash_tagline">FT8 · MOBILE COMPANION</string>
+    <string name="splash_tagline">SSTV · PICTURES ON THE AIR</string>
     <string name="splash_initializing">INITIALIZING RADIO</string>
     <string name="splash_version">v%1$s · build %2$s</string>
     <string name="app_set_callsign_first">Set your callsign in Settings before calling CQ</string>
@@ -570,7 +570,7 @@
     <string name="bug_report_open_github">Open GitHub issue</string>
     <string name="bug_report_email" translatable="false">k1af@FT8AF.app</string>
     <string name="settings_debug_desc">View / share debug.log</string>
-    <string name="settings_about_body">Version %1$s (build %2$s)\nBuild date %3$s\n\nFT8, made easy.\n\nA standalone FT8 transceiver app for Android. USB, Bluetooth, and network rig control with automatic sequencing and logging.</string>
+    <string name="settings_about_body">Version %1$s (build %2$s)\nBuild date %3$s\n\nSSTV, made easy.\n\nReceive and transmit slow-scan television images on your Android phone. USB CAT, Bluetooth, and network rig control with a built-in gallery and logbook.</string>
     <string name="settings_website">Website</string>
     <string name="settings_community">Community</string>
     <string name="settings_built_by">Built by</string>
