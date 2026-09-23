@@ -279,7 +279,7 @@
     <string name="html_download_unconfirmed">下载未确认</string>
     <string name="callsign_error">呼号不正确！</string>
     <string name="adjust_call_target">调整呼叫目标：%s</string>
-    <string name="use_wspr2_error">当前使用的频率 %s 是 WSPR-2 使用的频率，禁止发射 FT8 信号！</string>
+    <string name="use_wspr2_error">当前使用的频率 %s 是 WSPR-2 使用的频率，禁止发射 SSTV 信号！</string>
     <string name="none">无</string>
     <string name="connect_bluetooth_spp">正在连接 Bluetooth 串口 %s …</string>
     <string name="bluetooth_is_connected">Bluetooth 设备 %s 已连接。</string>

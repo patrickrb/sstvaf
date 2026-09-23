@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <!-- ===== Common / shared ===== -->
     <string name="action_cancel">Annuler</string>
     <string name="action_save">Enregistrer</string>
     <string name="action_done">Terminé</string>
@@ -10,12 +8,11 @@
     <string name="common_none">Aucun</string>
     <string name="common_off">Désactivé</string>
     <string name="common_not_configured">Non configuré</string>
+    <string name="common_configured">Configuré</string>
     <string name="common_not_connected">Non connecté</string>
     <string name="common_pass">Réussi</string>
     <string name="common_fail">Échec</string>
     <string name="common_test_connection">Tester la connexion</string>
-
-    <!-- ===== Continents ===== -->
     <string name="continent_na">Amérique du Nord</string>
     <string name="continent_sa">Amérique du Sud</string>
     <string name="continent_eu">Europe</string>
@@ -23,10 +20,8 @@
     <string name="continent_as">Asie</string>
     <string name="continent_oc">Océanie</string>
     <string name="continent_an">Antarctique</string>
-
-    <!-- ===== Bottom navigation tabs ===== -->
-
-    <!-- ===== Status pills (decode list badges) ===== -->
+    <string name="tab_receive">Réception</string>
+    <string name="tab_send">Envoi</string>
     <string name="status_new_dxcc">NOUVEAU DXCC</string>
     <string name="status_new_grid">NOUVELLE GRILLE</string>
     <string name="status_new_band">NOUVELLE BANDE</string>
@@ -36,31 +31,47 @@
     <string name="status_confirmed">CONFIRMÉ</string>
     <string name="status_cq">CQ</string>
     <string name="status_pending">EN ATTENTE</string>
-
-    <!-- ===== Splash / app-level ===== -->
-    <string name="splash_tagline">FT8 · COMPAGNON MOBILE</string>
+    <string name="splash_tagline">SSTV · DES IMAGES SUR LES ONDES</string>
     <string name="splash_initializing">INITIALISATION DE LA RADIO</string>
     <string name="splash_version">v%1$s · build %2$s</string>
     <string name="app_set_callsign_first">Définissez votre indicatif dans les Réglages avant d\'appeler CQ</string>
     <string name="app_hunt_on">Chasse activée — réponse automatique aux CQ</string>
     <string name="app_hunt_off">Chasse désactivée — appel CQ, traitement des réponses uniquement</string>
+    <string name="app_mode_switched">Mode : %1$s</string>
+    <string name="app_mode_switch_busy">Impossible de changer de mode pendant l\'émission</string>
     <string name="main_tx_volume">Volume TX : %1$d%%</string>
-
-    <!-- ===== Exit dialog ===== -->
     <string name="exit_title">QUITTER SSTVAF ?</string>
     <string name="exit_message">Voulez-vous vraiment fermer l\'application ? Tout QSO en cours sera annulé.</string>
-
-    <!-- ===== Frequency picker ===== -->
-
-    <!-- ===== Operator card ===== -->
+    <string name="action_back">Retour</string>
+    <string name="header_frequency_chip_description">Fréquence %1$s, %2$s, appuyez pour modifier</string>
+    <string name="cat_state_connected">connecté</string>
+    <string name="cat_state_connecting">connexion en cours</string>
+    <string name="cat_state_disconnected">non connecté</string>
+    <string name="cat_state_error">erreur de connexion</string>
+    <string name="cat_state_vox">pas de liaison CAT</string>
+    <string name="header_more_description">Plus : radio, opérateur, journal, réglages</string>
+    <string name="more_title">Plus</string>
+    <string name="more_radio_audio">Radio &amp; audio</string>
+    <string name="more_operator">Opérateur</string>
+    <string name="more_logbook">Journal</string>
+    <string name="more_logbook_sub">QSO SSTV · export ADIF · Cloudlog</string>
+    <string name="more_settings">Réglages</string>
+    <string name="more_settings_sub">Tout le reste</string>
+    <string name="freq_sheet_title">Fréquence</string>
+    <string name="freq_unit_mhz">MHz</string>
+    <string name="freq_note_night">nuit</string>
+    <string name="freq_note_evenings">soirées</string>
+    <string name="freq_note_daytime_busiest">journée · plus actif</string>
+    <string name="freq_note_daytime">journée</string>
+    <string name="freq_note_when_open">quand ouverte</string>
+    <string name="freq_tx_level">Niveau TX</string>
+    <string name="freq_tune_explain">Émet une porteuse continue pour accorder l\'antenne. S\'arrête après %1$d s.</string>
     <string name="op_no_call">PAS D\'INDICATIF</string>
     <string name="op_no_grid">Aucune grille définie</string>
     <string name="op_tap_to_edit">Appuyez pour modifier</string>
     <string name="op_stat_rig">RIG</string>
     <string name="op_stat_antenna">ANTENNA</string>
     <string name="op_stat_power">POWER</string>
-
-    <!-- ===== Export log sheet ===== -->
     <string name="export_title">EXPORTER LES QSOS</string>
     <string name="export_date_range">PLAGE DE DATES</string>
     <string name="export_date_from_placeholder">"Du  AAAAMMJJ"</string>
@@ -79,8 +90,23 @@
     <string name="export_saved_to">Enregistré dans %1$s</string>
     <string name="export_save_failed">Échec de l\'enregistrement dans Téléchargements</string>
     <string name="export_temp_file_failed">Impossible de créer le fichier temporaire</string>
-
-    <!-- ===== Active QSO panel ===== -->
+    <string name="tx_transmitting">ÉMISSION</string>
+    <string name="tx_listening">ÉCOUTE</string>
+    <string name="tx_hunt">Chasse</string>
+    <string name="tx_call_cq">Appel CQ</string>
+    <string name="tx_stop">Arrêter</string>
+    <string name="tx_volume_decrease">Decrease TX volume</string>
+    <string name="tx_volume_increase">Increase TX volume</string>
+    <string name="tx_cq_options">Options du message CQ (modificateur, texte libre, Field Day)</string>
+    <string name="hound_title">Contacter une DXpédition (Hound)</string>
+    <string name="hound_help">Réglez d\'abord la radio sur la fréquence d\'affichage publiée du Fox. Vous appelez haut (1000–4000 Hz) ; l\'app vous fait QSY automatiquement là où le Fox répond et envoie votre report.</string>
+    <string name="hound_fox_callsign">Indicatif du Fox</string>
+    <string name="hound_call_frequency">Fréquence d\'appel (Hz, 1000–4000)</string>
+    <string name="hound_start">Démarrer</string>
+    <string name="swr_lockout_title">TX ARRÊTÉ — SWR élevé détecté (%1$s)</string>
+    <string name="swr_lockout_body">Vérifiez l\'antenne / le câble avant d\'émettre.</string>
+    <string name="swr_lockout_dismiss">IGNORER</string>
+    <string name="swr_lockout_toast">TX bloqué — verrouillage SWR actif. Fermez la bannière d\'abord.</string>
     <string name="qsopanel_calling_cq">Appel CQ</string>
     <string name="qsopanel_searching">Recherche...</string>
     <string name="qsopanel_qsoing_with">QSO avec %1$s</string>
@@ -88,8 +114,8 @@
     <string name="qsopanel_tap_to_view">appuyez pour afficher ↗</string>
     <string name="qsopanel_tx_message">TX : %1$s</string>
     <string name="qsopanel_waiting_messages">En attente de messages...</string>
-
-    <!-- ===== Decode screen ===== -->
+    <string name="qsopanel_log_action">LOG</string>
+    <string name="qsopanel_queue">FILE</string>
     <string name="decode_title">Décodage</string>
     <string name="decode_subtitle">"%1$s  •  %2$d décodés ce cycle"</string>
     <string name="decode_clear_list">Effacer la liste de décodage</string>
@@ -114,12 +140,11 @@
     <string name="decode_label_calling">→ APPEL</string>
     <string name="decode_label_cq">CQ</string>
     <string name="decode_label_to_you">↓ POUR VOUS</string>
-
-    <!-- ===== QSO sheet ===== -->
     <string name="qso_complete">QSO terminé</string>
     <string name="qso_call_action">Appeler %1$s</string>
     <string name="qso_qrz_link">QRZ ↗</string>
     <string name="qso_stat_signal">Signal</string>
+    <string name="qso_stat_distance">Distance</string>
     <string name="qso_stat_azimuth">Azimut</string>
     <string name="qso_stat_band">Bande</string>
     <string name="qso_sequence_header">SÉQUENCE QSO</string>
@@ -134,8 +159,6 @@
     <string name="qso_live_step_fallback">message</string>
     <string name="qso_tx_now">TX MAINTENANT</string>
     <string name="qso_tx_next">TX SUIVANT</string>
-
-    <!-- ===== Logbook ===== -->
     <string name="log_tab_stats">Statistiques</string>
     <string name="log_tab_recent">Récents</string>
     <string name="log_tab_awards">Diplômes</string>
@@ -156,6 +179,10 @@
     <string name="log_section_signal_trend">Tendance du signal</string>
     <string name="log_no_qsos_yet">Aucun QSO pour le moment</string>
     <string name="log_no_qsos_recorded_yet">Aucun QSO enregistré pour le moment</string>
+    <string name="log_search_placeholder">Rechercher indicatif, locator, bande…</string>
+    <string name="log_search_no_matches">Aucun QSO ne correspond à « %1$s »</string>
+    <string name="log_cd_search">Rechercher des QSO</string>
+    <string name="log_cd_clear_search">Effacer la recherche</string>
     <string name="log_state_usa">%1$s, USA</string>
     <string name="log_cd_qso_actions">Actions QSO</string>
     <string name="log_action_edit">Modifier</string>
@@ -184,8 +211,18 @@
     <string name="log_sync_cloudlog_accepted">Cloudlog / Wavelog / Nextlog : %1$d acceptés</string>
     <string name="log_sync_nothing_to_upload">Aucun QSO à envoyer dans le journal pour le moment.</string>
     <string name="log_sync_working">Traitement…</string>
-
-    <!-- ===== POTA ===== -->
+    <string name="log_cd_add_qso">Enregistrer un QSO manuellement</string>
+    <string name="log_manual_title">ENREGISTRER UN QSO SSTV</string>
+    <string name="log_manual_callsign">Indicatif</string>
+    <string name="log_manual_grid">Locator (facultatif)</string>
+    <string name="log_manual_rsv_sent">RSV envoyé</string>
+    <string name="log_manual_rsv_rcvd">RSV reçu</string>
+    <string name="log_manual_freq_mhz">Fréquence (MHz)</string>
+    <string name="log_manual_mode">Mode SSTV</string>
+    <string name="log_manual_comment">Commentaire (facultatif)</string>
+    <string name="log_manual_save">Enregistrer le QSO</string>
+    <string name="log_manual_cancel">Annuler</string>
+    <string name="log_manual_time_note">Enregistré à l\'heure UTC actuelle</string>
     <string name="pota_tab_activate">Activer</string>
     <string name="pota_tab_hunt">Chasse</string>
     <string name="pota_tab_history">Historique</string>
@@ -210,8 +247,8 @@
     <string name="pota_end_activation">Terminer l\'activation</string>
     <string name="pota_notes_quote">“%1$s”</string>
     <string name="pota_tx_cq_preview">Le TX CQ sera émis comme « CQ POTA %1$s %2$s ».</string>
-    <string name="pota_no_spots">Aucun spot POTA FT8 pour le moment.</string>
-    <string name="pota_active_spots">%1$d spots FT8 actifs</string>
+    <string name="pota_no_spots">Aucun spot SSTV POTA pour le moment.</string>
+    <string name="pota_active_spots">%1$d spots SSTV actifs</string>
     <string name="pota_targeting">Ciblage de %1$s @ %2$s kHz (%3$s) — passez au Décodage pour appeler</string>
     <string name="pota_no_past_activations">Aucune activation passée pour le moment.</string>
     <string name="pota_no_browser_available">Aucun navigateur disponible</string>
@@ -220,8 +257,36 @@
     <string name="pota_qso_count">%1$d QSO</string>
     <string name="pota_share_adif">Partager ADIF</string>
     <string name="pota_open_pota_app">Ouvrir pota.app</string>
-
-    <!-- ===== Debug log / Map / Waterfall ===== -->
+    <string name="pota_upload_to_pota">Envoyer vers POTA</string>
+    <string name="pota_upload_success">%1$d journal(aux) de parc envoyé(s) vers POTA</string>
+    <string name="pota_upload_failed">Échec de l\'envoi : %1$s</string>
+    <string name="pota_upload_server_error">POTA n\'a pas pu traiter l\'envoi. Vérifiez que la référence du parc est valide et que votre indicatif est enregistré auprès de POTA, puis réessayez.</string>
+    <string name="pota_upload_busy">Les serveurs de POTA sont temporairement indisponibles. Nous avons réessayé plusieurs fois sans succès — veuillez réessayer dans quelques minutes.</string>
+    <string name="pota_upload_network_error">Impossible de joindre POTA. Vérifiez votre connexion internet et réessayez.</string>
+    <string name="pota_login_title">Se connecter à POTA</string>
+    <string name="pota_login_desc">Utilisez l\'e-mail et le mot de passe de votre compte pota.app.</string>
+    <string name="pota_login_email">E-mail</string>
+    <string name="pota_login_password">Mot de passe</string>
+    <string name="pota_login_button">Se connecter</string>
+    <string name="pota_login_cancel">Annuler</string>
+    <string name="pota_login_failed">Échec de la connexion : %1$s</string>
+    <string name="pota_login_or">ou</string>
+    <string name="pota_login_social">Se connecter avec Google / Facebook / Amazon</string>
+    <string name="pota_oauth_title">Se connecter à POTA</string>
+    <string name="pota_add_park">Ajouter un parc</string>
+    <string name="pota_remove_park">Retirer</string>
+    <string name="pota_max_parks_reached">Maximum de 10 parcs atteint</string>
+    <string name="pota_spotted_n_parks">Spotté sur %1$d parcs</string>
+    <string name="pota_parks_more">+%1$d de plus</string>
+    <string name="pota_search_parks">Rechercher des parcs</string>
+    <string name="pota_search_parks_hint">Filtrer par nom ou référence</string>
+    <string name="pota_recent_parks">PARCS RÉCENTS</string>
+    <string name="pota_nearby_parks">PARCS À PROXIMITÉ</string>
+    <string name="pota_no_recent_parks">Aucune activation récente</string>
+    <string name="pota_no_nearby_parks">Aucun parc trouvé à proximité</string>
+    <string name="pota_loading_nearby">Chargement des parcs à proximité…</string>
+    <string name="pota_loading_recent">Chargement des parcs récents…</string>
+    <string name="pota_location_unavailable">Position indisponible — activez le GPS</string>
     <string name="debug_title">Débogage</string>
     <string name="debug_line_count">%1$d lignes</string>
     <string name="debug_logcat_on_suffix">" · logcat ON"</string>
@@ -237,16 +302,23 @@
     <string name="map_no_grid_set">Aucune grille définie</string>
     <string name="map_station_count">%1$d stations</string>
     <string name="map_station_count_with_heard">%1$d stations · %2$d entendues</string>
+    <string name="map_psk_error">PSK Reporter indisponible : %1$s</string>
     <string name="map_projection_equirectangular">Équirectangulaire</string>
     <string name="map_projection_azimuthal">Azimutale équidistante</string>
     <string name="map_mode_standard">STD</string>
     <string name="map_mode_azimuthal">AZ</string>
     <string name="map_overlay_psk">PSK</string>
+    <string name="map_filter">Filtrer</string>
+    <string name="map_filter_title">Filtres PSK</string>
+    <string name="map_filter_done">Terminé</string>
+    <string name="map_filter_time">Durée</string>
+    <string name="map_filter_band">Bande</string>
+    <string name="map_filter_mode">Mode</string>
+    <string name="map_filter_direction">Direction</string>
+    <string name="map_filter_all">Tout</string>
     <string name="map_info_distance">Distance</string>
     <string name="map_info_bearing">Cap</string>
     <string name="map_info_snr">SNR</string>
-
-    <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d min</string>
     <string name="settings_tries_format">%1$d tentatives</string>
     <string name="settings_milliseconds_format">%1$d ms</string>
@@ -257,8 +329,6 @@
     <string name="settings_min_max_suffix">%1$d–%2$d %3$s</string>
     <string name="settings_build_date_format">Build %1$s</string>
     <string name="settings_version_value">v%1$s</string>
-
-    <!-- ===== Settings: sections ===== -->
     <string name="settings_title">Réglages</string>
     <string name="settings_section_operator_identity">IDENTITÉ DE L\'OPÉRATEUR</string>
     <string name="settings_section_radio">RADIO</string>
@@ -272,20 +342,35 @@
     <string name="settings_section_advanced">AVANCÉ</string>
     <string name="settings_section_about">À PROPOS</string>
     <string name="settings_section_language">LANGUE</string>
-
-    <!-- ===== Settings: drill-down category labels ===== -->
+    <string name="settings_section_appearance">APPARENCE</string>
+    <string name="settings_section_backup">SAUVEGARDE &amp; RESTAURATION</string>
+    <string name="settings_export">Exporter les réglages</string>
+    <string name="settings_export_desc">Enregistrer tous les réglages dans un fichier de sauvegarde</string>
+    <string name="settings_import">Importer les réglages</string>
+    <string name="settings_import_desc">Restaurer les réglages depuis un fichier de sauvegarde</string>
+    <string name="settings_export_dialog_title">Exporter les réglages</string>
+    <string name="settings_backup_include_sensitive">Inclure les données sensibles</string>
+    <string name="settings_backup_include_sensitive_desc">Clés API et mots de passe (Cloudlog, QRZ, connexion à la radio)</string>
+    <string name="action_export">Exporter</string>
+    <string name="action_import">Importer</string>
+    <string name="settings_import_confirm_title">Importer les réglages ?</string>
+    <string name="settings_import_confirm_msg">Cela remplacera %1$d réglage(s) par les valeurs de la sauvegarde créée le %2$s.</string>
+    <string name="settings_export_success">Réglages exportés</string>
+    <string name="settings_export_failed">Échec de l\'export : %1$s</string>
+    <string name="settings_import_success">Réglages importés — redémarrez l\'application pour appliquer tous les changements</string>
+    <string name="settings_import_failed">Échec de l\'import : %1$s</string>
+    <string name="settings_theme">Thème</string>
+    <string name="settings_theme_desc">Thème de couleur de l\'application</string>
+    <string name="theme_name_dark">Sombre</string>
+    <string name="theme_name_light">Clair</string>
     <string name="settings_cat_radio_audio">Radio et audio</string>
     <string name="settings_cat_transmission">Transmission</string>
     <string name="settings_cat_decode_filters">Décodage et filtres</string>
     <string name="settings_cat_logging">Journal et diplômes</string>
     <string name="settings_cat_advanced">Avancé</string>
     <string name="settings_cat_about">À propos</string>
-
-    <!-- ===== Settings: operator identity ===== -->
     <string name="settings_auto_update_grid">Mise à jour auto de la grille (GPS)</string>
     <string name="settings_auto_update_grid_desc">Utiliser le GPS de l\'appareil pour maintenir votre grille Maidenhead à jour</string>
-
-    <!-- ===== Settings: radio ===== -->
     <string name="settings_rig_model">Modèle de RIG</string>
     <string name="settings_control_mode">Mode de contrôle</string>
     <string name="settings_connection_mode">Mode de connexion</string>
@@ -294,32 +379,35 @@
     <string name="settings_enabled_bands">Bandes activées</string>
     <string name="settings_audio_frequency">Fréquence audio</string>
     <string name="settings_spectrum_width">Largeur du spectre</string>
-
-    <!-- ===== Settings: audio ===== -->
     <string name="settings_audio_input">Entrée audio</string>
     <string name="settings_audio_output">Sortie audio</string>
     <string name="settings_tx_volume">Volume TX</string>
-    <string name="settings_tx_volume_desc" formatted="false">Niveau audio d\'émission (boutons matériels ±5%)</string>
-
-    <!-- ===== Settings: transmission ===== -->
+    <string name="settings_tx_volume_desc">Niveau audio d\'émission (boutons matériels ±5%)</string>
+    <string name="settings_show_volume_slider">Show Volume Slider</string>
+    <string name="settings_show_volume_slider_desc">Display TX volume slider on main screen</string>
+    <string name="settings_per_band_volume">Enregistrer le niveau de sortie par bande</string>
+    <string name="settings_per_band_volume_desc">Mémoriser le volume TX séparément pour chaque bande et le restaurer au changement de bande</string>
+    <string name="per_band_volume_restored">Volume TX %1$d%% restauré pour %2$s</string>
     <string name="settings_tx_rx_split">Split TX/RX</string>
     <string name="settings_tx_rx_split_desc">Émettre sur une fréquence différente de la réception</string>
+    <string name="settings_hold_tx_freq">Conserver la fréquence TX</string>
+    <string name="settings_hold_tx_freq_desc">Conservez votre décalage TX en répondant à une station au lieu de le déplacer sur le sien</string>
+    <string name="settings_clear_on_change">Effacer les décodages au changement de bande/mode</string>
+    <string name="settings_clear_on_change_desc">Vider la liste des décodages et réinitialiser la cible TX sur CQ quand vous changez de bande ou de mode</string>
     <string name="settings_tx_watchdog">Watchdog TX</string>
     <string name="settings_tx_watchdog_desc">Arrêt automatique de l\'émission après expiration du délai</string>
     <string name="settings_stop_after">Arrêter après</string>
     <string name="settings_stop_after_desc">Arrêter d\'appeler après N tentatives sans réponse</string>
-
-    <!-- ===== Settings: auto-sequence ===== -->
     <string name="settings_hunt">Chasse (réponse auto au CQ)</string>
     <string name="settings_hunt_desc">Appeler de manière proactive les stations qui lancent un CQ. Identique au bouton HUNT de la barre TX. Désactivé = lancer CQ et ne traiter que les stations qui vous répondent.</string>
+    <string name="settings_hunt_cq">Hunt + CQ</string>
+    <string name="settings_hunt_cq_desc">Call CQ when Hunt is idle (no stations heard). When a CQ is detected, automatically stop CQ and answer it.</string>
     <string name="settings_auto_call_followed">Appel auto des suivis</string>
     <string name="settings_auto_call_followed_desc">Continuer à appeler automatiquement les indicatifs suivis</string>
     <string name="settings_fast_turnaround">Réponse rapide</string>
     <string name="settings_fast_turnaround_desc">Décoder ~1 s plus tôt pour pouvoir répondre à un CQ sur le créneau suivant au lieu d\'attendre. Peut manquer les stations ayant un décalage d\'horloge important.</string>
     <string name="settings_auto_cq_after_qso">Auto-CQ après QSO</string>
     <string name="settings_auto_cq_after_qso_desc">Continuer à appeler CQ automatiquement après chaque contact terminé — sans nouvel appui. Reste sur votre fréquence (ignore la Chasse). Fonctionne jusqu\'à ce que vous l\'arrêtiez ou que le Watchdog TX expire sans réponse.</string>
-
-    <!-- ===== Settings: decode highlights ===== -->
     <string name="settings_highlight_new_dxcc">Nouveau DXCC</string>
     <string name="settings_highlight_new_dxcc_desc">Mettre en évidence les stations d\'une entité DXCC non contactée</string>
     <string name="settings_highlight_new_grid">Nouvelle grille</string>
@@ -330,16 +418,12 @@
     <string name="settings_highlight_worked_desc">Marquer les stations déjà présentes dans votre journal</string>
     <string name="settings_distance_unit">Distance en miles</string>
     <string name="settings_distance_unit_desc">Afficher les distances en miles au lieu de kilomètres</string>
-
-    <!-- ===== Settings: callsign blocklist ===== -->
     <string name="settings_exact_callsigns">Indicatifs exacts</string>
     <string name="settings_exact_callsigns_desc">Bloquer les correspondances d\'indicatif complet</string>
     <string name="settings_prefixes">Préfixes</string>
     <string name="settings_prefixes_desc">Bloquer par préfixe d\'indicatif (ex. RA)</string>
     <string name="settings_keywords">Mots-clés</string>
     <string name="settings_keywords_desc">Bloquer par sous-chaîne dans l\'indicatif ou le message (ex. POTA, /P)</string>
-
-    <!-- ===== Settings: decode filters ===== -->
     <string name="settings_show_only_cq">Afficher uniquement CQ</string>
     <string name="settings_show_only_cq_desc">Masquer tout sauf les messages de type CQ</string>
     <string name="settings_dx_only">DX uniquement</string>
@@ -353,26 +437,31 @@
     <string name="settings_skip_directional_cq_desc">Ne pas répondre automatiquement aux CQ DX/EU/JA… visant un autre DXCC</string>
     <string name="settings_hide_directional_cq">Masquer les CQ directionnels qui ne me concernent pas</string>
     <string name="settings_hide_directional_cq_desc">Masquer les CQ dirigés vers une région qui ne ciblent pas votre DXCC</string>
-
-    <!-- ===== Settings: needed-DX alerts ===== -->
-
-    <!-- ===== Settings: logging &amp; awards ===== -->
+    <string name="alert_cq_reply_title">Vous appelle : %1$s</string>
+    <string name="alert_qso_complete_title">QSO terminé</string>
+    <string name="rx_service_channel_name">Réception en arrière-plan</string>
+    <string name="rx_service_channel_desc">Maintient le décodage SSTV actif pendant que l\'application est en arrière-plan ou l\'écran éteint</string>
+    <string name="rx_service_title">SSTVAF est à l\'écoute d\'images SSTV</string>
+    <string name="rx_service_text">Décodage SSTV en arrière-plan</string>
     <string name="settings_save_swl_decodes">Enregistrer les décodages SWL</string>
     <string name="settings_save_swl_decodes_desc">Journaliser tous les messages décodés dans la base de données</string>
     <string name="settings_save_swl_qsos">Enregistrer les QSOs SWL</string>
     <string name="settings_save_swl_qsos_desc">Journaliser les QSOs détectés entre d\'autres stations</string>
     <string name="settings_cloudlog">Cloudlog / Wavelog / Nextlog</string>
     <string name="settings_cloudlog_desc">Envoyer automatiquement les QSOs vers une instance Cloudlog, Wavelog ou Nextlog</string>
-
-    <!-- ===== Settings: advanced ===== -->
     <string name="settings_ptt_delay">Délai PTT</string>
     <string name="settings_ptt_delay_desc">Délai après le PTT avant le début de l\'audio d\'émission</string>
+    <string name="settings_vox_pre_tone">Pré-tonalité VOX</string>
+    <string name="settings_vox_pre_tone_desc">Amorce supplémentaire de 1900 Hz avant chaque image pour que le VOX ou un câble auto-PTT (radios portatives) passe en émission sans tronquer l\'en-tête SSTV. S\'applique en mode VOX uniquement.</string>
+    <string name="settings_cw_id">Identification CW de la station</string>
+    <string name="settings_cw_id_desc">Envoyer votre indicatif en morse après chaque image SSTV</string>
+    <string name="settings_cw_id_speed">Vitesse de l\'ID CW</string>
+    <string name="settings_cw_id_speed_desc">Vitesse de manipulation morse pour l\'identification de la station</string>
+    <string name="settings_cw_id_wpm_format">%1$d WPM</string>
     <string name="settings_tx_delay">Délai TX</string>
     <string name="settings_tx_delay_desc">Délai avant l\'émission pour permettre le décodage du cycle précédent</string>
     <string name="settings_late_start_tolerance">Tolérance de démarrage tardif</string>
     <string name="settings_late_start_tolerance_desc">Autoriser le démarrage du TX jusqu\'à N ms après le début d\'un cycle ; l\'audio de tête est tronqué pour que le TX se termine sur la limite du cycle</string>
-
-    <!-- ===== Settings: about ===== -->
     <string name="settings_faq_support">FAQ &amp; assistance</string>
     <string name="settings_report_bug">Signaler un bug</string>
     <string name="settings_share_logs">Partager les journaux</string>
@@ -384,12 +473,10 @@
     <string name="bug_report_no_email_app">Aucune application e-mail trouvée pour envoyer le rapport</string>
     <string name="bug_report_open_github">Ouvrir un ticket GitHub</string>
     <string name="settings_debug_desc">Afficher / partager debug.log</string>
-    <string name="settings_about_body">Version %1$s (build %2$s)\nDate de build %3$s\n\nFT8, en toute simplicité.\n\nUne application de transceiver FT8 autonome pour Android. Contrôle de rig par USB, Bluetooth et réseau avec séquençage et journalisation automatiques.</string>
+    <string name="settings_about_body">Version %1$s (build %2$s)\nDate de build %3$s\n\nLe SSTV, en toute simplicité.\n\nRecevez et transmettez des images en télévision à balayage lent sur votre téléphone Android. Contrôle de radio par USB CAT, Bluetooth et réseau, avec galerie et journal intégrés.</string>
     <string name="settings_website">Site web</string>
     <string name="settings_community">Communauté</string>
     <string name="settings_built_by">Développé par</string>
-
-    <!-- ===== Settings: dialogs ===== -->
     <string name="settings_block_exact_title">Bloquer des indicatifs exacts</string>
     <string name="settings_block_exact_desc">Correspondance d\'indicatif complet. Séparés par des virgules ou des espaces, ex. W1AW, K1ABC.</string>
     <string name="settings_block_prefix_title">Bloquer des préfixes d\'indicatif</string>
@@ -402,6 +489,7 @@
     <string name="settings_conn_bluetooth">Bluetooth</string>
     <string name="settings_conn_network">Réseau</string>
     <string name="settings_no_usb_serial">Aucun périphérique série USB détecté. Connectez un câble USB à votre radio et réessayez.</string>
+    <string name="settings_no_bluetooth_devices">Aucun appareil Bluetooth appairé trouvé. Appairez d\'abord un appareil dans les réglages Bluetooth d\'Android.</string>
     <string name="settings_edit_operator_identity">Modifier l\'identité de l\'opérateur</string>
     <string name="settings_callsign">Indicatif</string>
     <string name="settings_callsign_hint">ex. W1AW</string>
@@ -426,43 +514,15 @@
     <string name="settings_select_serial_port">Sélectionner le port série</string>
     <string name="settings_tx_volume_advice">Ajustez en direct — votre prochain TX utilise ce niveau. Surveillez l\'ALC de votre radio et réduisez jusqu\'à ce qu\'il effleure tout juste la ligne.</string>
     <string name="settings_input_volume">Volume d\'entrée</string>
-    <string name="settings_input_volume_desc" formatted="false">Gain audio RX appliqué avant le décodage (100 % = inchangé)</string>
+    <string name="settings_input_volume_desc">Gain audio RX appliqué avant le décodage (100 % = inchangé)</string>
     <string name="settings_input_volume_advice">Appliqué à l\'audio entrant avant le décodage. Surveillez l\'indicateur de niveau RX sur la cascade et visez la zone verte ; le rouge signale l\'écrêtage.</string>
     <string name="input_level_too_low">Faible</string>
     <string name="input_level_good">Bon</string>
     <string name="input_level_too_high">Élevé</string>
     <string name="input_level_clipping">Clip</string>
-
-    <!-- ===== Settings: language picker ===== -->
     <string name="settings_language">Langue</string>
     <string name="settings_language_desc">Langue d\'affichage de l\'application</string>
     <string name="settings_language_system">Paramètre système</string>
-
-    <string name="tx_transmitting">ÉMISSION</string>
-    <string name="tx_listening">ÉCOUTE</string>
-    <string name="tx_hunt">Chasse</string>
-    <string name="tx_call_cq">Appel CQ</string>
-    <string name="tx_stop">Arrêter</string>
-    <string name="hound_title">Contacter une DXpédition (Hound)</string>
-    <string name="hound_help">Réglez d\'abord la radio sur la fréquence d\'affichage publiée du Fox. Vous appelez haut (1000–4000 Hz) ; l\'app vous fait QSY automatiquement là où le Fox répond et envoie votre report.</string>
-    <string name="hound_fox_callsign">Indicatif du Fox</string>
-    <string name="hound_call_frequency">Fréquence d\'appel (Hz, 1000–4000)</string>
-    <string name="hound_start">Démarrer</string>
-
-    <string name="qsopanel_log_action">LOG</string>
-    <string name="qsopanel_queue">FILE</string>
-    <string name="swr_lockout_title">TX ARRÊTÉ — SWR élevé détecté (%1$s)</string>
-    <string name="swr_lockout_body">Vérifiez l\'antenne / le câble avant d\'émettre.</string>
-    <string name="swr_lockout_dismiss">IGNORER</string>
-    <string name="swr_lockout_toast">TX bloqué — verrouillage SWR actif. Fermez la bannière d\'abord.</string>
-
-    <!-- Untranslated — added for parity; translate when localization pass runs -->
-    <string name="settings_show_volume_slider">Show Volume Slider</string>
-    <string name="settings_show_volume_slider_desc">Display TX volume slider on main screen</string>
-    <string name="settings_hunt_cq">Hunt + CQ</string>
-    <string name="settings_hunt_cq_desc">Call CQ when Hunt is idle (no stations heard). When a CQ is detected, automatically stop CQ and answer it.</string>
-    <string name="tx_volume_decrease">Decrease TX volume</string>
-    <string name="tx_volume_increase">Increase TX volume</string>
     <string name="tx_audio_dropped">Échec audio TX — aucun signal émis ce cycle (erreur audio USB)</string>
     <string name="cq_offset_moved">Décalage CQ déplacé vers un créneau libre : %1$d Hz</string>
     <string name="settings_auto_clear_tx">Décalage TX libre automatique</string>
@@ -471,6 +531,213 @@
     <string name="tune_stopped_timeout">Tune arrêté après %1$d s</string>
     <string name="tune_blocked_tx">Arrêtez le CQ/QSO avant d\'utiliser Tune</string>
     <string name="tune_unavailable_route">Tune n\'est pas encore disponible sur cette voie audio</string>
+    <string name="rx_listening">À l\'écoute du SSTV…</string>
+    <string name="rx_disabled">La réception est désactivée</string>
+    <string name="rx_signal_detected">Signal détecté…</string>
+    <string name="rx_saved_chip">Enregistré ✓</string>
+    <string name="rx_signal_lost">Signal perdu — image partielle non enregistrée</string>
+    <string name="rx_quality_label">Qualité</string>
+    <string name="rx_eta_format">%1$s restant</string>
+    <string name="rx_canvas_description">Image SSTV reçue</string>
+    <string name="rx_status_listening">À l\'écoute</string>
+    <string name="rx_status_decoding">Décodage %1$s</string>
+    <string name="rx_status_off">La réception est désactivée</string>
+    <string name="rx_status_complete">Image complète</string>
+    <string name="rx_status_saved">Enregistrée dans la Galerie</string>
+    <string name="rx_status_save_failed">Échec de l\'enregistrement</string>
+    <string name="rx_status_lost">Signal perdu</string>
+    <string name="rx_status_auto_detect">détection auto</string>
+    <string name="rx_quality_value">Qualité %1$s</string>
+    <string name="rx_received_today">REÇUES AUJOURD\'HUI</string>
+    <string name="rx_received_all">Toutes</string>
+    <string name="rx_received_none">Rien reçu pour l\'instant</string>
+    <string name="settings_save_rx_photos">Enregistrer les images reçues dans Photos</string>
+    <string name="settings_save_rx_photos_desc">Les images SSTV terminées apparaissent aussi dans l\'application Photos sous Pictures/SSTVAF (Android 10+)</string>
+    <string name="tab_gallery">Galerie</string>
+    <string name="gallery_filter_all">Toutes</string>
+    <string name="gallery_filter_rx">Reçues</string>
+    <string name="gallery_filter_tx">Envoyées</string>
+    <string name="gallery_filter_chip_label">%1$s %2$d</string>
+    <string name="gallery_empty_rx">Les images reçues apparaîtront ici</string>
+    <string name="gallery_empty_tx">Les images envoyées apparaîtront ici</string>
+    <string name="gallery_search_placeholder">Rechercher mode, bande, note…</string>
+    <string name="gallery_search_no_matches">Aucune image ne correspond à « %1$s »</string>
+    <string name="gallery_cd_search">Rechercher des images</string>
+    <string name="gallery_cd_clear_search">Effacer la recherche</string>
+    <string name="gallery_section_today">Aujourd\'hui</string>
+    <string name="gallery_section_yesterday">Hier</string>
+    <string name="gallery_section_count_label">%1$s · %2$d</string>
+    <string name="gallery_send_again">Renvoyer</string>
+    <string name="gallery_reply_with_picture">Répondre avec une image</string>
+    <string name="gallery_share">Partager</string>
+    <string name="gallery_save_photos">Enregistrer dans Photos</string>
+    <string name="gallery_delete">Supprimer</string>
+    <string name="gallery_delete_title">Supprimer l\'image ?</string>
+    <string name="gallery_delete_message">Cela retire l\'image enregistrée de l\'application. Action irréversible.</string>
+    <string name="gallery_share_chooser_title">Partager l\'image SSTV</string>
+    <string name="gallery_saved_to_photos">Enregistrée dans Photos</string>
+    <string name="gallery_save_photos_failed">Impossible d\'enregistrer dans Photos</string>
+    <string name="gallery_meta_mode">Mode</string>
+    <string name="gallery_meta_frequency">Fréquence</string>
+    <string name="gallery_meta_band">Bande</string>
+    <string name="gallery_meta_time">Heure</string>
+    <string name="gallery_meta_size">Taille</string>
+    <string name="gallery_meta_airtime">Temps d\'antenne</string>
+    <string name="gallery_meta_quality">Qualité</string>
+    <string name="gallery_quality_value">%1$s · %2$s</string>
+    <string name="gallery_quality_grade_excellent">Excellente</string>
+    <string name="gallery_quality_grade_good">Bonne</string>
+    <string name="gallery_quality_grade_fair">Correcte</string>
+    <string name="gallery_quality_grade_poor">Médiocre</string>
+    <string name="gallery_meta_direction">Direction</string>
+    <string name="gallery_meta_direction_rx">Reçue</string>
+    <string name="gallery_meta_direction_tx">Envoyée</string>
+    <string name="gallery_meta_status">Statut</string>
+    <string name="gallery_meta_complete">Complète</string>
+    <string name="gallery_meta_partial">Partielle</string>
+    <string name="gallery_meta_note">Note</string>
+    <string name="gallery_note_add">Ajouter une note</string>
+    <string name="gallery_note_title">Note de l\'image</string>
+    <string name="gallery_note_hint">Indicatif, QTH ou commentaire</string>
+    <string name="gallery_note_save">Enregistrer</string>
+    <string name="rx_view_in_gallery">Voir dans la Galerie</string>
+    <string name="tx_empty_title">Choisissez une image à envoyer</string>
+    <string name="tx_empty_body">Les photos sont recadrées au cadre du mode SSTV</string>
+    <string name="tx_pick_button">Choisir une image</string>
+    <string name="tx_camera_button">Appareil photo</string>
+    <string name="tx_preview_description">Aperçu de l\'émission</string>
+    <string name="tx_change_photo">CHANGER</string>
+    <string name="tx_camera_photo">APPAREIL PHOTO</string>
+    <string name="tx_clear_photo">EFFACER</string>
+    <string name="tx_overlay_add">Ajouter du texte</string>
+    <string name="tx_overlay_edit">Modifier le texte</string>
+    <string name="tx_overlay_remove">Retirer</string>
+    <string name="tx_overlay_save">Enregistrer</string>
+    <string name="tx_overlay_text_label">Texte</string>
+    <string name="tx_tool_crop">Recadrer</string>
+    <string name="tx_tool_text">Texte</string>
+    <string name="tx_tool_callsign">Indicatif</string>
+    <string name="tx_tool_frame">Cadre</string>
+    <string name="tx_tool_adjust">Ajuster</string>
+    <string name="tx_tool_draw">Dessiner</string>
+    <string name="tx_transmitting_label">ÉMISSION · %1$s</string>
+    <string name="tx_stop_action">Arrêter</string>
+    <string name="tx_sent_saved">Envoyée · enregistrée dans la Galerie</string>
+    <string name="tx_outcome_sent">Envoyée</string>
+    <string name="tx_outcome_sent_detail">Enregistrée dans la Galerie</string>
+    <string name="tx_outcome_stopped">Arrêtée</string>
+    <string name="tx_outcome_stopped_detail">Une partie de l\'image a été émise</string>
+    <string name="tx_outcome_failed">Échec de l\'émission</string>
+    <string name="tx_outcome_failed_detail">Rien n\'a été émis · consultez le journal de débogage</string>
+    <string name="tx_sent_edit_again">Modifier &amp; renvoyer</string>
+    <string name="tx_sent_new_picture">Nouvelle image</string>
+    <string name="tx_change_photo_pill">Changer</string>
+    <string name="tx_new_picture_short">Nouvelle</string>
+    <string name="tx_stroke_thin">Trait fin</string>
+    <string name="tx_stroke_medium">Trait moyen</string>
+    <string name="tx_stroke_thick">Trait épais</string>
+    <string name="tx_color_white">Blanc</string>
+    <string name="tx_color_black">Noir</string>
+    <string name="tx_color_cyan">Cyan</string>
+    <string name="tx_color_amber">Ambre</string>
+    <string name="tx_color_green">Vert</string>
+    <string name="tx_overlay_delete_description">Retirer le texte sélectionné</string>
+    <string name="tx_transmit_action">Émettre</string>
+    <string name="tx_choose_photo">Choisir une photo</string>
+    <string name="tx_choose_photo_sub">Recadrée au cadre SSTV · vous pourrez la déplacer ensuite</string>
+    <string name="tx_card_cq">Carte CQ</string>
+    <string name="tx_card_cq_headline">CQ SSTV</string>
+    <string name="tx_card_cq_sub">de %1$s</string>
+    <string name="tx_card_grid">Carte locator</string>
+    <string name="tx_last_sent">Dernière envoyée</string>
+    <string name="tx_last_sent_note">appuyez pour repartir de celle-ci</string>
+    <string name="tx_crop_hint">Faites glisser l\'image pour la repositionner. Glissez pour zoomer.</string>
+    <string name="tx_zoom_min">1×</string>
+    <string name="tx_zoom_max">2,5×</string>
+    <string name="tx_crop_reset">Réinitialiser</string>
+    <string name="tx_crop_fill">Remplir le cadre</string>
+    <string name="tx_text_placeholder">Tapez, puis faites-le glisser sur l\'image</string>
+    <string name="tx_text_add">Ajouter</string>
+    <string name="tx_text_done">Terminé</string>
+    <string name="tx_text_hint_selected">Modification du texte sélectionné — faites-le glisser pour le déplacer, ✕ pour le retirer.</string>
+    <string name="tx_text_hint_tap">Appuyez sur un texte de l\'image pour le modifier.</string>
+    <string name="tx_text_hint_bar">Le style barre se lit le plus facilement à travers le bruit.</string>
+    <string name="tx_size_small">S</string>
+    <string name="tx_size_medium">M</string>
+    <string name="tx_size_large">L</string>
+    <string name="tx_style_bar">Barre</string>
+    <string name="tx_style_outline">Contour</string>
+    <string name="tx_callsign_prompt">Apposer %1$s — choisissez un emplacement</string>
+    <string name="tx_callsign_source">depuis les Réglages</string>
+    <string name="tx_callsign_unset">Définissez d\'abord votre indicatif dans les Réglages — le tampon l\'utilise.</string>
+    <string name="tx_preset_top_left">En haut à gauche</string>
+    <string name="tx_preset_top_center">Barre du haut</string>
+    <string name="tx_preset_top_right">En haut à droite</string>
+    <string name="tx_preset_bottom_left">En bas à gauche</string>
+    <string name="tx_preset_bottom_center">Barre du bas</string>
+    <string name="tx_preset_bottom_right">En bas à droite</string>
+    <string name="tx_frame_none">Aucun</string>
+    <string name="tx_frame_thin">Fin</string>
+    <string name="tx_frame_bold">Épais</string>
+    <string name="tx_frame_amber">Ambre</string>
+    <string name="tx_frame_hint">Les cadres sont incrustés dans l\'image, ils survivent donc au trajet.</string>
+    <string name="tx_adjust_brightness">Luminosité</string>
+    <string name="tx_adjust_contrast">Contraste</string>
+    <string name="tx_adjust_saturation">Saturation</string>
+    <string name="tx_adjust_reset">Réinitialiser</string>
+    <string name="tx_adjust_hint">Un peu plus de contraste passe mieux sur les ondes.</string>
+    <string name="tx_draw_hint">Dessinez sur l\'image avec votre doigt.</string>
+    <string name="tx_draw_undo">Annuler</string>
+    <string name="tx_draw_clear">Effacer</string>
+    <string name="mode_sheet_title">Mode SSTV</string>
+    <string name="mode_sheet_rx_note">la réception détecte automatiquement</string>
+    <string name="mode_group_fast">RAPIDE · MOINS D\'UNE MINUTE</string>
+    <string name="mode_group_standard">STANDARD</string>
+    <string name="mode_group_high_resolution">HAUTE RÉSOLUTION</string>
+    <string name="mode_note_most_common">le plus courant sur 20m</string>
+    <string name="mode_card_label">MODE</string>
+    <string name="mode_card_description">Mode SSTV %1$s</string>
+    <string name="mode_card_action">Changer de mode SSTV</string>
+    <string name="mode_row_description">%1$s, %2$s, %3$s</string>
+    <string name="tx_gate_no_image">Choisissez d\'abord une image</string>
+    <string name="tx_gate_tune_active">Arrêtez Tune avant d\'émettre</string>
+    <string name="tx_confirm_title">Émettre cette image ?</string>
+    <string name="tx_confirm_level">Niveau TX %1$d%%</string>
+    <string name="tx_confirm_warning">Confirmer passe l\'émetteur en émission</string>
+    <string name="tx_confirm_cancel">Annuler</string>
+    <string name="tx_confirm_go">Émettre</string>
+    <string name="tx_airtime_quick">Émission rapide</string>
+    <string name="tx_airtime_moderate">Émission modérée</string>
+    <string name="tx_airtime_long">Émission longue</string>
+    <string name="tx_airtime_very_long">Émission très longue</string>
+    <string name="tx_cancel_button">ANNULER TX</string>
+    <string name="tx_remaining_format">%1$s restant</string>
+    <string name="settings_cat_usb_diagnostics">Diagnostics USB</string>
+    <string name="settings_cat_usb_diagnostics_desc">Vérifier la détection des appareils USB et la communication CAT</string>
+    <string name="usb_diag_title">Diagnostics USB</string>
+    <string name="usb_diag_desc">État en direct de la détection des appareils USB et de la communication CAT. Utilisez-le pour repérer où une connexion à la radio échoue.</string>
+    <string name="usb_diag_device_found">Appareil trouvé</string>
+    <string name="usb_diag_vendor_id">Vendor ID</string>
+    <string name="usb_diag_product_id">Product ID</string>
+    <string name="usb_diag_permission">Autorisation USB</string>
+    <string name="usb_diag_cdc_serial">CDC série trouvé</string>
+    <string name="usb_diag_audio_device">Périphérique audio trouvé</string>
+    <string name="usb_diag_port_open">Port ouvert</string>
+    <string name="usb_diag_cat_response">Réponse CAT</string>
+    <string name="usb_diag_value_none">—</string>
+    <string name="usb_diag_status_pass">réussi</string>
+    <string name="usb_diag_status_fail">échec</string>
+    <string name="settings_rx_channel">Canal audio de réception</string>
+    <string name="settings_rx_channel_desc">Quel côté d\'une entrée stéréo décoder. Utilisez Gauche ou Droite quand la radio n\'alimente qu\'un seul canal.</string>
+    <string name="settings_rx_channel_mix">Mixage</string>
+    <string name="settings_tx_channel">Canal audio d\'émission</string>
+    <string name="settings_tx_channel_desc">Quel côté d\'une sortie stéréo transporte l\'audio émis. Utilisez Gauche ou Droite pour piloter une radio sur un câble en Y.</string>
+    <string name="settings_tx_channel_both">Les deux</string>
+    <string name="settings_channel_left">Gauche</string>
+    <string name="settings_channel_right">Droite</string>
+    <string name="settings_channel_mono_device">Cet appareil n\'a qu\'un seul canal audio, il n\'y a donc aucun côté à choisir.</string>
+    <string name="settings_tx_channel_default_sink">Choisissez un périphérique de sortie audio précis pour sélectionner un côté. Sur la sortie par défaut, l\'application ne peut pas savoir où Android achemine l\'audio, elle l\'envoie donc sur les deux canaux.</string>
+    <string name="settings_rx_channel_network_source">L\'audio de cette radio arrive par sa liaison réseau, pas par une entrée audio, il n\'y a donc aucun côté à choisir.</string>
     <string name="tune_atu_started">Coupleur d\'antenne de la radio démarré</string>
     <string name="tune_atu_unavailable">Coupleur indisponible — connectez une radio CAT avec coupleur interne</string>
     <string name="settings_tune_method">Méthode de Tune</string>
@@ -478,5 +745,62 @@
     <string name="tune_method_automatic">Automatique</string>
     <string name="tune_method_internal">Coupleur interne</string>
     <string name="tune_method_tone">Tonalité à faible puissance</string>
-
+    <string name="action_edit">Modifier</string>
+    <string name="settings_cat_radio_audio_desc">Modèle de radio, connexion, PTT et périphériques audio</string>
+    <string name="settings_cat_transmission_desc">Comment TUNE passe la radio en émission</string>
+    <string name="settings_cat_appearance">Apparence</string>
+    <string name="settings_cat_appearance_desc">Thème et langue de l\'application</string>
+    <string name="settings_cat_logging_desc">Envoi vers Cloudlog et enregistrement dans Photos</string>
+    <string name="settings_cat_advanced_desc">Pré-tonalité VOX, identification CW, sauvegarde et restauration</string>
+    <string name="settings_cat_about_desc">Version, licences et crédits</string>
+    <string name="settings_rig_status_connected">%1$s relié via %2$s</string>
+    <string name="settings_rig_status_idle">Aucune radio reliée · %1$s</string>
+    <string name="settings_value_usb_ok">Relié</string>
+    <string name="settings_value_no_link">Pas de liaison</string>
+    <string name="settings_value_cloudlog_on">Cloudlog activé</string>
+    <string name="settings_value_off">Désactivé</string>
+    <string name="settings_footer">SSTVAF v%1$s · Exportez et importez les réglages dans Avancé</string>
+    <string name="operator_sheet_title">Opérateur</string>
+    <string name="operator_antenna">Antenne</string>
+    <string name="operator_antenna_hint">ex. EFHW 40-10m</string>
+    <string name="operator_power">Puissance (watts)</string>
+    <string name="operator_power_hint">ex. 100</string>
+    <string name="radio_link_connected">%1$s connecté</string>
+    <string name="radio_link_connecting">Connexion à %1$s</string>
+    <string name="radio_link_disconnected">%1$s ne répond pas</string>
+    <string name="radio_link_vox">VOX · audio uniquement</string>
+    <string name="radio_link_no_model">Aucun modèle de radio sélectionné</string>
+    <string name="radio_action_reconnect">Reconnecter</string>
+    <string name="radio_action_connecting">Connexion en cours</string>
+    <string name="radio_action_connect">Connecter</string>
+    <string name="radio_action_test_ptt">Tester le PTT</string>
+    <string name="radio_action_stop_test">Arrêter le test</string>
+    <string name="radio_action_choose_rig">Choisir une radio</string>
+    <string name="radio_detail_vox">La radio passe en émission d\'elle-même à partir de l\'audio émis</string>
+    <string name="radio_detail_waiting">en attente de la radio</string>
+    <string name="radio_detail_check_cable">vérifiez le câble et les réglages de la radio</string>
+    <string name="radio_hint_usb">Nécessite un câble OTG. Android demande l\'autorisation la première fois que la radio est branchée.</string>
+    <string name="radio_hint_bluetooth">Appairez d\'abord la radio dans les réglages Bluetooth d\'Android.</string>
+    <string name="radio_hint_network">Pour une radio distante, ex. rigctld à 192.168.1.10:4532.</string>
+    <string name="radio_ptt_cat">Passe la radio en émission avec une commande CAT sur la liaison série.</string>
+    <string name="radio_ptt_rts">Passe la radio en émission en activant la ligne série RTS.</string>
+    <string name="radio_ptt_dtr">Passe la radio en émission en activant la ligne série DTR.</string>
+    <string name="radio_ptt_vox">La radio passe en émission d\'elle-même quand elle entend l\'audio émis. Aucune liaison de contrôle.</string>
+    <string name="radio_section_connection">CONNEXION</string>
+    <string name="radio_ptt_method">Méthode PTT</string>
+    <string name="radio_baud_rate">Débit en bauds</string>
+    <string name="radio_ptt_delay">Délai PTT</string>
+    <string name="radio_ptt_delay_desc">Temps de stabilisation après le passage en émission, avant le démarrage de l\'audio</string>
+    <string name="radio_ms_format">%1$d ms</string>
+    <string name="radio_rig_picker_title">Modèle de radio</string>
+    <string name="radio_rig_search_hint">Rechercher des modèles</string>
+    <string name="radio_rig_search_clear">Effacer la recherche</string>
+    <string name="radio_rig_no_matches">Aucun modèle ne correspond à cette recherche</string>
+    <string name="radio_input_level">Niveau d\'entrée</string>
+    <string name="radio_level_silent">Silencieux</string>
+    <string name="radio_level_advice_silent">Aucun audio n\'atteint l\'application. Vérifiez le câble et le périphérique d\'entrée.</string>
+    <string name="radio_level_advice_low">Trop faible. Augmentez le gain de la radio ou de l\'entrée.</string>
+    <string name="radio_level_advice_good">Dans la plage saine.</string>
+    <string name="radio_level_advice_high">Proche de l\'écrêtage. Baissez un peu le gain.</string>
+    <string name="radio_level_advice_clipping">Écrêtage. Baissez le gain jusqu\'à ce que les crêtes restent sous le repère.</string>
 </resources>

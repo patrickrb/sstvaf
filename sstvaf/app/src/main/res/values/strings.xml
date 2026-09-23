@@ -279,7 +279,7 @@
     <string name="html_download_unconfirmed">Download unconfirmed</string>
     <string name="callsign_error">Callsign is incorrect !</string>
     <string name="adjust_call_target">Adjust call target : %s</string>
-    <string name="use_wspr2_error">The currently used frequency %s is the frequency used by wspr-2. It is prohibited to transmit FT8 signals!</string>
+    <string name="use_wspr2_error">The currently used frequency %s is the frequency used by wspr-2. It is prohibited to transmit SSTV signals!</string>
     <string name="none">None</string>
     <string name="connect_bluetooth_spp">Connecting Bluetooth serial port %s …</string>
     <string name="bluetooth_is_connected">Bluetooth device %s is connected.</string>

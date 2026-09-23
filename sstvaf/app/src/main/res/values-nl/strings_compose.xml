@@ -1,18 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  ~ Compose UI strings (SSTVAF). The live app is the Jetpack Compose UI under
-  ~ radio.ks3ckc.sstvaf; these are its user-facing strings, externalized for
-  ~ localization. The legacy strings.xml entries belong to the unreachable old
-  ~ XML/Fragment UI and are NOT used by the running app.
-  ~
-  ~ Translations live in values-<locale>/strings_compose.xml. English here is the
-  ~ source of truth — keep it byte-identical to the original UI text so the English
-  ~ layout never changes. Ham-radio abbreviations (CQ, QSO, DXCC, POTA, SOTA, RST)
-  ~ are intentionally left untranslated across all locales.
--->
 <resources>
-
-    <!-- ===== Common / shared ===== -->
     <string name="action_cancel">Annuleren</string>
     <string name="action_save">Opslaan</string>
     <string name="action_done">Klaar</string>
@@ -21,12 +8,11 @@
     <string name="common_none">Geen</string>
     <string name="common_off">Uit</string>
     <string name="common_not_configured">Niet geconfigureerd</string>
+    <string name="common_configured">Geconfigureerd</string>
     <string name="common_not_connected">Niet verbonden</string>
     <string name="common_pass">Geslaagd</string>
     <string name="common_fail">Mislukt</string>
     <string name="common_test_connection">Verbinding testen</string>
-
-    <!-- ===== Continents ===== -->
     <string name="continent_na">Noord-Amerika</string>
     <string name="continent_sa">Zuid-Amerika</string>
     <string name="continent_eu">Europa</string>
@@ -34,10 +20,8 @@
     <string name="continent_as">Azië</string>
     <string name="continent_oc">Oceanië</string>
     <string name="continent_an">Antarctica</string>
-
-    <!-- ===== Bottom navigation tabs ===== -->
-
-    <!-- ===== Status pills (decode list badges) ===== -->
+    <string name="tab_receive">Ontvangen</string>
+    <string name="tab_send">Verzenden</string>
     <string name="status_new_dxcc">NIEUW DXCC</string>
     <string name="status_new_grid">NIEUW GRID</string>
     <string name="status_new_band">NIEUWE BAND</string>
@@ -47,9 +31,7 @@
     <string name="status_confirmed">BEVESTIGD</string>
     <string name="status_cq">CQ</string>
     <string name="status_pending">IN AFWACHTING</string>
-
-    <!-- ===== Splash / app-level ===== -->
-    <string name="splash_tagline">FT8 · MOBIELE METGEZEL</string>
+    <string name="splash_tagline">SSTV · BEELDEN IN DE LUCHT</string>
     <string name="splash_initializing">RADIO INITIALISEREN</string>
     <string name="splash_version">v%1$s · build %2$s</string>
     <string name="app_set_callsign_first">Stel je roepnaam in bij Instellingen voordat je CQ roept</string>
@@ -58,22 +40,38 @@
     <string name="app_mode_switched">Modus: %1$s</string>
     <string name="app_mode_switch_busy">Kan modus niet wijzigen tijdens uitzenden</string>
     <string name="main_tx_volume">TX-volume: %1$d%%</string>
-
-    <!-- ===== Exit dialog ===== -->
     <string name="exit_title">SSTVAF AFSLUITEN?</string>
     <string name="exit_message">Weet je zeker dat je de app wilt sluiten? Een actieve QSO wordt geannuleerd.</string>
-
-    <!-- ===== Frequency picker ===== -->
-
-    <!-- ===== Operator card ===== -->
+    <string name="action_back">Terug</string>
+    <string name="header_frequency_chip_description">Frequentie %1$s, %2$s, tik om te wijzigen</string>
+    <string name="cat_state_connected">verbonden</string>
+    <string name="cat_state_connecting">verbinden</string>
+    <string name="cat_state_disconnected">niet verbonden</string>
+    <string name="cat_state_error">verbindingsfout</string>
+    <string name="cat_state_vox">geen CAT-verbinding</string>
+    <string name="header_more_description">Meer: radio, operator, logboek, instellingen</string>
+    <string name="more_title">Meer</string>
+    <string name="more_radio_audio">Radio &amp; audio</string>
+    <string name="more_operator">Operator</string>
+    <string name="more_logbook">Logboek</string>
+    <string name="more_logbook_sub">SSTV-QSO\'s · ADIF-export · Cloudlog</string>
+    <string name="more_settings">Instellingen</string>
+    <string name="more_settings_sub">Al het andere</string>
+    <string name="freq_sheet_title">Frequentie</string>
+    <string name="freq_unit_mhz">MHz</string>
+    <string name="freq_note_night">nacht</string>
+    <string name="freq_note_evenings">avonden</string>
+    <string name="freq_note_daytime_busiest">overdag · drukst</string>
+    <string name="freq_note_daytime">overdag</string>
+    <string name="freq_note_when_open">wanneer open</string>
+    <string name="freq_tx_level">TX-niveau</string>
+    <string name="freq_tune_explain">Zendt een stabiele draaggolf voor het afstemmen van de antenne. Stopt automatisch na %1$d s.</string>
     <string name="op_no_call">GEEN ROEPNAAM</string>
     <string name="op_no_grid">Geen grid ingesteld</string>
     <string name="op_tap_to_edit">Tik om te bewerken</string>
     <string name="op_stat_rig">RIG</string>
     <string name="op_stat_antenna">ANTENNE</string>
     <string name="op_stat_power">VERMOGEN</string>
-
-    <!-- ===== Export log sheet ===== -->
     <string name="export_title">QSO\'S EXPORTEREN</string>
     <string name="export_date_range">DATUMBEREIK</string>
     <string name="export_date_from_placeholder">"Van  JJJJMMDD"</string>
@@ -92,29 +90,23 @@
     <string name="export_saved_to">Opgeslagen in %1$s</string>
     <string name="export_save_failed">Opslaan in Downloads mislukt</string>
     <string name="export_temp_file_failed">Kan tijdelijk bestand niet aanmaken</string>
-
-    <!-- ===== TX strip ===== -->
     <string name="tx_transmitting">UITZENDEN</string>
     <string name="tx_listening">LUISTEREN</string>
     <string name="tx_hunt">Hunt</string>
     <string name="tx_call_cq">CQ roepen</string>
     <string name="tx_stop">Stoppen</string>
-
-    <!-- ===== Hound (DXpedition) setup ===== -->
+    <string name="tx_volume_decrease">Decrease TX volume</string>
+    <string name="tx_volume_increase">Increase TX volume</string>
+    <string name="tx_cq_options">CQ-berichtopties (modifier, vrije tekst, Field Day)</string>
     <string name="hound_title">Een DXpeditie werken (Hound)</string>
     <string name="hound_help">Stem de rig eerst af op de gepubliceerde dialfrequentie van de Fox. Jij roept hoog (1000–4000 Hz); de app QSY\'t je automatisch omlaag naar waar de Fox antwoordt en stuurt je rapport mee.</string>
     <string name="hound_fox_callsign">Roepnaam Fox</string>
     <string name="hound_call_frequency">Roepfrequentie (Hz, 1000–4000)</string>
     <string name="hound_start">Starten</string>
-
-
-    <!-- ===== SWR lockout banner ===== -->
     <string name="swr_lockout_title">TX GESTOPT — Hoge SWR gedetecteerd (%1$s)</string>
     <string name="swr_lockout_body">Controleer antenne / voedingslijn voordat je uitzendt.</string>
     <string name="swr_lockout_dismiss">SLUITEN</string>
     <string name="swr_lockout_toast">TX geblokkeerd — SWR-vergrendeling actief. Sluit eerst de vergrendelingsbanner.</string>
-
-    <!-- ===== Active QSO panel ===== -->
     <string name="qsopanel_calling_cq">CQ roepen</string>
     <string name="qsopanel_searching">Zoeken...</string>
     <string name="qsopanel_qsoing_with">QSO met %1$s</string>
@@ -124,8 +116,6 @@
     <string name="qsopanel_waiting_messages">Wachten op berichten...</string>
     <string name="qsopanel_log_action">LOGGEN</string>
     <string name="qsopanel_queue">WACHTRIJ</string>
-
-    <!-- ===== Decode screen ===== -->
     <string name="decode_title">Decoderen</string>
     <string name="decode_subtitle">"%1$s  •  %2$d gedecodeerd deze cyclus"</string>
     <string name="decode_clear_list">Decodelijst wissen</string>
@@ -150,8 +140,6 @@
     <string name="decode_label_calling">→ ROEPT</string>
     <string name="decode_label_cq">CQ</string>
     <string name="decode_label_to_you">↓ VOOR JOU</string>
-
-    <!-- ===== QSO sheet ===== -->
     <string name="qso_complete">QSO voltooid</string>
     <string name="qso_call_action">%1$s roepen</string>
     <string name="qso_qrz_link">QRZ ↗</string>
@@ -171,8 +159,6 @@
     <string name="qso_live_step_fallback">bericht</string>
     <string name="qso_tx_now">TX NU</string>
     <string name="qso_tx_next">TX VOLGENDE</string>
-
-    <!-- ===== Logbook ===== -->
     <string name="log_tab_stats">Statistieken</string>
     <string name="log_tab_recent">Recent</string>
     <string name="log_tab_awards">Onderscheidingen</string>
@@ -193,6 +179,10 @@
     <string name="log_section_signal_trend">Signaaltrend</string>
     <string name="log_no_qsos_yet">Nog geen QSOs</string>
     <string name="log_no_qsos_recorded_yet">Nog geen QSOs vastgelegd</string>
+    <string name="log_search_placeholder">Zoek roepnaam, grid, band…</string>
+    <string name="log_search_no_matches">Geen QSO\'s komen overeen met “%1$s”</string>
+    <string name="log_cd_search">QSO\'s zoeken</string>
+    <string name="log_cd_clear_search">Zoekopdracht wissen</string>
     <string name="log_state_usa">%1$s, USA</string>
     <string name="log_cd_qso_actions">QSO-acties</string>
     <string name="log_action_edit">Bewerken</string>
@@ -221,8 +211,18 @@
     <string name="log_sync_cloudlog_accepted">Cloudlog / Wavelog / Nextlog: %1$d geaccepteerd</string>
     <string name="log_sync_nothing_to_upload">Nog geen QSOs in het logboek om te uploaden.</string>
     <string name="log_sync_working">Bezig…</string>
-
-    <!-- ===== POTA ===== -->
+    <string name="log_cd_add_qso">Een QSO handmatig loggen</string>
+    <string name="log_manual_title">SSTV-QSO LOGGEN</string>
+    <string name="log_manual_callsign">Roepnaam</string>
+    <string name="log_manual_grid">Grid (optioneel)</string>
+    <string name="log_manual_rsv_sent">RSV verzonden</string>
+    <string name="log_manual_rsv_rcvd">RSV ontvangen</string>
+    <string name="log_manual_freq_mhz">Frequentie (MHz)</string>
+    <string name="log_manual_mode">SSTV-mode</string>
+    <string name="log_manual_comment">Opmerking (optioneel)</string>
+    <string name="log_manual_save">QSO opslaan</string>
+    <string name="log_manual_cancel">Annuleren</string>
+    <string name="log_manual_time_note">Gelogd op de huidige UTC-tijd</string>
     <string name="pota_tab_activate">Activeren</string>
     <string name="pota_tab_hunt">Hunt</string>
     <string name="pota_tab_history">Geschiedenis</string>
@@ -247,8 +247,8 @@
     <string name="pota_end_activation">Activatie beëindigen</string>
     <string name="pota_notes_quote">“%1$s”</string>
     <string name="pota_tx_cq_preview">TX CQ wordt verzonden als “CQ POTA %1$s %2$s”.</string>
-    <string name="pota_no_spots">Op dit moment geen FT8 POTA-spots.</string>
-    <string name="pota_active_spots">%1$d actieve FT8-spots</string>
+    <string name="pota_no_spots">Op dit moment geen SSTV POTA-spots.</string>
+    <string name="pota_active_spots">%1$d actieve SSTV-spots</string>
     <string name="pota_targeting">Gericht op %1$s @ %2$s kHz (%3$s) — ga naar Decoderen om te roepen</string>
     <string name="pota_no_past_activations">Nog geen eerdere activaties.</string>
     <string name="pota_no_browser_available">Geen browser beschikbaar</string>
@@ -278,8 +278,15 @@
     <string name="pota_max_parks_reached">Maximum van 10 parken bereikt</string>
     <string name="pota_spotted_n_parks">Gespot bij %1$d parken</string>
     <string name="pota_parks_more">+%1$d meer</string>
-
-    <!-- ===== Debug log / Map / Waterfall ===== -->
+    <string name="pota_search_parks">Parken zoeken</string>
+    <string name="pota_search_parks_hint">Filter op naam of referentie</string>
+    <string name="pota_recent_parks">RECENTE PARKEN</string>
+    <string name="pota_nearby_parks">PARKEN IN DE BUURT</string>
+    <string name="pota_no_recent_parks">Geen recente activaties</string>
+    <string name="pota_no_nearby_parks">Geen parken in de buurt gevonden</string>
+    <string name="pota_loading_nearby">Parken in de buurt laden…</string>
+    <string name="pota_loading_recent">Recente parken laden…</string>
+    <string name="pota_location_unavailable">Locatie niet beschikbaar — schakel GPS in</string>
     <string name="debug_title">Debug</string>
     <string name="debug_line_count">%1$d regels</string>
     <string name="debug_logcat_on_suffix">" · logcat AAN"</string>
@@ -301,11 +308,17 @@
     <string name="map_mode_standard">STD</string>
     <string name="map_mode_azimuthal">AZ</string>
     <string name="map_overlay_psk">PSK</string>
+    <string name="map_filter">Filter</string>
+    <string name="map_filter_title">PSK-filters</string>
+    <string name="map_filter_done">Klaar</string>
+    <string name="map_filter_time">Tijd</string>
+    <string name="map_filter_band">Band</string>
+    <string name="map_filter_mode">Mode</string>
+    <string name="map_filter_direction">Richting</string>
+    <string name="map_filter_all">Alle</string>
     <string name="map_info_distance">Afstand</string>
     <string name="map_info_bearing">Peiling</string>
     <string name="map_info_snr">SNR</string>
-
-    <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d min</string>
     <string name="settings_tries_format">%1$d pogingen</string>
     <string name="settings_milliseconds_format">%1$d ms</string>
@@ -316,8 +329,6 @@
     <string name="settings_min_max_suffix">%1$d–%2$d %3$s</string>
     <string name="settings_build_date_format">Build %1$s</string>
     <string name="settings_version_value">v%1$s</string>
-
-    <!-- ===== Settings: sections ===== -->
     <string name="settings_title">Instellingen</string>
     <string name="settings_section_operator_identity">OPERATORIDENTITEIT</string>
     <string name="settings_section_radio">RADIO</string>
@@ -331,20 +342,35 @@
     <string name="settings_section_advanced">GEAVANCEERD</string>
     <string name="settings_section_about">OVER</string>
     <string name="settings_section_language">TAAL</string>
-
-    <!-- ===== Settings: drill-down category labels ===== -->
+    <string name="settings_section_appearance">WEERGAVE</string>
+    <string name="settings_section_backup">BACK-UP &amp; HERSTEL</string>
+    <string name="settings_export">Instellingen exporteren</string>
+    <string name="settings_export_desc">Alle instellingen opslaan in een back-upbestand</string>
+    <string name="settings_import">Instellingen importeren</string>
+    <string name="settings_import_desc">Instellingen herstellen vanuit een back-upbestand</string>
+    <string name="settings_export_dialog_title">Instellingen exporteren</string>
+    <string name="settings_backup_include_sensitive">Gevoelige gegevens opnemen</string>
+    <string name="settings_backup_include_sensitive_desc">API-sleutels en wachtwoorden (Cloudlog, QRZ, rig-login)</string>
+    <string name="action_export">Exporteren</string>
+    <string name="action_import">Importeren</string>
+    <string name="settings_import_confirm_title">Instellingen importeren?</string>
+    <string name="settings_import_confirm_msg">Hiermee worden %1$d instelling(en) overschreven met waarden uit de back-up van %2$s.</string>
+    <string name="settings_export_success">Instellingen geëxporteerd</string>
+    <string name="settings_export_failed">Exporteren mislukt: %1$s</string>
+    <string name="settings_import_success">Instellingen geïmporteerd — start de app opnieuw om alle wijzigingen toe te passen</string>
+    <string name="settings_import_failed">Importeren mislukt: %1$s</string>
+    <string name="settings_theme">Thema</string>
+    <string name="settings_theme_desc">Kleurenthema van de app</string>
+    <string name="theme_name_dark">Donker</string>
+    <string name="theme_name_light">Licht</string>
     <string name="settings_cat_radio_audio">Radio &amp; Audio</string>
     <string name="settings_cat_transmission">Uitzending</string>
     <string name="settings_cat_decode_filters">Decoderen &amp; Filters</string>
     <string name="settings_cat_logging">Loggen &amp; Onderscheidingen</string>
     <string name="settings_cat_advanced">Geavanceerd</string>
     <string name="settings_cat_about">Over</string>
-
-    <!-- ===== Settings: operator identity ===== -->
     <string name="settings_auto_update_grid">Grid automatisch bijwerken (GPS)</string>
     <string name="settings_auto_update_grid_desc">Gebruik GPS van het apparaat om je Maidenhead-grid actueel te houden</string>
-
-    <!-- ===== Settings: radio ===== -->
     <string name="settings_rig_model">Rig-model</string>
     <string name="settings_control_mode">Besturingsmodus</string>
     <string name="settings_connection_mode">Verbindingsmodus</string>
@@ -353,32 +379,35 @@
     <string name="settings_enabled_bands">Ingeschakelde banden</string>
     <string name="settings_audio_frequency">Audiofrequentie</string>
     <string name="settings_spectrum_width">Spectrumbreedte</string>
-
-    <!-- ===== Settings: audio ===== -->
     <string name="settings_audio_input">Audio-ingang</string>
     <string name="settings_audio_output">Audio-uitgang</string>
     <string name="settings_tx_volume">TX-volume</string>
-    <string name="settings_tx_volume_desc" formatted="false">Uitzendaudio-niveau (hardwareknoppen ±5%)</string>
-
-    <!-- ===== Settings: transmission ===== -->
+    <string name="settings_tx_volume_desc">Uitzendaudio-niveau (hardwareknoppen ±5%)</string>
+    <string name="settings_show_volume_slider">Show Volume Slider</string>
+    <string name="settings_show_volume_slider_desc">Display TX volume slider on main screen</string>
+    <string name="settings_per_band_volume">Uitgangsniveau per band opslaan</string>
+    <string name="settings_per_band_volume_desc">Onthoud het TX-volume apart voor elke band en herstel het bij het wisselen van band</string>
+    <string name="per_band_volume_restored">TX-volume %1$d%% hersteld voor %2$s</string>
     <string name="settings_tx_rx_split">TX/RX-split</string>
     <string name="settings_tx_rx_split_desc">Uitzenden op een andere frequentie dan ontvangen</string>
+    <string name="settings_hold_tx_freq">TX-freq vasthouden</string>
+    <string name="settings_hold_tx_freq_desc">Behoud je TX-offset bij het beantwoorden van een station in plaats van deze naar die van hen te verplaatsen</string>
+    <string name="settings_clear_on_change">Decodes wissen bij band-/modewijziging</string>
+    <string name="settings_clear_on_change_desc">Wis de decodelijst en zet het TX-doel terug op CQ wanneer je van band of mode wisselt</string>
     <string name="settings_tx_watchdog">TX-watchdog</string>
     <string name="settings_tx_watchdog_desc">Uitzending automatisch stoppen na time-out</string>
     <string name="settings_stop_after">Stoppen na</string>
     <string name="settings_stop_after_desc">Stop met roepen na N onbeantwoorde pogingen</string>
-
-    <!-- ===== Settings: auto-sequence ===== -->
     <string name="settings_hunt">Hunt (CQ automatisch beantwoorden)</string>
     <string name="settings_hunt_desc">Roep proactief stations die CQ roepen. Hetzelfde als de HUNT-knop op de TX-balk. Uit = CQ roepen en alleen stations werken die jou antwoorden.</string>
+    <string name="settings_hunt_cq">Hunt + CQ</string>
+    <string name="settings_hunt_cq_desc">Call CQ when Hunt is idle (no stations heard). When a CQ is detected, automatically stop CQ and answer it.</string>
     <string name="settings_auto_call_followed">Gevolgde automatisch roepen</string>
     <string name="settings_auto_call_followed_desc">Gevolgde roepnamen automatisch blijven roepen</string>
     <string name="settings_fast_turnaround">Snelle ommekeer</string>
     <string name="settings_fast_turnaround_desc">Decodeer ~1 s eerder zodat je een CQ in het volgende slot kunt beantwoorden in plaats van te wachten. Kan stations met een grote klokafwijking missen.</string>
     <string name="settings_auto_cq_after_qso">Auto-CQ na QSO</string>
     <string name="settings_auto_cq_after_qso_desc">Blijf automatisch CQ roepen na elk voltooid contact — geen opnieuw tikken. Blijft op je frequentie (negeert Hunt). Loopt door tot je stopt of de TX-watchdog zonder antwoorden verloopt.</string>
-
-    <!-- ===== Settings: decode highlights ===== -->
     <string name="settings_highlight_new_dxcc">Nieuw DXCC</string>
     <string name="settings_highlight_new_dxcc_desc">Markeer stations van een ongewerkte DXCC-entiteit</string>
     <string name="settings_highlight_new_grid">Nieuw grid</string>
@@ -389,16 +418,12 @@
     <string name="settings_highlight_worked_desc">Markeer stations die al in je log staan</string>
     <string name="settings_distance_unit">Afstand in mijlen</string>
     <string name="settings_distance_unit_desc">Toon afstanden in mijlen in plaats van kilometers</string>
-
-    <!-- ===== Settings: callsign blocklist ===== -->
     <string name="settings_exact_callsigns">Exacte roepnamen</string>
     <string name="settings_exact_callsigns_desc">Blokkeer volledige-roep-overeenkomsten</string>
     <string name="settings_prefixes">Voorvoegsels</string>
     <string name="settings_prefixes_desc">Blokkeer op roepnaamvoorvoegsel (bijv. RA)</string>
     <string name="settings_keywords">Trefwoorden</string>
     <string name="settings_keywords_desc">Blokkeer op deeltekst in roep of bericht (bijv. POTA, /P)</string>
-
-    <!-- ===== Settings: decode filters ===== -->
     <string name="settings_show_only_cq">Alleen CQ tonen</string>
     <string name="settings_show_only_cq_desc">Verberg alles behalve CQ-berichten</string>
     <string name="settings_dx_only">Alleen DX</string>
@@ -412,26 +437,31 @@
     <string name="settings_skip_directional_cq_desc">Beantwoord geen CQ DX/EU/JA… die op een ander DXCC is gericht</string>
     <string name="settings_hide_directional_cq">Gerichte CQ\'s niet voor mij verbergen</string>
     <string name="settings_hide_directional_cq_desc">Verberg regiogerichte CQ\'s die niet op jouw DXCC zijn gericht</string>
-
-    <!-- ===== Settings: needed-DX alerts ===== -->
-
-    <!-- ===== Settings: logging &amp; awards ===== -->
+    <string name="alert_cq_reply_title">Roept jou op: %1$s</string>
+    <string name="alert_qso_complete_title">QSO voltooid</string>
+    <string name="rx_service_channel_name">Ontvangen op de achtergrond</string>
+    <string name="rx_service_channel_desc">Houdt het decoderen van SSTV actief terwijl de app op de achtergrond draait of het scherm uit is</string>
+    <string name="rx_service_title">SSTVAF luistert naar SSTV-beelden</string>
+    <string name="rx_service_text">SSTV op de achtergrond decoderen</string>
     <string name="settings_save_swl_decodes">SWL-decodes opslaan</string>
     <string name="settings_save_swl_decodes_desc">Log alle gedecodeerde berichten in de database</string>
     <string name="settings_save_swl_qsos">SWL-QSO\'s opslaan</string>
     <string name="settings_save_swl_qsos_desc">Log QSO\'s die tussen andere stations worden gedetecteerd</string>
     <string name="settings_cloudlog">Cloudlog / Wavelog / Nextlog</string>
     <string name="settings_cloudlog_desc">QSO\'s automatisch uploaden naar een Cloudlog-, Wavelog- of Nextlog-instantie</string>
-
-    <!-- ===== Settings: advanced ===== -->
     <string name="settings_ptt_delay">PTT-vertraging</string>
     <string name="settings_ptt_delay_desc">Vertraging na PTT voordat uitzendaudio begint</string>
+    <string name="settings_vox_pre_tone">VOX-voortoon</string>
+    <string name="settings_vox_pre_tone_desc">Extra 1900 Hz-leader vóór elk beeld zodat VOX of een auto-PTT-kabel (portofoons) inschakelt zonder de SSTV-header af te knippen. Geldt alleen in VOX-mode.</string>
+    <string name="settings_cw_id">CW-station-ID</string>
+    <string name="settings_cw_id_desc">Verzend je roepnaam in morsecode na elk SSTV-beeld</string>
+    <string name="settings_cw_id_speed">CW-ID-snelheid</string>
+    <string name="settings_cw_id_speed_desc">Morse-seinsnelheid voor de station-ID</string>
+    <string name="settings_cw_id_wpm_format">%1$d WPM</string>
     <string name="settings_tx_delay">TX-vertraging</string>
     <string name="settings_tx_delay_desc">Vertraging voor uitzenden om decode van vorige cyclus toe te staan</string>
     <string name="settings_late_start_tolerance">Tolerantie late start</string>
     <string name="settings_late_start_tolerance_desc">Sta toe TX tot N ms in een cyclus te starten; leidende audio wordt afgekapt zodat TX op de cyclusgrens eindigt</string>
-
-    <!-- ===== Settings: about ===== -->
     <string name="settings_faq_support">FAQ &amp; Ondersteuning</string>
     <string name="settings_report_bug">Een bug melden</string>
     <string name="settings_share_logs">Logs delen</string>
@@ -443,12 +473,10 @@
     <string name="bug_report_no_email_app">Geen e-mailapp gevonden om de melding te verzenden</string>
     <string name="bug_report_open_github">GitHub-issue openen</string>
     <string name="settings_debug_desc">debug.log bekijken / delen</string>
-    <string name="settings_about_body">Versie %1$s (build %2$s)\nBuilddatum %3$s\n\nFT8, eenvoudig gemaakt.\n\nEen zelfstandige FT8-transceiver-app voor Android. USB-, Bluetooth- en netwerk-rigbesturing met automatische sequentie en logboek.</string>
+    <string name="settings_about_body">Versie %1$s (build %2$s)\nBuilddatum %3$s\n\nSSTV, eenvoudig gemaakt.\n\nOntvang en verzend slow-scan televisiebeelden op je Android-telefoon. USB CAT-, Bluetooth- en netwerk-rigbesturing met een ingebouwde galerij en logboek.</string>
     <string name="settings_website">Website</string>
     <string name="settings_community">Community</string>
     <string name="settings_built_by">Gebouwd door</string>
-
-    <!-- ===== Settings: dialogs ===== -->
     <string name="settings_block_exact_title">Exacte roepnamen blokkeren</string>
     <string name="settings_block_exact_desc">Volledige-roep-overeenkomst. Gescheiden door komma of spatie, bijv. W1AW, K1ABC.</string>
     <string name="settings_block_prefix_title">Roepnaamvoorvoegsels blokkeren</string>
@@ -486,25 +514,15 @@
     <string name="settings_select_serial_port">Seriële poort selecteren</string>
     <string name="settings_tx_volume_advice">Pas live aan — je volgende TX gebruikt dit niveau. Houd de ALC van je radio in de gaten en draai terug tot deze net de lijn raakt.</string>
     <string name="settings_input_volume">Ingangsvolume</string>
-    <string name="settings_input_volume_desc" formatted="false">RX-audioversterking toegepast vóór het decoderen (100% = ongewijzigd)</string>
+    <string name="settings_input_volume_desc">RX-audioversterking toegepast vóór het decoderen (100% = ongewijzigd)</string>
     <string name="settings_input_volume_advice">Toegepast op binnenkomende audio vóór het decoderen. Houd de RX-niveaumeter op de waterval in de gaten en mik op de groene zone; rood betekent clipping.</string>
     <string name="input_level_too_low">Laag</string>
     <string name="input_level_good">Goed</string>
     <string name="input_level_too_high">Hoog</string>
     <string name="input_level_clipping">Clip</string>
-
-    <!-- ===== Settings: language picker ===== -->
     <string name="settings_language">Taal</string>
     <string name="settings_language_desc">Weergavetaal van de app</string>
     <string name="settings_language_system">Systeemstandaard</string>
-
-    <!-- Untranslated — added for parity; translate when localization pass runs -->
-    <string name="settings_show_volume_slider">Show Volume Slider</string>
-    <string name="settings_show_volume_slider_desc">Display TX volume slider on main screen</string>
-    <string name="settings_hunt_cq">Hunt + CQ</string>
-    <string name="settings_hunt_cq_desc">Call CQ when Hunt is idle (no stations heard). When a CQ is detected, automatically stop CQ and answer it.</string>
-    <string name="tx_volume_decrease">Decrease TX volume</string>
-    <string name="tx_volume_increase">Increase TX volume</string>
     <string name="tx_audio_dropped">TX-audio mislukt — geen signaal verzonden deze cyclus (USB-audiofout)</string>
     <string name="cq_offset_moved">CQ-offset verplaatst naar een vrije plek: %1$d Hz</string>
     <string name="settings_auto_clear_tx">Automatisch vrije TX-offset</string>
@@ -513,6 +531,213 @@
     <string name="tune_stopped_timeout">Tune gestopt na %1$d s</string>
     <string name="tune_blocked_tx">Stop de CQ/QSO voordat je Tune gebruikt</string>
     <string name="tune_unavailable_route">Tune is nog niet beschikbaar op deze audioroute</string>
+    <string name="rx_listening">Luisteren naar SSTV…</string>
+    <string name="rx_disabled">Ontvangen staat uit</string>
+    <string name="rx_signal_detected">Signaal gedetecteerd…</string>
+    <string name="rx_saved_chip">Opgeslagen ✓</string>
+    <string name="rx_signal_lost">Signaal verloren — gedeeltelijk beeld niet opgeslagen</string>
+    <string name="rx_quality_label">Kwaliteit</string>
+    <string name="rx_eta_format">%1$s resterend</string>
+    <string name="rx_canvas_description">Ontvangen SSTV-beeld</string>
+    <string name="rx_status_listening">Luisteren</string>
+    <string name="rx_status_decoding">%1$s decoderen</string>
+    <string name="rx_status_off">Ontvangen staat uit</string>
+    <string name="rx_status_complete">Beeld voltooid</string>
+    <string name="rx_status_saved">Opgeslagen in galerij</string>
+    <string name="rx_status_save_failed">Opslaan mislukt</string>
+    <string name="rx_status_lost">Signaal verloren</string>
+    <string name="rx_status_auto_detect">automatisch detecteren</string>
+    <string name="rx_quality_value">Kwaliteit %1$s</string>
+    <string name="rx_received_today">VANDAAG ONTVANGEN</string>
+    <string name="rx_received_all">Alle</string>
+    <string name="rx_received_none">Nog niets ontvangen</string>
+    <string name="settings_save_rx_photos">Ontvangen beelden opslaan in Photos</string>
+    <string name="settings_save_rx_photos_desc">Voltooide SSTV-beelden verschijnen ook in de Photos-app onder Pictures/SSTVAF (Android 10+)</string>
+    <string name="tab_gallery">Galerij</string>
+    <string name="gallery_filter_all">Alle</string>
+    <string name="gallery_filter_rx">Ontvangen</string>
+    <string name="gallery_filter_tx">Verzonden</string>
+    <string name="gallery_filter_chip_label">%1$s %2$d</string>
+    <string name="gallery_empty_rx">Ontvangen beelden verschijnen hier</string>
+    <string name="gallery_empty_tx">Verzonden beelden verschijnen hier</string>
+    <string name="gallery_search_placeholder">Zoek mode, band, notitie…</string>
+    <string name="gallery_search_no_matches">Geen beelden komen overeen met “%1$s”</string>
+    <string name="gallery_cd_search">Beelden zoeken</string>
+    <string name="gallery_cd_clear_search">Zoekopdracht wissen</string>
+    <string name="gallery_section_today">Vandaag</string>
+    <string name="gallery_section_yesterday">Gisteren</string>
+    <string name="gallery_section_count_label">%1$s · %2$d</string>
+    <string name="gallery_send_again">Opnieuw verzenden</string>
+    <string name="gallery_reply_with_picture">Antwoorden met een afbeelding</string>
+    <string name="gallery_share">Delen</string>
+    <string name="gallery_save_photos">Opslaan in Photos</string>
+    <string name="gallery_delete">Verwijderen</string>
+    <string name="gallery_delete_title">Beeld verwijderen?</string>
+    <string name="gallery_delete_message">Hiermee wordt het opgeslagen beeld uit de app verwijderd. Dit kan niet ongedaan worden gemaakt.</string>
+    <string name="gallery_share_chooser_title">SSTV-beeld delen</string>
+    <string name="gallery_saved_to_photos">Opgeslagen in Photos</string>
+    <string name="gallery_save_photos_failed">Kon niet opslaan in Photos</string>
+    <string name="gallery_meta_mode">Mode</string>
+    <string name="gallery_meta_frequency">Frequentie</string>
+    <string name="gallery_meta_band">Band</string>
+    <string name="gallery_meta_time">Tijd</string>
+    <string name="gallery_meta_size">Grootte</string>
+    <string name="gallery_meta_airtime">Zendtijd</string>
+    <string name="gallery_meta_quality">Kwaliteit</string>
+    <string name="gallery_quality_value">%1$s · %2$s</string>
+    <string name="gallery_quality_grade_excellent">Uitstekend</string>
+    <string name="gallery_quality_grade_good">Goed</string>
+    <string name="gallery_quality_grade_fair">Redelijk</string>
+    <string name="gallery_quality_grade_poor">Slecht</string>
+    <string name="gallery_meta_direction">Richting</string>
+    <string name="gallery_meta_direction_rx">Ontvangen</string>
+    <string name="gallery_meta_direction_tx">Verzonden</string>
+    <string name="gallery_meta_status">Status</string>
+    <string name="gallery_meta_complete">Voltooid</string>
+    <string name="gallery_meta_partial">Gedeeltelijk</string>
+    <string name="gallery_meta_note">Notitie</string>
+    <string name="gallery_note_add">Een notitie toevoegen</string>
+    <string name="gallery_note_title">Beeldnotitie</string>
+    <string name="gallery_note_hint">Roepnaam, QTH of opmerking</string>
+    <string name="gallery_note_save">Opslaan</string>
+    <string name="rx_view_in_gallery">Bekijken in galerij</string>
+    <string name="tx_empty_title">Kies een afbeelding om te verzenden</string>
+    <string name="tx_empty_body">Foto\'s worden bijgesneden op het kader van de SSTV-mode</string>
+    <string name="tx_pick_button">Afbeelding kiezen</string>
+    <string name="tx_camera_button">Camera</string>
+    <string name="tx_preview_description">Zendvoorbeeld</string>
+    <string name="tx_change_photo">WIJZIGEN</string>
+    <string name="tx_camera_photo">CAMERA</string>
+    <string name="tx_clear_photo">WISSEN</string>
+    <string name="tx_overlay_add">Tekst toevoegen</string>
+    <string name="tx_overlay_edit">Tekst bewerken</string>
+    <string name="tx_overlay_remove">Verwijderen</string>
+    <string name="tx_overlay_save">Opslaan</string>
+    <string name="tx_overlay_text_label">Tekst</string>
+    <string name="tx_tool_crop">Bijsnijden</string>
+    <string name="tx_tool_text">Tekst</string>
+    <string name="tx_tool_callsign">Roepnaam</string>
+    <string name="tx_tool_frame">Kader</string>
+    <string name="tx_tool_adjust">Aanpassen</string>
+    <string name="tx_tool_draw">Tekenen</string>
+    <string name="tx_transmitting_label">ZENDEN · %1$s</string>
+    <string name="tx_stop_action">Stoppen</string>
+    <string name="tx_sent_saved">Verzonden · opgeslagen in galerij</string>
+    <string name="tx_outcome_sent">Verzonden</string>
+    <string name="tx_outcome_sent_detail">Opgeslagen in galerij</string>
+    <string name="tx_outcome_stopped">Gestopt</string>
+    <string name="tx_outcome_stopped_detail">Een deel van de afbeelding is verzonden</string>
+    <string name="tx_outcome_failed">Verzenden mislukt</string>
+    <string name="tx_outcome_failed_detail">Niets verzonden · controleer het debuglogboek</string>
+    <string name="tx_sent_edit_again">Bewerken &amp; opnieuw verzenden</string>
+    <string name="tx_sent_new_picture">Nieuwe afbeelding</string>
+    <string name="tx_change_photo_pill">Wijzigen</string>
+    <string name="tx_new_picture_short">Nieuw</string>
+    <string name="tx_stroke_thin">Dunne lijn</string>
+    <string name="tx_stroke_medium">Gemiddelde lijn</string>
+    <string name="tx_stroke_thick">Dikke lijn</string>
+    <string name="tx_color_white">Wit</string>
+    <string name="tx_color_black">Zwart</string>
+    <string name="tx_color_cyan">Cyaan</string>
+    <string name="tx_color_amber">Amber</string>
+    <string name="tx_color_green">Groen</string>
+    <string name="tx_overlay_delete_description">De geselecteerde tekst verwijderen</string>
+    <string name="tx_transmit_action">Zenden</string>
+    <string name="tx_choose_photo">Kies een foto</string>
+    <string name="tx_choose_photo_sub">Bijgesneden op het SSTV-kader · je kunt het daarna verplaatsen</string>
+    <string name="tx_card_cq">CQ-kaart</string>
+    <string name="tx_card_cq_headline">CQ SSTV</string>
+    <string name="tx_card_cq_sub">de %1$s</string>
+    <string name="tx_card_grid">Grid-kaart</string>
+    <string name="tx_last_sent">Laatst verzonden</string>
+    <string name="tx_last_sent_note">tik om er vanaf te beginnen</string>
+    <string name="tx_crop_hint">Sleep de afbeelding om deze te verplaatsen. Schuif om te zoomen.</string>
+    <string name="tx_zoom_min">1×</string>
+    <string name="tx_zoom_max">2.5×</string>
+    <string name="tx_crop_reset">Herstellen</string>
+    <string name="tx_crop_fill">Kader vullen</string>
+    <string name="tx_text_placeholder">Typ en sleep het vervolgens op de afbeelding</string>
+    <string name="tx_text_add">Toevoegen</string>
+    <string name="tx_text_done">Klaar</string>
+    <string name="tx_text_hint_selected">De geselecteerde tekst bewerken — sleep om te verplaatsen, ✕ om te verwijderen.</string>
+    <string name="tx_text_hint_tap">Tik op tekst op de afbeelding om deze te bewerken.</string>
+    <string name="tx_text_hint_bar">Balkstijl is het makkelijkst te lezen door ruis heen.</string>
+    <string name="tx_size_small">S</string>
+    <string name="tx_size_medium">M</string>
+    <string name="tx_size_large">L</string>
+    <string name="tx_style_bar">Balk</string>
+    <string name="tx_style_outline">Omtrek</string>
+    <string name="tx_callsign_prompt">Stempel %1$s — kies een plek</string>
+    <string name="tx_callsign_source">uit Instellingen</string>
+    <string name="tx_callsign_unset">Stel eerst je roepnaam in bij Instellingen — de stempel gebruikt deze.</string>
+    <string name="tx_preset_top_left">Linksboven</string>
+    <string name="tx_preset_top_center">Bovenbalk</string>
+    <string name="tx_preset_top_right">Rechtsboven</string>
+    <string name="tx_preset_bottom_left">Linksonder</string>
+    <string name="tx_preset_bottom_center">Onderbalk</string>
+    <string name="tx_preset_bottom_right">Rechtsonder</string>
+    <string name="tx_frame_none">Geen</string>
+    <string name="tx_frame_thin">Dun</string>
+    <string name="tx_frame_bold">Vet</string>
+    <string name="tx_frame_amber">Amber</string>
+    <string name="tx_frame_hint">Kaders worden in de afbeelding gebrand, zodat ze de reis overleven.</string>
+    <string name="tx_adjust_brightness">Helderheid</string>
+    <string name="tx_adjust_contrast">Contrast</string>
+    <string name="tx_adjust_saturation">Verzadiging</string>
+    <string name="tx_adjust_reset">Herstellen</string>
+    <string name="tx_adjust_hint">Een beetje extra contrast leest beter over de lucht.</string>
+    <string name="tx_draw_hint">Teken met je vinger op de afbeelding.</string>
+    <string name="tx_draw_undo">Ongedaan maken</string>
+    <string name="tx_draw_clear">Wissen</string>
+    <string name="mode_sheet_title">SSTV-mode</string>
+    <string name="mode_sheet_rx_note">ontvangst detecteert automatisch</string>
+    <string name="mode_group_fast">SNEL · ONDER EEN MINUUT</string>
+    <string name="mode_group_standard">STANDAARD</string>
+    <string name="mode_group_high_resolution">HOGE RESOLUTIE</string>
+    <string name="mode_note_most_common">meest voorkomend op 20m</string>
+    <string name="mode_card_label">MODE</string>
+    <string name="mode_card_description">SSTV-mode %1$s</string>
+    <string name="mode_card_action">SSTV-mode wijzigen</string>
+    <string name="mode_row_description">%1$s, %2$s, %3$s</string>
+    <string name="tx_gate_no_image">Kies eerst een afbeelding</string>
+    <string name="tx_gate_tune_active">Stop Tune voordat je gaat zenden</string>
+    <string name="tx_confirm_title">Deze afbeelding zenden?</string>
+    <string name="tx_confirm_level">TX-niveau %1$d%%</string>
+    <string name="tx_confirm_warning">Bevestigen schakelt de zender in</string>
+    <string name="tx_confirm_cancel">Annuleren</string>
+    <string name="tx_confirm_go">Zenden</string>
+    <string name="tx_airtime_quick">Snelle uitzending</string>
+    <string name="tx_airtime_moderate">Matige uitzending</string>
+    <string name="tx_airtime_long">Lange uitzending</string>
+    <string name="tx_airtime_very_long">Zeer lange uitzending</string>
+    <string name="tx_cancel_button">TX ANNULEREN</string>
+    <string name="tx_remaining_format">%1$s resterend</string>
+    <string name="settings_cat_usb_diagnostics">USB-diagnostiek</string>
+    <string name="settings_cat_usb_diagnostics_desc">Controleer USB-apparaatdetectie en CAT-communicatie</string>
+    <string name="usb_diag_title">USB-diagnostiek</string>
+    <string name="usb_diag_desc">Live status van USB-apparaatdetectie en CAT-communicatie. Gebruik het om te bepalen waar een rig-verbinding faalt.</string>
+    <string name="usb_diag_device_found">Apparaat gevonden</string>
+    <string name="usb_diag_vendor_id">Vendor-ID</string>
+    <string name="usb_diag_product_id">Product-ID</string>
+    <string name="usb_diag_permission">USB-toestemming</string>
+    <string name="usb_diag_cdc_serial">CDC-serieel gevonden</string>
+    <string name="usb_diag_audio_device">Audioapparaat gevonden</string>
+    <string name="usb_diag_port_open">Poort open</string>
+    <string name="usb_diag_cat_response">CAT-respons</string>
+    <string name="usb_diag_value_none">—</string>
+    <string name="usb_diag_status_pass">geslaagd</string>
+    <string name="usb_diag_status_fail">mislukt</string>
+    <string name="settings_rx_channel">Ontvangst-audiokanaal</string>
+    <string name="settings_rx_channel_desc">Welke kant van een stereo-ingang te decoderen. Gebruik Links of Rechts wanneer de radio maar één kanaal aanlevert.</string>
+    <string name="settings_rx_channel_mix">Mix</string>
+    <string name="settings_tx_channel">Zend-audiokanaal</string>
+    <string name="settings_tx_channel_desc">Welke kant van een stereo-uitgang de verzonden audio draagt. Gebruik Links of Rechts om één radio aan te sturen via een splitterkabel.</string>
+    <string name="settings_tx_channel_both">Beide</string>
+    <string name="settings_channel_left">Links</string>
+    <string name="settings_channel_right">Rechts</string>
+    <string name="settings_channel_mono_device">Dit apparaat heeft maar één audiokanaal, dus er is geen kant om te kiezen.</string>
+    <string name="settings_tx_channel_default_sink">Kies een specifiek audio-uitvoerapparaat om een kant te kiezen. Op de standaarduitgang kan de app niet zien waar Android audio naartoe stuurt, dus wordt het naar beide kanalen verzonden.</string>
+    <string name="settings_rx_channel_network_source">Audio voor deze radio komt binnen via de netwerkverbinding, niet via een audio-ingang, dus er is geen kant om te kiezen.</string>
     <string name="tune_atu_started">Antennetuner van de radio gestart</string>
     <string name="tune_atu_unavailable">Tuner niet beschikbaar — sluit een CAT-radio met interne tuner aan</string>
     <string name="settings_tune_method">Tune-methode</string>
@@ -520,5 +745,62 @@
     <string name="tune_method_automatic">Automatisch</string>
     <string name="tune_method_internal">Interne tuner</string>
     <string name="tune_method_tone">Toon met laag vermogen</string>
-
+    <string name="action_edit">Bewerken</string>
+    <string name="settings_cat_radio_audio_desc">Rig-model, verbinding, PTT en audioapparaten</string>
+    <string name="settings_cat_transmission_desc">Hoe TUNE de rig inschakelt</string>
+    <string name="settings_cat_appearance">Weergave</string>
+    <string name="settings_cat_appearance_desc">Thema en app-taal</string>
+    <string name="settings_cat_logging_desc">Cloudlog-upload en opslaan in Photos</string>
+    <string name="settings_cat_advanced_desc">VOX-voortoon, CW-identificatie, back-up en herstel</string>
+    <string name="settings_cat_about_desc">Versie, licenties en credits</string>
+    <string name="settings_rig_status_connected">%1$s verbonden via %2$s</string>
+    <string name="settings_rig_status_idle">Geen rig verbonden · %1$s</string>
+    <string name="settings_value_usb_ok">Verbonden</string>
+    <string name="settings_value_no_link">Geen verbinding</string>
+    <string name="settings_value_cloudlog_on">Cloudlog aan</string>
+    <string name="settings_value_off">Uit</string>
+    <string name="settings_footer">SSTVAF v%1$s · Exporteer en importeer instellingen in Geavanceerd</string>
+    <string name="operator_sheet_title">Operator</string>
+    <string name="operator_antenna">Antenne</string>
+    <string name="operator_antenna_hint">bijv. EFHW 40-10m</string>
+    <string name="operator_power">Vermogen (watt)</string>
+    <string name="operator_power_hint">bijv. 100</string>
+    <string name="radio_link_connected">%1$s verbonden</string>
+    <string name="radio_link_connecting">Verbinden met %1$s</string>
+    <string name="radio_link_disconnected">%1$s reageert niet</string>
+    <string name="radio_link_vox">VOX · alleen audio</string>
+    <string name="radio_link_no_model">Geen rig-model geselecteerd</string>
+    <string name="radio_action_reconnect">Opnieuw verbinden</string>
+    <string name="radio_action_connecting">Verbinden</string>
+    <string name="radio_action_connect">Verbinden</string>
+    <string name="radio_action_test_ptt">PTT testen</string>
+    <string name="radio_action_stop_test">Test stoppen</string>
+    <string name="radio_action_choose_rig">Rig kiezen</string>
+    <string name="radio_detail_vox">De rig schakelt zichzelf in op basis van de zendaudio</string>
+    <string name="radio_detail_waiting">wachten op de rig</string>
+    <string name="radio_detail_check_cable">controleer de kabel en rig-instellingen</string>
+    <string name="radio_hint_usb">Vereist een OTG-kabel. Android vraagt de eerste keer om toestemming wanneer de rig wordt aangesloten.</string>
+    <string name="radio_hint_bluetooth">Koppel de rig eerst in de Android Bluetooth-instellingen.</string>
+    <string name="radio_hint_network">Voor een externe rig, bijv. rigctld op 192.168.1.10:4532.</string>
+    <string name="radio_ptt_cat">Schakelt de rig in met een CAT-commando over de seriële verbinding.</string>
+    <string name="radio_ptt_rts">Schakelt de rig in door de seriële RTS-lijn te activeren.</string>
+    <string name="radio_ptt_dtr">Schakelt de rig in door de seriële DTR-lijn te activeren.</string>
+    <string name="radio_ptt_vox">De rig schakelt zichzelf in wanneer deze zendaudio hoort. Geen besturingsverbinding.</string>
+    <string name="radio_section_connection">VERBINDING</string>
+    <string name="radio_ptt_method">PTT-methode</string>
+    <string name="radio_baud_rate">Baudrate</string>
+    <string name="radio_ptt_delay">PTT-vertraging</string>
+    <string name="radio_ptt_delay_desc">Insteltijd na het inschakelen, voordat de audio start</string>
+    <string name="radio_ms_format">%1$d ms</string>
+    <string name="radio_rig_picker_title">Rig-model</string>
+    <string name="radio_rig_search_hint">Modellen zoeken</string>
+    <string name="radio_rig_search_clear">Zoekopdracht wissen</string>
+    <string name="radio_rig_no_matches">Geen modellen komen overeen met die zoekopdracht</string>
+    <string name="radio_input_level">Ingangsniveau</string>
+    <string name="radio_level_silent">Stil</string>
+    <string name="radio_level_advice_silent">Geen audio bereikt de app. Controleer de kabel en het ingangsapparaat.</string>
+    <string name="radio_level_advice_low">Te zacht. Verhoog de rig- of ingangsversterking.</string>
+    <string name="radio_level_advice_good">In het gezonde bereik.</string>
+    <string name="radio_level_advice_high">Dicht bij vervorming. Verlaag de versterking iets.</string>
+    <string name="radio_level_advice_clipping">Vervorming. Verlaag de versterking tot de pieken onder de markering blijven.</string>
 </resources>

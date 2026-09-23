@@ -1,18 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  ~ Compose UI strings (SSTVAF). The live app is the Jetpack Compose UI under
-  ~ radio.ks3ckc.sstvaf; these are its user-facing strings, externalized for
-  ~ localization. The legacy strings.xml entries belong to the unreachable old
-  ~ XML/Fragment UI and are NOT used by the running app.
-  ~
-  ~ Translations live in values-<locale>/strings_compose.xml. English here is the
-  ~ source of truth — keep it byte-identical to the original UI text so the English
-  ~ layout never changes. Ham-radio abbreviations (CQ, QSO, DXCC, POTA, SOTA, RST)
-  ~ are intentionally left untranslated across all locales.
--->
 <resources>
-
-    <!-- ===== Common / shared ===== -->
     <string name="action_cancel">إلغاء</string>
     <string name="action_save">حفظ</string>
     <string name="action_done">تم</string>
@@ -21,12 +8,11 @@
     <string name="common_none">لا شيء</string>
     <string name="common_off">إيقاف</string>
     <string name="common_not_configured">غير مهيأ</string>
+    <string name="common_configured">تم الإعداد</string>
     <string name="common_not_connected">غير متصل</string>
     <string name="common_pass">نجاح</string>
     <string name="common_fail">فشل</string>
     <string name="common_test_connection">اختبار الاتصال</string>
-
-    <!-- ===== Continents ===== -->
     <string name="continent_na">أمريكا الشمالية</string>
     <string name="continent_sa">أمريكا الجنوبية</string>
     <string name="continent_eu">أوروبا</string>
@@ -34,10 +20,8 @@
     <string name="continent_as">آسيا</string>
     <string name="continent_oc">أوقيانوسيا</string>
     <string name="continent_an">القارة القطبية الجنوبية</string>
-
-    <!-- ===== Bottom navigation tabs ===== -->
-
-    <!-- ===== Status pills (decode list badges) ===== -->
+    <string name="tab_receive">استقبال</string>
+    <string name="tab_send">إرسال</string>
     <string name="status_new_dxcc">DXCC جديد</string>
     <string name="status_new_grid">مربع جديد</string>
     <string name="status_new_band">نطاق جديد</string>
@@ -47,9 +31,7 @@
     <string name="status_confirmed">مؤكَّد</string>
     <string name="status_cq">CQ</string>
     <string name="status_pending">قيد الانتظار</string>
-
-    <!-- ===== Splash / app-level ===== -->
-    <string name="splash_tagline">FT8 · الرفيق المحمول</string>
+    <string name="splash_tagline">SSTV · صور على الأثير</string>
     <string name="splash_initializing">جارٍ تهيئة الراديو</string>
     <string name="splash_version">v%1$s · بناء %2$s</string>
     <string name="app_set_callsign_first">اضبط نداءك في الإعدادات قبل النداء بـ CQ</string>
@@ -58,22 +40,38 @@
     <string name="app_mode_switched">الوضع: %1$s</string>
     <string name="app_mode_switch_busy">لا يمكن تبديل الوضع أثناء الإرسال</string>
     <string name="main_tx_volume">مستوى صوت TX: %1$d%%</string>
-
-    <!-- ===== Exit dialog ===== -->
     <string name="exit_title">الخروج من SSTVAF؟</string>
     <string name="exit_message">هل أنت متأكد أنك تريد إغلاق التطبيق؟ سيُلغى أي QSO نشط.</string>
-
-    <!-- ===== Frequency picker ===== -->
-
-    <!-- ===== Operator card ===== -->
+    <string name="action_back">رجوع</string>
+    <string name="header_frequency_chip_description">التردد %1$s، %2$s، اضغط للتغيير</string>
+    <string name="cat_state_connected">متصل</string>
+    <string name="cat_state_connecting">جارٍ الاتصال</string>
+    <string name="cat_state_disconnected">غير متصل</string>
+    <string name="cat_state_error">خطأ في الاتصال</string>
+    <string name="cat_state_vox">لا يوجد اتصال CAT</string>
+    <string name="header_more_description">المزيد: الراديو، المشغّل، سجل الاتصالات، الإعدادات</string>
+    <string name="more_title">المزيد</string>
+    <string name="more_radio_audio">الراديو والصوت</string>
+    <string name="more_operator">المشغّل</string>
+    <string name="more_logbook">سجل الاتصالات</string>
+    <string name="more_logbook_sub">اتصالات SSTV · تصدير ADIF · Cloudlog</string>
+    <string name="more_settings">الإعدادات</string>
+    <string name="more_settings_sub">كل شيء آخر</string>
+    <string name="freq_sheet_title">التردد</string>
+    <string name="freq_unit_mhz">MHz</string>
+    <string name="freq_note_night">ليلاً</string>
+    <string name="freq_note_evenings">مساءً</string>
+    <string name="freq_note_daytime_busiest">نهاراً · الأكثر ازدحاماً</string>
+    <string name="freq_note_daytime">نهاراً</string>
+    <string name="freq_note_when_open">عند فتح الموجة</string>
+    <string name="freq_tx_level">مستوى الإرسال</string>
+    <string name="freq_tune_explain">يبثّ حاملاً ثابتاً لضبط الهوائي. يتوقف تلقائياً بعد %1$d ث.</string>
     <string name="op_no_call">لا نداء</string>
     <string name="op_no_grid">لم يُضبط مربع</string>
     <string name="op_tap_to_edit">انقر للتحرير</string>
     <string name="op_stat_rig">الجهاز</string>
     <string name="op_stat_antenna">الهوائي</string>
     <string name="op_stat_power">القدرة</string>
-
-    <!-- ===== Export log sheet ===== -->
     <string name="export_title">تصدير QSOs</string>
     <string name="export_date_range">النطاق الزمني</string>
     <string name="export_date_from_placeholder">"من  YYYYMMDD"</string>
@@ -92,29 +90,23 @@
     <string name="export_saved_to">حُفظ في %1$s</string>
     <string name="export_save_failed">فشل الحفظ في التنزيلات</string>
     <string name="export_temp_file_failed">تعذّر إنشاء ملف مؤقت</string>
-
-    <!-- ===== TX strip ===== -->
     <string name="tx_transmitting">جارٍ الإرسال</string>
     <string name="tx_listening">جارٍ الاستماع</string>
     <string name="tx_hunt">صيد</string>
     <string name="tx_call_cq">نداء CQ</string>
     <string name="tx_stop">إيقاف</string>
-
-    <!-- ===== Hound (DXpedition) setup ===== -->
+    <string name="tx_volume_decrease">Decrease TX volume</string>
+    <string name="tx_volume_increase">Increase TX volume</string>
+    <string name="tx_cq_options">خيارات رسالة CQ (المُعدِّل، نص حر، Field Day)</string>
     <string name="hound_title">العمل مع بعثة DX (Hound)</string>
     <string name="hound_help">اضبط الجهاز على تردد القرص المعلن للـ Fox أولاً. تنادي أنت في الأعلى (1000–4000 Hz)؛ يقوم التطبيق تلقائياً بنقل ترددك (QSY) إلى حيث يرد الـ Fox ويرد بتقريرك.</string>
     <string name="hound_fox_callsign">نداء الـ Fox</string>
     <string name="hound_call_frequency">تردد النداء (Hz، 1000–4000)</string>
     <string name="hound_start">بدء</string>
-
-
-    <!-- ===== SWR lockout banner ===== -->
     <string name="swr_lockout_title">توقف TX — تم رصد SWR مرتفع (%1$s)</string>
     <string name="swr_lockout_body">تحقق من الهوائي / خط التغذية قبل الإرسال.</string>
     <string name="swr_lockout_dismiss">تجاهل</string>
     <string name="swr_lockout_toast">TX محظور — قفل SWR نشط. تجاهل لافتة القفل أولاً.</string>
-
-    <!-- ===== Active QSO panel ===== -->
     <string name="qsopanel_calling_cq">نداء CQ</string>
     <string name="qsopanel_searching">جارٍ البحث...</string>
     <string name="qsopanel_qsoing_with">إجراء QSO مع %1$s</string>
@@ -124,8 +116,6 @@
     <string name="qsopanel_waiting_messages">في انتظار الرسائل...</string>
     <string name="qsopanel_log_action">تسجيل</string>
     <string name="qsopanel_queue">قائمة الانتظار</string>
-
-    <!-- ===== Decode screen ===== -->
     <string name="decode_title">فك التشفير</string>
     <string name="decode_subtitle">"%1$s  •  %2$d مفكوك هذه الدورة"</string>
     <string name="decode_clear_list">مسح قائمة فك التشفير</string>
@@ -150,8 +140,6 @@
     <string name="decode_label_calling">→ ينادي</string>
     <string name="decode_label_cq">CQ</string>
     <string name="decode_label_to_you">↓ إليك</string>
-
-    <!-- ===== QSO sheet ===== -->
     <string name="qso_complete">اكتمل QSO</string>
     <string name="qso_call_action">نداء %1$s</string>
     <string name="qso_qrz_link">QRZ ↗</string>
@@ -171,8 +159,6 @@
     <string name="qso_live_step_fallback">رسالة</string>
     <string name="qso_tx_now">TX الآن</string>
     <string name="qso_tx_next">TX التالي</string>
-
-    <!-- ===== Logbook ===== -->
     <string name="log_tab_stats">الإحصاءات</string>
     <string name="log_tab_recent">الأخيرة</string>
     <string name="log_tab_awards">الجوائز</string>
@@ -193,6 +179,10 @@
     <string name="log_section_signal_trend">اتجاه الإشارة</string>
     <string name="log_no_qsos_yet">لا QSOs بعد</string>
     <string name="log_no_qsos_recorded_yet">لم تُسجَّل QSOs بعد</string>
+    <string name="log_search_placeholder">ابحث عن نداء أو مربّع أو نطاق…</string>
+    <string name="log_search_no_matches">لا توجد اتصالات QSO تطابق ”%1$s“</string>
+    <string name="log_cd_search">ابحث في الاتصالات QSO</string>
+    <string name="log_cd_clear_search">مسح البحث</string>
     <string name="log_state_usa">%1$s، الولايات المتحدة</string>
     <string name="log_cd_qso_actions">إجراءات QSO</string>
     <string name="log_action_edit">تحرير</string>
@@ -221,8 +211,18 @@
     <string name="log_sync_cloudlog_accepted">Cloudlog / Wavelog / Nextlog: %1$d مقبول</string>
     <string name="log_sync_nothing_to_upload">لا QSOs في السجل للرفع بعد.</string>
     <string name="log_sync_working">جارٍ العمل…</string>
-
-    <!-- ===== POTA ===== -->
+    <string name="log_cd_add_qso">تسجيل اتصال QSO يدوياً</string>
+    <string name="log_manual_title">تسجيل اتصال SSTV QSO</string>
+    <string name="log_manual_callsign">علامة النداء</string>
+    <string name="log_manual_grid">المربّع (اختياري)</string>
+    <string name="log_manual_rsv_sent">RSV المُرسَل</string>
+    <string name="log_manual_rsv_rcvd">RSV المُستقبَل</string>
+    <string name="log_manual_freq_mhz">التردد (MHz)</string>
+    <string name="log_manual_mode">وضع SSTV</string>
+    <string name="log_manual_comment">تعليق (اختياري)</string>
+    <string name="log_manual_save">حفظ الاتصال QSO</string>
+    <string name="log_manual_cancel">إلغاء</string>
+    <string name="log_manual_time_note">يُسجَّل بتوقيت UTC الحالي</string>
     <string name="pota_tab_activate">تفعيل</string>
     <string name="pota_tab_hunt">صيد</string>
     <string name="pota_tab_history">السجل</string>
@@ -247,8 +247,8 @@
     <string name="pota_end_activation">إنهاء التفعيل</string>
     <string name="pota_notes_quote">“%1$s”</string>
     <string name="pota_tx_cq_preview">سيخرج TX CQ كـ “CQ POTA %1$s %2$s”.</string>
-    <string name="pota_no_spots">لا رصدات FT8 POTA الآن.</string>
-    <string name="pota_active_spots">%1$d رصد FT8 نشط</string>
+    <string name="pota_no_spots">لا توجد رصدات SSTV POTA الآن.</string>
+    <string name="pota_active_spots">%1$d رصدة SSTV نشطة</string>
     <string name="pota_targeting">استهداف %1$s @ %2$s kHz (%3$s) — بدّل إلى فك التشفير للنداء</string>
     <string name="pota_no_past_activations">لا تفعيلات سابقة بعد.</string>
     <string name="pota_no_browser_available">لا متصفح متاح</string>
@@ -278,8 +278,15 @@
     <string name="pota_max_parks_reached">تم بلوغ الحد الأقصى وهو 10 حدائق</string>
     <string name="pota_spotted_n_parks">مرصود في %1$d حدائق</string>
     <string name="pota_parks_more">+%1$d أخرى</string>
-
-    <!-- ===== Debug log / Map / Waterfall ===== -->
+    <string name="pota_search_parks">ابحث عن المتنزهات</string>
+    <string name="pota_search_parks_hint">التصفية بالاسم أو المرجع</string>
+    <string name="pota_recent_parks">المتنزهات الأخيرة</string>
+    <string name="pota_nearby_parks">المتنزهات القريبة</string>
+    <string name="pota_no_recent_parks">لا توجد تفعيلات حديثة</string>
+    <string name="pota_no_nearby_parks">لم يُعثر على متنزهات قريبة</string>
+    <string name="pota_loading_nearby">جارٍ تحميل المتنزهات القريبة…</string>
+    <string name="pota_loading_recent">جارٍ تحميل المتنزهات الأخيرة…</string>
+    <string name="pota_location_unavailable">الموقع غير متوفّر — فعّل GPS</string>
     <string name="debug_title">تصحيح</string>
     <string name="debug_line_count">%1$d سطر</string>
     <string name="debug_logcat_on_suffix">" · logcat ON"</string>
@@ -301,11 +308,17 @@
     <string name="map_mode_standard">STD</string>
     <string name="map_mode_azimuthal">AZ</string>
     <string name="map_overlay_psk">PSK</string>
+    <string name="map_filter">تصفية</string>
+    <string name="map_filter_title">مرشّحات PSK</string>
+    <string name="map_filter_done">تم</string>
+    <string name="map_filter_time">الوقت</string>
+    <string name="map_filter_band">النطاق</string>
+    <string name="map_filter_mode">الوضع</string>
+    <string name="map_filter_direction">الاتجاه</string>
+    <string name="map_filter_all">الكل</string>
     <string name="map_info_distance">المسافة</string>
     <string name="map_info_bearing">الاتجاه</string>
     <string name="map_info_snr">SNR</string>
-
-    <!-- ===== Settings: format helpers ===== -->
     <string name="settings_minutes_format">%1$d min</string>
     <string name="settings_tries_format">%1$d محاولة</string>
     <string name="settings_milliseconds_format">%1$d ms</string>
@@ -316,8 +329,6 @@
     <string name="settings_min_max_suffix">%1$d–%2$d %3$s</string>
     <string name="settings_build_date_format">بناء %1$s</string>
     <string name="settings_version_value">v%1$s</string>
-
-    <!-- ===== Settings: sections ===== -->
     <string name="settings_title">الإعدادات</string>
     <string name="settings_section_operator_identity">هوية المشغِّل</string>
     <string name="settings_section_radio">الراديو</string>
@@ -331,20 +342,35 @@
     <string name="settings_section_advanced">متقدم</string>
     <string name="settings_section_about">حول</string>
     <string name="settings_section_language">اللغة</string>
-
-    <!-- ===== Settings: drill-down category labels ===== -->
+    <string name="settings_section_appearance">المظهر</string>
+    <string name="settings_section_backup">النسخ الاحتياطي والاستعادة</string>
+    <string name="settings_export">تصدير الإعدادات</string>
+    <string name="settings_export_desc">احفظ جميع الإعدادات في ملف نسخ احتياطي</string>
+    <string name="settings_import">استيراد الإعدادات</string>
+    <string name="settings_import_desc">استعد الإعدادات من ملف نسخ احتياطي</string>
+    <string name="settings_export_dialog_title">تصدير الإعدادات</string>
+    <string name="settings_backup_include_sensitive">تضمين البيانات الحساسة</string>
+    <string name="settings_backup_include_sensitive_desc">مفاتيح API وكلمات المرور (Cloudlog، QRZ، تسجيل دخول الراديو)</string>
+    <string name="action_export">تصدير</string>
+    <string name="action_import">استيراد</string>
+    <string name="settings_import_confirm_title">استيراد الإعدادات؟</string>
+    <string name="settings_import_confirm_msg">سيؤدي هذا إلى استبدال %1$d من الإعدادات بقيم من النسخة الاحتياطية التي أُنشئت في %2$s.</string>
+    <string name="settings_export_success">تم تصدير الإعدادات</string>
+    <string name="settings_export_failed">فشل التصدير: %1$s</string>
+    <string name="settings_import_success">تم استيراد الإعدادات — أعد تشغيل التطبيق لتطبيق جميع التغييرات</string>
+    <string name="settings_import_failed">فشل الاستيراد: %1$s</string>
+    <string name="settings_theme">السمة</string>
+    <string name="settings_theme_desc">سمة ألوان التطبيق</string>
+    <string name="theme_name_dark">داكنة</string>
+    <string name="theme_name_light">فاتحة</string>
     <string name="settings_cat_radio_audio">الراديو &amp; الصوت</string>
     <string name="settings_cat_transmission">الإرسال</string>
     <string name="settings_cat_decode_filters">فك التشفير &amp; المرشحات</string>
     <string name="settings_cat_logging">التسجيل &amp; الجوائز</string>
     <string name="settings_cat_advanced">متقدم</string>
     <string name="settings_cat_about">حول</string>
-
-    <!-- ===== Settings: operator identity ===== -->
     <string name="settings_auto_update_grid">تحديث المربع تلقائياً (GPS)</string>
     <string name="settings_auto_update_grid_desc">استخدم GPS الجهاز لإبقاء مربع Maidenhead محدثاً</string>
-
-    <!-- ===== Settings: radio ===== -->
     <string name="settings_rig_model">طراز الجهاز</string>
     <string name="settings_control_mode">وضع التحكم</string>
     <string name="settings_connection_mode">وضع الاتصال</string>
@@ -353,32 +379,35 @@
     <string name="settings_enabled_bands">النطاقات المفعَّلة</string>
     <string name="settings_audio_frequency">تردد الصوت</string>
     <string name="settings_spectrum_width">عرض الطيف</string>
-
-    <!-- ===== Settings: audio ===== -->
     <string name="settings_audio_input">دخل الصوت</string>
     <string name="settings_audio_output">خرج الصوت</string>
     <string name="settings_tx_volume">مستوى صوت TX</string>
-    <string name="settings_tx_volume_desc" formatted="false">مستوى صوت الإرسال (أزرار العتاد ±5%)</string>
-
-    <!-- ===== Settings: transmission ===== -->
+    <string name="settings_tx_volume_desc">مستوى صوت الإرسال (أزرار العتاد ±5%)</string>
+    <string name="settings_show_volume_slider">Show Volume Slider</string>
+    <string name="settings_show_volume_slider_desc">Display TX volume slider on main screen</string>
+    <string name="settings_per_band_volume">حفظ مستوى الخرج لكل نطاق</string>
+    <string name="settings_per_band_volume_desc">تذكّر مستوى صوت الإرسال بشكل منفصل لكل نطاق واستعادته عند تغيير النطاق</string>
+    <string name="per_band_volume_restored">تمت استعادة مستوى صوت الإرسال %1$d%% للنطاق %2$s</string>
     <string name="settings_tx_rx_split">تقسيم TX/RX</string>
     <string name="settings_tx_rx_split_desc">الإرسال على تردد مختلف عن الاستقبال</string>
+    <string name="settings_hold_tx_freq">تثبيت تردد الإرسال</string>
+    <string name="settings_hold_tx_freq_desc">أبقِ إزاحة الإرسال عند الردّ على محطة بدلاً من نقلها إلى ترددها</string>
+    <string name="settings_clear_on_change">مسح فك التشفير عند تغيير النطاق/الوضع</string>
+    <string name="settings_clear_on_change_desc">امسح قائمة فك التشفير وأعد ضبط هدف الإرسال إلى CQ عند تغيير النطاق أو الوضع</string>
     <string name="settings_tx_watchdog">مراقب TX</string>
     <string name="settings_tx_watchdog_desc">إيقاف الإرسال تلقائياً بعد المهلة</string>
     <string name="settings_stop_after">التوقف بعد</string>
     <string name="settings_stop_after_desc">التوقف عن النداء بعد N محاولات بلا رد</string>
-
-    <!-- ===== Settings: auto-sequence ===== -->
     <string name="settings_hunt">الصيد (رد تلقائي على CQ)</string>
     <string name="settings_hunt_desc">نادِ المحطات التي تنادي CQ بشكل استباقي. مثل زر HUNT على شريط TX. الإيقاف = نداء CQ والاتصال فقط بالمحطات التي تجيبك.</string>
+    <string name="settings_hunt_cq">Hunt + CQ</string>
+    <string name="settings_hunt_cq_desc">Call CQ when Hunt is idle (no stations heard). When a CQ is detected, automatically stop CQ and answer it.</string>
     <string name="settings_auto_call_followed">نداء المتابَعين تلقائياً</string>
     <string name="settings_auto_call_followed_desc">متابعة نداء النداءات المتابَعة تلقائياً</string>
     <string name="settings_fast_turnaround">استجابة سريعة</string>
     <string name="settings_fast_turnaround_desc">فك التشفير قبل ~1 ثانية حتى تتمكن من الرد على CQ في الفتحة التالية بدلاً من الانتظار. قد يفوّت محطات ذات إزاحة ساعة كبيرة.</string>
     <string name="settings_auto_cq_after_qso">CQ تلقائي بعد QSO</string>
     <string name="settings_auto_cq_after_qso_desc">واصل نداء CQ تلقائياً بعد كل اتصال مكتمل — دون نقر جديد. يبقى على ترددك (يتجاهل الصيد). يستمر حتى تتوقف أو تنتهي مهلة مراقب TX بلا ردود.</string>
-
-    <!-- ===== Settings: decode highlights ===== -->
     <string name="settings_highlight_new_dxcc">DXCC جديد</string>
     <string name="settings_highlight_new_dxcc_desc">إبراز المحطات من كيان DXCC لم يُتصل به</string>
     <string name="settings_highlight_new_grid">مربع جديد</string>
@@ -389,16 +418,12 @@
     <string name="settings_highlight_worked_desc">وسم المحطات الموجودة في سجلك بالفعل</string>
     <string name="settings_distance_unit">المسافة بالأميال</string>
     <string name="settings_distance_unit_desc">إظهار المسافات بالأميال بدلاً من الكيلومترات</string>
-
-    <!-- ===== Settings: callsign blocklist ===== -->
     <string name="settings_exact_callsigns">نداءات دقيقة</string>
     <string name="settings_exact_callsigns_desc">حظر مطابقات النداء الكامل</string>
     <string name="settings_prefixes">البادئات</string>
     <string name="settings_prefixes_desc">الحظر حسب بادئة النداء (مثل RA)</string>
     <string name="settings_keywords">كلمات مفتاحية</string>
     <string name="settings_keywords_desc">الحظر حسب سلسلة فرعية في النداء أو الرسالة (مثل POTA، /P)</string>
-
-    <!-- ===== Settings: decode filters ===== -->
     <string name="settings_show_only_cq">إظهار CQ فقط</string>
     <string name="settings_show_only_cq_desc">إخفاء كل شيء عدا رسائل نوع CQ</string>
     <string name="settings_dx_only">DX فقط</string>
@@ -412,26 +437,31 @@
     <string name="settings_skip_directional_cq_desc">لا ترد تلقائياً على CQ DX/EU/JA… الموجَّهة إلى DXCC مختلف</string>
     <string name="settings_hide_directional_cq">إخفاء CQ الموجَّهة ليست لي</string>
     <string name="settings_hide_directional_cq_desc">إخفاء CQ الموجَّهة لمنطقة لا تستهدف DXCC الخاص بك</string>
-
-    <!-- ===== Settings: needed-DX alerts ===== -->
-
-    <!-- ===== Settings: logging &amp; awards ===== -->
+    <string name="alert_cq_reply_title">يناديك: %1$s</string>
+    <string name="alert_qso_complete_title">اكتمل الاتصال QSO</string>
+    <string name="rx_service_channel_name">الاستقبال في الخلفية</string>
+    <string name="rx_service_channel_desc">يُبقي فك تشفير SSTV يعمل أثناء وجود التطبيق في الخلفية أو إطفاء الشاشة</string>
+    <string name="rx_service_title">يستمع SSTVAF إلى صور SSTV</string>
+    <string name="rx_service_text">جارٍ فك تشفير SSTV في الخلفية</string>
     <string name="settings_save_swl_decodes">حفظ فك تشفير SWL</string>
     <string name="settings_save_swl_decodes_desc">تسجيل كل الرسائل المفكوكة في قاعدة البيانات</string>
     <string name="settings_save_swl_qsos">حفظ QSOs الخاصة بـ SWL</string>
     <string name="settings_save_swl_qsos_desc">تسجيل QSOs المرصودة بين محطات أخرى</string>
     <string name="settings_cloudlog">Cloudlog / Wavelog / Nextlog</string>
     <string name="settings_cloudlog_desc">رفع QSOs تلقائياً إلى نسخة Cloudlog أو Wavelog أو Nextlog</string>
-
-    <!-- ===== Settings: advanced ===== -->
     <string name="settings_ptt_delay">تأخير PTT</string>
     <string name="settings_ptt_delay_desc">التأخير بعد PTT قبل بدء صوت الإرسال</string>
+    <string name="settings_vox_pre_tone">نغمة VOX التمهيدية</string>
+    <string name="settings_vox_pre_tone_desc">نغمة تمهيدية إضافية بتردد 1900 Hz قبل كل صورة كي يعمل VOX أو كابل PTT التلقائي (أجهزة الراديو المحمولة) دون قطع ترويسة SSTV. تنطبق في وضع VOX فقط.</string>
+    <string name="settings_cw_id">معرّف المحطة بـ CW</string>
+    <string name="settings_cw_id_desc">أرسل علامة ندائك بشيفرة مورس بعد كل صورة SSTV</string>
+    <string name="settings_cw_id_speed">سرعة معرّف CW</string>
+    <string name="settings_cw_id_speed_desc">سرعة نقر مورس لمعرّف المحطة</string>
+    <string name="settings_cw_id_wpm_format">%1$d WPM</string>
     <string name="settings_tx_delay">تأخير TX</string>
     <string name="settings_tx_delay_desc">تأخير قبل الإرسال للسماح بفك تشفير الدورة السابقة</string>
     <string name="settings_late_start_tolerance">تحمل البدء المتأخر</string>
     <string name="settings_late_start_tolerance_desc">السماح ببدء TX حتى N ms داخل الدورة؛ يُقتطع الصوت الأمامي لينتهي TX عند حدود الدورة</string>
-
-    <!-- ===== Settings: about ===== -->
     <string name="settings_faq_support">الأسئلة الشائعة &amp; الدعم</string>
     <string name="settings_report_bug">الإبلاغ عن خطأ</string>
     <string name="settings_share_logs">مشاركة السجلات</string>
@@ -443,12 +473,10 @@
     <string name="bug_report_no_email_app">لم يُعثر على تطبيق بريد لإرسال التقرير</string>
     <string name="bug_report_open_github">فتح مشكلة GitHub</string>
     <string name="settings_debug_desc">عرض / مشاركة debug.log</string>
-    <string name="settings_about_body">الإصدار %1$s (بناء %2$s)\nتاريخ البناء %3$s\n\nFT8، بكل سهولة.\n\nتطبيق جهاز إرسال واستقبال FT8 مستقل لنظام Android. تحكم في الجهاز عبر USB وBluetooth والشبكة مع التسلسل والتسجيل التلقائيين.</string>
+    <string name="settings_about_body">الإصدار %1$s (بناء %2$s)\nتاريخ البناء %3$s\n\nSSTV، بكل بساطة.\n\nاستقبل وأرسل صور التلفزة البطيئة المسح على هاتف Android الخاص بك. تحكّم في الراديو عبر USB CAT وBluetooth والشبكة مع معرض وسجل اتصالات مدمجين.</string>
     <string name="settings_website">الموقع الإلكتروني</string>
     <string name="settings_community">المجتمع</string>
     <string name="settings_built_by">بُني بواسطة</string>
-
-    <!-- ===== Settings: dialogs ===== -->
     <string name="settings_block_exact_title">حظر نداءات دقيقة</string>
     <string name="settings_block_exact_desc">مطابقة النداء الكامل. مفصولة بفاصلة أو مسافة، مثل W1AW، K1ABC.</string>
     <string name="settings_block_prefix_title">حظر بادئات النداءات</string>
@@ -486,25 +514,15 @@
     <string name="settings_select_serial_port">اختر المنفذ التسلسلي</string>
     <string name="settings_tx_volume_advice">عدِّل مباشرة — يستخدم TX التالي هذا المستوى. راقب ALC في راديوك وخفِّضه حتى يلامس الخط بالكاد.</string>
     <string name="settings_input_volume">مستوى صوت الإدخال</string>
-    <string name="settings_input_volume_desc" formatted="false">كسب صوت الاستقبال المطبق قبل فك التشفير (100% = بدون تغيير)</string>
+    <string name="settings_input_volume_desc">كسب صوت الاستقبال المطبق قبل فك التشفير (100% = بدون تغيير)</string>
     <string name="settings_input_volume_advice">يُطبق على الصوت الوارد قبل فك التشفير. راقب مقياس مستوى الاستقبال على الشلال واستهدف المنطقة الخضراء؛ الأحمر يعني تشبع الإشارة.</string>
     <string name="input_level_too_low">منخفض</string>
     <string name="input_level_good">جيد</string>
     <string name="input_level_too_high">مرتفع</string>
     <string name="input_level_clipping">تشبع</string>
-
-    <!-- ===== Settings: language picker ===== -->
     <string name="settings_language">اللغة</string>
     <string name="settings_language_desc">لغة عرض التطبيق</string>
     <string name="settings_language_system">افتراضي النظام</string>
-
-    <!-- Untranslated — added for parity; translate when localization pass runs -->
-    <string name="settings_show_volume_slider">Show Volume Slider</string>
-    <string name="settings_show_volume_slider_desc">Display TX volume slider on main screen</string>
-    <string name="settings_hunt_cq">Hunt + CQ</string>
-    <string name="settings_hunt_cq_desc">Call CQ when Hunt is idle (no stations heard). When a CQ is detected, automatically stop CQ and answer it.</string>
-    <string name="tx_volume_decrease">Decrease TX volume</string>
-    <string name="tx_volume_increase">Increase TX volume</string>
     <string name="tx_audio_dropped">فشل صوت الإرسال — لم تُرسل أي إشارة في هذه الدورة (خطأ في صوت USB)</string>
     <string name="cq_offset_moved">تم نقل إزاحة CQ إلى موضع خالٍ: %1$d هرتز</string>
     <string name="settings_auto_clear_tx">اختيار إزاحة إرسال خالية تلقائيًا</string>
@@ -513,6 +531,213 @@
     <string name="tune_stopped_timeout">توقف Tune بعد %1$d ث</string>
     <string name="tune_blocked_tx">أوقف CQ/QSO قبل استخدام Tune</string>
     <string name="tune_unavailable_route">Tune غير مدعوم بعد على مسار الصوت هذا</string>
+    <string name="rx_listening">جارٍ الاستماع إلى SSTV…</string>
+    <string name="rx_disabled">الاستقبال متوقّف</string>
+    <string name="rx_signal_detected">تم اكتشاف إشارة…</string>
+    <string name="rx_saved_chip">تم الحفظ ✓</string>
+    <string name="rx_signal_lost">فُقدت الإشارة — لم تُحفظ الصورة الجزئية</string>
+    <string name="rx_quality_label">الجودة</string>
+    <string name="rx_eta_format">%1$s متبقٍّ</string>
+    <string name="rx_canvas_description">صورة SSTV المُستقبَلة</string>
+    <string name="rx_status_listening">جارٍ الاستماع</string>
+    <string name="rx_status_decoding">جارٍ فك تشفير %1$s</string>
+    <string name="rx_status_off">الاستقبال متوقّف</string>
+    <string name="rx_status_complete">اكتملت الصورة</string>
+    <string name="rx_status_saved">حُفظت في المعرض</string>
+    <string name="rx_status_save_failed">فشل الحفظ</string>
+    <string name="rx_status_lost">فُقدت الإشارة</string>
+    <string name="rx_status_auto_detect">كشف تلقائي</string>
+    <string name="rx_quality_value">الجودة %1$s</string>
+    <string name="rx_received_today">استُقبلت اليوم</string>
+    <string name="rx_received_all">الكل</string>
+    <string name="rx_received_none">لم يُستقبَل شيء بعد</string>
+    <string name="settings_save_rx_photos">حفظ الصور المُستقبَلة في Photos</string>
+    <string name="settings_save_rx_photos_desc">تظهر صور SSTV المكتملة أيضاً في تطبيق Photos ضمن Pictures/SSTVAF (Android 10+)</string>
+    <string name="tab_gallery">المعرض</string>
+    <string name="gallery_filter_all">الكل</string>
+    <string name="gallery_filter_rx">المُستقبَلة</string>
+    <string name="gallery_filter_tx">المُرسَلة</string>
+    <string name="gallery_filter_chip_label">%1$s %2$d</string>
+    <string name="gallery_empty_rx">ستظهر الصور المُستقبَلة هنا</string>
+    <string name="gallery_empty_tx">ستظهر الصور المُرسَلة هنا</string>
+    <string name="gallery_search_placeholder">ابحث عن وضع أو نطاق أو ملاحظة…</string>
+    <string name="gallery_search_no_matches">لا توجد صور تطابق ”%1$s“</string>
+    <string name="gallery_cd_search">ابحث في الصور</string>
+    <string name="gallery_cd_clear_search">مسح البحث</string>
+    <string name="gallery_section_today">اليوم</string>
+    <string name="gallery_section_yesterday">أمس</string>
+    <string name="gallery_section_count_label">%1$s · %2$d</string>
+    <string name="gallery_send_again">إرسال مجدداً</string>
+    <string name="gallery_reply_with_picture">الرد بصورة</string>
+    <string name="gallery_share">مشاركة</string>
+    <string name="gallery_save_photos">حفظ في Photos</string>
+    <string name="gallery_delete">حذف</string>
+    <string name="gallery_delete_title">حذف الصورة؟</string>
+    <string name="gallery_delete_message">يؤدي هذا إلى إزالة الصورة المحفوظة من التطبيق. لا يمكن التراجع عن ذلك.</string>
+    <string name="gallery_share_chooser_title">مشاركة صورة SSTV</string>
+    <string name="gallery_saved_to_photos">حُفظت في Photos</string>
+    <string name="gallery_save_photos_failed">تعذّر الحفظ في Photos</string>
+    <string name="gallery_meta_mode">الوضع</string>
+    <string name="gallery_meta_frequency">التردد</string>
+    <string name="gallery_meta_band">النطاق</string>
+    <string name="gallery_meta_time">الوقت</string>
+    <string name="gallery_meta_size">الحجم</string>
+    <string name="gallery_meta_airtime">مدة البث</string>
+    <string name="gallery_meta_quality">الجودة</string>
+    <string name="gallery_quality_value">%1$s · %2$s</string>
+    <string name="gallery_quality_grade_excellent">ممتازة</string>
+    <string name="gallery_quality_grade_good">جيدة</string>
+    <string name="gallery_quality_grade_fair">مقبولة</string>
+    <string name="gallery_quality_grade_poor">ضعيفة</string>
+    <string name="gallery_meta_direction">الاتجاه</string>
+    <string name="gallery_meta_direction_rx">المُستقبَلة</string>
+    <string name="gallery_meta_direction_tx">المُرسَلة</string>
+    <string name="gallery_meta_status">الحالة</string>
+    <string name="gallery_meta_complete">مكتملة</string>
+    <string name="gallery_meta_partial">جزئية</string>
+    <string name="gallery_meta_note">ملاحظة</string>
+    <string name="gallery_note_add">إضافة ملاحظة</string>
+    <string name="gallery_note_title">ملاحظة الصورة</string>
+    <string name="gallery_note_hint">علامة النداء أو QTH أو تعليق</string>
+    <string name="gallery_note_save">حفظ</string>
+    <string name="rx_view_in_gallery">عرض في المعرض</string>
+    <string name="tx_empty_title">اختر صورة لإرسالها</string>
+    <string name="tx_empty_body">تُقتَص الصور لتناسب إطار وضع SSTV</string>
+    <string name="tx_pick_button">اختيار صورة</string>
+    <string name="tx_camera_button">الكاميرا</string>
+    <string name="tx_preview_description">معاينة الإرسال</string>
+    <string name="tx_change_photo">تغيير</string>
+    <string name="tx_camera_photo">الكاميرا</string>
+    <string name="tx_clear_photo">مسح</string>
+    <string name="tx_overlay_add">إضافة نص</string>
+    <string name="tx_overlay_edit">تعديل النص</string>
+    <string name="tx_overlay_remove">إزالة</string>
+    <string name="tx_overlay_save">حفظ</string>
+    <string name="tx_overlay_text_label">النص</string>
+    <string name="tx_tool_crop">اقتصاص</string>
+    <string name="tx_tool_text">نص</string>
+    <string name="tx_tool_callsign">علامة النداء</string>
+    <string name="tx_tool_frame">إطار</string>
+    <string name="tx_tool_adjust">ضبط</string>
+    <string name="tx_tool_draw">رسم</string>
+    <string name="tx_transmitting_label">جارٍ الإرسال · %1$s</string>
+    <string name="tx_stop_action">إيقاف</string>
+    <string name="tx_sent_saved">أُرسلت · حُفظت في المعرض</string>
+    <string name="tx_outcome_sent">أُرسلت</string>
+    <string name="tx_outcome_sent_detail">حُفظت في المعرض</string>
+    <string name="tx_outcome_stopped">تم الإيقاف</string>
+    <string name="tx_outcome_stopped_detail">خرج جزء من الصورة</string>
+    <string name="tx_outcome_failed">فشل الإرسال</string>
+    <string name="tx_outcome_failed_detail">لم يخرج شيء · راجع سجل التصحيح</string>
+    <string name="tx_sent_edit_again">تعديل وإرسال مجدداً</string>
+    <string name="tx_sent_new_picture">صورة جديدة</string>
+    <string name="tx_change_photo_pill">تغيير</string>
+    <string name="tx_new_picture_short">جديدة</string>
+    <string name="tx_stroke_thin">خط رفيع</string>
+    <string name="tx_stroke_medium">خط متوسط</string>
+    <string name="tx_stroke_thick">خط سميك</string>
+    <string name="tx_color_white">أبيض</string>
+    <string name="tx_color_black">أسود</string>
+    <string name="tx_color_cyan">سماوي</string>
+    <string name="tx_color_amber">كهرماني</string>
+    <string name="tx_color_green">أخضر</string>
+    <string name="tx_overlay_delete_description">إزالة النص المحدد</string>
+    <string name="tx_transmit_action">إرسال</string>
+    <string name="tx_choose_photo">اختر صورة</string>
+    <string name="tx_choose_photo_sub">مقتصّة لتناسب إطار SSTV · يمكنك تحريكها لاحقاً</string>
+    <string name="tx_card_cq">بطاقة CQ</string>
+    <string name="tx_card_cq_headline">CQ SSTV</string>
+    <string name="tx_card_cq_sub">de %1$s</string>
+    <string name="tx_card_grid">بطاقة المربّع</string>
+    <string name="tx_last_sent">آخر ما أُرسل</string>
+    <string name="tx_last_sent_note">اضغط للبدء منها</string>
+    <string name="tx_crop_hint">اسحب الصورة لإعادة تموضعها. مرّر للتكبير.</string>
+    <string name="tx_zoom_min">1×</string>
+    <string name="tx_zoom_max">2.5×</string>
+    <string name="tx_crop_reset">إعادة ضبط</string>
+    <string name="tx_crop_fill">ملء الإطار</string>
+    <string name="tx_text_placeholder">اكتب، ثم اسحبه على الصورة</string>
+    <string name="tx_text_add">إضافة</string>
+    <string name="tx_text_done">تم</string>
+    <string name="tx_text_hint_selected">جارٍ تعديل النص المحدد — اسحبه للتحريك، ✕ للإزالة.</string>
+    <string name="tx_text_hint_tap">اضغط على نص فوق الصورة لتعديله.</string>
+    <string name="tx_text_hint_bar">نمط الشريط هو الأسهل للقراءة عبر التشويش.</string>
+    <string name="tx_size_small">S</string>
+    <string name="tx_size_medium">M</string>
+    <string name="tx_size_large">L</string>
+    <string name="tx_style_bar">شريط</string>
+    <string name="tx_style_outline">مخطط</string>
+    <string name="tx_callsign_prompt">اطبع %1$s — اختر موضعاً</string>
+    <string name="tx_callsign_source">من الإعدادات</string>
+    <string name="tx_callsign_unset">اضبط علامة ندائك في الإعدادات أولاً — الطابع يستخدمها.</string>
+    <string name="tx_preset_top_left">أعلى اليسار</string>
+    <string name="tx_preset_top_center">شريط علوي</string>
+    <string name="tx_preset_top_right">أعلى اليمين</string>
+    <string name="tx_preset_bottom_left">أسفل اليسار</string>
+    <string name="tx_preset_bottom_center">شريط سفلي</string>
+    <string name="tx_preset_bottom_right">أسفل اليمين</string>
+    <string name="tx_frame_none">بلا</string>
+    <string name="tx_frame_thin">رفيع</string>
+    <string name="tx_frame_bold">عريض</string>
+    <string name="tx_frame_amber">كهرماني</string>
+    <string name="tx_frame_hint">تُدمج الإطارات في الصورة، لذا تبقى طوال الرحلة.</string>
+    <string name="tx_adjust_brightness">السطوع</string>
+    <string name="tx_adjust_contrast">التباين</string>
+    <string name="tx_adjust_saturation">التشبّع</string>
+    <string name="tx_adjust_reset">إعادة ضبط</string>
+    <string name="tx_adjust_hint">قليل من التباين الإضافي يُقرأ بشكل أفضل عبر الأثير.</string>
+    <string name="tx_draw_hint">ارسم على الصورة بإصبعك.</string>
+    <string name="tx_draw_undo">تراجع</string>
+    <string name="tx_draw_clear">مسح</string>
+    <string name="mode_sheet_title">وضع SSTV</string>
+    <string name="mode_sheet_rx_note">الاستقبال يكتشف تلقائياً</string>
+    <string name="mode_group_fast">سريع · أقل من دقيقة</string>
+    <string name="mode_group_standard">قياسي</string>
+    <string name="mode_group_high_resolution">دقة عالية</string>
+    <string name="mode_note_most_common">الأكثر شيوعاً على 20m</string>
+    <string name="mode_card_label">الوضع</string>
+    <string name="mode_card_description">وضع SSTV %1$s</string>
+    <string name="mode_card_action">تغيير وضع SSTV</string>
+    <string name="mode_row_description">%1$s، %2$s، %3$s</string>
+    <string name="tx_gate_no_image">اختر صورة أولاً</string>
+    <string name="tx_gate_tune_active">أوقف Tune قبل الإرسال</string>
+    <string name="tx_confirm_title">إرسال هذه الصورة؟</string>
+    <string name="tx_confirm_level">مستوى الإرسال %1$d%%</string>
+    <string name="tx_confirm_warning">التأكيد يُشغّل جهاز الإرسال</string>
+    <string name="tx_confirm_cancel">إلغاء</string>
+    <string name="tx_confirm_go">إرسال</string>
+    <string name="tx_airtime_quick">بث سريع</string>
+    <string name="tx_airtime_moderate">بث متوسط</string>
+    <string name="tx_airtime_long">بث طويل</string>
+    <string name="tx_airtime_very_long">بث طويل جداً</string>
+    <string name="tx_cancel_button">إلغاء الإرسال</string>
+    <string name="tx_remaining_format">%1$s متبقٍّ</string>
+    <string name="settings_cat_usb_diagnostics">تشخيصات USB</string>
+    <string name="settings_cat_usb_diagnostics_desc">تحقّق من اكتشاف أجهزة USB واتصال CAT</string>
+    <string name="usb_diag_title">تشخيصات USB</string>
+    <string name="usb_diag_desc">حالة حيّة لاكتشاف أجهزة USB واتصال CAT. استخدمها لتحديد موضع فشل اتصال الراديو.</string>
+    <string name="usb_diag_device_found">تم العثور على الجهاز</string>
+    <string name="usb_diag_vendor_id">معرّف المُصنّع</string>
+    <string name="usb_diag_product_id">معرّف المنتج</string>
+    <string name="usb_diag_permission">إذن USB</string>
+    <string name="usb_diag_cdc_serial">تم العثور على CDC Serial</string>
+    <string name="usb_diag_audio_device">تم العثور على جهاز صوتي</string>
+    <string name="usb_diag_port_open">المنفذ مفتوح</string>
+    <string name="usb_diag_cat_response">استجابة CAT</string>
+    <string name="usb_diag_value_none">—</string>
+    <string name="usb_diag_status_pass">ناجح</string>
+    <string name="usb_diag_status_fail">فاشل</string>
+    <string name="settings_rx_channel">قناة صوت الاستقبال</string>
+    <string name="settings_rx_channel_desc">أي جانب من مدخل الاستريو يُفكّ تشفيره. استخدم الأيسر أو الأيمن عندما يغذّي الراديو قناة واحدة فقط.</string>
+    <string name="settings_rx_channel_mix">مزج</string>
+    <string name="settings_tx_channel">قناة صوت الإرسال</string>
+    <string name="settings_tx_channel_desc">أي جانب من خرج الاستريو يحمل الصوت المُرسَل. استخدم الأيسر أو الأيمن لتشغيل راديو واحد على كابل مقسّم.</string>
+    <string name="settings_tx_channel_both">كلاهما</string>
+    <string name="settings_channel_left">أيسر</string>
+    <string name="settings_channel_right">أيمن</string>
+    <string name="settings_channel_mono_device">يحتوي هذا الجهاز على قناة صوتية واحدة فقط، لذا لا يوجد جانب للاختيار.</string>
+    <string name="settings_tx_channel_default_sink">اختر جهاز خرج صوتي محدداً لاختيار جانب. على الخرج الافتراضي لا يمكن للتطبيق معرفة وجهة توجيه Android للصوت، لذا يرسله إلى كلتا القناتين.</string>
+    <string name="settings_rx_channel_network_source">يأتي صوت هذا الراديو عبر رابطه الشبكي، وليس عبر مدخل صوتي، لذا لا يوجد جانب للاختيار.</string>
     <string name="tune_atu_started">تم بدء موالف هوائي الجهاز</string>
     <string name="tune_atu_unavailable">الموالف غير متاح — قم بتوصيل جهاز CAT مزوّد بموالف داخلي</string>
     <string name="settings_tune_method">طريقة Tune</string>
@@ -520,5 +745,62 @@
     <string name="tune_method_automatic">تلقائي</string>
     <string name="tune_method_internal">الموالف الداخلي</string>
     <string name="tune_method_tone">نغمة منخفضة القدرة</string>
-
+    <string name="action_edit">تعديل</string>
+    <string name="settings_cat_radio_audio_desc">طراز الراديو والاتصال وPTT والأجهزة الصوتية</string>
+    <string name="settings_cat_transmission_desc">كيف يُشغّل TUNE الراديو</string>
+    <string name="settings_cat_appearance">المظهر</string>
+    <string name="settings_cat_appearance_desc">السمة ولغة التطبيق</string>
+    <string name="settings_cat_logging_desc">رفع Cloudlog والحفظ في Photos</string>
+    <string name="settings_cat_advanced_desc">نغمة VOX التمهيدية، وتعريف CW، والنسخ الاحتياطي والاستعادة</string>
+    <string name="settings_cat_about_desc">الإصدار والتراخيص والاعتمادات</string>
+    <string name="settings_rig_status_connected">%1$s متصل عبر %2$s</string>
+    <string name="settings_rig_status_idle">لا يوجد راديو متصل · %1$s</string>
+    <string name="settings_value_usb_ok">متصل</string>
+    <string name="settings_value_no_link">لا يوجد اتصال</string>
+    <string name="settings_value_cloudlog_on">Cloudlog مفعّل</string>
+    <string name="settings_value_off">إيقاف</string>
+    <string name="settings_footer">SSTVAF v%1$s · صدّر واستورد الإعدادات في المتقدّم</string>
+    <string name="operator_sheet_title">المشغّل</string>
+    <string name="operator_antenna">الهوائي</string>
+    <string name="operator_antenna_hint">مثال: EFHW 40-10m</string>
+    <string name="operator_power">القدرة (واط)</string>
+    <string name="operator_power_hint">مثال: 100</string>
+    <string name="radio_link_connected">%1$s متصل</string>
+    <string name="radio_link_connecting">جارٍ الاتصال بـ %1$s</string>
+    <string name="radio_link_disconnected">%1$s لا يستجيب</string>
+    <string name="radio_link_vox">VOX · صوت فقط</string>
+    <string name="radio_link_no_model">لم يُحدَّد طراز راديو</string>
+    <string name="radio_action_reconnect">إعادة الاتصال</string>
+    <string name="radio_action_connecting">جارٍ الاتصال</string>
+    <string name="radio_action_connect">اتصال</string>
+    <string name="radio_action_test_ptt">اختبار PTT</string>
+    <string name="radio_action_stop_test">إيقاف الاختبار</string>
+    <string name="radio_action_choose_rig">اختيار الراديو</string>
+    <string name="radio_detail_vox">يُشغّل الراديو نفسه من صوت الإرسال</string>
+    <string name="radio_detail_waiting">في انتظار الراديو</string>
+    <string name="radio_detail_check_cable">تحقّق من الكابل وإعدادات الراديو</string>
+    <string name="radio_hint_usb">يتطلّب كابل OTG. يطلب Android الإذن في المرة الأولى التي يُوصَل فيها الراديو.</string>
+    <string name="radio_hint_bluetooth">اقرن الراديو في إعدادات Bluetooth بنظام Android أولاً.</string>
+    <string name="radio_hint_network">لراديو بعيد، مثل rigctld على 192.168.1.10:4532.</string>
+    <string name="radio_ptt_cat">يُشغّل الراديو بأمر CAT عبر الرابط التسلسلي.</string>
+    <string name="radio_ptt_rts">يُشغّل الراديو برفع خط RTS التسلسلي.</string>
+    <string name="radio_ptt_dtr">يُشغّل الراديو برفع خط DTR التسلسلي.</string>
+    <string name="radio_ptt_vox">يُشغّل الراديو نفسه عندما يسمع صوت الإرسال. لا يوجد رابط تحكم.</string>
+    <string name="radio_section_connection">الاتصال</string>
+    <string name="radio_ptt_method">طريقة PTT</string>
+    <string name="radio_baud_rate">معدّل البود</string>
+    <string name="radio_ptt_delay">تأخير PTT</string>
+    <string name="radio_ptt_delay_desc">زمن الاستقرار بعد التشغيل، قبل بدء الصوت</string>
+    <string name="radio_ms_format">%1$d ms</string>
+    <string name="radio_rig_picker_title">طراز الراديو</string>
+    <string name="radio_rig_search_hint">ابحث عن الطُّرز</string>
+    <string name="radio_rig_search_clear">مسح البحث</string>
+    <string name="radio_rig_no_matches">لا توجد طُرز تطابق هذا البحث</string>
+    <string name="radio_input_level">مستوى الدخل</string>
+    <string name="radio_level_silent">صامت</string>
+    <string name="radio_level_advice_silent">لا يصل صوت إلى التطبيق. تحقّق من الكابل وجهاز الدخل.</string>
+    <string name="radio_level_advice_low">هادئ جداً. ارفع كسب الراديو أو الدخل.</string>
+    <string name="radio_level_advice_good">ضمن النطاق الصحي.</string>
+    <string name="radio_level_advice_high">قريب من القطع. اخفض الكسب قليلاً.</string>
+    <string name="radio_level_advice_clipping">يحدث قطع. اخفض الكسب حتى تبقى القمم أسفل العلامة.</string>
 </resources>
