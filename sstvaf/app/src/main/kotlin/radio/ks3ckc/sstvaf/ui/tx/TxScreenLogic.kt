@@ -1,8 +1,12 @@
 package radio.ks3ckc.sstvaf.ui.tx
 
+import android.graphics.Bitmap
 import androidx.annotation.StringRes
 import com.k1af.ft8af.R
 import radio.ks3ckc.sstvaf.sstv.SstvMode
+import radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode
+import radio.ks3ckc.sstvaf.sstv.digital.digitalDurationSeconds
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -314,6 +318,92 @@ internal fun performTransmit(
     log(
         "SSTV TX composer: transmit started — mode=${mode.displayName}" +
             " ${width}x$height freqHz=$freqHz",
+    )
+    return true
+}
+
+// ---------------------------------------------------------------------------
+// Digital SSTV (COFDM) transmit
+// ---------------------------------------------------------------------------
+
+/**
+ * The JPEG payload budget for a digital transmission. At the STANDARD
+ * robustness mode's throughput this is roughly 45 s of airtime — in analog
+ * terms, Martin 2 territory — while still carrying a full-color photo the
+ * analog modes can only approximate.
+ */
+internal const val DIGITAL_PAYLOAD_BUDGET_BYTES = 12 * 1024
+
+/** JPEG quality ladder tried by [compressForDigital], best first. */
+private val DIGITAL_JPEG_QUALITIES = intArrayOf(85, 75, 65, 55, 45, 35)
+
+/**
+ * Compress [bitmap] to a JPEG no larger than [budgetBytes], walking the
+ * quality ladder downward; when even the lowest rung overshoots, that rung's
+ * bytes are returned anyway (a slightly longer transmission beats refusing
+ * to send).
+ */
+internal fun compressForDigital(
+    bitmap: Bitmap,
+    budgetBytes: Int = DIGITAL_PAYLOAD_BUDGET_BYTES,
+): ByteArray {
+    var last: ByteArray = ByteArray(0)
+    for (quality in DIGITAL_JPEG_QUALITIES) {
+        val out = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, quality, out)
+        last = out.toByteArray()
+        if (last.size <= budgetBytes) return last
+    }
+    return last
+}
+
+/**
+ * Estimated on-air seconds for a digital transmission of [payloadBytes] in
+ * [digitalMode], memoized per (mode, size-bucket) because the estimate does
+ * a dry-run encode (~tens of ms) and the sheet asks for it on every open.
+ */
+internal fun digitalTxDurationSeconds(
+    digitalMode: DigitalSstvMode,
+    payloadBytes: Int = DIGITAL_PAYLOAD_BUDGET_BYTES,
+): Double = digitalDurationCache.getOrPut(digitalMode to payloadBytes) {
+    digitalDurationSeconds(payloadBytes, digitalMode)
+}
+
+private val digitalDurationCache = HashMap<Pair<DigitalSstvMode, Int>, Double>()
+
+/**
+ * As [performTransmit], for a digital frame: start first (a rejected start
+ * must not save), then persist the composed pixels as the TX gallery copy
+ * under the digital mode's name.
+ */
+@Suppress("LongParameterList")
+internal fun performDigitalTransmit(
+    pixels: IntArray,
+    width: Int,
+    height: Int,
+    payload: ByteArray,
+    digitalMode: DigitalSstvMode,
+    freqHz: Long,
+    utcMillis: Long,
+    starter: (ByteArray, Int, Int, DigitalSstvMode) -> Boolean,
+    saver: (IntArray, Int, Int, DigitalSstvMode, Long, Long) -> Unit,
+    log: (String) -> Unit,
+): Boolean {
+    val accepted = starter(payload, width, height, digitalMode)
+    if (!accepted) {
+        log("SSTV TX composer: digital transmit rejected — mode=${digitalMode.displayName}")
+        return false
+    }
+    try {
+        saver(pixels, width, height, digitalMode, utcMillis, freqHz)
+    } catch (e: IOException) {
+        // Same contract as the analog path: the frame is already on the air,
+        // losing the gallery copy is the lesser failure.
+        log("SSTV TX composer: digital gallery save failed — $e")
+    }
+    log(
+        "SSTV TX composer: digital transmit started — mode=${digitalMode.displayName}" +
+            " ${width}x$height payload=${payload.size}B freqHz=$freqHz",
     )
     return true
 }

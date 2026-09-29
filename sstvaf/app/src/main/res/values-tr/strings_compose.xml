@@ -694,6 +694,8 @@
     <string name="mode_group_fast">HIZLI · BİR DAKİKANIN ALTINDA</string>
     <string name="mode_group_standard">STANDART</string>
     <string name="mode_group_high_resolution">YÜKSEK ÇÖZÜNÜRLÜK</string>
+    <string name="mode_group_digital">DİJİTAL · BETA</string>
+    <string name="mode_digital_sub">Hata düzeltmeli sıkıştırılmış fotoğraf — yalnızca SSTVAF</string>
     <string name="mode_note_most_common">20m\'de en yaygın</string>
     <string name="mode_card_label">MOD</string>
     <string name="mode_card_description">SSTV modu %1$s</string>

@@ -3,6 +3,7 @@ package radio.ks3ckc.sstvaf.ui.tx
 import org.json.JSONArray
 import org.json.JSONObject
 import radio.ks3ckc.sstvaf.sstv.SstvMode
+import radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode
 
 /**
  * The operator's edit list, serialized so a transmitted picture can be
@@ -28,6 +29,7 @@ object TxEditList {
 
     private const val KEY_VERSION = "v"
     private const val KEY_MODE = "mode"
+    private const val KEY_DIGITAL_MODE = "digitalMode"
     private const val KEY_SOURCE = "src"
     private const val KEY_ZOOM = "zoom"
     private const val KEY_PAN_X = "panX"
@@ -61,6 +63,7 @@ object TxEditList {
         val root = JSONObject()
         root.put(KEY_VERSION, VERSION)
         root.put(KEY_MODE, composition.mode.name)
+        composition.digitalMode?.let { root.put(KEY_DIGITAL_MODE, it.name) }
         composition.sourceUri?.let { root.put(KEY_SOURCE, it) }
         root.put(KEY_ZOOM, composition.zoom.toDouble())
         root.put(KEY_PAN_X, composition.panX.toDouble())
@@ -125,6 +128,10 @@ object TxEditList {
             if (root.optInt(KEY_VERSION, 0) > VERSION) return null
             val mode = SstvMode.entries.firstOrNull { it.name == root.optString(KEY_MODE) }
                 ?: return null
+            // Absent (or unknown, from a future build) digital mode degrades
+            // to analog rather than rejecting the whole composition.
+            val digitalMode = DigitalSstvMode.entries
+                .firstOrNull { it.name == root.optString(KEY_DIGITAL_MODE) }
 
             val overlays = mutableListOf<TextOverlay>()
             val overlayArray = root.optJSONArray(KEY_OVERLAYS)
@@ -201,6 +208,7 @@ object TxEditList {
             TxComposition(
                 sourceUri = root.optString(KEY_SOURCE).ifEmpty { null },
                 mode = mode,
+                digitalMode = digitalMode,
                 zoom = clampZoom(root.optDouble(KEY_ZOOM, 1.0).toFloat()),
                 panX = clampPan(root.optDouble(KEY_PAN_X, 0.0).toFloat()),
                 panY = clampPan(root.optDouble(KEY_PAN_Y, 0.0).toFloat()),

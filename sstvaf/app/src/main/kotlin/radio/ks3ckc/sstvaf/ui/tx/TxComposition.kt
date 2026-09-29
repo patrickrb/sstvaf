@@ -1,6 +1,7 @@
 package radio.ks3ckc.sstvaf.ui.tx
 
 import radio.ks3ckc.sstvaf.sstv.SstvMode
+import radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode
 import java.util.Locale
 
 /**
@@ -159,6 +160,13 @@ enum class ImageFrame {
 data class TxComposition(
     val sourceUri: String? = null,
     val mode: SstvMode,
+    /**
+     * Non-null sends this composition as a digital-SSTV (COFDM) frame in the
+     * chosen robustness mode instead of the analog scanline mode. [mode]
+     * still defines the canvas the operator composes on — the digital
+     * payload embeds its own dimensions.
+     */
+    val digitalMode: DigitalSstvMode? = null,
     val zoom: Float = 1f,
     val panX: Float = 0f,
     val panY: Float = 0f,

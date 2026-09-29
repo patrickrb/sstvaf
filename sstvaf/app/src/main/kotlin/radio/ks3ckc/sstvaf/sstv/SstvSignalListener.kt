@@ -4,6 +4,8 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.k1af.ft8af.GeneralVariables
 import com.k1af.ft8af.wave.HamRecorder
+import radio.ks3ckc.sstvaf.sstv.digital.DigitalRxImage
+import radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvRxEngine
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -39,6 +41,20 @@ class SstvSignalListener @JvmOverloads constructor(
 
     /** Live receive state for the (future, PR 6) RX UI. */
     val rxState: LiveData<SstvRxState> get() = mutableRxState
+
+    private val mutableDigitalResult = MutableLiveData<DigitalRxImage?>(null)
+
+    /**
+     * The last completed digital-SSTV image, decoded by the parallel COFDM
+     * detector that rides the same audio tap (see [DigitalSstvRxEngine]).
+     * Digital frames are all-or-nothing (no per-row progress), so they get
+     * their own durable holder instead of a [SstvRxState] variant; the save
+     * controller renders the payload and files it with the RX images.
+     */
+    val digitalResult: LiveData<DigitalRxImage?> get() = mutableDigitalResult
+
+    /** The digital detector; driven from the decode thread only. */
+    private val digitalEngine = DigitalSstvRxEngine(log)
 
     @Volatile
     private var currentState: SstvRxState = SstvRxState.Idle
@@ -78,6 +94,9 @@ class SstvSignalListener @JvmOverloads constructor(
         decodeThread?.interrupt()
         decodeThread = null
         queue.clear()
+        // The decode thread is gone; safe to reset the digital detector so a
+        // later start() hunts from a clean slate.
+        digitalEngine.reset()
         // Direct-driven (test) mode has no thread to do the teardown.
         synchronized(sessionLock) {
             if (decodeThreadless) {
@@ -203,14 +222,26 @@ class SstvSignalListener @JvmOverloads constructor(
     internal fun stepOnce(waitMs: Long) {
         val first =
             if (waitMs > 0) queue.poll(waitMs, TimeUnit.MILLISECONDS) else queue.poll()
+        // Drain to a local list first: the analog session push happens under
+        // sessionLock, but the digital detector (which can spend hundreds of
+        // milliseconds on a decode attempt) must run OUTSIDE it so the UI's
+        // readNewRows never waits on a COFDM demod.
+        val drained = ArrayList<FloatArray>(4)
+        if (first != null) drained.add(first)
+        while (true) {
+            drained.add(queue.poll() ?: break)
+        }
         synchronized(sessionLock) {
             val s = session ?: return
-            var buf = first
-            while (buf != null) {
+            for (buf in drained) {
                 s.push(buf, buf.size)
-                buf = queue.poll()
             }
             publishFromSession(s)
+        }
+        for (buf in drained) {
+            digitalEngine.push(buf, buf.size)?.let { result ->
+                mutableDigitalResult.postValue(result)
+            }
         }
     }
 

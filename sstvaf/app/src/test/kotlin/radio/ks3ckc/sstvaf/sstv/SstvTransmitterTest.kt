@@ -466,4 +466,30 @@ class SstvTransmitterTest {
         assertThat(SstvTransmitter.txProgressFraction(100, 0)).isEqualTo(0f)
         assertThat(SstvTransmitter.txProgressFraction(-5, 1000)).isEqualTo(0f)
     }
+
+    @Test
+    fun digitalTransmitPlaysTheUpsampledFrameWithTheSamePlumbing() {
+        val player = FakePlayer(events)
+        val tx = newTransmitter(player)
+        val image = radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvCodec.Image(
+            radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvCodec.Format.JPEG,
+            8, 8, ByteArray(64) { it.toByte() },
+        )
+
+        val started = tx.transmitDigital(
+            image, radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode.STANDARD,
+        )
+
+        assertThat(started).isTrue()
+        // keyDown -> one play at the device rate -> keyUp; the analog codec
+        // was never asked to encode.
+        assertThat(events.first()).isEqualTo("keyDown")
+        assertThat(events.last()).isEqualTo("keyUp")
+        assertThat(codec.encodeCalls).isEmpty()
+        val expected = radio.ks3ckc.sstvaf.sstv.digital.encodeDigitalForRate(
+            image, radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode.STANDARD, 12000,
+        ).size
+        assertThat(playSampleCounts()).containsExactly(expected)
+        assertThat(logs.any { it.contains("Digital Standard") }).isTrue()
+    }
 }

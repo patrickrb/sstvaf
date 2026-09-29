@@ -368,4 +368,57 @@ class TxScreenLogicTest {
         assertThat(gesture(moved, previewW = 0f)).isEqualTo(moved)
         assertThat(gesture(moved, previewH = 0f)).isEqualTo(moved)
     }
+
+    // ----- digital transmit -----
+
+    @Test
+    fun `digital transmit saves only after an accepted start`() {
+        val calls = mutableListOf<String>()
+        val ok = performDigitalTransmit(
+            pixels = IntArray(4), width = 2, height = 2,
+            payload = byteArrayOf(1, 2, 3),
+            digitalMode = radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode.STANDARD,
+            freqHz = 14_230_000, utcMillis = 42,
+            starter = { p, w, h, dm ->
+                calls += "start(${p.size},$w,$h,${dm.shortCode})"
+                true
+            },
+            saver = { _, w, h, dm, utc, freq ->
+                calls += "save($w,$h,${dm.shortCode},$utc,$freq)"
+            },
+            log = { },
+        )
+        assertThat(ok).isTrue()
+        assertThat(calls)
+            .containsExactly("start(3,2,2,DGS)", "save(2,2,DGS,42,14230000)")
+            .inOrder()
+    }
+
+    @Test
+    fun `rejected digital start does not save`() {
+        var saved = false
+        val ok = performDigitalTransmit(
+            pixels = IntArray(4), width = 2, height = 2,
+            payload = byteArrayOf(1),
+            digitalMode = radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode.FAST,
+            freqHz = 0, utcMillis = 0,
+            starter = { _, _, _, _ -> false },
+            saver = { _, _, _, _, _, _ -> saved = true },
+            log = { },
+        )
+        assertThat(ok).isFalse()
+        assertThat(saved).isFalse()
+    }
+
+    @Test
+    fun `digital duration estimate is cached and positive`() {
+        val first = digitalTxDurationSeconds(
+            radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode.STANDARD,
+        )
+        val second = digitalTxDurationSeconds(
+            radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode.STANDARD,
+        )
+        assertThat(first).isGreaterThan(0.0)
+        assertThat(second).isEqualTo(first)
+    }
 }

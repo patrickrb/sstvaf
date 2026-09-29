@@ -66,6 +66,8 @@ import radio.ks3ckc.sstvaf.gallery.SavedImage
 import radio.ks3ckc.sstvaf.sstv.CwId
 import radio.ks3ckc.sstvaf.sstv.CwIdSettings
 import radio.ks3ckc.sstvaf.sstv.SstvMode
+import radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvCodec
+import kotlin.math.roundToInt
 import radio.ks3ckc.sstvaf.sstv.VoxPreTone
 import radio.ks3ckc.sstvaf.theme.Accent
 import radio.ks3ckc.sstvaf.theme.BgApp
@@ -627,6 +629,7 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                     enabled = true,
                     onClick = { showModeSheet = true },
                     modifier = Modifier.width(118.dp),
+                    digitalMode = composition.digitalMode,
                 )
             }
             if (isTransmitting) {
@@ -642,7 +645,9 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
             } else if (outcome == null) {
                 TransmitButton(
                     gate = gate,
-                    durationLabel = modeDurationLabel(composition.mode),
+                    durationLabel = composition.digitalMode
+                        ?.let { formatMinSec(digitalTxDurationSeconds(it).roundToInt()) }
+                        ?: modeDurationLabel(composition.mode),
                     onClick = { showConfirmSheet = true },
                     modifier = Modifier.weight(1f),
                 )
@@ -661,11 +666,22 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
         onDismiss = { showModeSheet = false },
         onSelect = { mode ->
             showModeSheet = false
-            composerState.composition = composition.copy(mode = mode)
+            // Picking an analog mode always leaves digital: the two are one
+            // radio-button list to the operator.
+            composerState.composition = composition.copy(mode = mode, digitalMode = null)
             // Persist so the composer opens on the operator's last choice
             // instead of resetting to Scottie 1 every launch.
             GeneralVariables.sstvTxMode = mode.name
             mainViewModel.databaseOpr.writeConfig("sstvTxMode", mode.name, null)
+        },
+        selectedDigital = composition.digitalMode,
+        onSelectDigital = { dmode ->
+            showModeSheet = false
+            // The analog mode stays as the composing canvas; only the
+            // transport changes. Deliberately NOT persisted as the default:
+            // digital is beta and SSTVAF-to-SSTVAF only, so a fresh launch
+            // starts analog.
+            composerState.composition = composition.copy(digitalMode = dmode)
         },
     )
 
@@ -711,25 +727,52 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                     }
                 }
             }
-            performTransmit(
-                pixels = pixels,
-                width = composite.width,
-                height = composite.height,
-                mode = composition.mode,
-                freqHz = GeneralVariables.band,
-                utcMillis = System.currentTimeMillis(),
-                starter = { p, w, h, m -> mainViewModel.sstvTransmitter.transmit(p, w, h, m) },
-                saver = { p, w, h, m, utc, freq ->
-                    mainViewModel.receivedImageStore.save(
-                        p, w, h, m, utc, freq,
-                        ImageDirection.TX, complete = true, quality = 1f,
-                        // The edit list travels with the picture so it can be
-                        // reopened later, not just re-sent flat.
-                        edits = TxEditList.serialize(durableComposition ?: composition),
-                    )
-                },
-                log = { GeneralVariables.fileLog(it) },
-            )
+            val digitalMode = composition.digitalMode
+            if (digitalMode != null) {
+                performDigitalTransmit(
+                    pixels = pixels,
+                    width = composite.width,
+                    height = composite.height,
+                    payload = compressForDigital(composite),
+                    digitalMode = digitalMode,
+                    freqHz = GeneralVariables.band,
+                    utcMillis = System.currentTimeMillis(),
+                    starter = { payload, w, h, dm ->
+                        mainViewModel.sstvTransmitter.transmitDigital(
+                            DigitalSstvCodec.Image(DigitalSstvCodec.Format.JPEG, w, h, payload),
+                            dm,
+                        )
+                    },
+                    saver = { p, w, h, dm, utc, freq ->
+                        mainViewModel.receivedImageStore.save(
+                            p, w, h, dm.shortCode, dm.displayName, utc, freq,
+                            ImageDirection.TX, complete = true, quality = 1f,
+                            edits = TxEditList.serialize(durableComposition ?: composition),
+                        )
+                    },
+                    log = { GeneralVariables.fileLog(it) },
+                )
+            } else {
+                performTransmit(
+                    pixels = pixels,
+                    width = composite.width,
+                    height = composite.height,
+                    mode = composition.mode,
+                    freqHz = GeneralVariables.band,
+                    utcMillis = System.currentTimeMillis(),
+                    starter = { p, w, h, m -> mainViewModel.sstvTransmitter.transmit(p, w, h, m) },
+                    saver = { p, w, h, m, utc, freq ->
+                        mainViewModel.receivedImageStore.save(
+                            p, w, h, m, utc, freq,
+                            ImageDirection.TX, complete = true, quality = 1f,
+                            // The edit list travels with the picture so it can be
+                            // reopened later, not just re-sent flat.
+                            edits = TxEditList.serialize(durableComposition ?: composition),
+                        )
+                    },
+                    log = { GeneralVariables.fileLog(it) },
+                )
+            }
         },
     )
 }
