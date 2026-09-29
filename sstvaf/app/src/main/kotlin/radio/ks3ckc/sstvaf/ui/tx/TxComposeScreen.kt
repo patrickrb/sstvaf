@@ -317,6 +317,10 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                 val savedMode = SstvMode.entries.firstOrNull { it.displayName == entry.mode }
                 composerState.composition = composerState.composition?.copy(
                     mode = savedMode ?: composerState.composition?.mode ?: composition.mode,
+                    // The restore adopts the saved picture's ANALOG mode; a
+                    // digital transport left over from the previous composition
+                    // must not silently override it at send time.
+                    digitalMode = null,
                     overlays = emptyList(),
                     paths = emptyList(),
                     adjustments = ImageAdjustments(),
@@ -688,6 +692,7 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
     TxConfirmSheet(
         visible = showConfirmSheet,
         mode = composition.mode,
+        digitalMode = composition.digitalMode,
         preview = preview,
         txLevelPercent = (GeneralVariables.volumePercent * 100).toInt(),
         bandLabel = BaseRigOperation.getMeterFromFreq(GeneralVariables.band).orEmpty(),

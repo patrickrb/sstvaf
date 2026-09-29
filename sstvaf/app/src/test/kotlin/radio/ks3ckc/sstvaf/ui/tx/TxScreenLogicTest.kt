@@ -421,4 +421,37 @@ class TxScreenLogicTest {
         assertThat(first).isGreaterThan(0.0)
         assertThat(second).isEqualTo(first)
     }
+
+    @Test
+    fun `confirm line shows the digital name and estimated airtime when digital is selected`() {
+        val line = confirmDurationLine(
+            radio.ks3ckc.sstvaf.sstv.SstvMode.SCOTTIE_1,
+            cwTailSeconds = 0.0,
+            voxPreToneSeconds = 0.0,
+            digitalMode = radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode.STANDARD,
+        )
+        assertThat(line).startsWith("Digital Standard — ")
+        assertThat(line).contains("≈")
+        assertThat(line).doesNotContain("Scottie 1")
+
+        // The CW note still applies to a digital transmission.
+        val withId = confirmDurationLine(
+            radio.ks3ckc.sstvaf.sstv.SstvMode.SCOTTIE_1,
+            cwTailSeconds = 5.0,
+            digitalMode = radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode.FAST,
+        )
+        assertThat(withId).contains("(incl. CW ID)")
+    }
+
+    @Test
+    fun `airtime class follows the digital duration when digital is selected`() {
+        // Scottie DX alone is VERY long analog; digital overrides that.
+        val digital = txAirtimeClass(
+            radio.ks3ckc.sstvaf.sstv.SstvMode.SCOTTIE_DX,
+            digitalMode = radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode.FAST,
+        )
+        val analog = txAirtimeClass(radio.ks3ckc.sstvaf.sstv.SstvMode.SCOTTIE_DX)
+        assertThat(analog).isEqualTo(TxAirtimeClass.VERY_LONG)
+        assertThat(digital).isNotEqualTo(TxAirtimeClass.VERY_LONG)
+    }
 }

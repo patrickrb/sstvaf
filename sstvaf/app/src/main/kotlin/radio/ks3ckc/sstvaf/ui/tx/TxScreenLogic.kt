@@ -96,7 +96,19 @@ internal fun confirmDurationLine(
     mode: SstvMode,
     cwTailSeconds: Double = 0.0,
     voxPreToneSeconds: Double = 0.0,
+    digitalMode: DigitalSstvMode? = null,
 ): String {
+    // With a digital transport the analog mode only names the canvas — the
+    // on-air name and airtime are the COFDM frame's. The duration is an
+    // estimate (payload budget, not the final JPEG size), hence the ≈.
+    if (digitalMode != null) {
+        val total = (
+            digitalTxDurationSeconds(digitalMode) +
+                cwTailSeconds.coerceAtLeast(0.0) + voxPreToneSeconds.coerceAtLeast(0.0)
+            ).roundToInt()
+        val idNote = if (cwTailSeconds > 0.0) " (incl. CW ID)" else ""
+        return "${digitalMode.displayName} — ${modeResolutionLabel(mode)} — ≈$total seconds$idNote"
+    }
     val total = totalTxDurationSeconds(mode, cwTailSeconds, voxPreToneSeconds).roundToInt()
     val idNote = if (cwTailSeconds > 0.0) " (incl. CW ID)" else ""
     return "${mode.displayName} — ${modeResolutionLabel(mode)} — $total seconds$idNote"
@@ -129,8 +141,17 @@ internal enum class TxAirtimeClass(@StringRes val labelRes: Int) {
  * Folds in the CW ID tail via [totalTxDurationSeconds], so enabling the ID can
  * bump a mode into the next class up when it nudges the total past a boundary.
  */
-internal fun txAirtimeClass(mode: SstvMode, cwTailSeconds: Double = 0.0): TxAirtimeClass {
-    val total = totalTxDurationSeconds(mode, cwTailSeconds)
+internal fun txAirtimeClass(
+    mode: SstvMode,
+    cwTailSeconds: Double = 0.0,
+    digitalMode: DigitalSstvMode? = null,
+): TxAirtimeClass {
+    val total =
+        if (digitalMode != null) {
+            digitalTxDurationSeconds(digitalMode) + cwTailSeconds.coerceAtLeast(0.0)
+        } else {
+            totalTxDurationSeconds(mode, cwTailSeconds)
+        }
     return when {
         total < 60.0 -> TxAirtimeClass.QUICK
         total < 120.0 -> TxAirtimeClass.MODERATE
@@ -359,17 +380,13 @@ internal fun compressForDigital(
 
 /**
  * Estimated on-air seconds for a digital transmission of [payloadBytes] in
- * [digitalMode], memoized per (mode, size-bucket) because the estimate does
- * a dry-run encode (~tens of ms) and the sheet asks for it on every open.
+ * [digitalMode]. Pure arithmetic over the frame layout — cheap enough for
+ * composition, so no memo is needed.
  */
 internal fun digitalTxDurationSeconds(
     digitalMode: DigitalSstvMode,
     payloadBytes: Int = DIGITAL_PAYLOAD_BUDGET_BYTES,
-): Double = digitalDurationCache.getOrPut(digitalMode to payloadBytes) {
-    digitalDurationSeconds(payloadBytes, digitalMode)
-}
-
-private val digitalDurationCache = HashMap<Pair<DigitalSstvMode, Int>, Double>()
+): Double = digitalDurationSeconds(payloadBytes, digitalMode)
 
 /**
  * As [performTransmit], for a digital frame: start first (a rejected start

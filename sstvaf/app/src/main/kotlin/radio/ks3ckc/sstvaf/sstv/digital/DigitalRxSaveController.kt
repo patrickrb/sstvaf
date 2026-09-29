@@ -2,8 +2,8 @@ package radio.ks3ckc.sstvaf.sstv.digital
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import androidx.lifecycle.LiveData
 import com.k1af.ft8af.GeneralVariables
+import radio.ks3ckc.sstvaf.sstv.SstvSignalListener
 import radio.ks3ckc.sstvaf.gallery.ImageDirection
 import radio.ks3ckc.sstvaf.gallery.ReceivedImageStore
 import java.util.concurrent.Executor
@@ -30,24 +30,19 @@ class DigitalRxSaveController @JvmOverloads constructor(
     },
 ) {
 
-    private var lastSequenceSaved: Any? = null
-
     /**
-     * Start observing [results]. Must be called on the main thread
-     * (observeForever); both objects live as long as the ViewModel.
+     * Register on [listener]'s per-frame digital callback. Direct callback
+     * rather than the LiveData holder: postValue coalesces under a busy main
+     * looper, which could silently drop a completed frame between
+     * dispatches, and this controller must save every frame exactly once.
+     * The callback arrives on the decode thread; the save runs on
+     * [ioExecutor].
      */
-    fun attach(results: LiveData<DigitalRxImage?>) {
-        results.observeForever { result ->
-            // The holder is durable, so guard against re-delivery of the
-            // same object (configuration changes re-fire observers).
-            if (result != null && result !== lastSequenceSaved) {
-                lastSequenceSaved = result
-                ioExecutor.execute { save(result) }
-            }
-        }
+    fun attach(listener: SstvSignalListener) {
+        listener.onDigitalImage = { result -> ioExecutor.execute { save(result) } }
     }
 
-    private fun save(result: DigitalRxImage) {
+    internal fun save(result: DigitalRxImage) {
         try {
             val bitmap = decodePayload(result) ?: run {
                 log(
@@ -76,7 +71,7 @@ class DigitalRxSaveController @JvmOverloads constructor(
         }
     }
 
-    private fun decodePayload(result: DigitalRxImage): Bitmap? =
+    internal fun decodePayload(result: DigitalRxImage): Bitmap? =
         when (result.format) {
             DigitalSstvCodec.Format.JPEG,
             DigitalSstvCodec.Format.PNG,

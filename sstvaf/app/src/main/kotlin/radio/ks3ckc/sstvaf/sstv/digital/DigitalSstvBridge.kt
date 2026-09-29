@@ -167,18 +167,10 @@ internal fun encodeDigitalForRate(
     upsampleForDeviceRate(DigitalSstvCodec(mode).encode(image), deviceRate)
 
 /**
- * Estimated on-air seconds for a [payloadBytes]-byte image in [mode],
- * derived from the exact frame layout (preamble + header + payload
- * segments at the modem's bits/symbol) — used for the TX duration label
- * without paying for a full encode.
+ * Exact on-air seconds for a [payloadBytes]-byte image in [mode], from the
+ * codec's analytic [DigitalSstvCodec.encodedSampleCount] — microseconds of
+ * arithmetic, safe to call from UI composition (the earlier dry-run-encode
+ * version cost tens of milliseconds per mode on the main thread).
  */
-internal fun digitalDurationSeconds(payloadBytes: Int, mode: DigitalSstvMode): Double {
-    val image = DigitalSstvCodec.Image(
-        DigitalSstvCodec.Format.JPEG, 0, 0, ByteArray(payloadBytes.coerceAtLeast(0)),
-    )
-    // The container/codec own the layout; one dry-run encode of a zeroed
-    // payload is exact and still cheap (all-zero QPSK symbols, ~100 ms of
-    // work for the largest payloads the UI offers).
-    val samples = DigitalSstvCodec(mode).encode(image).size
-    return samples.toDouble() / DIGITAL_WAVEFORM_RATE_HZ
-}
+internal fun digitalDurationSeconds(payloadBytes: Int, mode: DigitalSstvMode): Double =
+    DigitalSstvCodec(mode).encodedSampleCount(payloadBytes).toDouble() / DIGITAL_WAVEFORM_RATE_HZ

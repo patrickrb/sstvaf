@@ -108,4 +108,20 @@ class DigitalSstvBridgeTest {
         val robust = digitalDurationSeconds(4096, DigitalSstvMode.ROBUST)
         assertThat(robust).isGreaterThan(fast)
     }
+
+    @Test
+    fun `analytic sample count matches a real encode exactly`() {
+        // The duration label leans entirely on this equality — a layout
+        // change that breaks it silently skews every estimate.
+        for (mode in DigitalSstvMode.entries) {
+            for (payload in intArrayOf(0, 1, 128, 129, 4096, 12 * 1024)) {
+                val image = DigitalSstvCodec.Image(
+                    DigitalSstvCodec.Format.JPEG, 8, 8, ByteArray(payload),
+                )
+                val codec = DigitalSstvCodec(mode)
+                assertThat(codec.encodedSampleCount(payload))
+                    .isEqualTo(codec.encode(image).size)
+            }
+        }
+    }
 }

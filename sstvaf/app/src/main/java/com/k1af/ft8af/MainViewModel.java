@@ -640,7 +640,7 @@ public class MainViewModel extends ViewModel {
         rxAutoSaveController.attach(sstvSignalListener.getRxState());
         // Digital frames ride the same tap; render + save them alongside.
         digitalRxSaveController = new DigitalRxSaveController(receivedImageStore);
-        digitalRxSaveController.attach(sstvSignalListener.getDigitalResult());
+        digitalRxSaveController.attach(sstvSignalListener);
 
         sstvTransmitter = new SstvTransmitter(sstvCodec,
                 new SstvTransmitter.Keyer() {
