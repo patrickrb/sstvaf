@@ -178,6 +178,7 @@
     <string name="log_section_grid_coverage">Couverture des grilles</string>
     <string name="log_section_signal_trend">Tendance du signal</string>
     <string name="log_no_qsos_yet">Aucun QSO pour le moment</string>
+    <string name="log_signal_trend_no_data">Pas encore assez de reports de signal pour tracer une courbe</string>
     <string name="log_no_qsos_recorded_yet">Aucun QSO enregistré pour le moment</string>
     <string name="log_search_placeholder">Rechercher indicatif, locator, bande…</string>
     <string name="log_search_no_matches">Aucun QSO ne correspond à « %1$s »</string>

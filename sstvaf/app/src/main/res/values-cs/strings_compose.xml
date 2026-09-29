@@ -178,6 +178,7 @@
     <string name="log_section_grid_coverage">Pokrytí lokátorů</string>
     <string name="log_section_signal_trend">Trend signálu</string>
     <string name="log_no_qsos_yet">Zatím žádná QSOs</string>
+    <string name="log_signal_trend_no_data">Zatím není dost reportů signálu pro graf</string>
     <string name="log_no_qsos_recorded_yet">Zatím nezaznamenána žádná QSOs</string>
     <string name="log_search_placeholder">Hledat volací znak, lokátor, pásmo…</string>
     <string name="log_search_no_matches">Žádné QSO neodpovídá „%1$s“</string>

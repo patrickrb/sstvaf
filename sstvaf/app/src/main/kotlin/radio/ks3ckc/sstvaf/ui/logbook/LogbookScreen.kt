@@ -981,14 +981,23 @@ private fun SignalSparkline(
     modifier: Modifier = Modifier,
     progress: Float = 1f,
 ) {
-    if (records.isEmpty()) {
+    // Real per-QSO data only: the received signal report (rst_rcvd) persisted
+    // on each QSO row. Rows without a parsable RST/RSV report contribute no
+    // point, and with fewer than two points there is no trend to draw — say
+    // so honestly instead of inventing one.
+    val dataPoints = remember(records) { signalStrengthPoints(records) }
+    val placeholderRes = signalTrendPlaceholderRes(
+        hasRecords = records.isNotEmpty(),
+        pointCount = dataPoints.size,
+    )
+    if (placeholderRes != null) {
         GlassCard(modifier = modifier) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = stringResource(R.string.log_no_qsos_yet),
+                    text = stringResource(placeholderRes),
                     color = TextFaint,
                     fontSize = 11.sp,
                     fontFamily = GeistMonoFamily,
@@ -996,16 +1005,6 @@ private fun SignalSparkline(
             }
         }
         return
-    }
-
-    // QSLCallsignRecord does not carry SNR, so we synthesize a coarse trend
-    // from the per-record index. This is a visualization placeholder until
-    // SNR is persisted on the QSO log row.
-    val dataPoints = remember(records) {
-        records.takeLast(30).mapIndexed { index, _ ->
-            val base = -15f + (index % 20) * 1.2f
-            base.coerceIn(-25f, 5f)
-        }
     }
 
     GlassCard(modifier = modifier) {
@@ -1024,21 +1023,91 @@ private fun SignalSparkline(
     }
 }
 
+/**
+ * Which placeholder the signal-trend card shows instead of a chart, or null
+ * when there are enough real data points ([SPARKLINE_MIN_POINTS]) to draw one.
+ * Extracted from [SignalSparkline] so the decision is unit-testable.
+ */
+internal fun signalTrendPlaceholderRes(hasRecords: Boolean, pointCount: Int): Int? = when {
+    !hasRecords -> R.string.log_no_qsos_yet
+    pointCount < SPARKLINE_MIN_POINTS -> R.string.log_signal_trend_no_data
+    else -> null
+}
+
+/** A line needs two points; fewer real reports than that means no chart. */
+internal const val SPARKLINE_MIN_POINTS = 2
+
+/** How many of the most recent QSOs the signal-trend sparkline considers. */
+internal const val SPARKLINE_MAX_POINTS = 30
+
+/** The RST/RSV strength digit's fixed scale, 1..9 — the sparkline's y-axis. */
+internal const val RSV_STRENGTH_MIN = 1f
+internal const val RSV_STRENGTH_MAX = 9f
+
+/**
+ * Strength values for the signal-trend sparkline, oldest to newest, taken from
+ * the received signal reports actually persisted on the QSO rows
+ * ([QSLCallsignRecord.rstReceived], ADIF rst_rcvd).
+ *
+ * SSTV QSOs exchange an RSV report ("595" — readability/strength/video) and
+ * classic phone/CW logs an RST ("59"/"599"); in both, the second digit is the
+ * strength, 1..9 — the one honest per-QSO signal metric the log carries.
+ * Reports that don't have one — empty rows, "no report" sentinels, or
+ * FT8-heritage signed dB SNRs ("-15"), which live on a different scale and
+ * can't share this axis — yield no point rather than a made-up value. At most
+ * [maxPoints] of the most recent QSOs contribute.
+ */
+internal fun signalStrengthPoints(
+    records: List<QSLCallsignRecord>,
+    maxPoints: Int = SPARKLINE_MAX_POINTS,
+): List<Float> =
+    sortQsosByDateTimeDesc(records)
+        .mapNotNull { rsvStrength(it.rstReceived) }
+        .take(maxPoints)
+        .asReversed()
+        .map { it.toFloat() }
+
+/**
+ * The strength digit of an RST/RSV report, or null when the report doesn't
+ * carry one. Accepts the 2-digit RS ("59") and 3-digit RST/RSV ("599", "595")
+ * shapes with a strength of 1..9 (strength 0 does not exist in RST). Anything
+ * else — blank, signed dB SNRs ("-15", "+05"), the -100/-120 "no report"
+ * sentinels — is not RST-shaped and yields null.
+ */
+internal fun rsvStrength(report: String?): Int? {
+    val r = report?.trim() ?: return null
+    if (r.length !in 2..3 || r.any { !it.isDigit() }) return null
+    val strength = r[1] - '0'
+    return if (strength >= 1) strength else null
+}
+
+/**
+ * Vertical position of a strength value on the sparkline's fixed 1..9 RST/RSV
+ * strength axis: 0 = top of the chart (S9), 1 = bottom (S1). A fixed axis
+ * keeps the chart honest — a run of solid 5-strength reports draws mid-chart
+ * instead of being min/max-normalized into fake drama.
+ */
+internal fun strengthYFraction(
+    value: Float,
+    min: Float = RSV_STRENGTH_MIN,
+    max: Float = RSV_STRENGTH_MAX,
+): Float {
+    val range = (max - min).coerceAtLeast(1f)
+    return (1f - (value - min) / range).coerceIn(0f, 1f)
+}
+
 private fun DrawScope.drawSparkline(
     data: List<Float>,
     lineColor: Color,
     fillColor: Color,
 ) {
-    if (data.size < 2) return
+    if (data.size < SPARKLINE_MIN_POINTS) return
 
-    val minVal = data.min()
-    val maxVal = data.max()
-    val range = (maxVal - minVal).coerceAtLeast(1f)
     val w = size.width
     val h = size.height
     val stepX = w / (data.size - 1).toFloat()
 
-    fun yOf(value: Float): Float = h - ((value - minVal) / range) * h
+    fun yOf(value: Float): Float = strengthYFraction(value) * h
 
     // Build path
     val linePath = Path().apply {
