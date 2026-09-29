@@ -18,6 +18,7 @@ import {
   type RxEvent,
   type RxState,
 } from "./rx";
+import TxPanel from "./TxPanel";
 
 const LOG_LIMIT = 50;
 
@@ -180,6 +181,8 @@ export default function App() {
           <canvas ref={canvasRef} width={320} height={240} />
         </div>
       </section>
+
+      <TxPanel />
 
       <section>
         <h2>Log</h2>
