@@ -58,7 +58,12 @@ impl TxService {
         let thread = std::thread::Builder::new()
             .name("sstvaf-tx".into())
             .spawn(move || {
-                let result = open_and_play(device_name.as_deref(), &mode, &pixels, &events);
+                // Set by `err_fn` when the stream faults (device unplugged
+                // mid-TX); `run_loop` polls it so a dead stream can't leave
+                // the loop spinning forever on a frozen `played`.
+                let errored = Arc::new(AtomicBool::new(false));
+                let result =
+                    open_and_play(device_name.as_deref(), &mode, &pixels, &events, &errored);
                 match result {
                     Ok((stream, dev_name, rate, played)) => {
                         let total = played.1;
@@ -68,6 +73,7 @@ impl TxService {
                             rate,
                             &played.0,
                             &stop_t,
+                            &errored,
                             &events,
                             Duration::from_millis(PROGRESS_TICK_MS),
                             Duration::from_millis(DRAIN_MS),
@@ -135,6 +141,7 @@ fn open_and_play(
     mode: &crate::modes::ModeInfo,
     pixels: &[u32],
     events: &Sender<TxEvent>,
+    errored: &Arc<AtomicBool>,
 ) -> anyhow::Result<(cpal::Stream, String, u32, (Arc<AtomicUsize>, usize))> {
     let device = find_output_device(device_name)
         .ok_or_else(|| anyhow::anyhow!("no output audio device available"))?;
@@ -154,10 +161,14 @@ fn open_and_play(
     let played = Arc::new(AtomicUsize::new(0));
 
     // cpal calls this on its own thread when the stream faults (device
-    // unplugged mid-transmission). Report it upward instead of into the void.
+    // unplugged mid-transmission). Report it upward instead of into the void,
+    // and flag the fault so `run_loop` bails out — a dead stream never
+    // advances `played`, so the loop would otherwise spin forever.
     let err_events = events.clone();
+    let err_errored = errored.clone();
     let err_fn = move |e| {
         let _ = err_events.send(TxEvent::Error(format!("audio output stream error: {e}")));
+        err_errored.store(true, Ordering::Relaxed);
     };
 
     let stream = match sample_format {
@@ -209,6 +220,7 @@ fn run_loop(
     sample_rate: u32,
     played: &AtomicUsize,
     stop: &AtomicBool,
+    errored: &AtomicBool,
     events: &Sender<TxEvent>,
     tick: Duration,
     drain: Duration,
@@ -224,6 +236,12 @@ fn run_loop(
         // Stop wins over completion: the operator asked for silence *now*.
         if stop.load(Ordering::Relaxed) {
             let _ = events.send(TxEvent::Cancelled { elapsed_seconds });
+            return;
+        }
+        // The stream faulted: `err_fn` already sent TxEvent::Error, so just
+        // exit — no Complete, no drain (there is nothing left playing), which
+        // lets the thread finish and `is_running()` go false.
+        if errored.load(Ordering::Relaxed) {
             return;
         }
         let _ = events.send(TxEvent::Progress {
@@ -254,25 +272,28 @@ mod tests {
     ) -> (
         Arc<AtomicUsize>,
         Arc<AtomicBool>,
+        Arc<AtomicBool>,
         Receiver<TxEvent>,
         JoinHandle<()>,
     ) {
         let played = Arc::new(AtomicUsize::new(0));
         let stop = Arc::new(AtomicBool::new(false));
+        let errored = Arc::new(AtomicBool::new(false));
         let (tx, rx) = channel();
-        let (p, s) = (played.clone(), stop.clone());
+        let (p, s, e) = (played.clone(), stop.clone(), errored.clone());
         let t = std::thread::spawn(move || {
             run_loop(
                 total,
                 rate,
                 &p,
                 &s,
+                &e,
                 &tx,
                 Duration::from_millis(2),
                 Duration::from_millis(2),
             );
         });
-        (played, stop, rx, t)
+        (played, stop, errored, rx, t)
     }
 
     fn drain_events(rx: &Receiver<TxEvent>) -> Vec<TxEvent> {
@@ -295,7 +316,7 @@ mod tests {
 
     #[test]
     fn a_played_out_waveform_completes_with_monotonic_progress() {
-        let (played, _stop, rx, t) = spawn_loop(48_000, 48_000);
+        let (played, _stop, _errored, rx, t) = spawn_loop(48_000, 48_000);
         // Simulate the audio callback advancing through the buffer.
         for chunk in [12_000usize, 24_000, 48_000] {
             std::thread::sleep(Duration::from_millis(10));
@@ -325,7 +346,7 @@ mod tests {
 
     #[test]
     fn stopping_mid_transmission_reports_cancelled_at_the_cut_point() {
-        let (played, stop, rx, t) = spawn_loop(48_000, 48_000);
+        let (played, stop, _errored, rx, t) = spawn_loop(48_000, 48_000);
         played.store(24_000, Ordering::Relaxed);
         std::thread::sleep(Duration::from_millis(10));
         stop.store(true, Ordering::Relaxed);
@@ -344,8 +365,26 @@ mod tests {
     }
 
     #[test]
+    fn a_stream_error_ends_the_loop_without_a_complete_event() {
+        // A dead output device never advances `played`; the errored flag
+        // (set by cpal's err_fn) must end the loop — otherwise it spins
+        // forever and `is_tx_running` stays true until a manual Stop.
+        let (_played, _stop, errored, rx, t) = spawn_loop(48_000, 48_000);
+        std::thread::sleep(Duration::from_millis(10));
+        errored.store(true, Ordering::Relaxed);
+        t.join().expect("loop thread never terminated");
+        let events = drain_events(&rx);
+        assert!(
+            !events
+                .iter()
+                .any(|e| matches!(e, TxEvent::Complete | TxEvent::Cancelled { .. })),
+            "an errored TX must not report Complete/Cancelled: {events:?}"
+        );
+    }
+
+    #[test]
     fn progress_reports_the_total_duration_every_time() {
-        let (played, _stop, rx, t) = spawn_loop(24_000, 12_000);
+        let (played, _stop, _errored, rx, t) = spawn_loop(24_000, 12_000);
         played.store(24_000, Ordering::Relaxed);
         let events = drain_events(&rx);
         t.join().expect("loop thread panicked");

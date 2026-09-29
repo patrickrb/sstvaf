@@ -15,6 +15,7 @@ import {
   describeTxEvent,
   letterboxRect,
   rgbaToArgb,
+  txEventEffects,
   txPercent,
   type TxEvent,
 } from "./tx";
@@ -81,26 +82,12 @@ export default function TxPanel() {
   }, [image, mode]);
 
   const handleTxEvent = useCallback((e: TxEvent) => {
-    switch (e.event) {
-      case "progress":
-        setProgress({
-          elapsed: e.data.elapsed_seconds,
-          total: e.data.total_seconds,
-          fraction: e.data.fraction,
-        });
-        break;
-      case "complete":
-        setSending(false);
-        setProgress(null);
-        break;
-      case "cancelled":
-        setSending(false);
-        setProgress(null);
-        break;
-      case "error":
-        setError(e.data);
-        break;
-    }
+    // The event → state logic lives in `txEventEffects` so it is
+    // unit-testable; this callback just applies whatever it dictates.
+    const fx = txEventEffects(e);
+    if (fx.progress !== undefined) setProgress(fx.progress);
+    if (fx.sending !== undefined) setSending(fx.sending);
+    if (fx.error !== undefined) setError(fx.error);
     const line = describeTxEvent(e);
     if (line) setStatus(line);
   }, []);

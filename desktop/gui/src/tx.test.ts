@@ -4,6 +4,7 @@ import {
   describeTxEvent,
   letterboxRect,
   rgbaToArgb,
+  txEventEffects,
   txPercent,
   type TxEvent,
 } from "./tx";
@@ -103,6 +104,37 @@ describe("txPercent", () => {
   it("clamps overshoot from device buffering and bad input", () => {
     expect(txPercent(1.02)).toBe(100);
     expect(txPercent(-0.1)).toBe(0);
+  });
+});
+
+describe("txEventEffects", () => {
+  it("only moves the progress bar on a progress event", () => {
+    const e: TxEvent = {
+      event: "progress",
+      data: { elapsed_seconds: 1, total_seconds: 2, fraction: 0.5 },
+    };
+    expect(txEventEffects(e)).toEqual({
+      progress: { elapsed: 1, total: 2, fraction: 0.5 },
+    });
+  });
+
+  it("clears sending and progress on complete and cancelled", () => {
+    for (const e of [
+      { event: "complete" },
+      { event: "cancelled", data: { elapsed_seconds: 3 } },
+    ] as TxEvent[]) {
+      expect(txEventEffects(e)).toEqual({ sending: false, progress: null });
+    }
+  });
+
+  it("an error ends the transmission, not just reports it", () => {
+    // A stream fault kills the TX thread; if `sending` survived it the
+    // panel would stick at "Stop" with a frozen bar forever.
+    expect(txEventEffects({ event: "error", data: "boom" })).toEqual({
+      sending: false,
+      progress: null,
+      error: "boom",
+    });
   });
 });
 

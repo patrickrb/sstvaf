@@ -76,6 +76,37 @@ export function txPercent(fraction: number): number {
   return Math.max(0, Math.min(1, fraction)) * 100;
 }
 
+/** What a TX event does to the panel's state; `undefined` = leave unchanged. */
+export interface TxEventEffects {
+  progress?: { elapsed: number; total: number; fraction: number } | null;
+  sending?: boolean;
+  error?: string;
+}
+
+/**
+ * Pure state transition for a TX event, kept out of the component so it is
+ * unit-testable. Error is terminal just like complete/cancelled — the TX
+ * thread exits on a stream fault, so the panel must clear `sending` and the
+ * progress bar or it sticks at "Stop" with frozen progress forever.
+ */
+export function txEventEffects(e: TxEvent): TxEventEffects {
+  switch (e.event) {
+    case "progress":
+      return {
+        progress: {
+          elapsed: e.data.elapsed_seconds,
+          total: e.data.total_seconds,
+          fraction: e.data.fraction,
+        },
+      };
+    case "complete":
+    case "cancelled":
+      return { sending: false, progress: null };
+    case "error":
+      return { sending: false, progress: null, error: e.data };
+  }
+}
+
 /** One-line log entry per TX event, or null for events not worth a log line. */
 export function describeTxEvent(e: TxEvent): string | null {
   switch (e.event) {
