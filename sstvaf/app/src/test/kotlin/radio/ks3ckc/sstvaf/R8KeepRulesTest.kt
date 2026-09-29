@@ -58,6 +58,13 @@ class R8KeepRulesTest {
     }
 
     @Test
+    fun keepsNativeWefaxCodecJniMethods() {
+        // Same contract for the radiofax bridge:
+        // Java_radio_ks3ckc_sstvaf_wefax_NativeWefaxCodec_*.
+        assertThat(proguardRules).contains("radio.ks3ckc.sstvaf.wefax.NativeWefaxCodec")
+    }
+
+    @Test
     fun keepsReflectivelyInstantiatedUsbSerialDrivers() {
         assertThat(proguardRules)
             .contains("implements com.k1af.ft8af.serialport.UsbSerialDriver")

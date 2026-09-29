@@ -55,6 +55,17 @@
     <string name="more_operator">Оператор</string>
     <string name="more_logbook">Журнал</string>
     <string name="more_logbook_sub">SSTV QSO · експорт ADIF · Cloudlog</string>
+    <string name="more_wefax_sub">Приймання метеофаксу · зберігається в галерею</string>
+    <string name="wefax_start">Старт</string>
+    <string name="wefax_stop">Стоп</string>
+    <string name="wefax_status_idle">Готово</string>
+    <string name="wefax_status_listening">Очікування фазування…</string>
+    <string name="wefax_status_receiving">Приймання</string>
+    <string name="wefax_status_stopped">Зупинено</string>
+    <string name="wefax_rows_format">%1$d рядків</string>
+    <string name="wefax_saved">Збережено в галерею — %1$s</string>
+    <string name="wefax_canvas_description">Прийнятий метеофакс</string>
+    <string name="wefax_canvas_empty">Смуга факсу з\'явиться тут</string>
     <string name="more_settings">Налаштування</string>
     <string name="more_settings_sub">Усе інше</string>
     <string name="freq_sheet_title">Частота</string>

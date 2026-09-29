@@ -55,6 +55,17 @@
     <string name="more_operator">操作員</string>
     <string name="more_logbook">日誌</string>
     <string name="more_logbook_sub">SSTV QSO · ADIF 匯出 · Cloudlog</string>
+    <string name="more_wefax_sub">氣象傳真接收 · 儲存到圖庫</string>
+    <string name="wefax_start">開始</string>
+    <string name="wefax_stop">停止</string>
+    <string name="wefax_status_idle">就緒</string>
+    <string name="wefax_status_listening">等待相位同步…</string>
+    <string name="wefax_status_receiving">接收中</string>
+    <string name="wefax_status_stopped">已停止</string>
+    <string name="wefax_rows_format">%1$d 行</string>
+    <string name="wefax_saved">已儲存到圖庫 — %1$s</string>
+    <string name="wefax_canvas_description">收到的氣象傳真</string>
+    <string name="wefax_canvas_empty">傳真條帶將顯示在此處</string>
     <string name="more_settings">設定</string>
     <string name="more_settings_sub">其他所有項目</string>
     <string name="freq_sheet_title">頻率</string>

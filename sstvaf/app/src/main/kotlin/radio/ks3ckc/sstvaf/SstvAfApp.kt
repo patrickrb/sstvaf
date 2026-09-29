@@ -63,6 +63,7 @@ import radio.ks3ckc.sstvaf.ui.rx.RxScreen
 import radio.ks3ckc.sstvaf.ui.settings.RadioAudioSettings
 import radio.ks3ckc.sstvaf.ui.settings.SettingsScreen
 import radio.ks3ckc.sstvaf.ui.tx.TxComposeScreen
+import radio.ks3ckc.sstvaf.ui.wefax.WefaxScreen
 import radio.ks3ckc.sstvaf.gallery.ImageDirection
 
 /**
@@ -70,7 +71,7 @@ import radio.ks3ckc.sstvaf.gallery.ImageDirection
  * canvas — no tab bar, no dial chip — because they are places you go to read or
  * configure, not surfaces you operate a radio from.
  */
-private enum class AppScreen { SETTINGS, RADIO_AUDIO, LOGBOOK }
+private enum class AppScreen { SETTINGS, RADIO_AUDIO, LOGBOOK, WEFAX }
 
 /** Which bottom sheet the shell is showing, if any. */
 private enum class AppSheet { FREQUENCY, MORE }
@@ -285,6 +286,10 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
                             mainViewModel,
                             onBack = { activeScreen = null },
                         )
+                        AppScreen.WEFAX -> WefaxScreen(
+                            mainViewModel,
+                            onBack = { activeScreen = null },
+                        )
                     }
                 }
             } else if (useRail) {
@@ -381,6 +386,7 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
                     // at the top; it gets its own sheet when Settings is rebuilt.
                     MoreDestination.OPERATOR -> AppScreen.SETTINGS
                     MoreDestination.LOGBOOK -> AppScreen.LOGBOOK
+                    MoreDestination.WEFAX -> AppScreen.WEFAX
                     MoreDestination.SETTINGS -> AppScreen.SETTINGS
                 }
             },

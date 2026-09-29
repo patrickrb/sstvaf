@@ -188,11 +188,34 @@ class ReceivedImageStore @JvmOverloads constructor(
         complete: Boolean,
         quality: Float,
         edits: String = "",
+    ): SavedImage = save(
+        pixels, width, height, mode.shortCode, mode.displayName,
+        utcMillis, freqHz, direction, complete, quality, edits,
+    )
+
+    /**
+     * As [save], for images that aren't SSTV-mode-typed — WEFAX strips carry
+     * their mode as plain strings ("WEFAX576" / "WEFAX 120/576"), and the
+     * `sstv_images` table stores the mode as a string anyway.
+     */
+    @Suppress("LongParameterList")
+    fun save(
+        pixels: IntArray,
+        width: Int,
+        height: Int,
+        modeShortCode: String,
+        modeDisplayName: String,
+        utcMillis: Long,
+        freqHz: Long,
+        direction: ImageDirection,
+        complete: Boolean,
+        quality: Float,
+        edits: String = "",
     ): SavedImage {
         require(pixels.size >= width * height) {
             "pixels too small: ${pixels.size} < ${width}x$height"
         }
-        val fileName = buildImageFileName(utcMillis, mode.shortCode, freqHz, direction)
+        val fileName = buildImageFileName(utcMillis, modeShortCode, freqHz, direction)
         val bitmap = Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
 
         val file = File(imagesDir(), fileName)
@@ -211,7 +234,7 @@ class ReceivedImageStore @JvmOverloads constructor(
         }
 
         val values = imageMetadataValues(
-            fileName, direction, mode.displayName, freqHz, utcMillis,
+            fileName, direction, modeDisplayName, freqHz, utcMillis,
             width, height, complete, quality, edits,
         )
         val id = db.insert(SSTV_IMAGES_TABLE, null, values)
@@ -233,7 +256,7 @@ class ReceivedImageStore @JvmOverloads constructor(
             id = id,
             fileName = fileName,
             direction = direction,
-            mode = mode.displayName,
+            mode = modeDisplayName,
             freqHz = freqHz,
             utcMillis = utcMillis,
             width = width,
