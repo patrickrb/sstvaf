@@ -1,16 +1,16 @@
 // test_sstv_roundtrip.c — encode → decode roundtrip for every mode.
 //
-// Per mode at 12 kHz: encode the synthetic test card (color bars + RGB
-// gradients), push the audio through a fresh decoder in live-sized chunks,
-// then assert the mode was detected, every row came out, DONE was reached,
-// and the per-channel PSNR clears the mode's floor. The floors were set
-// empirically from a clean run minus ~2 dB of headroom: GBR modes carry the
-// channels verbatim (high floors); Robot/PD lose chroma resolution to
-// subsampling/averaging and studio-swing quantization (lower floors).
+// Per mode, at both live rates (12 kHz RX, 48 kHz TX/device audio): encode
+// the synthetic test card (color bars + RGB gradients), push the audio
+// through a fresh decoder in live-sized chunks, then assert the mode was
+// detected, every row came out, DONE was reached, and the per-channel PSNR
+// clears the mode's per-rate floor. The floors were set empirically from a
+// clean run minus ~3 dB of headroom: GBR modes carry the channels verbatim
+// (high floors); Robot/PD lose chroma resolution to subsampling/averaging
+// and studio-swing quantization (lower floors).
 //
 // Also covers: a truncated transmission followed by silence must ABORT and
-// retain the partial image; a 48 kHz roundtrip pins the rate-independence
-// of the timing math.
+// retain the partial image.
 //
 // HOW TO RUN: sstvaf_glue/run_sstv_host_tests.ps1 / run_sstv_host_tests.sh.
 
@@ -21,7 +21,8 @@
 
 typedef struct {
     int mode_id;
-    double floor_db;   // min per-channel PSNR, clean roundtrip @12 kHz
+    double floor_db;      // min per-channel PSNR, clean roundtrip @12 kHz
+    double floor48_db;    // min per-channel PSNR, clean roundtrip @48 kHz
 } rt_case_t;
 
 // Floors ~= measured clean result minus ~3 dB headroom. Measured on this
@@ -30,26 +31,30 @@ typedef struct {
 // fastest GBR line (229 µs pixels), so its clean floor sits below the ~35 dB
 // the slower GBR modes clear; the Robot/PD floors reflect chroma
 // subsampling/averaging plus studio-swing quantization.
+// The 48 kHz floors follow the same convention: measured clean min channel
+// at 48 kHz minus ~3 dB. 48 kHz is always at least as clean as 12 kHz (four
+// times the samples per pixel), so every 48 kHz floor sits at or above its
+// 12 kHz sibling.
 static const rt_case_t kCases[] = {
-    { SSTV_MODE_MARTIN1,  44.0 },
-    { SSTV_MODE_MARTIN2,  30.0 },
-    { SSTV_MODE_SCOTTIE1, 42.0 },
-    { SSTV_MODE_SCOTTIE2, 32.0 },
-    { SSTV_MODE_ROBOT36,  24.0 },
-    { SSTV_MODE_ROBOT72,  27.0 },
-    { SSTV_MODE_PD50,     33.0 },
-    { SSTV_MODE_PD90,     45.0 },
-    { SSTV_MODE_PD120,    30.0 },
+    { SSTV_MODE_MARTIN1,  44.0, 46.0 },   // 48k clean min ~49.1
+    { SSTV_MODE_MARTIN2,  30.0, 31.0 },   // 48k clean min ~34.5
+    { SSTV_MODE_SCOTTIE1, 42.0, 43.0 },   // 48k clean min ~46.3
+    { SSTV_MODE_SCOTTIE2, 32.0, 33.0 },   // 48k clean min ~36.3
+    { SSTV_MODE_ROBOT36,  24.0, 24.0 },   // 48k clean min ~27.7
+    { SSTV_MODE_ROBOT72,  27.0, 29.0 },   // 48k clean min ~32.1
+    { SSTV_MODE_PD50,     33.0, 35.0 },   // 48k clean min ~38.3
+    { SSTV_MODE_PD90,     45.0, 46.0 },   // 48k clean min ~49.6
+    { SSTV_MODE_PD120,    30.0, 31.0 },   // 48k clean min ~34.7
     // Appended batch (issue #16). Floors set ~3 dB below the clean measured
     // PSNR (printed by the info lines); GBR modes carry channels verbatim,
     // PD modes lose chroma to averaging.
-    { SSTV_MODE_SCOTTIEDX, 58.0 },  // clean min ~63 dB (1.08 ms/px, near-lossless)
-    { SSTV_MODE_MARTIN3,   44.0 },  // clean min ~47.7 (M1 timing)
-    { SSTV_MODE_MARTIN4,   30.0 },  // clean min ~32.9 (M2 timing)
-    { SSTV_MODE_PD160,     39.0 },  // clean min ~43.4
-    { SSTV_MODE_PD180,     36.0 },  // clean min ~40.3
-    { SSTV_MODE_PD240,     39.0 },  // clean min ~43.0
-    { SSTV_MODE_PD290,     36.0 },  // clean min ~40.2
+    { SSTV_MODE_SCOTTIEDX, 58.0, 68.0 },  // clean min ~63 dB @12k, ~71.5 @48k
+    { SSTV_MODE_MARTIN3,   44.0, 46.0 },  // clean min ~47.7 @12k, ~49.0 @48k
+    { SSTV_MODE_MARTIN4,   30.0, 31.0 },  // clean min ~32.9 @12k, ~34.4 @48k
+    { SSTV_MODE_PD160,     39.0, 42.0 },  // clean min ~43.4 @12k, ~45.9 @48k
+    { SSTV_MODE_PD180,     36.0, 37.0 },  // clean min ~40.3 @12k, ~40.4 @48k
+    { SSTV_MODE_PD240,     39.0, 43.0 },  // clean min ~43.0 @12k, ~46.6 @48k
+    { SSTV_MODE_PD290,     36.0, 39.0 },  // clean min ~40.2 @12k, ~44.2 @48k
 };
 #define N_CASES ((int)(sizeof(kCases) / sizeof(kCases[0])))
 
@@ -124,8 +129,13 @@ int main(void)
         roundtrip(kCases[i].mode_id, 12000, kCases[i].floor_db);
     }
 
-    // Rate independence: one GBR mode at 48 kHz.
-    roundtrip(SSTV_MODE_MARTIN2, 48000, 31.0);
+    // The same sweep at 48 kHz. The live paths use both rates — RX decodes
+    // at SstvSignalListener.SAMPLE_RATE_HZ (12 kHz), TX encodes at the
+    // device audio rate (typically 48 kHz) — so every mode's timing math
+    // must hold at both, not just Martin 2's.
+    for (int i = 0; i < N_CASES; i++) {
+        roundtrip(kCases[i].mode_id, 48000, kCases[i].floor48_db);
+    }
 
     // Truncated transmission: stop 40% into the image, then silence. The
     // decoder must ABORT (sync gone AND energy collapsed) and keep the
