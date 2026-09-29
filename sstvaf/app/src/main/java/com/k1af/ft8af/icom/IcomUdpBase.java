@@ -78,7 +78,9 @@ public class IcomUdpBase {
 
 
     public IcomSeqBuffer txSeqBuffer = new IcomSeqBuffer();//Sent command history list
-    //public IcomSeqBuffer rxSeqBuffer = new IcomSeqBuffer();//Received command history list
+    public IcomSeqBuffer rxSeqBuffer = new IcomSeqBuffer();//Received command history list
+    //Watches the received sequence numbers and decides which lost ones to request
+    public IcomRxSeqTracker rxSeqTracker = new IcomRxSeqTracker();
     public long lastReceivedTime = System.currentTimeMillis();//Last data received time
     public long lastSentTime = System.currentTimeMillis();//Last data sent time
 
@@ -193,9 +195,45 @@ public class IcomUdpBase {
             retransmitMultiPacket(data);
         }
 
-        //todo - If received data is not a Ping packet, and type=0x00 && seq!=0x00, it is a command; consider adding to rxSeqBuffer.
-        //todo - Received command buffer is rxSeqBuffer
+        //Tracked inbound packets (type=0x00, seq!=0x00 — commands, idles, audio; pings
+        //carry type=0x07 and are excluded) are buffered by sequence number and their
+        //sequence stream is watched for gaps. On a gap we ask the rig to retransmit the
+        //missing packets — the mirror of the rig-side machinery above (the rig asks us
+        //via CMD_RETRANSMIT and we answer from txSeqBuffer).
+        if (IComPacketTypes.ControlPacket.getType(data) == 0x00
+                && IComPacketTypes.ControlPacket.getSeq(data) != 0x00) {
+            short seq = IComPacketTypes.ControlPacket.getSeq(data);
+            rxSeqBuffer.add(seq, data);
+            requestRetransmit(rxSeqTracker.onSeqReceived(seq));
+        }
 
+    }
+
+    /**
+     * Ask the rig to resend lost tracked packets. One missing sequence is sent as a
+     * plain control packet (type=0x01, seq=the missing number); several are sent as
+     * one type=0x01 packet with a big-endian short array after byte 0x10 — exactly
+     * the two shapes the rig uses toward us (see {@link #retransmitPacket(byte[])}
+     * and {@link #retransmitMultiPacket(byte[])}).
+     *
+     * @param missingSeqs missing sequence numbers; empty list sends nothing
+     */
+    public void requestRetransmit(java.util.List<Short> missingSeqs) {
+        if (missingSeqs == null || missingSeqs.isEmpty()) return;
+        if (missingSeqs.size() == 1) {
+            sendUntrackedPacket(IComPacketTypes.ControlPacket.toBytes(
+                    IComPacketTypes.CMD_RETRANSMIT, missingSeqs.get(0), localId, remoteId));
+            return;
+        }
+        byte[] head = IComPacketTypes.ControlPacket.toBytes(
+                IComPacketTypes.CMD_RETRANSMIT, (short) 0, localId, remoteId);
+        byte[] packet = new byte[IComPacketTypes.CONTROL_SIZE + missingSeqs.size() * 2];
+        System.arraycopy(head, 0, packet, 0, IComPacketTypes.CONTROL_SIZE);
+        for (int i = 0; i < missingSeqs.size(); i++) {
+            System.arraycopy(IComPacketTypes.shortToBigEndian(missingSeqs.get(i)), 0
+                    , packet, IComPacketTypes.CONTROL_SIZE + i * 2, 2);
+        }
+        sendUntrackedPacket(packet);
     }
 
     /**
@@ -204,7 +242,9 @@ public class IcomUdpBase {
      * @param data data packet
      */
     public void onReceivedControlPacket(byte[] data) {
-        //todo Should implement reply for type=0x01 command, i.e. retransmit
+        //type=0x01 (rig asks us to retransmit one of our tracked packets) is answered
+        //below via retransmitPacket(), which resends from txSeqBuffer or substitutes an
+        //idle packet when the history has already been purged.
         switch (IComPacketTypes.ControlPacket.getType(data)) {
             case IComPacketTypes.CMD_I_AM_HERE:
                 if (onStreamEvents != null) {

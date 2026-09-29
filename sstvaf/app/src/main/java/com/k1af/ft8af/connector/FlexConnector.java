@@ -164,8 +164,9 @@ public class FlexConnector extends BaseRigConnector {
 
 
 
-                //todo To prevent stream ports from not being released, change the port?
-                //FlexRadio.streamPort++;
+                //Local UDP port reuse is already avoided: openStreamPort() takes a fresh
+                //port from FlexRadio.getStreamPort() on every connect. Radio-side DAX
+                //streams are released in disconnect() via flexRadio.releaseDaxStreams().
 
                 flexRadio.commandUdpPort();//Set UDP port
 
@@ -280,6 +281,10 @@ public class FlexConnector extends BaseRigConnector {
     @Override
     public void disconnect() {
         super.disconnect();
+        //Release the radio-side DAX streams while the TCP link is still up —
+        //otherwise every session leaks two stream objects on the radio.
+        //Idempotent: releaseDaxStreams() forgets the ids after sending.
+        flexRadio.releaseDaxStreams();
         flexRadio.closeAudio();
         flexRadio.closeStreamPort();
         flexRadio.disConnect();

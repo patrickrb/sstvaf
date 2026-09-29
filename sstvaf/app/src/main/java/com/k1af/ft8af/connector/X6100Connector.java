@@ -45,6 +45,8 @@ public class X6100Connector extends BaseRigConnector {
 
     private BaseRig baseRig;
     private boolean streamIsOn =false;
+    //Handshake state machine for the current connection attempt; null outside a handshake.
+    private volatile X6100StreamOpener streamOpener;
 
     public float maxTXPower=10.0f;
     public MutableLiveData<Float> mutableMaxTxPower = new MutableLiveData<>();
@@ -123,6 +125,12 @@ public class X6100Connector extends BaseRigConnector {
                         streamIsOn =true;
                    }
                 }
+                //Feed the stream-open handshake: it retries commands the radio dropped
+                //until their responses are observed here.
+                X6100StreamOpener opener = streamOpener;
+                if (opener != null) {
+                    routeHandshakeResponse(opener, response.xieguCommand, response.resultContent);
+                }
 
                 if (response.resultCode!=0) {//Only show failed commands
                     ToastMessage.show(response.resultContent);
@@ -164,13 +172,33 @@ public class X6100Connector extends BaseRigConnector {
             public void onConnectSuccess(RadioTcpClient tcpClient) {
                 ToastMessage.show(String.format(GeneralVariables.getStringFromResource(R.string.init_flex_operation)
                         ,xieguRadio.getModelName()));
+                //Fresh handshake per connection attempt (a stale latched streamIsOn from a
+                //previous session must not skip the handshake on reconnect).
+                streamIsOn = false;
+                //The radio frequently drops commands sent while the stream handshake is in
+                //progress; X6100StreamOpener resends the follow-ups (audio get all / sub all)
+                //after the port is confirmed, bounded, until their responses arrive.
+                final X6100StreamOpener opener = new X6100StreamOpener(new X6100StreamOpener.Transport() {
+                    @Override
+                    public void sendOpenStream() {
+                        xieguRadio.commandOpenStream();//Set the UDP port
+                    }
+
+                    @Override
+                    public void sendGetAudioInfo() {
+                        xieguRadio.commandGetAudioInfo();//Read the 6100 playback parameters
+                    }
+
+                    @Override
+                    public void sendSubAllMeter() {
+                        xieguRadio.commandSubAllMeter();//Subscribe to meter stream data
+                    }
+                });
+                streamOpener = opener;
                 Thread streamThread = new Thread(new Runnable() {//Using a thread here to prevent blocking the TCP object
                     @Override
                     public void run() {
-                        long startTime = System.currentTimeMillis();
-                        long timeout = 30000; // 30 second timeout
-                        while (!streamIsOn && (System.currentTimeMillis() - startTime) < timeout) {//Wait for the radio to open the stream port
-                            xieguRadio.commandOpenStream();//Set the UDP port
+                        while (opener.tick()) {
                             try {
                                 Thread.sleep(300);
                             } catch (InterruptedException e) {
@@ -178,14 +206,15 @@ public class X6100Connector extends BaseRigConnector {
                                 Thread.currentThread().interrupt();
                                 break;
                             }
-                            //todo Commands are frequently dropped here
-                            xieguRadio.commandGetAudioInfo();//Read the 6100 playback parameters
-                            //xieguRadio.commandSubGetMeter();//Query meter index numbers
-                            xieguRadio.commandSubAllMeter();//Subscribe to meter stream data
-                            //xieguRadio.commandSetTxPower(1);//Subscribe to meter stream data
                         }
-                        if (!streamIsOn) {
+                        if (opener.hasTimedOut()) {
                             Log.w(TAG, "Timed out waiting for stream port to open");
+                        }
+                        if (opener.hasGivenUp()) {
+                            Log.w(TAG, "Stream port open, but a handshake follow-up command was never answered");
+                        }
+                        if (streamOpener == opener) {
+                            streamOpener = null;
                         }
                     }
                 });
@@ -207,6 +236,35 @@ public class X6100Connector extends BaseRigConnector {
             }
         });
 
+    }
+
+    /**
+     * Map a command response onto the handshake state machine. Extracted (and
+     * package-private) so the routing rules are unit-testable without a radio.
+     *
+     * <p>{@code STREAM} responses confirm the port only when they carry
+     * {@code PORT=} (same rule as {@code streamIsOn} above — {@code stream get}
+     * also answers as {@code STREAM}). Any {@code AUDIO}/{@code SUB} response
+     * proves the corresponding follow-up command was not dropped.
+     */
+    static void routeHandshakeResponse(X6100StreamOpener opener
+            , X6100Radio.XieguCommand command, String resultContent) {
+        if (opener == null || command == null) return;
+        switch (command) {
+            case STREAM:
+                if (resultContent != null && resultContent.toUpperCase().contains("PORT=")) {
+                    opener.onStreamPortOpen();
+                }
+                break;
+            case AUDIO:
+                opener.onAudioInfoResponse();
+                break;
+            case SUB:
+                opener.onMeterSubResponse();
+                break;
+            default:
+                break;
+        }
     }
 
 
