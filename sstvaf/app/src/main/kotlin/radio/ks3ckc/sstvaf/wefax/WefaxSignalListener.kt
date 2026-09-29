@@ -7,6 +7,7 @@ import com.k1af.ft8af.wave.HamRecorder
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 
 /** Live WEFAX receive state for the fax screen. */
 sealed class WefaxRxState {
@@ -35,7 +36,11 @@ sealed class WefaxRxState {
  * transmission is a continuous line stream with no length header, so
  * [startReceiving] opens a session with the operator's LPM/IOC and
  * [stopReceiving] finishes the decode (flushing the partial final line) and
- * hands the finished strip to [onImageFinished] before returning to idle.
+ * hands the finished strip to [onImageFinished]. The stop finalization
+ * (decode of the buffered tail + full-strip copy) is unbounded native work,
+ * so it runs on a short-lived background thread — [stopReceiving] itself
+ * returns immediately and [WefaxRxState.Stopped] is published when the
+ * strip is done.
  */
 class WefaxSignalListener @JvmOverloads constructor(
     private val codec: WefaxCodec,
@@ -59,12 +64,22 @@ class WefaxSignalListener @JvmOverloads constructor(
     @Volatile
     private var currentState: WefaxRxState = WefaxRxState.Idle
 
-    /** Invoked (on the caller of [stopReceiving]) with each finished strip. */
+    /** Invoked (on the stop-finalizer thread) with each finished strip. */
     @Volatile
     var onImageFinished: ((FinishedImage) -> Unit)? = null
 
     private val queue = ArrayBlockingQueue<FloatArray>(queueCapacity)
     private val running = AtomicBoolean(false)
+
+    /** True while a stop's background finalization is still in flight. */
+    private val stopping = AtomicBoolean(false)
+
+    /** Buffers dropped on queue overflow (rate-limits the overflow log). */
+    private val dropped = AtomicLong(0)
+
+    /** Test mode ([startDirect]): no decode thread, stop finalizes inline. */
+    @Volatile
+    private var threadless = false
 
     /** Serializes every session call (decode thread vs stop vs readNewRows). */
     private val sessionLock = Any()
@@ -84,10 +99,16 @@ class WefaxSignalListener @JvmOverloads constructor(
      * recorder isn't running.
      */
     fun startReceiving(recorder: HamRecorder, preset: WefaxPreset) {
+        if (stopping.get()) {
+            log("WEFAX RX: previous stop still finalizing; not started")
+            return
+        }
         if (!running.compareAndSet(false, true)) {
             log("WEFAX RX: already receiving")
             return
         }
+        threadless = false
+        dropped.set(0)
         if (!recorder.isRunning) {
             log("WEFAX RX: recorder not running; not started")
             running.set(false)
@@ -134,46 +155,96 @@ class WefaxSignalListener @JvmOverloads constructor(
     }
 
     /**
-     * Stop receiving: detach the tap, drain what's queued, finish() the
-     * decode (flushing the partial final line), hand the strip to
-     * [onImageFinished] when at least [MIN_SAVE_ROWS] rows decoded, and
-     * return to [WefaxRxState.Stopped].
+     * Stop receiving: detach the tap immediately, then finalize on a
+     * background thread — drain what's queued, finish() the decode (flushing
+     * the partial final line), hand the strip to [onImageFinished] when at
+     * least [MIN_SAVE_ROWS] rows decoded, and publish
+     * [WefaxRxState.Stopped]. Runs off the caller because the finalization
+     * is unbounded native work (tail decode + full-strip copy) and this is
+     * invoked from the Stop button on the main thread — doing it inline
+     * risked an ANR and stalled the preview's [readNewRows] on
+     * [sessionLock]. No-op when not receiving or when a previous stop is
+     * still finalizing.
      */
     fun stopReceiving() {
-        if (!running.compareAndSet(true, false)) return
+        if (!stopping.compareAndSet(false, true)) return
+        if (!running.compareAndSet(true, false)) {
+            stopping.set(false)
+            return
+        }
         detachTap()
-        decodeThread?.interrupt()
-        decodeThread?.join(THREAD_JOIN_MS)
-        decodeThread = null
-
-        var finished: FinishedImage? = null
-        var rows = 0
-        var width = 0
-        synchronized(sessionLock) {
-            val s = session ?: return@synchronized
-            // Everything still queued belongs to this transmission.
-            var buf = queue.poll()
-            while (buf != null) {
-                s.push(buf, buf.size)
-                buf = queue.poll()
+        if (threadless) {
+            // Test mode: no decode thread exists, so finalize synchronously
+            // on the caller — keeps JVM tests deterministic.
+            finalizeStop()
+        } else {
+            Thread({ finalizeStop() }, "WefaxStop").apply {
+                isDaemon = true
+                start()
             }
-            s.finish()
-            rows = s.rowsReady()
-            width = s.width()
-            if (rows >= MIN_SAVE_ROWS && width > 0) {
-                val gray = ByteArray(rows * width)
-                val copied = s.readRows(0, rows, gray)
-                if (copied > 0) {
-                    finished = FinishedImage(gray, width, copied, lpm, ioc)
+        }
+    }
+
+    /**
+     * The heavy tail of a stop. Ordering matters for thread safety: the
+     * decode thread is joined (bounded) first, then the session is captured
+     * and nulled *under* [sessionLock] together with the queued buffers —
+     * only after that exclusive hand-off does the native work (tail push,
+     * finish, full-strip read) run *outside* the lock, so nothing else can
+     * reach the session and [readNewRows] never blocks on the finalization.
+     */
+    private fun finalizeStop() {
+        try {
+            decodeThread?.let { t ->
+                t.interrupt()
+                t.join(THREAD_JOIN_MS)
+            }
+            decodeThread = null
+
+            var s: WefaxDecoderSession? = null
+            var sessionLpm = 0
+            var sessionIoc = 0
+            val pending = ArrayList<FloatArray>()
+            synchronized(sessionLock) {
+                s = session
+                session = null
+                sessionLpm = lpm
+                sessionIoc = ioc
+                // Everything still queued belongs to this transmission.
+                var buf = queue.poll()
+                while (buf != null) {
+                    pending += buf
+                    buf = queue.poll()
                 }
             }
-            session = null
-            s.close()
+
+            var finished: FinishedImage? = null
+            var rows = 0
+            var width = 0
+            val sess = s
+            if (sess != null) {
+                for (buf in pending) {
+                    sess.push(buf, buf.size)
+                }
+                sess.finish()
+                rows = sess.rowsReady()
+                width = sess.width()
+                if (rows >= MIN_SAVE_ROWS && width > 0) {
+                    val gray = ByteArray(rows * width)
+                    val copied = sess.readRows(0, rows, gray)
+                    if (copied > 0) {
+                        finished = FinishedImage(gray, width, copied, sessionLpm, sessionIoc)
+                    }
+                }
+                sess.close()
+            }
+            queue.clear()
+            log("WEFAX RX: stopped — rows=$rows width=$width saved=${finished != null}")
+            finished?.let { img -> onImageFinished?.invoke(img) }
+            setState(WefaxRxState.Stopped(rows, width))
+        } finally {
+            stopping.set(false)
         }
-        queue.clear()
-        log("WEFAX RX: stopped — rows=$rows width=$width saved=${finished != null}")
-        finished?.let { img -> onImageFinished?.invoke(img) }
-        setState(WefaxRxState.Stopped(rows, width))
     }
 
     /**
@@ -191,7 +262,12 @@ class WefaxSignalListener @JvmOverloads constructor(
         if (!queue.offer(copy)) {
             // A fax line is context for the next one — drop the NEWEST buffer
             // so the locked line phase isn't shifted by a hole mid-strip.
-            log("WEFAX RX: audio queue overflow, dropping newest buffer")
+            // Rate-limited (like SSTV RX): this runs on the shared capture
+            // fan-out thread and fileLog() is a synchronous file append.
+            val total = dropped.incrementAndGet()
+            if (total == 1L || total % DROP_LOG_EVERY == 0L) {
+                log("WEFAX RX: audio queue overflow, dropped=$total buffers (decode thread lagging)")
+            }
         }
     }
 
@@ -241,6 +317,8 @@ class WefaxSignalListener @JvmOverloads constructor(
     /** Test-only start: open the session on the caller thread, no thread/tap. */
     internal fun startDirect(preset: WefaxPreset) {
         check(running.compareAndSet(false, true)) { "already receiving" }
+        threadless = true
+        dropped.set(0)
         synchronized(sessionLock) {
             session = codec.newDecoderSession(sampleRate, preset.lpm, preset.ioc)
             lpm = preset.lpm
@@ -253,6 +331,8 @@ class WefaxSignalListener @JvmOverloads constructor(
     }
 
     internal fun stateNow(): WefaxRxState = currentState
+
+    internal fun isStopping(): Boolean = stopping.get()
 
     internal fun queuedBufferCount(): Int = queue.size
 
@@ -287,5 +367,8 @@ class WefaxSignalListener @JvmOverloads constructor(
 
         /** Bound on waiting for the decode thread during stop. */
         internal const val THREAD_JOIN_MS = 2000L
+
+        /** Rate limit for the overflow log line (matches SSTV RX). */
+        internal const val DROP_LOG_EVERY = 50L
     }
 }

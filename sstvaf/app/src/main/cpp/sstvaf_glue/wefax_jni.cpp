@@ -99,6 +99,20 @@ Java_radio_ks3ckc_sstvaf_wefax_NativeWefaxCodec_nativeDecoderReadRows(
     if (dec == nullptr || grayOut == nullptr) {
         return WEFAX_ERR_BAD_ARGS;
     }
+    // Defense in depth: wefax_decoder_read_rows bounds the copy only by the
+    // decoder's own row count and trusts the destination to hold
+    // n_rows * width bytes. A caller sizing grayOut from a stale width (or
+    // row count) would otherwise let the memcpy run past the end of the
+    // Java array — a native out-of-bounds heap write — so clamp nRows to
+    // what grayOut can actually hold.
+    int width = wefax_decoder_width(dec);
+    if (width <= 0) {
+        return WEFAX_ERR_BAD_ARGS;
+    }
+    jsize maxRows = env->GetArrayLength(grayOut) / width;
+    if (nRows > maxRows) {
+        nRows = (jint)maxRows;
+    }
     jbyte* out = env->GetByteArrayElements(grayOut, nullptr);
     if (out == nullptr) {
         return WEFAX_ERR_NOMEM;

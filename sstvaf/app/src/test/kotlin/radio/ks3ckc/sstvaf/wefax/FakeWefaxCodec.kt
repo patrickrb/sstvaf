@@ -25,6 +25,9 @@ class FakeWefaxCodec : WefaxCodec {
     /** When set, [newDecoderSession] throws it (no-native-lib path). */
     var createFailure: RuntimeException? = null
 
+    /** Runs at the top of every `finish()` (lets tests gate the stop path). */
+    var onFinish: (() -> Unit)? = null
+
     var sessionsCreated = 0
         private set
     val sessionParams = mutableListOf<SessionParams>()
@@ -55,6 +58,7 @@ class FakeWefaxCodec : WefaxCodec {
         }
 
         override fun finish() {
+            onFinish?.invoke()
             finishCount++
             done = true
         }

@@ -117,15 +117,17 @@ fun WefaxScreen(mainViewModel: MainViewModel, onBack: () -> Unit) {
                 }
             }
 
-            is WefaxRxState.Idle -> {
-                if (appliedRows != 0) {
+            else -> {
+                // Idle and Listening are new-session boundaries (see
+                // wefaxPreviewResets): drop the old run's bookkeeping so the
+                // next Decoding starts a fresh strip. Stopped keeps the
+                // finished strip on screen.
+                if (wefaxPreviewResets(s) && appliedRows != 0) {
                     populated = 0
                     appliedRows = 0
                     preview = null
                 }
             }
-
-            else -> Unit // Listening keeps the previous strip; Stopped too.
         }
     }
 

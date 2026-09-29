@@ -37,6 +37,17 @@ class WefaxScreenLogicTest {
         assertThat(wefaxPresetSelectable(receiving = true)).isFalse()
     }
 
+    @Test
+    fun previewResetsOnNewSessionBoundaries() {
+        // Idle (initial value) and Listening (published by every start,
+        // before any Decoding) reset the preview bookkeeping...
+        assertThat(wefaxPreviewResets(WefaxRxState.Idle)).isTrue()
+        assertThat(wefaxPreviewResets(WefaxRxState.Listening(120, 576))).isTrue()
+        // ...while Decoding accumulates and Stopped keeps the finished strip.
+        assertThat(wefaxPreviewResets(WefaxRxState.Decoding(120, 576, 1809, 5))).isFalse()
+        assertThat(wefaxPreviewResets(WefaxRxState.Stopped(100, 1809))).isFalse()
+    }
+
     // ----- rolling preview -----
 
     private fun row(width: Int, value: Int) = IntArray(width) { value }

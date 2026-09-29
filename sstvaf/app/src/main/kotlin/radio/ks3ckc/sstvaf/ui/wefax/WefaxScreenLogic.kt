@@ -33,6 +33,21 @@ internal fun wefaxRowsCount(state: WefaxRxState): Int? = when (state) {
 internal fun wefaxPresetSelectable(receiving: Boolean): Boolean = !receiving
 
 /**
+ * Whether [state] marks a fresh receive session, so the screen's preview
+ * bookkeeping (applied rows / populated rows / bitmap) must reset. True for
+ * [WefaxRxState.Idle] (never started) and [WefaxRxState.Listening]: every
+ * start publishes Listening before any Decoding, so it is the reliable
+ * new-session boundary — the engine never re-publishes Idle after the first
+ * start. Without this, Stop + Start with the same preset kept the old run's
+ * applied-row count and froze/spliced the preview. [WefaxRxState.Stopped]
+ * keeps the finished strip on screen; [WefaxRxState.Decoding] accumulates.
+ */
+internal fun wefaxPreviewResets(state: WefaxRxState): Boolean = when (state) {
+    is WefaxRxState.Idle, is WefaxRxState.Listening -> true
+    is WefaxRxState.Decoding, is WefaxRxState.Stopped -> false
+}
+
+/**
  * Roll [nNew] freshly decoded pixels (already ARGB, [width] per row) into the
  * fixed-height preview buffer of [previewRows] rows: existing content shifts
  * up and the new rows enter at the bottom — the strip emerges the way paper

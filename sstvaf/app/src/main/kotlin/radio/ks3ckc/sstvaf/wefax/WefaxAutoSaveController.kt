@@ -31,8 +31,8 @@ internal fun wefaxModeDisplayName(lpm: Int, ioc: Int): String = "WEFAX $lpm/$ioc
  * Persists finished WEFAX strips: [attach] points the listener's
  * `onImageFinished` here, and each strip is converted to ARGB and written
  * through the shared [ReceivedImageStore] (PNG + `sstv_images` row + optional
- * Photos copy) on a background thread — the callback arrives on the UI
- * thread that called `stopReceiving`, and the store is synchronous by
+ * Photos copy) on a background thread — the callback arrives on the
+ * listener's stop-finalizer thread, and the store is synchronous by
  * contract. [lastSaved] publishes the stored row so the fax screen can show
  * a "saved" confirmation; a failed save publishes nothing but logs.
  */

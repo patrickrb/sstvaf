@@ -2,6 +2,9 @@ package radio.ks3ckc.sstvaf.wefax
 
 import android.os.Looper
 import com.google.common.truth.Truth.assertThat
+import com.k1af.ft8af.wave.HamRecorder
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -127,6 +130,131 @@ class WefaxSignalListenerTest {
         val listener = newListener()
         listener.feed(FloatArray(64))
         assertThat(listener.queuedBufferCount()).isEqualTo(0)
+    }
+
+    @Test
+    fun overflowLogIsRateLimited() {
+        // Capacity 2: the 3rd feed onward is a drop; the drop log must fire
+        // only on the first drop and every DROP_LOG_EVERY-th after that.
+        val listener = WefaxSignalListener(
+            codec,
+            WefaxSignalListener.SAMPLE_RATE_HZ,
+            2,
+            { logs += it },
+        )
+        listener.startDirect(WefaxPreset.DEFAULT)
+
+        val drops = WefaxSignalListener.DROP_LOG_EVERY.toInt() + 2
+        repeat(2 + drops) { listener.feed(FloatArray(16)) }
+
+        assertThat(listener.queuedBufferCount()).isEqualTo(2)
+        val overflowLogs = logs.filter { it.contains("overflow") }
+        // Drop #1 and drop #50 log; drops 2..49, 51, 52 stay silent.
+        assertThat(overflowLogs).hasSize(2)
+        assertThat(overflowLogs[0]).contains("dropped=1 ")
+        assertThat(overflowLogs[1])
+            .contains("dropped=${WefaxSignalListener.DROP_LOG_EVERY} ")
+        listener.stopReceiving()
+        shadowOf(Looper.getMainLooper()).idle()
+    }
+
+    // -- async stop (threaded path) --
+
+    /** A HamRecorder whose running flag is forced on, without real audio. */
+    private fun runningRecorder(): HamRecorder {
+        val recorder = HamRecorder(null)
+        HamRecorder::class.java.getDeclaredField("isRunning").apply {
+            isAccessible = true
+        }.setBoolean(recorder, true)
+        return recorder
+    }
+
+    private fun awaitState(
+        listener: WefaxSignalListener,
+        predicate: (WefaxRxState) -> Boolean,
+    ) {
+        val deadline = System.currentTimeMillis() + 5000
+        while (System.currentTimeMillis() < deadline) {
+            if (predicate(listener.stateNow())) return
+            Thread.sleep(10)
+        }
+        throw AssertionError("state never reached; last=${listener.stateNow()}")
+    }
+
+    @Test
+    fun threadedStopFinalizesOffTheCallerAndPublishesStopped() {
+        val listener = newListener()
+        val finishedLatch = CountDownLatch(1)
+        var finishedThread: String? = null
+        var image: WefaxSignalListener.FinishedImage? = null
+        listener.onImageFinished = { img ->
+            finishedThread = Thread.currentThread().name
+            image = img
+            finishedLatch.countDown()
+        }
+
+        codec.script.add(
+            FakeWefaxCodec.ScriptedState(
+                WefaxDecodeStatus.IMAGE,
+                rowsReady = WefaxSignalListener.MIN_SAVE_ROWS + 2,
+            ),
+        )
+        listener.startReceiving(runningRecorder(), WefaxPreset.DEFAULT)
+        assertThat(listener.isReceiving()).isTrue()
+        listener.feed(FloatArray(64))
+
+        listener.stopReceiving()
+        assertThat(listener.isReceiving()).isFalse()
+
+        assertThat(finishedLatch.await(5, TimeUnit.SECONDS)).isTrue()
+        // The heavy finalization ran on the dedicated stop thread, not the
+        // caller (main) thread.
+        assertThat(finishedThread).isEqualTo("WefaxStop")
+        assertThat(image!!.rows).isEqualTo(WefaxSignalListener.MIN_SAVE_ROWS + 2)
+        awaitState(listener) { it is WefaxRxState.Stopped }
+        assertThat(listener.stateNow())
+            .isEqualTo(
+                WefaxRxState.Stopped(WefaxSignalListener.MIN_SAVE_ROWS + 2, codec.width),
+            )
+        assertThat(codec.finishCount).isEqualTo(1)
+        assertThat(codec.closedSessions).isEqualTo(1)
+        shadowOf(Looper.getMainLooper()).idle()
+    }
+
+    @Test
+    fun startIsRejectedWhileAStopIsStillFinalizing() {
+        val listener = newListener()
+        val inFinish = CountDownLatch(1)
+        val gate = CountDownLatch(1)
+        codec.onFinish = {
+            inFinish.countDown()
+            gate.await(5, TimeUnit.SECONDS)
+        }
+
+        listener.startReceiving(runningRecorder(), WefaxPreset.DEFAULT)
+        listener.stopReceiving()
+        assertThat(inFinish.await(5, TimeUnit.SECONDS)).isTrue()
+
+        // A second stop while finalizing is a no-op...
+        listener.stopReceiving()
+        // ...and a start is rejected (with a log) until finalization ends.
+        listener.startReceiving(runningRecorder(), WefaxPreset.DEFAULT)
+        assertThat(listener.isReceiving()).isFalse()
+        assertThat(codec.sessionsCreated).isEqualTo(1)
+        assertThat(logs.any { it.contains("still finalizing") }).isTrue()
+
+        gate.countDown()
+        awaitState(listener) { it is WefaxRxState.Stopped }
+        assertThat(codec.finishCount).isEqualTo(1)
+
+        // Once the finalization completed, a fresh start works again.
+        codec.onFinish = null
+        listener.startReceiving(runningRecorder(), WefaxPreset.DEFAULT)
+        assertThat(listener.isReceiving()).isTrue()
+        assertThat(codec.sessionsCreated).isEqualTo(2)
+        listener.stopReceiving()
+        awaitState(listener) { !listener.isStopping() }
+        shadowOf(Looper.getMainLooper()).idle()
     }
 
     @Test
