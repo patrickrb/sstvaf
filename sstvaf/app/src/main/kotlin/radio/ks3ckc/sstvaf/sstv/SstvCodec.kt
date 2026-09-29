@@ -86,6 +86,15 @@ interface DecoderSession : AutoCloseable {
      */
     fun readRows(firstRow: Int, nRows: Int, out: IntArray): Int
 
+    /**
+     * Operator mode lock: with a non-null [mode] the decoder still hunts for
+     * the calibration header, but ignores the VIS payload (the part QRM
+     * garbles first) and decodes as [mode]; null restores automatic VIS
+     * selection. The lock survives [reset] — it is an operator setting, not
+     * decode state.
+     */
+    fun setForcedMode(mode: SstvMode?)
+
     /** Estimated sample-clock slant in ppm (0 until enough syncs tracked). */
     fun slantPpm(): Float
 

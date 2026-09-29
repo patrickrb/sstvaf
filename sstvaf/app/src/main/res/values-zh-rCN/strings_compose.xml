@@ -547,6 +547,8 @@
     <string name="rx_status_save_failed">保存失败</string>
     <string name="rx_status_lost">信号丢失</string>
     <string name="rx_status_auto_detect">自动检测</string>
+    <string name="rx_mode_lock_auto">自动</string>
+    <string name="rx_mode_lock_auto_option">自动（VIS 检测）</string>
     <string name="rx_quality_value">质量 %1$s</string>
     <string name="rx_received_today">今日接收</string>
     <string name="rx_received_all">全部</string>

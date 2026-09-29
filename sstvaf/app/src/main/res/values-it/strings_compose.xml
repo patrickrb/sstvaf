@@ -547,6 +547,8 @@
     <string name="rx_status_save_failed">Salvataggio non riuscito</string>
     <string name="rx_status_lost">Segnale perso</string>
     <string name="rx_status_auto_detect">rilevamento automatico</string>
+    <string name="rx_mode_lock_auto">Auto</string>
+    <string name="rx_mode_lock_auto_option">Auto (rilevamento VIS)</string>
     <string name="rx_quality_value">Qualità %1$s</string>
     <string name="rx_received_today">RICEVUTE OGGI</string>
     <string name="rx_received_all">Tutte</string>
