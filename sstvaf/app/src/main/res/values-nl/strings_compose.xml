@@ -178,6 +178,7 @@
     <string name="log_section_grid_coverage">Griddekking</string>
     <string name="log_section_signal_trend">Signaaltrend</string>
     <string name="log_no_qsos_yet">Nog geen QSOs</string>
+    <string name="log_signal_trend_no_data">Nog niet genoeg signaalrapporten voor een grafiek</string>
     <string name="log_no_qsos_recorded_yet">Nog geen QSOs vastgelegd</string>
     <string name="log_search_placeholder">Zoek roepnaam, grid, band…</string>
     <string name="log_search_no_matches">Geen QSO\'s komen overeen met “%1$s”</string>

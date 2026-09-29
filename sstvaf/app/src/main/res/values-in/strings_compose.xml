@@ -178,6 +178,7 @@
     <string name="log_section_grid_coverage">Cakupan Grid</string>
     <string name="log_section_signal_trend">Tren Sinyal</string>
     <string name="log_no_qsos_yet">Belum ada QSO</string>
+    <string name="log_signal_trend_no_data">Belum cukup laporan sinyal untuk grafik</string>
     <string name="log_no_qsos_recorded_yet">Belum ada QSO yang tercatat</string>
     <string name="log_search_placeholder">Cari callsign, grid, band…</string>
     <string name="log_search_no_matches">Tidak ada QSO yang cocok dengan “%1$s”</string>

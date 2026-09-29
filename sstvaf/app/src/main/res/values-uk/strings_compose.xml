@@ -178,6 +178,7 @@
     <string name="log_section_grid_coverage">Покриття локаторів</string>
     <string name="log_section_signal_trend">Тренд сигналу</string>
     <string name="log_no_qsos_yet">Ще немає QSOs</string>
+    <string name="log_signal_trend_no_data">Ще недостатньо рапортів сигналу для графіка</string>
     <string name="log_no_qsos_recorded_yet">Ще не записано жодного QSO</string>
     <string name="log_search_placeholder">Пошук за позивним, локатором, діапазоном…</string>
     <string name="log_search_no_matches">Жодне QSO не відповідає «%1$s»</string>

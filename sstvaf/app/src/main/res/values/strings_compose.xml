@@ -236,6 +236,7 @@
     <string name="log_section_grid_coverage">Grid Coverage</string>
     <string name="log_section_signal_trend">Signal Trend</string>
     <string name="log_no_qsos_yet">No QSOs yet</string>
+    <string name="log_signal_trend_no_data">Not enough signal reports to chart yet</string>
     <string name="log_no_qsos_recorded_yet">No QSOs recorded yet</string>
     <string name="log_search_placeholder">Search callsign, grid, band…</string>
     <string name="log_search_no_matches">No QSOs match “%1$s”</string>
