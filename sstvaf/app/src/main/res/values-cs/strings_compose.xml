@@ -55,6 +55,17 @@
     <string name="more_operator">Operátor</string>
     <string name="more_logbook">Deník</string>
     <string name="more_logbook_sub">SSTV QSO · export ADIF · Cloudlog</string>
+    <string name="more_wefax_sub">Příjem meteofaxu · ukládá se do galerie</string>
+    <string name="wefax_start">Spustit</string>
+    <string name="wefax_stop">Zastavit</string>
+    <string name="wefax_status_idle">Připraveno</string>
+    <string name="wefax_status_listening">Čekání na fázování…</string>
+    <string name="wefax_status_receiving">Přijímá se</string>
+    <string name="wefax_status_stopped">Zastaveno</string>
+    <string name="wefax_rows_format">%1$d řádků</string>
+    <string name="wefax_saved">Uloženo do galerie — %1$s</string>
+    <string name="wefax_canvas_description">Přijatý meteofax</string>
+    <string name="wefax_canvas_empty">Zde se zobrazí faxový pás</string>
     <string name="more_settings">Nastavení</string>
     <string name="more_settings_sub">Vše ostatní</string>
     <string name="freq_sheet_title">Frekvence</string>

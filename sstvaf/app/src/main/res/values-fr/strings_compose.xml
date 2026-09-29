@@ -55,6 +55,17 @@
     <string name="more_operator">Opérateur</string>
     <string name="more_logbook">Journal</string>
     <string name="more_logbook_sub">QSO SSTV · export ADIF · Cloudlog</string>
+    <string name="more_wefax_sub">Réception de fax météo · enregistré dans la galerie</string>
+    <string name="wefax_start">Démarrer</string>
+    <string name="wefax_stop">Arrêter</string>
+    <string name="wefax_status_idle">Prêt</string>
+    <string name="wefax_status_listening">En attente de phasage…</string>
+    <string name="wefax_status_receiving">Réception</string>
+    <string name="wefax_status_stopped">Arrêté</string>
+    <string name="wefax_rows_format">%1$d lignes</string>
+    <string name="wefax_saved">Enregistré dans la galerie — %1$s</string>
+    <string name="wefax_canvas_description">Fax météo reçu</string>
+    <string name="wefax_canvas_empty">La bande de fax apparaîtra ici</string>
     <string name="more_settings">Réglages</string>
     <string name="more_settings_sub">Tout le reste</string>
     <string name="freq_sheet_title">Fréquence</string>

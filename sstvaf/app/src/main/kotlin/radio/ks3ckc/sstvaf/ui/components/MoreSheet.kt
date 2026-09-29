@@ -35,6 +35,9 @@ enum class MoreDestination {
     /** SSTV QSOs, ADIF export and log upload. */
     LOGBOOK,
 
+    /** WEFAX (HF radiofax) receive: weather charts from the marine bands. */
+    WEFAX,
+
     /** Everything else. */
     SETTINGS,
 }
@@ -86,6 +89,11 @@ fun MoreSheet(
                     label = stringResource(R.string.more_logbook),
                     subLabel = stringResource(R.string.more_logbook_sub),
                     onClick = { onNavigate(MoreDestination.LOGBOOK) },
+                )
+                MoreRow(
+                    label = stringResource(R.string.more_wefax),
+                    subLabel = stringResource(R.string.more_wefax_sub),
+                    onClick = { onNavigate(MoreDestination.WEFAX) },
                 )
                 MoreRow(
                     label = stringResource(R.string.more_settings),
