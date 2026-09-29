@@ -95,8 +95,10 @@ public class FlexRadio {
 
     private boolean allFlexRadioStatusEvent = false;
     private String clientID = "";
-    private long daxAudioStreamId = 0;
-    private int daxTxAudioStreamId = 0;
+    //DAX stream ids the radio allocated for this session ("stream create" responses).
+    //Package-private so tests can stage them; released by releaseDaxStreams().
+    long daxAudioStreamId = 0;
+    int daxTxAudioStreamId = 0;
     private long panadapterStreamId = 0;
     private final HashSet<Long> streamIdSet = new HashSet<>();
 
@@ -921,6 +923,48 @@ public class FlexRadio {
 
     public synchronized void commandRemoveDaxStream() {
         sendCommand(FlexCommand.STREAM_REMOVE, String.format("stream remove 0x%x", getDaxAudioStreamId()));
+    }
+
+    /**
+     * Build the "stream remove" commands for the DAX streams this session created.
+     * Pure and static so the id filtering/formatting is unit-testable. A zero id
+     * means the radio never answered the matching "stream create", so there is
+     * nothing to remove. The TX id is kept as an int elsewhere and ids like
+     * 0x84000001 are negative as int, so it is widened unsigned here.
+     *
+     * @param daxRxStreamId DAX RX stream id (0 = none)
+     * @param daxTxStreamId DAX TX stream id, unsigned-widened (0 = none)
+     * @return command payloads for {@link FlexCommand#STREAM_REMOVE}
+     */
+    static java.util.List<String> daxStreamRemoveCommands(long daxRxStreamId, long daxTxStreamId) {
+        java.util.ArrayList<String> commands = new java.util.ArrayList<>();
+        if (daxRxStreamId != 0) {
+            commands.add(String.format("stream remove 0x%x", daxRxStreamId));
+        }
+        if (daxTxStreamId != 0) {
+            commands.add(String.format("stream remove 0x%x", daxTxStreamId));
+        }
+        return commands;
+    }
+
+    /**
+     * Release the DAX RX/TX streams this session created on the radio, then forget
+     * their ids so a repeated call (or a disconnect after a failed connect) is a
+     * no-op. Historically nothing removed these streams on disconnect, so every
+     * app session leaked two stream objects on the radio until the radio was
+     * rebooted (the old workaround TODO in FlexConnector suggested bumping the
+     * local UDP port instead). Safe when the TCP link is already gone:
+     * {@link #sendCommand} silently drops commands while disconnected, and the
+     * ids are stale at that point anyway — the radio tears session streams down
+     * with the client connection.
+     */
+    public synchronized void releaseDaxStreams() {
+        for (String command : daxStreamRemoveCommands(daxAudioStreamId
+                , daxTxAudioStreamId & 0xffffffffL)) {
+            sendCommand(FlexCommand.STREAM_REMOVE, command);
+        }
+        daxAudioStreamId = 0;
+        daxTxAudioStreamId = 0;
     }
 
     public synchronized void commandRemoveAllStream() {
