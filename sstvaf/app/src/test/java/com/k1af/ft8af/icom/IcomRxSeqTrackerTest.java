@@ -73,6 +73,46 @@ public class IcomRxSeqTrackerTest {
     }
 
     @Test
+    public void trueSixteenBitWrap_seqZeroIsNeverExpected() {
+        // The inbound filter in IcomUdpBase drops tracked packets with seq==0,
+        // so after the 16-bit counter wraps (0xFFFF -> 0x0000 -> 0x0001) the
+        // seq-0 packet never reaches the tracker. It must not be flagged as a
+        // gap: a retransmit request for 0 could never be satisfied (the resent
+        // copy is filtered too), leaving a dead outstanding entry per wrap.
+        IcomRxSeqTracker tracker = new IcomRxSeqTracker();
+        tracker.onSeqReceived((short) 0xFFFE);
+        assertThat(tracker.onSeqReceived((short) 0xFFFF)).isEmpty();
+        // Rig emitted 0x0000 (filtered upstream, unseen here), then 0x0001:
+        // in order from the tracker's point of view — no request, no growth.
+        assertThat(tracker.onSeqReceived((short) 0x0001)).isEmpty();
+        // Stream continues normally past the wrap.
+        assertThat(tracker.onSeqReceived((short) 0x0002)).isEmpty();
+        assertThat(tracker.onSeqReceived((short) 0x0004)).containsExactly((short) 0x0003);
+    }
+
+    @Test
+    public void wrapWhereRigSkipsZero_stillNoSpuriousRequest() {
+        // Same wire behavior as our own send path if a rig numbers
+        // 0xFFFF -> 0x0001 directly: 0 is never expected, so nothing is
+        // requested for it.
+        IcomRxSeqTracker tracker = new IcomRxSeqTracker();
+        tracker.onSeqReceived((short) 0xFFFF); // first packet initializes; expected skips 0
+        assertThat(tracker.onSeqReceived((short) 0x0001)).isEmpty();
+    }
+
+    @Test
+    public void gapAcrossTheWrap_requestsSkipSequenceZero() {
+        // A real loss spanning the wrap must request the lost sequences on
+        // both sides of it — but never 0, which cannot be resent to us.
+        IcomRxSeqTracker tracker = new IcomRxSeqTracker();
+        tracker.onSeqReceived((short) 0xFFFD); // expected = 0xFFFE
+        assertThat(tracker.onSeqReceived((short) 0x0002))
+                .containsExactly((short) 0xFFFE, (short) 0xFFFF, (short) 0x0001)
+                .inOrder();
+        assertThat(tracker.onSeqReceived((short) 0x0003)).isEmpty();
+    }
+
+    @Test
     public void hugeJumpIsTreatedAsResyncNotLoss() {
         IcomRxSeqTracker tracker = new IcomRxSeqTracker();
         tracker.onSeqReceived((short) 5);

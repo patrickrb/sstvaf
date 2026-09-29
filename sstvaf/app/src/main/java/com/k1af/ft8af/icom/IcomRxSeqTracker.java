@@ -29,6 +29,14 @@ import java.util.List;
  *       {@link #MAX_GAP} is treated as a stream resync (rig rebooted, long
  *       stall, counter wrap after silence) rather than a flood of losses:
  *       nothing is requested and the counter snaps forward.</li>
+ *   <li>Sequence 0 is never expected. {@link IcomUdpBase#onDataReceived}
+ *       filters tracked packets with {@code seq!=0}, so a seq-0 packet the
+ *       rig emits after the 16-bit counter wraps never reaches this tracker.
+ *       Treating it as a gap would send a spurious retransmit request whose
+ *       answer (also seq 0) is filtered too — one permanently dead
+ *       {@code outstanding} entry per wrap. Expected-counter advancement
+ *       therefore skips 0 ({@code 0xFFFF -> 0x0001}), and 0 is never put in
+ *       the outstanding set.</li>
  * </ul>
  */
 public class IcomRxSeqTracker {
@@ -59,7 +67,7 @@ public class IcomRxSeqTracker {
         List<Short> toRequest = new ArrayList<>();
         if (!started) {
             started = true;
-            expected = (short) (seq + 1);
+            expected = nextExpected(seq);
             return toRequest;
         }
         //Signed 16-bit distance handles wraparound: 0x7fff steps forward at most.
@@ -70,10 +78,10 @@ public class IcomRxSeqTracker {
         }
         if (distance > MAX_GAP) {//Stream resync, not loss — snap forward silently
             outstanding.clear();
-            expected = (short) (seq + 1);
+            expected = nextExpected(seq);
             return toRequest;
         }
-        for (short missing = expected; missing != seq; missing++) {
+        for (short missing = expected; missing != seq; missing = nextExpected(missing)) {
             if (outstanding.size() >= MAX_OUTSTANDING) {
                 outstanding.clear();//Degenerate link; forget history rather than grow forever
             }
@@ -81,8 +89,18 @@ public class IcomRxSeqTracker {
                 toRequest.add(missing);
             }
         }
-        expected = (short) (seq + 1);
+        expected = nextExpected(seq);
         return toRequest;
+    }
+
+    /**
+     * Successor of a tracked sequence number, skipping 0: tracked packets never
+     * carry seq 0 (see the class Javadoc), so after {@code 0xFFFF} the next
+     * sequence we can ever observe — or should ever request — is {@code 0x0001}.
+     */
+    private static short nextExpected(short seq) {
+        short next = (short) (seq + 1);
+        return next == 0 ? (short) 1 : next;
     }
 
     /** Forget everything (new session). */

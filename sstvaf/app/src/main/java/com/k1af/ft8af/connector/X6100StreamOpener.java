@@ -55,6 +55,9 @@ public class X6100StreamOpener {
     private boolean timedOut = false;
     private boolean gaveUp = false;
     private boolean finished = false;
+    //Volatile so a cancel from another thread (reconnect/disconnect) is seen by
+    //the next tick() even without taking the monitor.
+    private volatile boolean cancelled = false;
 
     public X6100StreamOpener(Transport transport) {
         this.transport = transport;
@@ -88,7 +91,7 @@ public class X6100StreamOpener {
      * needed; false once the handshake completed, timed out or gave up.
      */
     public synchronized boolean tick() {
-        if (finished) {
+        if (cancelled || finished) {
             return false;
         }
         if (!streamPortOpen) {
@@ -142,5 +145,23 @@ public class X6100StreamOpener {
     /** True when the port opened but a follow-up was never answered within the retry budget. */
     public synchronized boolean hasGivenUp() {
         return gaveUp;
+    }
+
+    /**
+     * Abandon this handshake: every subsequent {@link #tick()} is a no-op that
+     * returns false, so the connector's tick thread exits without sending
+     * anything more. Called when the session this opener belongs to is gone —
+     * a reconnect built a new opener, or the connector disconnected. Without
+     * it a stale opener kept resending its 300&nbsp;ms open-stream batch for
+     * up to {@link #OPEN_TIMEOUT_MS} on whatever socket the shared
+     * {@code RadioTcpClient} was connected to by then — i.e. the NEW session.
+     */
+    public void cancel() {
+        cancelled = true;
+    }
+
+    /** True once {@link #cancel()} has been called. */
+    public boolean isCancelled() {
+        return cancelled;
     }
 }

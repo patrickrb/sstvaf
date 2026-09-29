@@ -148,6 +148,38 @@ public class X6100StreamOpenerTest {
     }
 
     @Test
+    public void cancelledOpener_ticksAreNoOpsAndSendNothing() {
+        RecordingTransport transport = new RecordingTransport();
+        TestOpener opener = new TestOpener(transport);
+
+        assertThat(opener.tick()).isTrue(); // one live round
+        opener.cancel();
+
+        // Every subsequent tick finishes immediately without touching the
+        // transport — this is what stops a stale opener thread from spamming
+        // the new session's socket after a quick reconnect.
+        assertThat(opener.tick()).isFalse();
+        assertThat(opener.tick()).isFalse();
+        assertThat(transport.sent).hasSize(3); // just the pre-cancel batch
+        assertThat(opener.isCancelled()).isTrue();
+        // Cancel is not a failure mode: neither timeout nor give-up is reported.
+        assertThat(opener.hasTimedOut()).isFalse();
+        assertThat(opener.hasGivenUp()).isFalse();
+    }
+
+    @Test
+    public void cancelAfterPortConfirmation_stopsFollowupRetriesToo() {
+        RecordingTransport transport = new RecordingTransport();
+        TestOpener opener = new TestOpener(transport);
+
+        opener.onStreamPortOpen();
+        opener.cancel();
+
+        assertThat(opener.tick()).isFalse();
+        assertThat(transport.sent).isEmpty();
+    }
+
+    @Test
     public void openTimeoutDoesNotApplyOncePortIsConfirmed() {
         RecordingTransport transport = new RecordingTransport();
         TestOpener opener = new TestOpener(transport);

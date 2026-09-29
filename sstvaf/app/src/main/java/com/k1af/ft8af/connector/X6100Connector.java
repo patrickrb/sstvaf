@@ -47,6 +47,8 @@ public class X6100Connector extends BaseRigConnector {
     private boolean streamIsOn =false;
     //Handshake state machine for the current connection attempt; null outside a handshake.
     private volatile X6100StreamOpener streamOpener;
+    //Thread ticking that state machine every 300 ms; null outside a handshake.
+    private volatile Thread streamOpenerThread;
 
     public float maxTXPower=10.0f;
     public MutableLiveData<Float> mutableMaxTxPower = new MutableLiveData<>();
@@ -178,7 +180,7 @@ public class X6100Connector extends BaseRigConnector {
                 //The radio frequently drops commands sent while the stream handshake is in
                 //progress; X6100StreamOpener resends the follow-ups (audio get all / sub all)
                 //after the port is confirmed, bounded, until their responses arrive.
-                final X6100StreamOpener opener = new X6100StreamOpener(new X6100StreamOpener.Transport() {
+                startStreamHandshake(new X6100StreamOpener.Transport() {
                     @Override
                     public void sendOpenStream() {
                         xieguRadio.commandOpenStream();//Set the UDP port
@@ -194,32 +196,6 @@ public class X6100Connector extends BaseRigConnector {
                         xieguRadio.commandSubAllMeter();//Subscribe to meter stream data
                     }
                 });
-                streamOpener = opener;
-                Thread streamThread = new Thread(new Runnable() {//Using a thread here to prevent blocking the TCP object
-                    @Override
-                    public void run() {
-                        while (opener.tick()) {
-                            try {
-                                Thread.sleep(300);
-                            } catch (InterruptedException e) {
-                                Log.w(TAG, "Stream open thread interrupted");
-                                Thread.currentThread().interrupt();
-                                break;
-                            }
-                        }
-                        if (opener.hasTimedOut()) {
-                            Log.w(TAG, "Timed out waiting for stream port to open");
-                        }
-                        if (opener.hasGivenUp()) {
-                            Log.w(TAG, "Stream port open, but a handshake follow-up command was never answered");
-                        }
-                        if (streamOpener == opener) {
-                            streamOpener = null;
-                        }
-                    }
-                });
-                streamThread.setDaemon(true);
-                streamThread.start();
             }
 
             @Override
@@ -265,6 +241,83 @@ public class X6100Connector extends BaseRigConnector {
             default:
                 break;
         }
+    }
+
+    /**
+     * Start the stream-open handshake for a fresh connection: cancels any
+     * handshake left over from a previous attempt first, then ticks a new
+     * {@link X6100StreamOpener} every 300&nbsp;ms on its own daemon thread
+     * (a thread so the TCP object is never blocked).
+     *
+     * <p>Package-private so tests can drive a reconnect with a fake transport.
+     */
+    void startStreamHandshake(X6100StreamOpener.Transport transport) {
+        cancelPendingHandshake();
+        final X6100StreamOpener opener = new X6100StreamOpener(transport);
+        streamOpener = opener;
+        Thread streamThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (opener.tick()) {
+                    try {
+                        Thread.sleep(300);
+                    } catch (InterruptedException e) {
+                        Log.w(TAG, "Stream open thread interrupted");
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+                if (opener.hasTimedOut()) {
+                    Log.w(TAG, "Timed out waiting for stream port to open");
+                }
+                if (opener.hasGivenUp()) {
+                    Log.w(TAG, "Stream port open, but a handshake follow-up command was never answered");
+                }
+                if (streamOpener == opener) {
+                    streamOpener = null;
+                }
+                if (streamOpenerThread == Thread.currentThread()) {
+                    streamOpenerThread = null;
+                }
+            }
+        });
+        streamThread.setDaemon(true);
+        streamOpenerThread = streamThread;
+        streamThread.start();
+    }
+
+    /**
+     * Cancel the handshake from a previous connection attempt, if one is still
+     * running. Without this, a quick reconnect left the old opener thread
+     * alive: {@link X6100Radio} reuses one {@code RadioTcpClient} and
+     * {@code sendCommand} gates only on {@code isConnect()}, so the stale
+     * thread's 300&nbsp;ms open-stream batches landed on the NEW live socket
+     * for up to 30&nbsp;s, spamming the fresh session and racing the
+     * {@code commandSeq} attribution. Cancelling makes the old opener's
+     * {@code tick()} a silent no-op and the interrupt wakes its thread out of
+     * the 300&nbsp;ms sleep so it exits promptly.
+     */
+    void cancelPendingHandshake() {
+        X6100StreamOpener previousOpener = streamOpener;
+        streamOpener = null;
+        if (previousOpener != null) {
+            previousOpener.cancel();
+        }
+        Thread previousThread = streamOpenerThread;
+        streamOpenerThread = null;
+        if (previousThread != null) {
+            previousThread.interrupt();
+        }
+    }
+
+    /** Current handshake state machine, for tests; null outside a handshake. */
+    X6100StreamOpener peekStreamOpener() {
+        return streamOpener;
+    }
+
+    /** Current handshake tick thread, for tests; null outside a handshake. */
+    Thread peekStreamOpenerThread() {
+        return streamOpenerThread;
     }
 
 
@@ -329,6 +382,9 @@ public class X6100Connector extends BaseRigConnector {
     @Override
     public void disconnect() {
         super.disconnect();
+        //Stop any in-flight stream-open handshake — its opener must not keep
+        //sending (or land on the next session's socket) after we let go.
+        cancelPendingHandshake();
         xieguRadio.closeAudio();
         xieguRadio.closeStreamPort();
         xieguRadio.disConnect();

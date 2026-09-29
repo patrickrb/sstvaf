@@ -199,14 +199,28 @@ public class IcomUdpBase {
         //carry type=0x07 and are excluded) are buffered by sequence number and their
         //sequence stream is watched for gaps. On a gap we ask the rig to retransmit the
         //missing packets — the mirror of the rig-side machinery above (the rig asks us
-        //via CMD_RETRANSMIT and we answer from txSeqBuffer).
+        //via CMD_RETRANSMIT and we answer from txSeqBuffer). Real-time streams opt out
+        //of the requesting half via requestRetransmits().
         if (IComPacketTypes.ControlPacket.getType(data) == 0x00
                 && IComPacketTypes.ControlPacket.getSeq(data) != 0x00) {
             short seq = IComPacketTypes.ControlPacket.getSeq(data);
             rxSeqBuffer.add(seq, data);
-            requestRetransmit(rxSeqTracker.onSeqReceived(seq));
+            if (requestRetransmits()) {
+                requestRetransmit(rxSeqTracker.onSeqReceived(seq));
+            }
         }
 
+    }
+
+    /**
+     * Whether this stream should ask the rig to resend lost tracked packets.
+     * Control/CI-V streams (the default) do — a lost command matters and a late
+     * copy is still useful. Real-time audio streams override this to false: by
+     * the time a retransmission arrives the play-out moment has passed, so
+     * requesting it only wastes airtime (see {@link AudioUdp}).
+     */
+    protected boolean requestRetransmits() {
+        return true;
     }
 
     /**
