@@ -50,6 +50,13 @@
     <string name="cat_state_error">chyba připojení</string>
     <string name="cat_state_vox">žádné CAT spojení</string>
     <string name="header_more_description">Více: rádio, operátor, deník, nastavení</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">Zavřít</string>
+    <string name="a11y_stepper_decrease">Snížit %1$s</string>
+    <string name="a11y_stepper_increase">Zvýšit %1$s</string>
+    <string name="a11y_show_password">Zobrazit heslo</string>
+    <string name="a11y_hide_password">Skrýt heslo</string>
+    <string name="log_heatmap_description">Mapa gridových čtverců: odpracováno %1$d z %2$d polí</string>
     <string name="more_title">Více</string>
     <string name="more_radio_audio">Rádio &amp; zvuk</string>
     <string name="more_operator">Operátor</string>

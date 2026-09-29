@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -408,7 +409,13 @@ private fun CallingFrequencyRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(if (selected) Accent.copy(alpha = 0.10f) else Color.Transparent)
-            .clickable(role = Role.Button, onClick = onClick)
+            // selectable, not clickable: the dialled-in row is otherwise marked
+            // only by its background tint, which TalkBack cannot read.
+            .selectable(
+                selected = selected,
+                role = Role.RadioButton,
+                onClick = onClick,
+            )
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),

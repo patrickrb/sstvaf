@@ -32,6 +32,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -162,10 +165,15 @@ fun TabBar(
                         val cx = coords.positionInParent().x + coords.size.width / 2f
                         tabBounds[tab] = cx to coords.size.width.toFloat()
                     }
+                    // Role.Tab + selected: the Column's only text is the label, so
+                    // TalkBack merges it and announces e.g. "Receive, tab, selected"
+                    // instead of an anonymous clickable.
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
+                        role = Role.Tab,
                     ) { onTabSelected(tab) }
+                    .semantics { selected = isActive }
                     .padding(vertical = 8.dp, horizontal = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(4.dp),

@@ -50,6 +50,13 @@
     <string name="cat_state_error">помилка підключення</string>
     <string name="cat_state_vox">немає CAT-зв\'язку</string>
     <string name="header_more_description">Більше: радіо, оператор, журнал, налаштування</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">Закрити</string>
+    <string name="a11y_stepper_decrease">Зменшити %1$s</string>
+    <string name="a11y_stepper_increase">Збільшити %1$s</string>
+    <string name="a11y_show_password">Показати пароль</string>
+    <string name="a11y_hide_password">Приховати пароль</string>
+    <string name="log_heatmap_description">Карта квадратів: відпрацьовано %1$d із %2$d полів</string>
     <string name="more_title">Більше</string>
     <string name="more_radio_audio">Радіо та аудіо</string>
     <string name="more_operator">Оператор</string>

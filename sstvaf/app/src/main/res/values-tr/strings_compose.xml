@@ -50,6 +50,13 @@
     <string name="cat_state_error">bağlantı hatası</string>
     <string name="cat_state_vox">CAT bağlantısı yok</string>
     <string name="header_more_description">Daha fazla: telsiz, operatör, günlük, ayarlar</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">Kapat</string>
+    <string name="a11y_stepper_decrease">%1$s azalt</string>
+    <string name="a11y_stepper_increase">%1$s artır</string>
+    <string name="a11y_show_password">Şifreyi göster</string>
+    <string name="a11y_hide_password">Şifreyi gizle</string>
+    <string name="log_heatmap_description">Grid kare haritası: %2$d alandan %1$d tanesi çalışıldı</string>
     <string name="more_title">Daha Fazla</string>
     <string name="more_radio_audio">Telsiz &amp; ses</string>
     <string name="more_operator">Operatör</string>

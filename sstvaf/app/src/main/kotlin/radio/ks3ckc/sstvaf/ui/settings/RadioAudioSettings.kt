@@ -5,6 +5,8 @@ import android.media.AudioManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,6 +30,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -994,7 +998,13 @@ private fun BandToggleDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onToggle(wave, !enabled) }
+                            // toggleable on the row: merges the band label with
+                            // the switch state into one TalkBack target instead
+                            // of a text node plus an anonymous switch.
+                            .toggleable(
+                                value = enabled,
+                                role = Role.Switch,
+                            ) { onToggle(wave, it) }
                             .padding(horizontal = 24.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -1007,6 +1017,9 @@ private fun BandToggleDialog(
                         Toggle(
                             checked = enabled,
                             onCheckedChange = { onToggle(wave, it) },
+                            // The row is the accessible switch; a second
+                            // focusable switch inside it would double-announce.
+                            modifier = Modifier.clearAndSetSemantics { },
                         )
                     }
                 }
@@ -1067,7 +1080,7 @@ private fun SerialPortPickerDialog(
                         fontSize = 14.sp,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onSelect(port) }
+                            .clickable(role = Role.Button) { onSelect(port) }
                             .padding(horizontal = 24.dp, vertical = 12.dp),
                     )
                 }
@@ -1152,6 +1165,7 @@ private fun VolumeSliderDialog(
                         }
                     },
                     size = 36.dp,
+                    contentDescription = stringResource(R.string.a11y_stepper_decrease, title),
                 ) {
                     SstvAfIcons.Minus(color = Accent, size = 16.dp)
                 }
@@ -1178,6 +1192,7 @@ private fun VolumeSliderDialog(
                         }
                     },
                     size = 36.dp,
+                    contentDescription = stringResource(R.string.a11y_stepper_increase, title),
                 ) {
                     SstvAfIcons.Plus(color = Accent, size = 16.dp)
                 }
@@ -1357,7 +1372,13 @@ private fun AudioChannelSelectRow(
                         .clip(shape)
                         .background(if (active) AccentSoft else BgSurface2, shape)
                         .border(1.dp, if (active) BorderAmber else Border, shape)
-                        .clickable(enabled = enabled) { onSelect(value) },
+                        // selectable so TalkBack announces which option is
+                        // active; colour is the only visual cue.
+                        .selectable(
+                            selected = isSelected,
+                            enabled = enabled,
+                            role = Role.RadioButton,
+                        ) { onSelect(value) },
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
