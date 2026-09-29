@@ -87,6 +87,12 @@ class NativeSstvCodec : SstvCodec {
         }
 
         @Synchronized
+        override fun setForcedMode(mode: SstvMode?) {
+            val rc = nativeDecoderSetForcedMode(requireHandle(), mode?.modeId ?: -1)
+            check(rc == 0) { "sstv_decoder_set_forced_mode(${mode?.modeId}) failed: $rc" }
+        }
+
+        @Synchronized
         override fun slantPpm(): Float = nativeDecoderSlantPpm(requireHandle())
 
         @Synchronized
@@ -138,6 +144,8 @@ class NativeSstvCodec : SstvCodec {
         nRows: Int,
         argbOut: IntArray,
     ): Int
+
+    private external fun nativeDecoderSetForcedMode(handle: Long, modeId: Int): Int
 
     private external fun nativeDecoderSlantPpm(handle: Long): Float
 

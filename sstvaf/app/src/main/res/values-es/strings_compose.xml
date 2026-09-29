@@ -547,6 +547,8 @@
     <string name="rx_status_save_failed">Error al guardar</string>
     <string name="rx_status_lost">Señal perdida</string>
     <string name="rx_status_auto_detect">detección automática</string>
+    <string name="rx_mode_lock_auto">Auto</string>
+    <string name="rx_mode_lock_auto_option">Auto (detección VIS)</string>
     <string name="rx_quality_value">Calidad %1$s</string>
     <string name="rx_received_today">RECIBIDAS HOY</string>
     <string name="rx_received_all">Todas</string>

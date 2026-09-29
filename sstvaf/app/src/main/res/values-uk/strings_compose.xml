@@ -547,6 +547,8 @@
     <string name="rx_status_save_failed">Не вдалося зберегти</string>
     <string name="rx_status_lost">Сигнал втрачено</string>
     <string name="rx_status_auto_detect">автовизначення</string>
+    <string name="rx_mode_lock_auto">Авто</string>
+    <string name="rx_mode_lock_auto_option">Авто (визначення VIS)</string>
     <string name="rx_quality_value">Якість %1$s</string>
     <string name="rx_received_today">ПРИЙНЯТО СЬОГОДНІ</string>
     <string name="rx_received_all">Усі</string>

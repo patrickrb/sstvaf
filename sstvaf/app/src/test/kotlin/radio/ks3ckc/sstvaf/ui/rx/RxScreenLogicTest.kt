@@ -290,4 +290,26 @@ class RxScreenLogicTest {
     fun aborted_withNoMode_showsNoPartial() {
         assertThat(showsPartialImage(SstvRxState.Aborted(10, null))).isFalse()
     }
+
+    // ----- mode-lock selector -----
+
+    @Test
+    fun modeLockOptions_areAutoThenEveryModeInNativeIdOrder() {
+        val options = rxModeLockOptions()
+        assertThat(options.first()).isNull()
+        assertThat(options.drop(1)).isEqualTo(SstvMode.entries.toList())
+        assertThat(options).hasSize(SstvMode.entries.size + 1)
+    }
+
+    @Test
+    fun modeLockChipLabel_isShortCodeWhenLocked() {
+        assertThat(rxModeLockChipLabel(SstvMode.MARTIN_2)).isEqualTo("M2")
+        assertThat(rxModeLockChipLabel(SstvMode.SCOTTIE_DX)).isEqualTo("SDX")
+    }
+
+    @Test
+    fun modeLockChipLabel_isNullWhenAuto() {
+        // Null tells the Composable to show the localized "Auto" string.
+        assertThat(rxModeLockChipLabel(null)).isNull()
+    }
 }

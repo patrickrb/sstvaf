@@ -55,6 +55,12 @@ class FakeSstvCodec : SstvCodec {
     var pushCount = 0
         private set
 
+    /** Last mode-lock applied to any session (null = auto). */
+    var forcedMode: SstvMode? = null
+        private set
+    var setForcedModeCalls = 0
+        private set
+
     /** First sample of every pushed buffer, in push order (drop-order checks). */
     val pushedFirstSamples = mutableListOf<Float>()
     var resetCount = 0
@@ -95,6 +101,11 @@ class FakeSstvCodec : SstvCodec {
                 }
             }
             return n
+        }
+
+        override fun setForcedMode(mode: SstvMode?) {
+            setForcedModeCalls++
+            forcedMode = mode
         }
 
         override fun slantPpm(): Float = current.slantPpm

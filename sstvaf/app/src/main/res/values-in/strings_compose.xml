@@ -547,6 +547,8 @@
     <string name="rx_status_save_failed">Gagal menyimpan</string>
     <string name="rx_status_lost">Sinyal hilang</string>
     <string name="rx_status_auto_detect">deteksi-otomatis</string>
+    <string name="rx_mode_lock_auto">Otomatis</string>
+    <string name="rx_mode_lock_auto_option">Otomatis (deteksi VIS)</string>
     <string name="rx_quality_value">Kualitas %1$s</string>
     <string name="rx_received_today">DITERIMA HARI INI</string>
     <string name="rx_received_all">Semua</string>
