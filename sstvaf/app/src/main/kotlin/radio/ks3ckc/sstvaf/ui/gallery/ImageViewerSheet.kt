@@ -3,6 +3,7 @@ package radio.ks3ckc.sstvaf.ui.gallery
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -230,7 +231,7 @@ private fun NoteRow(note: String, onEdit: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(6.dp))
-            .clickable(onClick = onEdit)
+            .clickable(role = Role.Button, onClick = onEdit)
             .padding(vertical = 3.dp),
     ) {
         Text(
@@ -307,7 +308,7 @@ private fun NoteEditDialog(
                         .clip(RoundedCornerShape(12.dp))
                         .background(BgSurface3)
                         .border(1.dp, Border, RoundedCornerShape(12.dp))
-                        .clickable(onClick = onCancel),
+                        .clickable(role = Role.Button, onClick = onCancel),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -323,7 +324,7 @@ private fun NoteEditDialog(
                         .height(46.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(Accent)
-                        .clickable(onClick = { onSave(text) }),
+                        .clickable(role = Role.Button, onClick = { onSave(text) }),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -361,7 +362,7 @@ private fun ViewerActionButton(
             .clip(RoundedCornerShape(12.dp))
             .background(background)
             .border(1.dp, borderColor, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
+            .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -422,7 +423,7 @@ private fun DeleteConfirmDialog(
                         .clip(RoundedCornerShape(12.dp))
                         .background(BgSurface3)
                         .border(1.dp, Border, RoundedCornerShape(12.dp))
-                        .clickable(onClick = onCancel),
+                        .clickable(role = Role.Button, onClick = onCancel),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -438,7 +439,7 @@ private fun DeleteConfirmDialog(
                         .height(46.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(StatusBad)
-                        .clickable(onClick = onConfirm),
+                        .clickable(role = Role.Button, onClick = onConfirm),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(

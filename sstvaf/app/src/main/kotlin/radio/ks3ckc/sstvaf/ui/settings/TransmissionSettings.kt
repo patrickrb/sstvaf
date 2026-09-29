@@ -138,6 +138,7 @@ fun TransmissionSettings(
                                     )
                                 },
                                 size = 36.dp,
+                                contentDescription = stringResource(R.string.a11y_stepper_decrease, "ALC low limit"),
                             ) {
                                 SstvAfIcons.Minus(color = Accent, size = 16.dp)
                             }
@@ -168,6 +169,7 @@ fun TransmissionSettings(
                                     )
                                 },
                                 size = 36.dp,
+                                contentDescription = stringResource(R.string.a11y_stepper_increase, "ALC low limit"),
                             ) {
                                 SstvAfIcons.Plus(color = Accent, size = 16.dp)
                             }
@@ -195,6 +197,7 @@ fun TransmissionSettings(
                                     )
                                 },
                                 size = 36.dp,
+                                contentDescription = stringResource(R.string.a11y_stepper_decrease, "ALC high limit"),
                             ) {
                                 SstvAfIcons.Minus(color = Accent, size = 16.dp)
                             }
@@ -225,6 +228,7 @@ fun TransmissionSettings(
                                     )
                                 },
                                 size = 36.dp,
+                                contentDescription = stringResource(R.string.a11y_stepper_increase, "ALC high limit"),
                             ) {
                                 SstvAfIcons.Plus(color = Accent, size = 16.dp)
                             }
@@ -272,6 +276,7 @@ fun TransmissionSettings(
                                     )
                                 },
                                 size = 36.dp,
+                                contentDescription = stringResource(R.string.a11y_stepper_decrease, "SWR threshold"),
                             ) {
                                 SstvAfIcons.Minus(color = Accent, size = 16.dp)
                             }
@@ -301,6 +306,7 @@ fun TransmissionSettings(
                                     )
                                 },
                                 size = 36.dp,
+                                contentDescription = stringResource(R.string.a11y_stepper_increase, "SWR threshold"),
                             ) {
                                 SstvAfIcons.Plus(color = Accent, size = 16.dp)
                             }

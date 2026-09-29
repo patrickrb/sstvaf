@@ -50,6 +50,13 @@
     <string name="cat_state_error">errore di connessione</string>
     <string name="cat_state_vox">nessun collegamento CAT</string>
     <string name="header_more_description">Altro: radio, operatore, logbook, impostazioni</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">Chiudi</string>
+    <string name="a11y_stepper_decrease">Riduci %1$s</string>
+    <string name="a11y_stepper_increase">Aumenta %1$s</string>
+    <string name="a11y_show_password">Mostra password</string>
+    <string name="a11y_hide_password">Nascondi password</string>
+    <string name="log_heatmap_description">Mappa dei quadrati grid: %1$d campi collegati su %2$d</string>
     <string name="more_title">Altro</string>
     <string name="more_radio_audio">Radio &amp; audio</string>
     <string name="more_operator">Operatore</string>

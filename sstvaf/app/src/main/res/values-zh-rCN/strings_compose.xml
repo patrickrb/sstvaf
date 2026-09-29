@@ -50,6 +50,13 @@
     <string name="cat_state_error">连接错误</string>
     <string name="cat_state_vox">无 CAT 链接</string>
     <string name="header_more_description">更多：电台、操作员、日志、设置</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">关闭</string>
+    <string name="a11y_stepper_decrease">减小%1$s</string>
+    <string name="a11y_stepper_increase">增大%1$s</string>
+    <string name="a11y_show_password">显示密码</string>
+    <string name="a11y_hide_password">隐藏密码</string>
+    <string name="log_heatmap_description">网格地图：已通联 %2$d 个字段中的 %1$d 个</string>
     <string name="more_title">更多</string>
     <string name="more_radio_audio">电台和音频</string>
     <string name="more_operator">操作员</string>

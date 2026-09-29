@@ -50,6 +50,13 @@
     <string name="cat_state_error">erreur de connexion</string>
     <string name="cat_state_vox">pas de liaison CAT</string>
     <string name="header_more_description">Plus : radio, opérateur, journal, réglages</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">Fermer</string>
+    <string name="a11y_stepper_decrease">Diminuer %1$s</string>
+    <string name="a11y_stepper_increase">Augmenter %1$s</string>
+    <string name="a11y_show_password">Afficher le mot de passe</string>
+    <string name="a11y_hide_password">Masquer le mot de passe</string>
+    <string name="log_heatmap_description">Carte des carrés de grille : %1$d champs contactés sur %2$d</string>
     <string name="more_title">Plus</string>
     <string name="more_radio_audio">Radio &amp; audio</string>
     <string name="more_operator">Opérateur</string>

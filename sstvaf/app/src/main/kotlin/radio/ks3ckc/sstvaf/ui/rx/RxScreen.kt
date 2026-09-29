@@ -40,6 +40,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -220,12 +222,16 @@ fun RxScreen(
                 fontWeight = FontWeight.SemiBold,
             )
             Spacer(modifier = Modifier.width(6.dp))
+            val rxToggleLabel = stringResource(R.string.rx_toggle_label)
             Toggle(
                 checked = rxEnabled,
                 onCheckedChange = { on ->
                     rxEnabled = on
                     listener.setEnabled(on)
                 },
+                // The label Text above is a sibling node, so name the switch
+                // itself or TalkBack announces a bare "switch, on".
+                modifier = Modifier.semantics { contentDescription = rxToggleLabel },
             )
         }
 

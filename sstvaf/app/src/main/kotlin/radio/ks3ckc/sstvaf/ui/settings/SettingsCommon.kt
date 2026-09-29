@@ -2,6 +2,7 @@ package radio.ks3ckc.sstvaf.ui.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -33,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.stringResource
@@ -254,7 +256,12 @@ internal fun ListPickerDialog(
                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onSelect(index) }
+                            // selectable so TalkBack announces the current
+                            // choice; colour/weight are the only visual cues.
+                            .selectable(
+                                selected = isSelected,
+                                role = Role.RadioButton,
+                            ) { onSelect(index) }
                             .background(bg)
                             .padding(horizontal = 24.dp, vertical = 12.dp),
                     )

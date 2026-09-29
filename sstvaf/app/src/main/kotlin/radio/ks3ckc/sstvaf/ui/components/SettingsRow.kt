@@ -10,6 +10,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import radio.ks3ckc.sstvaf.theme.*
@@ -32,7 +35,13 @@ fun SettingsRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(role = Role.Button, onClick = onClick)
+                } else {
+                    Modifier
+                },
+            )
             .padding(horizontal = 16.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -70,6 +79,10 @@ fun SettingsRow(
                 Toggle(
                     checked = toggle,
                     onCheckedChange = onToggleChange,
+                    // Name the switch after the row: the label Text is a sibling
+                    // node, not merged into the switch, so without this TalkBack
+                    // announces a bare "switch, on" with no hint of what it does.
+                    modifier = Modifier.semantics { contentDescription = label },
                 )
             }
             if (showChevron) {

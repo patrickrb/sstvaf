@@ -50,6 +50,13 @@
     <string name="cat_state_error">خطأ في الاتصال</string>
     <string name="cat_state_vox">لا يوجد اتصال CAT</string>
     <string name="header_more_description">المزيد: الراديو، المشغّل، سجل الاتصالات، الإعدادات</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">إغلاق</string>
+    <string name="a11y_stepper_decrease">تقليل %1$s</string>
+    <string name="a11y_stepper_increase">زيادة %1$s</string>
+    <string name="a11y_show_password">إظهار كلمة المرور</string>
+    <string name="a11y_hide_password">إخفاء كلمة المرور</string>
+    <string name="log_heatmap_description">خريطة المربعات الشبكية: تم العمل مع %1$d من أصل %2$d حقلًا</string>
     <string name="more_title">المزيد</string>
     <string name="more_radio_audio">الراديو والصوت</string>
     <string name="more_operator">المشغّل</string>

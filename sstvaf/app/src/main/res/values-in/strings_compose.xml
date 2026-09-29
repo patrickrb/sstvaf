@@ -50,6 +50,13 @@
     <string name="cat_state_error">kesalahan koneksi</string>
     <string name="cat_state_vox">tanpa tautan CAT</string>
     <string name="header_more_description">Lainnya: radio, operator, buku log, pengaturan</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">Tutup</string>
+    <string name="a11y_stepper_decrease">Kurangi %1$s</string>
+    <string name="a11y_stepper_increase">Tambah %1$s</string>
+    <string name="a11y_show_password">Tampilkan kata sandi</string>
+    <string name="a11y_hide_password">Sembunyikan kata sandi</string>
+    <string name="log_heatmap_description">Peta kotak grid: %1$d dari %2$d bidang telah dikerjakan</string>
     <string name="more_title">Lainnya</string>
     <string name="more_radio_audio">Radio &amp; audio</string>
     <string name="more_operator">Operator</string>

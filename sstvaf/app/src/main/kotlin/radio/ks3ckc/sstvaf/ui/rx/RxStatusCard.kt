@@ -24,6 +24,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -148,12 +151,18 @@ private fun Meta(
 /** The 6dp progress bar: a full-width track with the state's colour filling it. */
 @Composable
 private fun ProgressBar(progress: Float, color: Color) {
+    val clamped = progress.coerceIn(0f, 1f)
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(6.dp)
             .clip(RoundedCornerShape(3.dp))
-            .background(BgSurface3),
+            .background(BgSurface3)
+            // Publish the fill fraction so TalkBack reads a percentage instead
+            // of skipping a bar whose state is colour/width only.
+            .semantics {
+                progressBarRangeInfo = ProgressBarRangeInfo(current = clamped, range = 0f..1f)
+            },
     ) {
         Box(
             modifier = Modifier

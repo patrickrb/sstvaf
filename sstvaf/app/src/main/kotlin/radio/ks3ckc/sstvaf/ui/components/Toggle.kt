@@ -3,8 +3,8 @@ package radio.ks3ckc.sstvaf.ui.components
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import radio.ks3ckc.sstvaf.theme.*
 
@@ -49,11 +50,18 @@ fun Toggle(
             .size(trackWidth, trackHeight)
             .clip(RoundedCornerShape(11.dp))
             .background(if (enabled) trackColor else trackColor.copy(alpha = 0.4f))
-            .clickable(
+            // toggleable, not clickable: it publishes Role.Switch plus the
+            // checked/unchecked state, so TalkBack announces "on"/"off" and
+            // "double-tap to toggle" instead of an anonymous clickable. The
+            // gesture behaviour is identical.
+            .toggleable(
+                value = checked,
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 enabled = enabled,
-            ) { onCheckedChange(!checked) },
+                role = Role.Switch,
+                onValueChange = onCheckedChange,
+            ),
         contentAlignment = Alignment.CenterStart,
     ) {
         Box(
