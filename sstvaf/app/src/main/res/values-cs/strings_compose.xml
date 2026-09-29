@@ -694,6 +694,8 @@
     <string name="mode_group_fast">RYCHLÉ · POD JEDNU MINUTU</string>
     <string name="mode_group_standard">STANDARDNÍ</string>
     <string name="mode_group_high_resolution">VYSOKÉ ROZLIŠENÍ</string>
+    <string name="mode_group_digital">DIGITÁLNÍ · BETA</string>
+    <string name="mode_digital_sub">Komprimovaná fotografie s korekcí chyb — pouze SSTVAF</string>
     <string name="mode_note_most_common">nejběžnější na 20m</string>
     <string name="mode_card_label">REŽIM</string>
     <string name="mode_card_description">Režim SSTV %1$s</string>

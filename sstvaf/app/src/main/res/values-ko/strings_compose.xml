@@ -694,6 +694,8 @@
     <string name="mode_group_fast">빠름 · 1분 이내</string>
     <string name="mode_group_standard">표준</string>
     <string name="mode_group_high_resolution">고해상도</string>
+    <string name="mode_group_digital">디지털 · 베타</string>
+    <string name="mode_digital_sub">오류 정정이 있는 압축 사진 — SSTVAF 전용</string>
     <string name="mode_note_most_common">20m에서 가장 일반적</string>
     <string name="mode_card_label">모드</string>
     <string name="mode_card_description">SSTV 모드 %1$s</string>

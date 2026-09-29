@@ -870,6 +870,11 @@
     <string name="mode_group_fast">FAST · UNDER A MINUTE</string>
     <string name="mode_group_standard">STANDARD</string>
     <string name="mode_group_high_resolution">HIGH RESOLUTION</string>
+    <string name="mode_group_digital">DIGITAL · BETA</string>
+    <!-- Sub-line under each digital mode row. SSTVAF-to-SSTVAF only for now. -->
+    <string name="mode_digital_sub">Compressed photo with error correction — SSTVAF only</string>
+    <!-- %1$s is an m:ss duration estimate; the ≈ marks it as payload-dependent. -->
+    <string name="mode_digital_duration" translatable="false">≈%1$s</string>
     <!-- Appended after a mode's dimensions; only Scottie 1 carries a note. -->
     <string name="mode_note_most_common">most common on 20m</string>
     <string name="mode_card_label">MODE</string>

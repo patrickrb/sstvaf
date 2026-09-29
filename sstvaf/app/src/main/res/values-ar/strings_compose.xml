@@ -694,6 +694,8 @@
     <string name="mode_group_fast">سريع · أقل من دقيقة</string>
     <string name="mode_group_standard">قياسي</string>
     <string name="mode_group_high_resolution">دقة عالية</string>
+    <string name="mode_group_digital">رقمي · تجريبي</string>
+    <string name="mode_digital_sub">صورة مضغوطة مع تصحيح الأخطاء — SSTVAF فقط</string>
     <string name="mode_note_most_common">الأكثر شيوعاً على 20m</string>
     <string name="mode_card_label">الوضع</string>
     <string name="mode_card_description">وضع SSTV %1$s</string>

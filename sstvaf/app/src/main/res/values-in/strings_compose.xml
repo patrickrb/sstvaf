@@ -694,6 +694,8 @@
     <string name="mode_group_fast">CEPAT · KURANG DARI SEMENIT</string>
     <string name="mode_group_standard">STANDAR</string>
     <string name="mode_group_high_resolution">RESOLUSI TINGGI</string>
+    <string name="mode_group_digital">DIGITAL · BETA</string>
+    <string name="mode_digital_sub">Foto terkompresi dengan koreksi galat — hanya SSTVAF</string>
     <string name="mode_note_most_common">paling umum di 20m</string>
     <string name="mode_card_label">MODE</string>
     <string name="mode_card_description">Mode SSTV %1$s</string>

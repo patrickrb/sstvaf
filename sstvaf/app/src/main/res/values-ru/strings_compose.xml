@@ -694,6 +694,8 @@
     <string name="mode_group_fast">БЫСТРЫЕ · МЕНЕЕ МИНУТЫ</string>
     <string name="mode_group_standard">СТАНДАРТНЫЕ</string>
     <string name="mode_group_high_resolution">ВЫСОКОЕ РАЗРЕШЕНИЕ</string>
+    <string name="mode_group_digital">ЦИФРОВОЙ · БЕТА</string>
+    <string name="mode_digital_sub">Сжатое фото с коррекцией ошибок — только SSTVAF</string>
     <string name="mode_note_most_common">самый частый на 20m</string>
     <string name="mode_card_label">РЕЖИМ</string>
     <string name="mode_card_description">Режим SSTV %1$s</string>

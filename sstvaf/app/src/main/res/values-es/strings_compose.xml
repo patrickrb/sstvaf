@@ -694,6 +694,8 @@
     <string name="mode_group_fast">RÁPIDO · MENOS DE UN MINUTO</string>
     <string name="mode_group_standard">ESTÁNDAR</string>
     <string name="mode_group_high_resolution">ALTA RESOLUCIÓN</string>
+    <string name="mode_group_digital">DIGITAL · BETA</string>
+    <string name="mode_digital_sub">Foto comprimida con corrección de errores — solo SSTVAF</string>
     <string name="mode_note_most_common">más común en 20m</string>
     <string name="mode_card_label">MODO</string>
     <string name="mode_card_description">Modo SSTV %1$s</string>

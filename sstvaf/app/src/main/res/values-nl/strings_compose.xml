@@ -694,6 +694,8 @@
     <string name="mode_group_fast">SNEL · ONDER EEN MINUUT</string>
     <string name="mode_group_standard">STANDAARD</string>
     <string name="mode_group_high_resolution">HOGE RESOLUTIE</string>
+    <string name="mode_group_digital">DIGITAAL · BÈTA</string>
+    <string name="mode_digital_sub">Gecomprimeerde foto met foutcorrectie — alleen SSTVAF</string>
     <string name="mode_note_most_common">meest voorkomend op 20m</string>
     <string name="mode_card_label">MODE</string>
     <string name="mode_card_description">SSTV-mode %1$s</string>

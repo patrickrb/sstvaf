@@ -78,4 +78,32 @@ class OfdmModemTest {
             assertThat(m.demodulateSymbol(m.modulateSymbol(bits), 0)).isEqualTo(bits)
         }
     }
+
+    @Test
+    fun `scored search rates the preamble near 1 and noise near 0`() {
+        val modem = OfdmModem()
+        val preamble = modem.preamble()
+        val silence = DoubleArray(500)
+        val audio = DoubleArray(silence.size + preamble.size + 500)
+        preamble.copyInto(audio, silence.size)
+
+        val (offset, score) = modem.findFrameStartScored(audio, 800)
+        assertThat(offset).isEqualTo(silence.size)
+        assertThat(score).isGreaterThan(0.9)
+
+        val rng = java.util.Random(5)
+        val noise = DoubleArray(2000) { rng.nextGaussian() * 0.3 }
+        val (_, noiseScore) = modem.findFrameStartScored(noise, 800)
+        assertThat(noiseScore).isLessThan(0.2)
+    }
+
+    @Test
+    fun `scored search argmax matches findFrameStart`() {
+        val modem = OfdmModem()
+        val rng = java.util.Random(11)
+        val audio = DoubleArray(3000) { rng.nextGaussian() * 0.2 }
+        modem.preamble().copyInto(audio, 700)
+        assertThat(modem.findFrameStartScored(audio, 1500).first)
+            .isEqualTo(modem.findFrameStart(audio, 1500))
+    }
 }

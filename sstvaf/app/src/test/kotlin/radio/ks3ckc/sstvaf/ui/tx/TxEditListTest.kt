@@ -300,4 +300,18 @@ class TxEditListTest {
         // A future card kind read by an older build must not crash the restore.
         assertThat(cardKindFromUri(CARD_URI_SCHEME + ":POSTCARD")).isNull()
     }
+
+    @Test
+    fun `digital mode round-trips and its absence degrades to analog`() {
+        val digital = rich().copy(
+            digitalMode = radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode.ROBUST,
+        )
+        val parsed = TxEditList.parse(TxEditList.serialize(digital))
+        assertThat(parsed?.digitalMode)
+            .isEqualTo(radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode.ROBUST)
+
+        val analog = TxEditList.parse(TxEditList.serialize(rich()))
+        assertThat(analog).isNotNull()
+        assertThat(analog?.digitalMode).isNull()
+    }
 }
