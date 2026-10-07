@@ -2,6 +2,7 @@
 // the web UI, and forwards RX events to the webview.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::path::PathBuf;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Mutex;
 
@@ -60,15 +61,40 @@ fn list_audio_inputs() -> Vec<AudioDevice> {
 
 // --- receive ----------------------------------------------------------------
 
+/// Where completed decodes are auto-saved: `<Pictures>/SSTVAF`, or the app
+/// data dir's `images/` on systems without a pictures directory (headless
+/// Linux, some portable setups). `None` disables auto-save rather than
+/// guessing a location the user would never find.
+fn resolve_save_dir(app: &tauri::AppHandle) -> Option<PathBuf> {
+    app.path()
+        .picture_dir()
+        .map(|p| p.join("SSTVAF"))
+        .or_else(|_| app.path().app_data_dir().map(|p| p.join("images")))
+        .ok()
+}
+
 /// Start decoding from `device` (or the system default). Restarts cleanly if a
 /// receiver is already running, so switching devices needs no separate stop.
 #[tauri::command]
-fn start_rx(state: State<AppState>, device: Option<String>) -> Result<RxStarted, String> {
+fn start_rx(
+    app: tauri::AppHandle,
+    state: State<AppState>,
+    device: Option<String>,
+) -> Result<RxStarted, String> {
     let mut slot = state.rx.lock().map_err(|e| e.to_string())?;
     // Drop the old service first: it owns the audio device, and some backends
     // refuse a second exclusive open.
     *slot = None;
-    let service = RxService::start(device, state.events.clone()).map_err(|e| e.to_string())?;
+    let save_dir = resolve_save_dir(&app);
+    if save_dir.is_none() {
+        // Decoding still works; the operator just needs to know images will
+        // not be kept.
+        let _ = state.events.send(RxEvent::Error(
+            "auto-save disabled: no pictures or app-data directory on this system".into(),
+        ));
+    }
+    let service =
+        RxService::start(device, state.events.clone(), save_dir).map_err(|e| e.to_string())?;
     let started = RxStarted {
         device_name: service.device_name.clone(),
         device_rate: service.device_rate,

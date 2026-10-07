@@ -1,13 +1,16 @@
 //! The receive path: audio in, decoded images out.
 //!
 //! `engine` is the pure state machine, `session` the decoder interface it
-//! drives, and `service` the thread that wires them to a real audio device.
+//! drives, `save` persists completed frames as PNGs, and `service` the thread
+//! that wires them to a real audio device.
 
 pub mod engine;
+pub mod save;
 pub mod service;
 pub mod session;
 
 pub use engine::{RxEngine, RxEvent, RxState};
+pub use save::CompletedFrame;
 pub use service::RxService;
 pub use session::SstvSession;
 

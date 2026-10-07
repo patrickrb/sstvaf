@@ -4,6 +4,7 @@ import type { ModeInfo } from "./ipc";
 import {
   argbToRgba,
   describeRxState,
+  describeSaved,
   describeSlant,
   progressPercent,
   qualityPercent,
@@ -127,5 +128,20 @@ describe("describeSlant", () => {
   it("shows nothing outside a decode", () => {
     expect(describeSlant({ kind: "idle" })).toBeNull();
     expect(describeSlant({ kind: "complete", mode: ROBOT36, rows: 240, quality: 1 })).toBeNull();
+  });
+});
+
+describe("describeSaved", () => {
+  it("names the file, not the whole path", () => {
+    expect(
+      describeSaved({
+        path: "/home/op/Pictures/SSTVAF/sstv-20260929-134502-R36.png",
+        filename: "sstv-20260929-134502-R36.png",
+      }),
+    ).toBe("Saved sstv-20260929-134502-R36.png");
+  });
+
+  it("shows nothing before the first auto-save", () => {
+    expect(describeSaved(null)).toBeNull();
   });
 });

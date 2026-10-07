@@ -4,6 +4,7 @@
 //! Capture and decode share one thread because `cpal::Stream` is `!Send` on
 //! Windows — it has to be created and dropped on the same thread that owns it.
 
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Arc;
@@ -13,6 +14,7 @@ use std::time::Duration;
 use crate::audio::{AudioInput, AudioQueue};
 use crate::dsp::decoder::Decoder;
 use crate::rx::engine::{RxEngine, RxEvent};
+use crate::rx::save;
 use crate::rx::{DROP_LOG_EVERY, POLL_WAIT_MS, QUEUE_CAPACITY, SAMPLE_RATE};
 
 /// A running receiver. Dropping it stops capture and joins the thread.
@@ -30,7 +32,14 @@ impl RxService {
     /// Open `device_name` (or the default) and start decoding. Blocks until the
     /// audio device is open so a bad device surfaces as an error here rather
     /// than as silence.
-    pub fn start(device_name: Option<String>, events: Sender<RxEvent>) -> anyhow::Result<RxService> {
+    ///
+    /// `save_dir`, when given, is where completed decodes are auto-saved as
+    /// PNGs; `None` disables auto-save (the caller decides and reports why).
+    pub fn start(
+        device_name: Option<String>,
+        events: Sender<RxEvent>,
+        save_dir: Option<PathBuf>,
+    ) -> anyhow::Result<RxService> {
         let stop = Arc::new(AtomicBool::new(false));
         let queue = Arc::new(AudioQueue::new(QUEUE_CAPACITY));
         // The decoder is built here, on the caller's thread, so an allocation
@@ -63,7 +72,7 @@ impl RxService {
                             return;
                         }
                     };
-                run_loop(decoder, queue_t, stop_t, &events);
+                run_loop(decoder, queue_t, stop_t, &events, save_dir);
                 drop(input);
             })?;
 
@@ -113,6 +122,7 @@ fn run_loop(
     queue: Arc<AudioQueue>,
     stop: Arc<AtomicBool>,
     events: &Sender<RxEvent>,
+    save_dir: Option<PathBuf>,
 ) {
     let mut engine = RxEngine::new(decoder);
     let mut logged_drops = 0u64;
@@ -129,6 +139,14 @@ fn run_loop(
             // A closed receiver means the app is shutting down.
             if events.send(ev).is_err() {
                 return;
+            }
+        }
+
+        // A completed decode leaves a frame snapshot behind; hand it to the
+        // saver's worker thread so the PNG write never stalls this loop.
+        if let Some(frame) = engine.take_completed_frame() {
+            if let Some(dir) = &save_dir {
+                save::spawn_save(dir.clone(), frame, events.clone());
             }
         }
 
@@ -155,6 +173,7 @@ mod tests {
     /// for one), making the decode outcome depend on timing.
     fn spawn_loop(
         capacity: usize,
+        save_dir: Option<PathBuf>,
     ) -> (
         Arc<AudioQueue>,
         Arc<AtomicBool>,
@@ -167,14 +186,14 @@ mod tests {
         let (q, s) = (queue.clone(), stop.clone());
         let t = std::thread::spawn(move || {
             let decoder = Decoder::new(SAMPLE_RATE).expect("decoder");
-            run_loop(decoder, q, s, &tx);
+            run_loop(decoder, q, s, &tx, save_dir);
         });
         (queue, stop, rx, t)
     }
 
     #[test]
     fn announces_itself_then_stops_cleanly() {
-        let (queue, stop, rx, t) = spawn_loop(8);
+        let (queue, stop, rx, t) = spawn_loop(8, None);
         match rx.recv_timeout(Duration::from_secs(5)) {
             Ok(RxEvent::Info(m)) => assert!(m.contains("12000"), "got {m}"),
             other => panic!("expected the startup Info, got {other:?}"),
@@ -193,10 +212,18 @@ mod tests {
         let image = vec![0xFF20A0FFu32; mode.pixel_count()];
         let samples = encode::encode(mode, &image, SAMPLE_RATE, ENCODE_AMPLITUDE).expect("encode");
 
+        // Completed decodes auto-save into this scratch dir, exercising the
+        // whole engine → snapshot → PNG-on-disk path against the real codec.
+        let save_dir = std::env::temp_dir().join(format!(
+            "sstvaf-service-save-test-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&save_dir);
+
         // A queue large enough for the whole transmission (~37 s in 200 ms
         // blocks) so nothing is ever dropped and the result is independent of
         // how fast the decode loop happens to run.
-        let (queue, stop, rx, t) = spawn_loop(512);
+        let (queue, stop, rx, t) = spawn_loop(512, Some(save_dir.clone()));
         // Feed it in the 200 ms blocks the capture worker produces.
         for block in samples.chunks(2400) {
             queue.push(block.to_vec());
@@ -208,17 +235,27 @@ mod tests {
         }
         assert_eq!(queue.dropped(), 0, "test queue was too small");
 
-        // Collect until the image completes or we run out of patience.
+        // Collect until the image completes AND its auto-save is reported —
+        // the Saved event arrives from the saver's worker thread shortly after
+        // the Complete state.
         let mut got_rows = false;
         let mut completed = false;
-        let deadline = std::time::Instant::now() + Duration::from_secs(20);
-        while std::time::Instant::now() < deadline && !completed {
+        let mut saved_path: Option<String> = None;
+        let deadline = std::time::Instant::now() + Duration::from_secs(30);
+        while std::time::Instant::now() < deadline && !(completed && saved_path.is_some()) {
             match rx.recv_timeout(Duration::from_secs(2)) {
                 Ok(RxEvent::Rows { .. }) => got_rows = true,
                 Ok(RxEvent::State(RxState::Complete { mode, rows, .. })) => {
                     assert_eq!(mode.id, 0);
                     assert_eq!(rows, 240);
                     completed = true;
+                }
+                Ok(RxEvent::Saved { path, filename }) => {
+                    assert!(
+                        filename.starts_with("sstv-") && filename.ends_with("-R36.png"),
+                        "unexpected auto-save name {filename}"
+                    );
+                    saved_path = Some(path);
                 }
                 Ok(_) => {}
                 Err(_) => break,
@@ -230,6 +267,12 @@ mod tests {
 
         assert!(got_rows, "no rows streamed to the UI");
         assert!(completed, "the transmission never completed");
+        let saved_path = saved_path.expect("the completed image was never auto-saved");
+        assert!(
+            std::path::Path::new(&saved_path).exists(),
+            "Saved event reported a path that does not exist: {saved_path}"
+        );
+        let _ = std::fs::remove_dir_all(&save_dir);
     }
 
     #[test]
@@ -246,7 +289,7 @@ mod tests {
         // Info without entering the body — drive one iteration explicitly.
         stop.store(false, Ordering::Relaxed);
         let (q, s) = (queue.clone(), stop.clone());
-        let t = std::thread::spawn(move || run_loop(decoder, q, s, &tx));
+        let t = std::thread::spawn(move || run_loop(decoder, q, s, &tx, None));
 
         let mut saw_overflow = false;
         let deadline = std::time::Instant::now() + Duration::from_secs(5);
