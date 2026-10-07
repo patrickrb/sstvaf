@@ -49,6 +49,16 @@
     <string name="cat_state_disconnected">brak połączenia</string>
     <string name="cat_state_error">błąd połączenia</string>
     <string name="cat_state_vox">brak łącza CAT</string>
+    <string name="wefax_start">Start</string>
+    <string name="wefax_stop">Stop</string>
+    <string name="wefax_status_idle">Gotowy</string>
+    <string name="wefax_status_listening">Oczekiwanie na fazowanie…</string>
+    <string name="wefax_status_receiving">Odbieranie</string>
+    <string name="wefax_status_stopped">Zatrzymano</string>
+    <string name="wefax_rows_format">%1$d linii</string>
+    <string name="wefax_saved">Zapisano do Galerii — %1$s</string>
+    <string name="wefax_canvas_description">Odebrany faks pogodowy</string>
+    <string name="wefax_canvas_empty">Pasek faksu pojawi się tutaj</string>
     <string name="freq_sheet_title">Częstotliwość</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">noc</string>

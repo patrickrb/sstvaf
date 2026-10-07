@@ -59,6 +59,7 @@ import radio.ks3ckc.sstvaf.ui.logbook.LogbookScreen
 import radio.ks3ckc.sstvaf.ui.rx.RxScreen
 import radio.ks3ckc.sstvaf.ui.settings.SettingsScreen
 import radio.ks3ckc.sstvaf.ui.tx.TxComposeScreen
+import radio.ks3ckc.sstvaf.ui.wefax.WefaxScreen
 import radio.ks3ckc.sstvaf.gallery.ImageDirection
 
 /**
@@ -190,6 +191,7 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
                         activeTab = SstvTab.TX
                     },
                 )
+                SstvTab.WEFAX -> WefaxScreen(mainViewModel)
                 SstvTab.LOG -> LogbookScreen(mainViewModel)
                 SstvTab.SETTINGS -> SettingsScreen(mainViewModel)
             }
