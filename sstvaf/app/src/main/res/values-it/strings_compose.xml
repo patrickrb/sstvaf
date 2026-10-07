@@ -49,7 +49,6 @@
     <string name="cat_state_disconnected">non connesso</string>
     <string name="cat_state_error">errore di connessione</string>
     <string name="cat_state_vox">nessun collegamento CAT</string>
-    <string name="header_more_description">Altro: radio, operatore, logbook, impostazioni</string>
     <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
     <string name="a11y_close_sheet">Chiudi</string>
     <string name="a11y_stepper_decrease">Riduci %1$s</string>
@@ -57,13 +56,6 @@
     <string name="a11y_show_password">Mostra password</string>
     <string name="a11y_hide_password">Nascondi password</string>
     <string name="log_heatmap_description">Mappa dei quadrati grid: %1$d campi collegati su %2$d</string>
-    <string name="more_title">Altro</string>
-    <string name="more_radio_audio">Radio &amp; audio</string>
-    <string name="more_operator">Operatore</string>
-    <string name="more_logbook">Logbook</string>
-    <string name="more_logbook_sub">QSO SSTV · esportazione ADIF · Cloudlog</string>
-    <string name="more_settings">Impostazioni</string>
-    <string name="more_settings_sub">Tutto il resto</string>
     <string name="freq_sheet_title">Frequenza</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">notte</string>
@@ -169,7 +161,6 @@
     <string name="log_tab_stats">Statistiche</string>
     <string name="log_tab_recent">Recenti</string>
     <string name="log_tab_awards">Diplomi</string>
-    <string name="log_title">Log</string>
     <string name="log_subtitle_qsos_all_bands">%1$d QSO · Tutte le bande</string>
     <string name="log_cd_sync_to_logging_services">Sincronizza con i servizi di logging</string>
     <string name="log_cd_export_qsos">Esporta QSO</string>
@@ -185,6 +176,7 @@
     <string name="log_section_grid_coverage">Copertura grid</string>
     <string name="log_section_signal_trend">Andamento segnale</string>
     <string name="log_no_qsos_yet">Ancora nessun QSO</string>
+    <string name="log_signal_trend_no_data">Non ci sono ancora abbastanza rapporti di segnale per il grafico</string>
     <string name="log_no_qsos_recorded_yet">Ancora nessun QSO registrato</string>
     <string name="log_search_placeholder">Cerca callsign, grid, banda…</string>
     <string name="log_search_no_matches">Nessun QSO corrisponde a “%1$s”</string>
@@ -554,6 +546,8 @@
     <string name="rx_status_save_failed">Salvataggio non riuscito</string>
     <string name="rx_status_lost">Segnale perso</string>
     <string name="rx_status_auto_detect">rilevamento automatico</string>
+    <string name="rx_mode_lock_auto">Auto</string>
+    <string name="rx_mode_lock_auto_option">Auto (rilevamento VIS)</string>
     <string name="rx_quality_value">Qualità %1$s</string>
     <string name="rx_received_today">RICEVUTE OGGI</string>
     <string name="rx_received_all">Tutte</string>
@@ -561,6 +555,9 @@
     <string name="settings_save_rx_photos">Salva le immagini ricevute in Photos</string>
     <string name="settings_save_rx_photos_desc">Le immagini SSTV completate compaiono anche nell\'app Photos in Pictures/SSTVAF (Android 10+)</string>
     <string name="tab_gallery">Galleria</string>
+    <string name="tab_settings">Impostazioni</string>
+    <string name="band_bar_caption">Banda e frequenza</string>
+    <string name="tab_logbook">Logbook</string>
     <string name="gallery_filter_all">Tutte</string>
     <string name="gallery_filter_rx">Ricevute</string>
     <string name="gallery_filter_tx">Inviate</string>

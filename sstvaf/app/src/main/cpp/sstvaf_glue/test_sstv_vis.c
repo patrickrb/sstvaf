@@ -8,7 +8,11 @@
 //   - additive white gaussian noise,
 //   - a parity-corrupted header (rejected),
 //   - an unknown-but-parity-valid code (rejected),
-//   - a truncated leader (rejected).
+//   - a truncated leader (rejected),
+//   - the operator mode lock (sstv_decoder_set_forced_mode): garbled VIS
+//     decodes as the locked mode, the lock overrides a readable VIS, the
+//     header hunt itself is unchanged, the lock survives reset, and a full
+//     encode->decode roundtrip with corrupted VIS cells recovers the image.
 //
 // HOW TO RUN: sstvaf_glue/run_sstv_host_tests.ps1 / run_sstv_host_tests.sh.
 
@@ -25,10 +29,11 @@
 // Synthesize a header for `code` and push it through a fresh decoder.
 // Returns the decoder's detected mode id (or -1). A short stretch of the
 // mode's post-VIS tone (any mid-range tone) follows the header so the
-// decoder has samples to chew past the stop bit.
-static int detect(int code, double offset_hz, int parity_flip,
-                  double leader_ms, double awgn_sigma, uint64_t seed,
-                  int* status_out)
+// decoder has samples to chew past the stop bit. With forced >= 0 the
+// decoder gets that operator mode lock before any audio.
+static int detect_locked(int code, double offset_hz, int parity_flip,
+                         double leader_ms, double awgn_sigma, uint64_t seed,
+                         int forced, int* status_out)
 {
     float* buf = (float*)calloc(BUF_SAMPLES, sizeof(float));
     sstv_test_osc_t o;
@@ -43,12 +48,21 @@ static int detect(int code, double offset_hz, int parity_flip,
     }
 
     sstv_decoder_t* d = sstv_decoder_create(RATE);
+    if (forced >= 0) sstv_decoder_set_forced_mode(d, forced);
     sstv_test_push_all(d, buf, o.pos);
     int mode = sstv_decoder_mode(d);
     if (status_out) *status_out = sstv_decoder_status(d);
     sstv_decoder_destroy(d);
     free(buf);
     return mode;
+}
+
+static int detect(int code, double offset_hz, int parity_flip,
+                  double leader_ms, double awgn_sigma, uint64_t seed,
+                  int* status_out)
+{
+    return detect_locked(code, offset_hz, parity_flip, leader_ms, awgn_sigma,
+                         seed, -1, status_out);
 }
 
 int main(void)
@@ -128,6 +142,106 @@ int main(void)
         check(mode == -1, "truncated (30 ms) leader rejected");
         check(status == SSTV_STATUS_IDLE || status == SSTV_STATUS_LEADER,
               "truncated leader leaves decoder hunting");
+    }
+
+    // 7. Operator mode lock: setter surface.
+    {
+        sstv_decoder_t* d = sstv_decoder_create(RATE);
+        check(sstv_decoder_forced_mode(d) == -1, "lock: default is auto (-1)");
+        check(sstv_decoder_set_forced_mode(d, 999) == SSTV_ERR_BAD_ARGS,
+              "lock: unknown mode id rejected");
+        check(sstv_decoder_set_forced_mode(0, SSTV_MODE_MARTIN2)
+                  == SSTV_ERR_BAD_ARGS,
+              "lock: null handle rejected");
+        check(sstv_decoder_set_forced_mode(d, SSTV_MODE_MARTIN2) == 0,
+              "lock: valid mode accepted");
+        check(sstv_decoder_forced_mode(d) == SSTV_MODE_MARTIN2,
+              "lock: getter round-trips");
+        sstv_decoder_reset(d);
+        check(sstv_decoder_forced_mode(d) == SSTV_MODE_MARTIN2,
+              "lock: survives reset (operator setting, not decode state)");
+        check(sstv_decoder_set_forced_mode(d, -1) == 0,
+              "lock: -1 restores auto");
+        sstv_decoder_destroy(d);
+    }
+
+    // 8. Lock behavior on synthesized headers.
+    {
+        int status;
+        // A parity-corrupted VIS that auto rejects (case 4) decodes under
+        // the lock.
+        int mode = detect_locked(44, 0.0, 1, 300.0, 0.0, 0,
+                                 SSTV_MODE_MARTIN2, &status);
+        check(mode == SSTV_MODE_MARTIN2 && status == SSTV_STATUS_IMAGE,
+              "lock: parity-corrupted VIS decodes as the locked mode");
+
+        // An unknown-but-parity-valid code (case 5) decodes under the lock.
+        mode = detect_locked(3, 0.0, 0, 300.0, 0.0, 0,
+                             SSTV_MODE_SCOTTIE1, &status);
+        check(mode == SSTV_MODE_SCOTTIE1 && status == SSTV_STATUS_IMAGE,
+              "lock: unknown VIS code decodes as the locked mode");
+
+        // The lock overrides even a clean, readable VIS: operator wins.
+        mode = detect_locked(44, 0.0, 0, 300.0, 0.0, 0,
+                             SSTV_MODE_MARTIN2, &status);
+        check(mode == SSTV_MODE_MARTIN2,
+              "lock: overrides a readable VIS (44 -> locked Martin 2)");
+
+        // The header hunt itself is unchanged: a truncated leader still
+        // detects nothing — the lock is not "decode anything".
+        mode = detect_locked(44, 0.0, 0, 30.0, 0.0, 0,
+                             SSTV_MODE_MARTIN2, &status);
+        check(mode == -1 && status != SSTV_STATUS_IMAGE,
+              "lock: truncated leader still rejected");
+    }
+
+    // 9. Full roundtrip with corrupted VIS cells: encode a real Martin 2
+    //    transmission, overwrite the 8 data+parity cells (t0=610 ms, cells
+    //    at 640..880 ms) with the 1900 Hz leader tone — every bit reads 0,
+    //    code 0 is unassigned, so auto rejects — then decode with the lock
+    //    and require the image itself to survive (the timing anchor at the
+    //    stop-bit end must still hold).
+    {
+        const sstv_mode_t* m = sstv_mode_get(SSTV_MODE_MARTIN2);
+        uint32_t* img = sstv_testcard_alloc(m->width, m->height);
+        int need = sstv_encode_num_samples(SSTV_MODE_MARTIN2, RATE);
+        float* buf = (float*)malloc((size_t)need * sizeof(float));
+        sstv_encode(SSTV_MODE_MARTIN2, img, m->width, m->height, RATE, 0.7f,
+                    buf, need);
+        int c0 = (int)(0.640 * RATE), c1 = (int)(0.880 * RATE);
+        for (int i = c0; i < c1 && i < need; i++) {
+            buf[i] = 0.7f * (float)sin(2.0 * M_PI * 1900.0 * (double)i / RATE);
+        }
+        float tail[4096] = { 0 };
+
+        // Auto: the corrupted header must not decode anything.
+        sstv_decoder_t* d = sstv_decoder_create(RATE);
+        sstv_test_push_all(d, buf, need);
+        for (int i = 0; i < 8; i++) sstv_test_push_all(d, tail, 4096);
+        check(sstv_decoder_mode(d) == -1 && sstv_decoder_rows_ready(d) == 0,
+              "lock roundtrip: corrupted VIS yields nothing on auto");
+        sstv_decoder_destroy(d);
+
+        // Locked: full image, PSNR at the mode's roundtrip floor.
+        d = sstv_decoder_create(RATE);
+        sstv_decoder_set_forced_mode(d, SSTV_MODE_MARTIN2);
+        sstv_test_push_all(d, buf, need);
+        for (int i = 0; i < 8; i++) sstv_test_push_all(d, tail, 4096);
+        check(sstv_decoder_status(d) == SSTV_STATUS_DONE,
+              "lock roundtrip: corrupted VIS reaches DONE under the lock");
+        check(sstv_decoder_rows_ready(d) == m->height,
+              "lock roundtrip: all rows decoded");
+        uint32_t* out = (uint32_t*)calloc((size_t)m->width * m->height,
+                                          sizeof(uint32_t));
+        sstv_decoder_read_rows(d, 0, m->height, out);
+        double psnr = sstv_test_min_psnr(img, out, m->width * m->height);
+        printf("  info: locked Martin 2 with corrupted VIS: min PSNR %.1f dB\n",
+               psnr);
+        check(psnr >= 30.0, "lock roundtrip: PSNR >= 30 dB");
+        free(out);
+        sstv_decoder_destroy(d);
+        free(buf);
+        free(img);
     }
 
     if (g_failures) {
