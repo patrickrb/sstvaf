@@ -43,7 +43,7 @@ import radio.ks3ckc.sstvaf.ui.motion.rememberHaptics
  *
  * Mirrors TabBar's icon set, labels, active-accent colour and haptic tick so the
  * two navigation surfaces feel like one control that merely re-flows with size.
- * The rail keeps its scroll wrapper even though four entries fit anywhere a
+ * The rail keeps its scroll wrapper even though five entries fit anywhere a
  * rail is used, so a future tab (or a very short split-screen canvas) can't
  * silently push an entry out of reach.
  */

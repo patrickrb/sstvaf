@@ -49,12 +49,6 @@
     <string name="cat_state_disconnected">연결 안 됨</string>
     <string name="cat_state_error">연결 오류</string>
     <string name="cat_state_vox">CAT 링크 없음</string>
-    <string name="header_more_description">더보기: 무전기, 운용자, 로그북</string>
-    <string name="more_title">더보기</string>
-    <string name="more_radio_audio">무전기 &amp; 오디오</string>
-    <string name="more_operator">운용자</string>
-    <string name="more_logbook">로그북</string>
-    <string name="more_logbook_sub">SSTV QSO · ADIF 내보내기 · Cloudlog</string>
     <string name="freq_sheet_title">주파수</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">야간</string>
@@ -160,7 +154,6 @@
     <string name="log_tab_stats">통계</string>
     <string name="log_tab_recent">최근</string>
     <string name="log_tab_awards">어워드</string>
-    <string name="log_title">로그북</string>
     <string name="log_subtitle_qsos_all_bands">%1$d QSO · 전 밴드</string>
     <string name="log_cd_sync_to_logging_services">로깅 서비스에 동기화</string>
     <string name="log_cd_export_qsos">QSO 내보내기</string>
@@ -553,6 +546,8 @@
     <string name="settings_save_rx_photos_desc">완성된 SSTV 이미지가 Photos 앱의 Pictures/SSTVAF에도 표시됩니다(Android 10 이상)</string>
     <string name="tab_gallery">갤러리</string>
     <string name="tab_settings">설정</string>
+    <string name="band_bar_caption">밴드 및 주파수</string>
+    <string name="tab_logbook">로그북</string>
     <string name="gallery_filter_all">전체</string>
     <string name="gallery_filter_rx">수신</string>
     <string name="gallery_filter_tx">송신</string>

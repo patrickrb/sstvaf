@@ -49,12 +49,6 @@
     <string name="cat_state_disconnected">nepřipojeno</string>
     <string name="cat_state_error">chyba připojení</string>
     <string name="cat_state_vox">žádné CAT spojení</string>
-    <string name="header_more_description">Více: rádio, operátor, deník</string>
-    <string name="more_title">Více</string>
-    <string name="more_radio_audio">Rádio &amp; zvuk</string>
-    <string name="more_operator">Operátor</string>
-    <string name="more_logbook">Deník</string>
-    <string name="more_logbook_sub">SSTV QSO · export ADIF · Cloudlog</string>
     <string name="freq_sheet_title">Frekvence</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">noc</string>
@@ -160,7 +154,6 @@
     <string name="log_tab_stats">Statistiky</string>
     <string name="log_tab_recent">Nedávné</string>
     <string name="log_tab_awards">Diplomy</string>
-    <string name="log_title">Deník</string>
     <string name="log_subtitle_qsos_all_bands">%1$d QSOs · Všechna pásma</string>
     <string name="log_cd_sync_to_logging_services">Synchronizovat s logovacími službami</string>
     <string name="log_cd_export_qsos">Exportovat QSOs</string>
@@ -553,6 +546,8 @@
     <string name="settings_save_rx_photos_desc">Dokončené obrázky SSTV se objeví také v aplikaci Photos ve složce Pictures/SSTVAF (Android 10+)</string>
     <string name="tab_gallery">Galerie</string>
     <string name="tab_settings">Nastavení</string>
+    <string name="band_bar_caption">Pásmo a frekvence</string>
+    <string name="tab_logbook">Deník</string>
     <string name="gallery_filter_all">Vše</string>
     <string name="gallery_filter_rx">Přijaté</string>
     <string name="gallery_filter_tx">Odeslané</string>

@@ -5,13 +5,13 @@ import com.k1af.ft8af.database.ControlMode
 import org.junit.Test
 
 /**
- * Unit tests for the overflow sheet's summary lines — the sub-labels that let
- * an operator answer "is the rig talking to me?" and "am I set up?" from the
- * sheet itself, without opening either screen.
+ * Unit tests for the rig summary line that heads the Frequency sheet — the one
+ * line that lets an operator answer "is the rig talking to me?" without
+ * leaving the band picker.
  */
-class MoreSheetTest {
+class RigSummaryTest {
 
-    // ----- radio row ---------------------------------------------------------
+    // ----- radio summary -----------------------------------------------------
 
     @Test
     fun radioSummary_readsRigThenWiringThenKeying() {
@@ -32,31 +32,6 @@ class MoreSheetTest {
     fun radioSummary_trimsSegments() {
         assertThat(radioSummaryLine("  IC-705 ", " USB Cable", "CAT "))
             .isEqualTo("IC-705 · USB Cable · CAT")
-    }
-
-    // ----- operator row ------------------------------------------------------
-
-    @Test
-    fun operatorSummary_isCallsignThenGrid() {
-        assertThat(operatorSummaryLine("k1af", "fn42", "NO CALL")).isEqualTo("K1AF · FN42")
-    }
-
-    @Test
-    fun operatorSummary_fallsBackWhenCallsignUnset() {
-        // The callsign is the one field that must be set before transmitting, so
-        // its absence has to be visible from the sheet.
-        assertThat(operatorSummaryLine("", "FN42", "NO CALL")).isEqualTo("NO CALL · FN42")
-        assertThat(operatorSummaryLine("   ", "FN42", "NO CALL")).isEqualTo("NO CALL · FN42")
-    }
-
-    @Test
-    fun operatorSummary_dropsSeparatorWhenGridUnset() {
-        assertThat(operatorSummaryLine("K1AF", "", "NO CALL")).isEqualTo("K1AF")
-    }
-
-    @Test
-    fun operatorSummary_handlesNeitherFieldSet() {
-        assertThat(operatorSummaryLine("", "", "NO CALL")).isEqualTo("NO CALL")
     }
 
     // ----- control-mode label ------------------------------------------------
