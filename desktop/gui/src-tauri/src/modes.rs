@@ -1,4 +1,4 @@
-//! The nine SSTV modes implemented by the native codec (`cpp/sstv_lib`).
+//! The sixteen SSTV modes implemented by the native codec (`cpp/sstv_lib`).
 //!
 //! `id` MUST match the `SSTV_MODE_*` enum in `cpp/sstv_lib/sstv.h` — it crosses
 //! the FFI boundary verbatim. The rest mirrors the mode table in
@@ -30,7 +30,7 @@ impl ModeInfo {
     }
 }
 
-pub const MODES: [ModeInfo; 9] = [
+pub const MODES: [ModeInfo; 16] = [
     ModeInfo { id: 0, name: "Robot 36", short_code: "R36", width: 320, height: 240, vis_code: 8, tx_seconds: 36.91 },
     ModeInfo { id: 1, name: "Robot 72", short_code: "R72", width: 320, height: 240, vis_code: 12, tx_seconds: 72.91 },
     ModeInfo { id: 2, name: "Martin 1", short_code: "M1", width: 320, height: 256, vis_code: 44, tx_seconds: 115.200176 },
@@ -40,6 +40,14 @@ pub const MODES: [ModeInfo; 9] = [
     ModeInfo { id: 6, name: "PD 50", short_code: "PD50", width: 320, height: 256, vis_code: 93, tx_seconds: 50.59448 },
     ModeInfo { id: 7, name: "PD 90", short_code: "PD90", width: 320, height: 256, vis_code: 99, tx_seconds: 90.89912 },
     ModeInfo { id: 8, name: "PD 120", short_code: "PD120", width: 640, height: 496, vis_code: 95, tx_seconds: 127.01304 },
+    // Appended batch (issue #16) — ids continue the C enum, never renumber.
+    ModeInfo { id: 9, name: "Scottie DX", short_code: "SDX", width: 320, height: 256, vis_code: 76, tx_seconds: 269.7958 },
+    ModeInfo { id: 10, name: "Martin 3", short_code: "M3", width: 320, height: 128, vis_code: 36, tx_seconds: 58.055088 },
+    ModeInfo { id: 11, name: "Martin 4", short_code: "M4", width: 320, height: 128, vis_code: 32, tx_seconds: 29.940144 },
+    ModeInfo { id: 12, name: "PD 160", short_code: "PD160", width: 512, height: 400, vis_code: 98, tx_seconds: 161.7932 },
+    ModeInfo { id: 13, name: "PD 180", short_code: "PD180", width: 640, height: 496, vis_code: 96, tx_seconds: 187.96152 },
+    ModeInfo { id: 14, name: "PD 240", short_code: "PD240", width: 640, height: 496, vis_code: 97, tx_seconds: 248.91 },
+    ModeInfo { id: 15, name: "PD 290", short_code: "PD290", width: 800, height: 616, vis_code: 94, tx_seconds: 289.59224 },
 ];
 
 /// Look up a mode by its native id; `None` for -1 (no VIS lock yet) or an id
@@ -64,7 +72,7 @@ mod tests {
     #[test]
     fn matches_the_kotlin_mode_table() {
         // Same expectations SstvModeTest pins on the Android side.
-        let expected: [(i32, &str, &str, u32, u32, u8); 9] = [
+        let expected: [(i32, &str, &str, u32, u32, u8); 16] = [
             (0, "Robot 36", "R36", 320, 240, 8),
             (1, "Robot 72", "R72", 320, 240, 12),
             (2, "Martin 1", "M1", 320, 256, 44),
@@ -74,6 +82,13 @@ mod tests {
             (6, "PD 50", "PD50", 320, 256, 93),
             (7, "PD 90", "PD90", 320, 256, 99),
             (8, "PD 120", "PD120", 640, 496, 95),
+            (9, "Scottie DX", "SDX", 320, 256, 76),
+            (10, "Martin 3", "M3", 320, 128, 36),
+            (11, "Martin 4", "M4", 320, 128, 32),
+            (12, "PD 160", "PD160", 512, 400, 98),
+            (13, "PD 180", "PD180", 640, 496, 96),
+            (14, "PD 240", "PD240", 640, 496, 97),
+            (15, "PD 290", "PD290", 800, 616, 94),
         ];
         for (i, e) in expected.iter().enumerate() {
             let m = &MODES[i];
@@ -96,18 +111,20 @@ mod tests {
     fn lookup_by_id_round_trips() {
         assert_eq!(mode_by_id(0).unwrap().name, "Robot 36");
         assert_eq!(mode_by_id(8).unwrap().short_code, "PD120");
+        assert_eq!(mode_by_id(15).unwrap().short_code, "PD290");
     }
 
     #[test]
     fn lookup_rejects_unknown_ids() {
         // -1 is what sstv_decoder_mode() returns before a VIS lock.
         assert!(mode_by_id(-1).is_none());
-        assert!(mode_by_id(9).is_none());
+        assert!(mode_by_id(16).is_none());
     }
 
     #[test]
     fn pixel_count_is_width_times_height() {
         assert_eq!(MODES[0].pixel_count(), 320 * 240);
         assert_eq!(MODES[8].pixel_count(), 640 * 496);
+        assert_eq!(MODES[15].pixel_count(), 800 * 616);
     }
 }
