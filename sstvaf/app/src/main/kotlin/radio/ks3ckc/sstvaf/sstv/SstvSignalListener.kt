@@ -87,6 +87,10 @@ class SstvSignalListener @JvmOverloads constructor(
     private var holdTerminalState = false
     private var visLockLogged = false
 
+    /** Operator mode lock (null = automatic VIS selection). */
+    @Volatile
+    private var modeLock: SstvMode? = null
+
     /** Start the decode thread; safe to call once at app start. */
     fun start() {
         if (!running.compareAndSet(false, true)) return
@@ -199,6 +203,22 @@ class SstvSignalListener @JvmOverloads constructor(
     fun isEnabled(): Boolean = enabled.get()
 
     /**
+     * Operator mode lock: with a non-null [mode] the decoder ignores the VIS
+     * payload and decodes every detected calibration header as [mode]; null
+     * restores automatic VIS selection. Applied to the live session at once
+     * and to any session created later; the codec keeps it across the
+     * between-frames reset.
+     */
+    fun setModeLock(mode: SstvMode?) {
+        if (modeLock == mode) return
+        modeLock = mode
+        log("SSTV RX: mode lock ${mode?.displayName ?: "off (auto VIS)"}")
+        synchronized(sessionLock) { session?.setForcedMode(mode) }
+    }
+
+    fun modeLock(): SstvMode? = modeLock
+
+    /**
      * Read decoded rows straight from the live session (for the future RX
      * screen's incremental image paint). Returns rows copied, 0 when no
      * session/mode is active.
@@ -223,7 +243,10 @@ class SstvSignalListener @JvmOverloads constructor(
             running.set(false)
             return
         }
-        synchronized(sessionLock) { session = s }
+        synchronized(sessionLock) {
+            session = s
+            modeLock?.let { s.setForcedMode(it) }
+        }
         log("SSTV RX: hunting (rate=$sampleRate Hz)")
         try {
             while (running.get()) {
@@ -378,7 +401,11 @@ class SstvSignalListener @JvmOverloads constructor(
     internal fun startDirect() {
         check(running.compareAndSet(false, true)) { "already running" }
         decodeThreadless = true
-        synchronized(sessionLock) { session = codec.newDecoderSession(sampleRate) }
+        synchronized(sessionLock) {
+            session = codec.newDecoderSession(sampleRate).also { s ->
+                modeLock?.let { s.setForcedMode(it) }
+            }
+        }
     }
 
     internal fun stateNow(): SstvRxState = currentState

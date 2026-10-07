@@ -49,14 +49,6 @@
     <string name="cat_state_disconnected">no conectado</string>
     <string name="cat_state_error">error de conexión</string>
     <string name="cat_state_vox">sin enlace CAT</string>
-    <string name="header_more_description">Más: radio, operador, cuaderno, ajustes</string>
-    <string name="more_title">Más</string>
-    <string name="more_radio_audio">Radio &amp; audio</string>
-    <string name="more_operator">Operador</string>
-    <string name="more_logbook">Cuaderno</string>
-    <string name="more_logbook_sub">QSOs de SSTV · exportación ADIF · Cloudlog</string>
-    <string name="more_settings">Ajustes</string>
-    <string name="more_settings_sub">Todo lo demás</string>
     <string name="freq_sheet_title">Frecuencia</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">noche</string>
@@ -162,7 +154,6 @@
     <string name="log_tab_stats">Estadísticas</string>
     <string name="log_tab_recent">Recientes</string>
     <string name="log_tab_awards">Diplomas</string>
-    <string name="log_title">Diario</string>
     <string name="log_subtitle_qsos_all_bands">%1$d QSOs · Todas las bandas</string>
     <string name="log_cd_sync_to_logging_services">Sincronizar con servicios de registro</string>
     <string name="log_cd_export_qsos">Exportar QSOs</string>
@@ -178,6 +169,7 @@
     <string name="log_section_grid_coverage">Cobertura de grid</string>
     <string name="log_section_signal_trend">Tendencia de señal</string>
     <string name="log_no_qsos_yet">Aún no hay QSOs</string>
+    <string name="log_signal_trend_no_data">Aún no hay suficientes reportes de señal para graficar</string>
     <string name="log_no_qsos_recorded_yet">Aún no se han registrado QSOs</string>
     <string name="log_search_placeholder">Buscar indicativo, grid, banda…</string>
     <string name="log_search_no_matches">Ningún QSO coincide con “%1$s”</string>
@@ -547,6 +539,8 @@
     <string name="rx_status_save_failed">Error al guardar</string>
     <string name="rx_status_lost">Señal perdida</string>
     <string name="rx_status_auto_detect">detección automática</string>
+    <string name="rx_mode_lock_auto">Auto</string>
+    <string name="rx_mode_lock_auto_option">Auto (detección VIS)</string>
     <string name="rx_quality_value">Calidad %1$s</string>
     <string name="rx_received_today">RECIBIDAS HOY</string>
     <string name="rx_received_all">Todas</string>
@@ -554,6 +548,9 @@
     <string name="settings_save_rx_photos">Guardar imágenes recibidas en Photos</string>
     <string name="settings_save_rx_photos_desc">Las imágenes SSTV completadas también aparecen en la app Photos en Pictures/SSTVAF (Android 10+)</string>
     <string name="tab_gallery">Galería</string>
+    <string name="tab_settings">Ajustes</string>
+    <string name="band_bar_caption">Banda y frecuencia</string>
+    <string name="tab_logbook">Cuaderno</string>
     <string name="gallery_filter_all">Todas</string>
     <string name="gallery_filter_rx">Recibidas</string>
     <string name="gallery_filter_tx">Enviadas</string>

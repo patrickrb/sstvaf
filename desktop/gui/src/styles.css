@@ -161,6 +161,35 @@ button.stop {
   background: #000;
 }
 
+/* --- transmit --- */
+
+.tx {
+  margin-top: 20px;
+}
+
+.tx .progress {
+  margin-top: 12px;
+}
+
+/* The native file input is hidden; the label is styled as a picker button. */
+.file-pick {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-pick input[type="file"] {
+  display: none;
+}
+
 /* --- log --- */
 
 .log {

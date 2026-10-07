@@ -16,6 +16,7 @@ pub struct AudioDevice {
 fn collect(
     devices: impl Iterator<Item = cpal::Device>,
     default_name: Option<String>,
+    config_of: impl Fn(&cpal::Device) -> Option<(u32, u16)>,
 ) -> Vec<AudioDevice> {
     let mut out = Vec::new();
     for d in devices {
@@ -23,13 +24,10 @@ fn collect(
             Ok(n) => n,
             Err(_) => continue,
         };
-        let (rate, channels) = match d.default_input_config() {
-            Ok(c) => (c.sample_rate().0, c.channels()),
-            // A device that can't report a config still gets listed: it may be
-            // a transient enumeration failure, and hiding the operator's radio
-            // interface is worse than showing it with unknown specs.
-            Err(_) => (0, 0),
-        };
+        // A device that can't report a config still gets listed: it may be
+        // a transient enumeration failure, and hiding the operator's radio
+        // interface is worse than showing it with unknown specs.
+        let (rate, channels) = config_of(&d).unwrap_or((0, 0));
         out.push(AudioDevice {
             is_default: default_name.as_deref() == Some(name.as_str()),
             id: name.clone(),
@@ -45,7 +43,24 @@ pub fn list_input_devices() -> Vec<AudioDevice> {
     let host = cpal::default_host();
     let default = host.default_input_device().and_then(|d| d.name().ok());
     match host.input_devices() {
-        Ok(devs) => collect(devs, default),
+        Ok(devs) => collect(devs, default, |d| {
+            d.default_input_config()
+                .ok()
+                .map(|c| (c.sample_rate().0, c.channels()))
+        }),
+        Err(_) => Vec::new(),
+    }
+}
+
+pub fn list_output_devices() -> Vec<AudioDevice> {
+    let host = cpal::default_host();
+    let default = host.default_output_device().and_then(|d| d.name().ok());
+    match host.output_devices() {
+        Ok(devs) => collect(devs, default, |d| {
+            d.default_output_config()
+                .ok()
+                .map(|c| (c.sample_rate().0, c.channels()))
+        }),
         Err(_) => Vec::new(),
     }
 }
@@ -65,4 +80,20 @@ pub fn find_input_device(name: Option<&str>) -> Option<cpal::Device> {
         }
     }
     host.default_input_device()
+}
+
+/// Find an output device by name, or the system default if `name` is None or
+/// doesn't match anything currently connected — mirror of `find_input_device`.
+pub fn find_output_device(name: Option<&str>) -> Option<cpal::Device> {
+    let host = cpal::default_host();
+    if let Some(want) = name {
+        if let Ok(devs) = host.output_devices() {
+            for d in devs {
+                if d.name().ok().as_deref() == Some(want) {
+                    return Some(d);
+                }
+            }
+        }
+    }
+    host.default_output_device()
 }

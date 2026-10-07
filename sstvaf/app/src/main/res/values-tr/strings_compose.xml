@@ -49,14 +49,6 @@
     <string name="cat_state_disconnected">bağlı değil</string>
     <string name="cat_state_error">bağlantı hatası</string>
     <string name="cat_state_vox">CAT bağlantısı yok</string>
-    <string name="header_more_description">Daha fazla: telsiz, operatör, günlük, ayarlar</string>
-    <string name="more_title">Daha Fazla</string>
-    <string name="more_radio_audio">Telsiz &amp; ses</string>
-    <string name="more_operator">Operatör</string>
-    <string name="more_logbook">Günlük</string>
-    <string name="more_logbook_sub">SSTV QSO\'ları · ADIF dışa aktarma · Cloudlog</string>
-    <string name="more_settings">Ayarlar</string>
-    <string name="more_settings_sub">Diğer her şey</string>
     <string name="freq_sheet_title">Frekans</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">gece</string>
@@ -162,7 +154,6 @@
     <string name="log_tab_stats">İstatistik</string>
     <string name="log_tab_recent">Son</string>
     <string name="log_tab_awards">Ödüller</string>
-    <string name="log_title">Günlük</string>
     <string name="log_subtitle_qsos_all_bands">%1$d QSO · Tüm bantlar</string>
     <string name="log_cd_sync_to_logging_services">Günlükleme servisleriyle eşitle</string>
     <string name="log_cd_export_qsos">QSO\'ları dışa aktar</string>
@@ -178,6 +169,7 @@
     <string name="log_section_grid_coverage">Grid Kapsamı</string>
     <string name="log_section_signal_trend">Sinyal Eğilimi</string>
     <string name="log_no_qsos_yet">Henüz QSO yok</string>
+    <string name="log_signal_trend_no_data">Grafik için henüz yeterli sinyal raporu yok</string>
     <string name="log_no_qsos_recorded_yet">Henüz kaydedilmiş QSO yok</string>
     <string name="log_search_placeholder">Çağrı işareti, grid, bant ara…</string>
     <string name="log_search_no_matches">“%1$s” ile eşleşen QSO yok</string>
@@ -547,6 +539,8 @@
     <string name="rx_status_save_failed">Kaydetme başarısız</string>
     <string name="rx_status_lost">Sinyal kayboldu</string>
     <string name="rx_status_auto_detect">otomatik algıla</string>
+    <string name="rx_mode_lock_auto">Otomatik</string>
+    <string name="rx_mode_lock_auto_option">Otomatik (VIS algılama)</string>
     <string name="rx_quality_value">Kalite %1$s</string>
     <string name="rx_received_today">BUGÜN ALINANLAR</string>
     <string name="rx_received_all">Tümü</string>
@@ -554,6 +548,9 @@
     <string name="settings_save_rx_photos">Alınan görüntüleri Photos\'a kaydet</string>
     <string name="settings_save_rx_photos_desc">Tamamlanan SSTV görüntüleri Photos uygulamasında Pictures/SSTVAF altında da görünür (Android 10+)</string>
     <string name="tab_gallery">Galeri</string>
+    <string name="tab_settings">Ayarlar</string>
+    <string name="band_bar_caption">Bant ve frekans</string>
+    <string name="tab_logbook">Günlük</string>
     <string name="gallery_filter_all">Tümü</string>
     <string name="gallery_filter_rx">Alınan</string>
     <string name="gallery_filter_tx">Gönderilen</string>

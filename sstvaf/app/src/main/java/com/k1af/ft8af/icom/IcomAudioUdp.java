@@ -179,6 +179,10 @@ public class IcomAudioUdp extends AudioUdp {
         super.onDataReceived(packet, data);
         //Received data is at 12000Hz sample rate
         if (!IComPacketTypes.AudioPacket.isAudioPacket(data)) return;
+        //Real-time gate: drop late originals, duplicates and (unsolicited)
+        //retransmissions instead of injecting them into the live stream out of
+        //order — see shouldDeliverAudioSeq in AudioUdp.
+        if (!shouldDeliverAudioSeq(IComPacketTypes.ControlPacket.getSeq(data))) return;
         byte[] audioData = IComPacketTypes.AudioPacket.getAudioData(data);
         if (onStreamEvents != null) {
             onStreamEvents.OnReceivedAudioData(audioData);

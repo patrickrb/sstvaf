@@ -3103,7 +3103,9 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "cc",
+ "chrono",
  "cpal",
+ "png 0.17.16",
  "ringbuf",
  "rubato",
  "serde",

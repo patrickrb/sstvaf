@@ -6,6 +6,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import type { RxEvent } from "./rx";
+import type { TxEvent, TxStarted } from "./tx";
 
 /** Mirrors `modes::ModeInfo` (serde renames nothing — snake_case on both sides). */
 export interface ModeInfo {
@@ -66,6 +67,36 @@ export function isRxRunning(): Promise<boolean> {
 /** Subscribe to the RX event stream the backend emits on "rx-event". */
 export function onRxEvent(handler: (e: RxEvent) => void): Promise<UnlistenFn> {
   return listen<RxEvent>("rx-event", (e) => handler(e.payload));
+}
+
+export function listAudioOutputs(): Promise<AudioDevice[]> {
+  return invoke<AudioDevice[]>("list_audio_outputs");
+}
+
+/**
+ * Encode and transmit `pixels` (0xAARRGGBB words, row-major, exactly the
+ * mode's dimensions — see `rgbaToArgb`) on `device`, null for the system
+ * default. Rejects if a transmission is already on the air.
+ */
+export function startTx(
+  device: string | null,
+  modeId: number,
+  pixels: number[],
+): Promise<TxStarted> {
+  return invoke<TxStarted>("start_tx", { device, modeId, pixels });
+}
+
+export function stopTx(): Promise<void> {
+  return invoke<void>("stop_tx");
+}
+
+export function isTxRunning(): Promise<boolean> {
+  return invoke<boolean>("is_tx_running");
+}
+
+/** Subscribe to the TX event stream the backend emits on "tx-event". */
+export function onTxEvent(handler: (e: TxEvent) => void): Promise<UnlistenFn> {
+  return listen<TxEvent>("tx-event", (e) => handler(e.payload));
 }
 
 /** `mm:ss` for a duration in seconds — used for TX length readouts. */

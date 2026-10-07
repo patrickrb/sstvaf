@@ -11,13 +11,16 @@ import {
 import {
   argbToRgba,
   describeRxState,
+  describeSaved,
   describeSlant,
   progressPercent,
   qualityPercent,
   stateMode,
   type RxEvent,
   type RxState,
+  type SavedImage,
 } from "./rx";
+import TxPanel from "./TxPanel";
 
 const LOG_LIMIT = 50;
 
@@ -26,6 +29,7 @@ export default function App() {
   const [device, setDevice] = useState<string>("");
   const [running, setRunning] = useState(false);
   const [state, setState] = useState<RxState>({ kind: "idle" });
+  const [saved, setSaved] = useState<SavedImage | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,6 +84,10 @@ export default function App() {
           break;
         case "error":
           appendLog(`⚠ ${e.data}`);
+          break;
+        case "saved":
+          setSaved(e.data);
+          appendLog(`saved ${e.data.path}`);
           break;
       }
     })
@@ -138,6 +146,7 @@ export default function App() {
   const progress = progressPercent(state);
   const quality = qualityPercent(state);
   const slant = describeSlant(state);
+  const savedLine = describeSaved(saved);
 
   return (
     <main>
@@ -170,6 +179,12 @@ export default function App() {
           {slant && <span className="dim">slant {slant}</span>}
         </div>
 
+        {savedLine && (
+          <p className="dim saved" title={saved?.path}>
+            {savedLine}
+          </p>
+        )}
+
         {progress !== null && (
           <div className="progress">
             <div className="bar" style={{ width: `${progress}%` }} />
@@ -180,6 +195,8 @@ export default function App() {
           <canvas ref={canvasRef} width={320} height={240} />
         </div>
       </section>
+
+      <TxPanel />
 
       <section>
         <h2>Log</h2>

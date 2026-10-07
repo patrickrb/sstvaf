@@ -41,14 +41,15 @@ import radio.ks3ckc.sstvaf.ui.motion.rememberHaptics
 import com.k1af.ft8af.R
 
 /**
- * The three bottom tabs: watch for pictures, send one, browse what you have.
+ * The bottom tabs: watch for pictures, send one, browse what you have, review
+ * your contacts, and — far right, where FT8AF keeps it — configure the station.
  *
- * Down from six. Waterfall is gone outright — SSTV carries its mode in the VIS
- * header, so the decoder auto-detects it and there is nothing for the operator
- * to tune by eye. Logbook and Settings moved behind the header's overflow
- * button ([MoreSheet]): both are places you visit, not places you operate from,
- * and spending two of six tabs on them pushed the three screens that matter into
- * a crowd.
+ * Every destination is on the bar now; the header's overflow sheet is gone.
+ * Waterfall stays gone — SSTV carries its mode in the VIS header, so the
+ * decoder auto-detects it and there is nothing for the operator to tune by
+ * eye. Logbook and Settings earned their tabs back because burying them behind
+ * an overflow button made them hard to find, and FT8AF operators expect both
+ * on the bar.
  *
  * The label resource doubles as the screen title — the header shows the same
  * word as the tab (see [AppHeader]), so there is only one name per screen to
@@ -58,6 +59,8 @@ enum class SstvTab(@StringRes val labelRes: Int) {
     RX(R.string.tab_receive),
     TX(R.string.tab_send),
     GALLERY(R.string.tab_gallery),
+    LOG(R.string.tab_logbook),
+    SETTINGS(R.string.tab_settings),
 }
 
 @Composable
@@ -201,5 +204,7 @@ internal fun TabIcon(tab: SstvTab, color: Color, strokeWidth: Float) {
         SstvTab.RX -> SstvAfIcons.RxImage(color = color, strokeWidth = strokeWidth)
         SstvTab.TX -> SstvAfIcons.Send(color = color, strokeWidth = strokeWidth)
         SstvTab.GALLERY -> SstvAfIcons.Gallery(color = color, strokeWidth = strokeWidth)
+        SstvTab.LOG -> SstvAfIcons.Book(color = color, strokeWidth = strokeWidth)
+        SstvTab.SETTINGS -> SstvAfIcons.Cog(color = color, strokeWidth = strokeWidth)
     }
 }
