@@ -169,6 +169,7 @@
     <string name="log_section_grid_coverage">方格涵蓋範圍</string>
     <string name="log_section_signal_trend">訊號趨勢</string>
     <string name="log_no_qsos_yet">尚無 QSOs</string>
+    <string name="log_signal_trend_no_data">訊號報告還不足以繪製圖表</string>
     <string name="log_no_qsos_recorded_yet">尚未記錄任何 QSOs</string>
     <string name="log_search_placeholder">搜尋呼號、網格、波段…</string>
     <string name="log_search_no_matches">沒有符合「%1$s」的 QSO</string>

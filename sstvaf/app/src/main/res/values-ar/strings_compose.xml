@@ -169,6 +169,7 @@
     <string name="log_section_grid_coverage">تغطية المربعات</string>
     <string name="log_section_signal_trend">اتجاه الإشارة</string>
     <string name="log_no_qsos_yet">لا QSOs بعد</string>
+    <string name="log_signal_trend_no_data">لا توجد تقارير إشارة كافية للرسم البياني بعد</string>
     <string name="log_no_qsos_recorded_yet">لم تُسجَّل QSOs بعد</string>
     <string name="log_search_placeholder">ابحث عن نداء أو مربّع أو نطاق…</string>
     <string name="log_search_no_matches">لا توجد اتصالات QSO تطابق ”%1$s“</string>

@@ -19,6 +19,11 @@ public class QSLCallsignRecord {
     // with lastTime (YYYYMMDD) it gives a sortable date+time so the recent list can
     // order same-day QSOs by time. Empty when unknown (e.g. legacy/ADIF rows).
     private String timeOn = "";
+    // ADIF rst_rcvd of the representative underlying QSO row: the signal report
+    // this station actually received (SSTV RSV "595", classic RST "599", or an
+    // FT8-heritage signed dB SNR like "-15" on imported rows). Empty when the
+    // row has no stored report.
+    private String rstReceived = "";
     public String where=null;
     public String dxccStr="";
     public boolean isQSL=false;//Whether manually confirmed
@@ -55,6 +60,14 @@ public class QSLCallsignRecord {
 
     public void setTimeOn(String timeOn) {
         this.timeOn = timeOn != null ? timeOn : "";
+    }
+
+    public String getRstReceived() {
+        return rstReceived;
+    }
+
+    public void setRstReceived(String rstReceived) {
+        this.rstReceived = rstReceived != null ? rstReceived : "";
     }
 
 

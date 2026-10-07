@@ -169,6 +169,7 @@
     <string name="log_section_grid_coverage">グリッドカバレッジ</string>
     <string name="log_section_signal_trend">信号トレンド</string>
     <string name="log_no_qsos_yet">QSO がまだありません</string>
+    <string name="log_signal_trend_no_data">グラフ表示に十分なシグナルレポートがまだありません</string>
     <string name="log_no_qsos_recorded_yet">記録された QSO がまだありません</string>
     <string name="log_search_placeholder">コールサイン、グリッド、バンドを検索…</string>
     <string name="log_search_no_matches">「%1$s」に一致する QSO はありません</string>

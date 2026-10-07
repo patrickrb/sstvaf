@@ -169,6 +169,7 @@
     <string name="log_section_grid_coverage">Охват квадратов</string>
     <string name="log_section_signal_trend">Динамика сигнала</string>
     <string name="log_no_qsos_yet">Пока нет QSOs</string>
+    <string name="log_signal_trend_no_data">Пока недостаточно рапортов сигнала для графика</string>
     <string name="log_no_qsos_recorded_yet">QSOs пока не записаны</string>
     <string name="log_search_placeholder">Поиск по позывному, локатору, диапазону…</string>
     <string name="log_search_no_matches">Нет QSO по запросу «%1$s»</string>

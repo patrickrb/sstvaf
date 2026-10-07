@@ -169,6 +169,7 @@
     <string name="log_section_grid_coverage">Pokrycie lokatorów</string>
     <string name="log_section_signal_trend">Trend sygnału</string>
     <string name="log_no_qsos_yet">Brak QSO</string>
+    <string name="log_signal_trend_no_data">Za mało raportów sygnału, aby narysować wykres</string>
     <string name="log_no_qsos_recorded_yet">Nie zapisano jeszcze żadnych QSO</string>
     <string name="log_search_placeholder">Szukaj znaku, lokatora, pasma…</string>
     <string name="log_search_no_matches">Żadne QSO nie pasuje do „%1$s”</string>

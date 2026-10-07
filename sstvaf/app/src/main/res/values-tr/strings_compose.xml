@@ -169,6 +169,7 @@
     <string name="log_section_grid_coverage">Grid Kapsamı</string>
     <string name="log_section_signal_trend">Sinyal Eğilimi</string>
     <string name="log_no_qsos_yet">Henüz QSO yok</string>
+    <string name="log_signal_trend_no_data">Grafik için henüz yeterli sinyal raporu yok</string>
     <string name="log_no_qsos_recorded_yet">Henüz kaydedilmiş QSO yok</string>
     <string name="log_search_placeholder">Çağrı işareti, grid, bant ara…</string>
     <string name="log_search_no_matches">“%1$s” ile eşleşen QSO yok</string>

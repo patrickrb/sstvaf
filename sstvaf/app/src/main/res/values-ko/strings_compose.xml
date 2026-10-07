@@ -169,6 +169,7 @@
     <string name="log_section_grid_coverage">그리드 커버리지</string>
     <string name="log_section_signal_trend">신호 추이</string>
     <string name="log_no_qsos_yet">아직 QSO 없음</string>
+    <string name="log_signal_trend_no_data">차트를 그리기에 신호 리포트가 아직 부족합니다</string>
     <string name="log_no_qsos_recorded_yet">아직 기록된 QSO 없음</string>
     <string name="log_search_placeholder">콜사인, 그리드, 밴드 검색…</string>
     <string name="log_search_no_matches">“%1$s”에 일치하는 QSO가 없습니다</string>

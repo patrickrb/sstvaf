@@ -169,6 +169,7 @@
     <string name="log_section_grid_coverage">Cobertura de grid</string>
     <string name="log_section_signal_trend">Tendencia de señal</string>
     <string name="log_no_qsos_yet">Aún no hay QSOs</string>
+    <string name="log_signal_trend_no_data">Aún no hay suficientes reportes de señal para graficar</string>
     <string name="log_no_qsos_recorded_yet">Aún no se han registrado QSOs</string>
     <string name="log_search_placeholder">Buscar indicativo, grid, banda…</string>
     <string name="log_search_no_matches">Ningún QSO coincide con “%1$s”</string>
