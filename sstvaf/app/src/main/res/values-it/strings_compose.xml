@@ -49,6 +49,16 @@
     <string name="cat_state_disconnected">non connesso</string>
     <string name="cat_state_error">errore di connessione</string>
     <string name="cat_state_vox">nessun collegamento CAT</string>
+    <string name="wefax_start">Avvia</string>
+    <string name="wefax_stop">Ferma</string>
+    <string name="wefax_status_idle">Pronto</string>
+    <string name="wefax_status_listening">In attesa del phasing…</string>
+    <string name="wefax_status_receiving">Ricezione</string>
+    <string name="wefax_status_stopped">Fermato</string>
+    <string name="wefax_rows_format">%1$d righe</string>
+    <string name="wefax_saved">Salvato in Galleria — %1$s</string>
+    <string name="wefax_canvas_description">Fax meteo ricevuto</string>
+    <string name="wefax_canvas_empty">La striscia fax apparirà qui</string>
     <string name="freq_sheet_title">Frequenza</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">notte</string>

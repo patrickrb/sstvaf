@@ -143,6 +143,8 @@ add_library(sstvaf SHARED
         # JNI wrappers — SSTV codec (NativeSstvCodec)
         sstvaf_glue/sstv_encode_jni.cpp
         sstvaf_glue/sstv_decode_jni.cpp
+        # JNI wrappers — WEFAX radiofax decoder (NativeWefaxCodec)
+        sstvaf_glue/wefax_jni.cpp
         # JNI wrappers — hamlib CAT bridge + Bionic API-gap shims
         ft8af_glue/hamlib_jni.cpp
         ft8af_glue/hamlib_compat.c

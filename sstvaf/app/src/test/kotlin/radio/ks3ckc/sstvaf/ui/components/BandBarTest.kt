@@ -52,6 +52,7 @@ class BandBarTest {
         // Settings do not, and the bar would just push their content down.
         assertThat(showsBandBar(SstvTab.RX)).isTrue()
         assertThat(showsBandBar(SstvTab.TX)).isTrue()
+        assertThat(showsBandBar(SstvTab.WEFAX)).isTrue()
         assertThat(showsBandBar(SstvTab.GALLERY)).isFalse()
         assertThat(showsBandBar(SstvTab.LOG)).isFalse()
         assertThat(showsBandBar(SstvTab.SETTINGS)).isFalse()

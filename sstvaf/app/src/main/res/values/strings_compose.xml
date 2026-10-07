@@ -83,7 +83,24 @@
     <string name="cat_state_error">connection error</string>
     <string name="cat_state_vox">no CAT link</string>
 
-    <!-- ===== More sheet (header overflow) ===== -->
+    <!-- ===== WEFAX receive tab ===== -->
+    <!-- WEFAX is an acronym (weather facsimile) and stays untranslated; the
+         tab label doubles as the screen title like every other tab. -->
+    <string name="tab_wefax" translatable="false">WEFAX</string>
+    <string name="wefax_start">Start</string>
+    <string name="wefax_stop">Stop</string>
+    <!-- LPM/IOC preset chip prefix; the value is fax-schedule notation like "120/576". -->
+    <string name="wefax_preset_label" translatable="false">LPM/IOC</string>
+    <string name="wefax_status_idle">Ready</string>
+    <string name="wefax_status_listening">Waiting for phasing…</string>
+    <string name="wefax_status_receiving">Receiving</string>
+    <string name="wefax_status_stopped">Stopped</string>
+    <!-- %1$d is the number of decoded fax lines. -->
+    <string name="wefax_rows_format">%1$d lines</string>
+    <!-- %1$s is the saved PNG's file name. -->
+    <string name="wefax_saved">Saved to Gallery — %1$s</string>
+    <string name="wefax_canvas_description">Received weather fax</string>
+    <string name="wefax_canvas_empty">The fax strip will appear here</string>
 
     <!-- ===== Frequency sheet ===== -->
     <string name="freq_sheet_title">Frequency</string>

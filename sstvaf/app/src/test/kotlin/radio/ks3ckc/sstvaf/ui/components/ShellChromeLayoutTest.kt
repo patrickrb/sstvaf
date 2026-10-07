@@ -107,14 +107,15 @@ class ShellChromeLayoutTest {
         assertThat(opened).isTrue()
     }
 
-    // ----- the tab bar offers all five, and reports the right one ------------
+    // ----- the tab bar offers all six, and reports the right one -------------
 
     @Test
-    fun tabBar_composesAllFiveTabs() {
+    fun tabBar_composesAllSixTabs() {
         setShell()
         // "Receive" is also the header title, so it is covered by the header
-        // tests; these four labels are unambiguous in the tree.
+        // tests; these five labels are unambiguous in the tree.
         composeRule.onNodeWithText("Send").assertExists()
+        composeRule.onNodeWithText("WEFAX").assertExists()
         composeRule.onNodeWithText("Gallery").assertExists()
         composeRule.onNodeWithText("Logbook").assertExists()
         composeRule.onNodeWithText("Settings").assertExists()
@@ -144,6 +145,16 @@ class ShellChromeLayoutTest {
         setShell(onTab = { picked = it })
         composeRule.onNodeWithText("Logbook").performClick()
         assertThat(picked).isEqualTo(SstvTab.LOG)
+    }
+
+    @Test
+    fun tabBar_reportsWefaxWhenWefaxIsTapped() {
+        // WEFAX graduated from the retired overflow sheet to the bar when the
+        // sheet went away — the bar itself must be able to report it.
+        var picked: SstvTab? = null
+        setShell(onTab = { picked = it })
+        composeRule.onNodeWithText("WEFAX").performClick()
+        assertThat(picked).isEqualTo(SstvTab.WEFAX)
     }
 
     @Test
