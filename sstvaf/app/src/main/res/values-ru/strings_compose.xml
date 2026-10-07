@@ -49,14 +49,12 @@
     <string name="cat_state_disconnected">не подключено</string>
     <string name="cat_state_error">ошибка подключения</string>
     <string name="cat_state_vox">нет CAT-связи</string>
-    <string name="header_more_description">Ещё: радио, оператор, журнал, настройки</string>
+    <string name="header_more_description">Ещё: радио, оператор, журнал</string>
     <string name="more_title">Ещё</string>
     <string name="more_radio_audio">Радио и звук</string>
     <string name="more_operator">Оператор</string>
     <string name="more_logbook">Журнал</string>
     <string name="more_logbook_sub">SSTV QSO · экспорт ADIF · Cloudlog</string>
-    <string name="more_settings">Настройки</string>
-    <string name="more_settings_sub">Всё остальное</string>
     <string name="freq_sheet_title">Частота</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">ночь</string>
@@ -554,6 +552,7 @@
     <string name="settings_save_rx_photos">Сохранять принятые изображения в Photos</string>
     <string name="settings_save_rx_photos_desc">Готовые изображения SSTV также появляются в приложении Photos в разделе Pictures/SSTVAF (Android 10+)</string>
     <string name="tab_gallery">Галерея</string>
+    <string name="tab_settings">Настройки</string>
     <string name="gallery_filter_all">Все</string>
     <string name="gallery_filter_rx">Принятые</string>
     <string name="gallery_filter_tx">Отправленные</string>

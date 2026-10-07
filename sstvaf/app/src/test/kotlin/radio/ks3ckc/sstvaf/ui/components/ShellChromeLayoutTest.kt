@@ -44,7 +44,7 @@ class ShellChromeLayoutTest {
     val composeRule = createComposeRule()
 
     private val chipLabel = frequencyChipLabel(14_230_000L, "20m")
-    private val moreDescription = "More: radio, operator, logbook, settings"
+    private val moreDescription = "More: radio, operator, logbook"
     private val catState = "connected"
     private val chipDescription = "Frequency $chipLabel, $catState, tap to change"
 
@@ -143,15 +143,16 @@ class ShellChromeLayoutTest {
         assertThat(opened).isTrue()
     }
 
-    // ----- the tab bar offers all three, and reports the right one -----------
+    // ----- the tab bar offers all four, and reports the right one ------------
 
     @Test
-    fun tabBar_composesAllThreeTabs() {
+    fun tabBar_composesAllFourTabs() {
         setShell()
         // "Receive" is also the header title, so it is covered by the header
-        // tests; these two labels are unambiguous in the tree.
+        // tests; these three labels are unambiguous in the tree.
         composeRule.onNodeWithText("Send").assertExists()
         composeRule.onNodeWithText("Gallery").assertExists()
+        composeRule.onNodeWithText("Settings").assertExists()
     }
 
     @Test
@@ -170,17 +171,28 @@ class ShellChromeLayoutTest {
         assertThat(picked).isEqualTo(SstvTab.TX)
     }
 
+    @Test
+    fun tabBar_reportsSettingsWhenSettingsIsTapped() {
+        // Settings is the far-right tab (matching FT8AF), no longer a More-sheet
+        // destination — the bar itself must be able to report it.
+        var picked: SstvTab? = null
+        setShell(onTab = { picked = it })
+        composeRule.onNodeWithText("Settings").performClick()
+        assertThat(picked).isEqualTo(SstvTab.SETTINGS)
+    }
+
     // ----- the rail is the same control re-flowed for width ------------------
 
     @Test
     @Config(qualifiers = "w800dp-h1280dp-xhdpi")
-    fun rail_offersTheSameThreeTabs() {
+    fun rail_offersTheSameFourTabs() {
         composeRule.setContent {
             TabRail(activeTab = SstvTab.RX, onTabSelected = {})
         }
         composeRule.onNodeWithText("Receive").assertExists()
         composeRule.onNodeWithText("Send").assertExists()
         composeRule.onNodeWithText("Gallery").assertExists()
+        composeRule.onNodeWithText("Settings").assertExists()
     }
 
     @Test
