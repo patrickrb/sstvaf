@@ -105,4 +105,31 @@ public class MeterProtectionControllerTest {
         // No reading from the rig (-1) -> never halt.
         assertThat(MeterProtectionController.shouldHaltForSwr(-1, true, 120)).isFalse();
     }
+
+    // ---- nextSwrStreak (halt debounce) ---------------------------------------
+
+    @Test
+    public void nextSwrStreak_overThresholdExtendsStreak() {
+        assertThat(MeterProtectionController.nextSwrStreak(0, 150, true, 120)).isEqualTo(1);
+        assertThat(MeterProtectionController.nextSwrStreak(1, 150, true, 120)).isEqualTo(2);
+    }
+
+    @Test
+    public void nextSwrStreak_validUnderThresholdBreaksStreak() {
+        assertThat(MeterProtectionController.nextSwrStreak(1, 90, true, 120)).isEqualTo(0);
+        // At threshold is not over it (strictly greater-than) -> also breaks.
+        assertThat(MeterProtectionController.nextSwrStreak(1, 120, true, 120)).isEqualTo(0);
+    }
+
+    @Test
+    public void nextSwrStreak_noReadingLeavesStreakUntouched() {
+        // An ALC-only update (-1 SWR) must not mask a genuine fault in progress.
+        assertThat(MeterProtectionController.nextSwrStreak(1, -1, true, 120)).isEqualTo(1);
+        assertThat(MeterProtectionController.nextSwrStreak(0, -1, true, 120)).isEqualTo(0);
+    }
+
+    @Test
+    public void nextSwrStreak_disabledProtectionBreaksStreak() {
+        assertThat(MeterProtectionController.nextSwrStreak(1, 150, false, 120)).isEqualTo(0);
+    }
 }

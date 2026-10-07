@@ -181,12 +181,12 @@ private fun AboutDialog(onDismiss: () -> Unit) {
                 fontSize = 14.sp,
             )
             Text(
-                text = "github.com/patrickrb/FT8AF",
+                text = "github.com/patrickrb/sstvaf",
                 color = Accent,
                 fontSize = 14.sp,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { uriHandler.openUri("https://github.com/patrickrb/FT8AF") },
+                    .clickable { uriHandler.openUri("https://github.com/patrickrb/sstvaf") },
             )
             Text(
                 text = "discord.gg/UeE3ZpwRG",

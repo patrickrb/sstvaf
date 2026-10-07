@@ -34,14 +34,12 @@ enum class MoreDestination {
 
     /** SSTV QSOs, ADIF export and log upload. */
     LOGBOOK,
-
-    /** Everything else. */
-    SETTINGS,
 }
 
 /**
- * The sheet behind the header's overflow button: the four places that used to
- * be tabs or were buried in Settings.
+ * The sheet behind the header's overflow button: the places that used to be
+ * tabs or were buried in Settings. Settings itself is gone from here — it is
+ * back on the bottom bar as the far-right tab (see [SstvTab]).
  *
  * Each row carries a sub-label describing what is actually in there, and the
  * radio row carries the *live* rig summary — an operator opening this sheet is
@@ -86,11 +84,6 @@ fun MoreSheet(
                     label = stringResource(R.string.more_logbook),
                     subLabel = stringResource(R.string.more_logbook_sub),
                     onClick = { onNavigate(MoreDestination.LOGBOOK) },
-                )
-                MoreRow(
-                    label = stringResource(R.string.more_settings),
-                    subLabel = stringResource(R.string.more_settings_sub),
-                    onClick = { onNavigate(MoreDestination.SETTINGS) },
                 )
             }
         }

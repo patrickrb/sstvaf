@@ -71,7 +71,11 @@ internal fun resolveRigDisplayName(
 /**
  * Settings screen host. Shows a short category list (landing) and drills down
  * into a focused detail screen per category. Drill-down is driven by internal
- * state (no NavHost) since Settings is hosted as a plain screen over a tab.
+ * state (no NavHost).
+ *
+ * Hosted as the far-right bottom tab, so [onBack] defaults to null: a tab has
+ * nowhere to pop to, and a null back hides the landing's chevron (and its own
+ * title bar — the shell's header already names the tab).
  *
  * [currentCategory] uses plain `remember` (not `rememberSaveable`), so leaving
  * Settings and coming back resets to the category list — conventional settings
@@ -80,14 +84,14 @@ internal fun resolveRigDisplayName(
 @Composable
 fun SettingsScreen(
     mainViewModel: MainViewModel,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     var currentCategory by remember { mutableStateOf<SettingsCategory?>(null) }
 
     // Hardware back pops a detail screen back to the landing. On the landing the
-    // handler is disabled so the event propagates up — to the shell, which pops
-    // Settings itself (Settings is no longer a tab, it is a screen over one).
+    // handler is disabled so the event propagates up — to the shell (or, as a
+    // tab, on to the activity's exit handler).
     BackHandler(enabled = currentCategory != null) { currentCategory = null }
 
     AnimatedContent(
@@ -140,7 +144,7 @@ fun SettingsScreen(
 @Composable
 private fun SettingsLanding(
     mainViewModel: MainViewModel,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onOpenCategory: (SettingsCategory) -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -185,7 +189,13 @@ private fun SettingsLanding(
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
-        TopBar(title = stringResource(R.string.settings_title), onBack = onBack)
+        if (onBack != null) {
+            TopBar(title = stringResource(R.string.settings_title), onBack = onBack)
+        } else {
+            // Hosted as a tab: the shell's header already says "Settings", so a
+            // second title here would stack two headings. Just leave a gap.
+            Spacer(modifier = Modifier.height(4.dp))
+        }
 
         Column(
             modifier = Modifier

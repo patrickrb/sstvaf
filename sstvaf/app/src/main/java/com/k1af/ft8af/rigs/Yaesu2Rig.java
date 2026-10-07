@@ -94,8 +94,12 @@ public class Yaesu2Rig extends BaseRig {
 
     @Override
     public void onReceiveData(byte[] data) {
-        //YAESU 817 commands: frequency response is 5 bytes, METER is 2 bytes.
-        //Meter is 2 bytes: first byte high nibble=power 0-A, low nibble=ALC 0-9; second byte high nibble=SWR 0-C (0=high SWR), low nibble=audio input 0-8
+        //YAESU 817 commands: frequency response is 5 bytes, METER (0xBD) is 2 bytes.
+        //Meter is 2 bytes: byte0 = power (high nibble, 0-A) / ALC (low nibble, 0-9);
+        //byte1 = SWR (high nibble) / audio input (low nibble). The SWR nibble is a
+        //DIRECT scale — 0 = 1.0:1 match, higher = worse (hamlib FT817_SWR_CAL and
+        //Hamlib issue #406, both measured on real rigs). The FT8CN comment this file
+        //inherited claimed "0=high SWR"; that was wrong (issue #97).
         if (data.length == 5) {//frequency
             long freq = Yaesu2Command.getFrequency(data);
             if (freq > -1) {
@@ -105,7 +109,7 @@ public class Yaesu2Rig extends BaseRig {
             alc = (data[0] & 0x0f);
             swr = (data[1] & 0x0f0) >> 4;
             showAlert();
-            notifyMeterData(alc * 17, swr * 17);
+            notifyMeterData(alc * 17, Yaesu2RigConstant.normalizeSwr817(swr));
         }
 
     }

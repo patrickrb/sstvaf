@@ -279,7 +279,7 @@
     <string name="html_download_unconfirmed">Télécharger les non confirmés</string>
     <string name="callsign_error">L\'indicatif est incorrect !</string>
     <string name="adjust_call_target">Cible d\'appel ajustée : %s</string>
-    <string name="use_wspr2_error">La fréquence actuellement utilisée %s est la fréquence utilisée par WSPR-2. Il est interdit de transmettre des signaux FT8 !</string>
+    <string name="use_wspr2_error">La fréquence actuellement utilisée %s est la fréquence utilisée par WSPR-2. Il est interdit de transmettre des signaux SSTV !</string>
     <string name="none">Aucun</string>
     <string name="connect_bluetooth_spp">Connexion au port série Bluetooth %s …</string>
     <string name="bluetooth_is_connected">L\'appareil Bluetooth %s est connecté.</string>

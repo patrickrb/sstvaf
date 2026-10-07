@@ -7,18 +7,17 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Guards the tab set after the three-tab restructure.
- *
- * The bottom bar offers exactly Receive, Send and Gallery, in that order, and
- * nothing else. The two deletions this locks in are deliberate and worth being
+ * Guards the tab set: Receive, Send, Gallery, then Settings on the far right,
+ * and nothing else. Two decisions this locks in are deliberate and worth being
  * hard to undo by accident:
  *
  *  - **Waterfall is gone.** SSTV transmits its mode in the VIS header, so the
  *    decoder identifies the mode itself. There was nothing on that screen an
  *    operator could act on.
- *  - **Logbook and Settings are not tabs.** They live behind the header's
- *    overflow sheet ([MoreSheet]); a tab each meant two thirds of the bar went
- *    to screens you visit rather than operate from.
+ *  - **Settings is the far-right tab; Logbook is not a tab.** Settings moved
+ *    back onto the bar (matching FT8AF's layout) because burying first-run
+ *    setup behind the overflow sheet made it hard to find. Logbook stays
+ *    behind the header's overflow sheet ([MoreSheet]).
  *
  * Robolectric because the labels are Android string resources.
  */
@@ -26,9 +25,9 @@ import org.robolectric.RobolectricTestRunner
 class TabBarTabsTest {
 
     @Test
-    fun `tab set is exactly the three screens in order`() {
+    fun `tab set is exactly the four screens in order`() {
         assertThat(SstvTab.entries.map { it.name })
-            .containsExactly("RX", "TX", "GALLERY")
+            .containsExactly("RX", "TX", "GALLERY", "SETTINGS")
             .inOrder()
     }
 
@@ -38,10 +37,16 @@ class TabBarTabsTest {
     }
 
     @Test
+    fun `settings is the last (far-right) tab`() {
+        assertThat(SstvTab.entries.last()).isEqualTo(SstvTab.SETTINGS)
+    }
+
+    @Test
     fun `each tab is wired to its own label resource`() {
         assertThat(SstvTab.RX.labelRes).isEqualTo(R.string.tab_receive)
         assertThat(SstvTab.TX.labelRes).isEqualTo(R.string.tab_send)
         assertThat(SstvTab.GALLERY.labelRes).isEqualTo(R.string.tab_gallery)
+        assertThat(SstvTab.SETTINGS.labelRes).isEqualTo(R.string.tab_settings)
     }
 
     @Test

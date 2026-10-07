@@ -279,7 +279,7 @@
     <string name="html_download_unconfirmed">Скачать неподтверждённые</string>
     <string name="callsign_error">Позывной указан неверно!</string>
     <string name="adjust_call_target">Изменение цели вызова: %s</string>
-    <string name="use_wspr2_error">Текущая частота %s используется для WSPR-2. Передача FT8-сигналов запрещена!</string>
+    <string name="use_wspr2_error">Текущая частота %s используется для WSPR-2. Передача SSTV-сигналов запрещена!</string>
     <string name="none">Нет</string>
     <string name="connect_bluetooth_spp">Подключение Bluetooth-порта %s …</string>
     <string name="bluetooth_is_connected">Bluetooth-устройство %s подключено.</string>
