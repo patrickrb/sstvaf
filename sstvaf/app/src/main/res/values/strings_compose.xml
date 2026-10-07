@@ -82,7 +82,7 @@
     <string name="cat_state_disconnected">not connected</string>
     <string name="cat_state_error">connection error</string>
     <string name="cat_state_vox">no CAT link</string>
-    <string name="header_more_description">More: radio, operator, logbook, settings</string>
+    <string name="header_more_description">More: radio, operator, logbook</string>
 
     <!-- ===== More sheet (header overflow) ===== -->
     <string name="more_title">More</string>
@@ -90,8 +90,6 @@
     <string name="more_operator">Operator</string>
     <string name="more_logbook">Logbook</string>
     <string name="more_logbook_sub">SSTV QSOs · ADIF export · Cloudlog</string>
-    <string name="more_settings">Settings</string>
-    <string name="more_settings_sub">Everything else</string>
 
     <!-- ===== Frequency sheet ===== -->
     <string name="freq_sheet_title">Frequency</string>
@@ -693,6 +691,7 @@
 
     <!-- ===== Gallery tab (PR 7) ===== -->
     <string name="tab_gallery">Gallery</string>
+    <string name="tab_settings">Settings</string>
     <string name="gallery_filter_all">All</string>
     <string name="gallery_filter_rx">Received</string>
     <string name="gallery_filter_tx">Sent</string>

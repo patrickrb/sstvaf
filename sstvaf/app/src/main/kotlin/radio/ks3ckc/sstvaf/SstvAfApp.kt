@@ -70,21 +70,21 @@ import radio.ks3ckc.sstvaf.gallery.ImageDirection
  * canvas — no tab bar, no dial chip — because they are places you go to read or
  * configure, not surfaces you operate a radio from.
  */
-private enum class AppScreen { SETTINGS, RADIO_AUDIO, LOGBOOK }
+private enum class AppScreen { RADIO_AUDIO, LOGBOOK }
 
 /** Which bottom sheet the shell is showing, if any. */
 private enum class AppSheet { FREQUENCY, MORE }
 
 /**
- * The app shell: a Receive / Send / Gallery tab bar under a header carrying the
- * dial and an overflow button.
+ * The app shell: a Receive / Send / Gallery / Settings tab bar under a header
+ * carrying the dial and an overflow button.
  *
  * Down from six tabs and a permanent TX strip. The strip is gone entirely (see
  * [AppHeader]) and Waterfall with it — SSTV puts its mode in the VIS header, so
  * the decoder reads the mode itself and there was nothing on that screen for an
- * operator to act on. Logbook and Settings moved into the overflow sheet
- * ([MoreSheet]), which leaves the bar carrying only the three screens an
- * operator actually works from.
+ * operator to act on. Logbook lives in the overflow sheet ([MoreSheet]);
+ * Settings is a tab again — far right, as in FT8AF — hosted as plain tab
+ * content rather than a full screen.
  *
  * Navigation is three pieces of state: which [SstvTab] is active, which
  * [AppScreen] is covering it (if any), and which [AppSheet] is open (if any).
@@ -219,6 +219,7 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
                         activeTab = SstvTab.TX
                     },
                 )
+                SstvTab.SETTINGS -> SettingsScreen(mainViewModel)
             }
         }
     }
@@ -273,10 +274,6 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
                 // neither the tab bar nor the dial chip is shown.
                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     when (screen) {
-                        AppScreen.SETTINGS -> SettingsScreen(
-                            mainViewModel,
-                            onBack = { activeScreen = null },
-                        )
                         AppScreen.RADIO_AUDIO -> RadioAudioSettings(
                             mainViewModel,
                             onBack = { activeScreen = null },
@@ -375,13 +372,15 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
             onDismiss = { activeSheet = null },
             onNavigate = { destination ->
                 activeSheet = null
-                activeScreen = when (destination) {
-                    MoreDestination.RADIO_AUDIO -> AppScreen.RADIO_AUDIO
+                when (destination) {
+                    MoreDestination.RADIO_AUDIO -> activeScreen = AppScreen.RADIO_AUDIO
                     // Operator identity lives on the Settings landing, as the card
-                    // at the top; it gets its own sheet when Settings is rebuilt.
-                    MoreDestination.OPERATOR -> AppScreen.SETTINGS
-                    MoreDestination.LOGBOOK -> AppScreen.LOGBOOK
-                    MoreDestination.SETTINGS -> AppScreen.SETTINGS
+                    // at the top — and Settings is a tab now, so go there.
+                    MoreDestination.OPERATOR -> {
+                        activeScreen = null
+                        activeTab = SstvTab.SETTINGS
+                    }
+                    MoreDestination.LOGBOOK -> activeScreen = AppScreen.LOGBOOK
                 }
             },
         )

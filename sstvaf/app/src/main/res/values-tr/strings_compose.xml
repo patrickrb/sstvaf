@@ -49,14 +49,12 @@
     <string name="cat_state_disconnected">bağlı değil</string>
     <string name="cat_state_error">bağlantı hatası</string>
     <string name="cat_state_vox">CAT bağlantısı yok</string>
-    <string name="header_more_description">Daha fazla: telsiz, operatör, günlük, ayarlar</string>
+    <string name="header_more_description">Daha fazla: telsiz, operatör, günlük</string>
     <string name="more_title">Daha Fazla</string>
     <string name="more_radio_audio">Telsiz &amp; ses</string>
     <string name="more_operator">Operatör</string>
     <string name="more_logbook">Günlük</string>
     <string name="more_logbook_sub">SSTV QSO\'ları · ADIF dışa aktarma · Cloudlog</string>
-    <string name="more_settings">Ayarlar</string>
-    <string name="more_settings_sub">Diğer her şey</string>
     <string name="freq_sheet_title">Frekans</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">gece</string>
@@ -554,6 +552,7 @@
     <string name="settings_save_rx_photos">Alınan görüntüleri Photos\'a kaydet</string>
     <string name="settings_save_rx_photos_desc">Tamamlanan SSTV görüntüleri Photos uygulamasında Pictures/SSTVAF altında da görünür (Android 10+)</string>
     <string name="tab_gallery">Galeri</string>
+    <string name="tab_settings">Ayarlar</string>
     <string name="gallery_filter_all">Tümü</string>
     <string name="gallery_filter_rx">Alınan</string>
     <string name="gallery_filter_tx">Gönderilen</string>

@@ -49,14 +49,12 @@
     <string name="cat_state_disconnected">no conectado</string>
     <string name="cat_state_error">error de conexión</string>
     <string name="cat_state_vox">sin enlace CAT</string>
-    <string name="header_more_description">Más: radio, operador, cuaderno, ajustes</string>
+    <string name="header_more_description">Más: radio, operador, cuaderno</string>
     <string name="more_title">Más</string>
     <string name="more_radio_audio">Radio &amp; audio</string>
     <string name="more_operator">Operador</string>
     <string name="more_logbook">Cuaderno</string>
     <string name="more_logbook_sub">QSOs de SSTV · exportación ADIF · Cloudlog</string>
-    <string name="more_settings">Ajustes</string>
-    <string name="more_settings_sub">Todo lo demás</string>
     <string name="freq_sheet_title">Frecuencia</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">noche</string>
@@ -554,6 +552,7 @@
     <string name="settings_save_rx_photos">Guardar imágenes recibidas en Photos</string>
     <string name="settings_save_rx_photos_desc">Las imágenes SSTV completadas también aparecen en la app Photos en Pictures/SSTVAF (Android 10+)</string>
     <string name="tab_gallery">Galería</string>
+    <string name="tab_settings">Ajustes</string>
     <string name="gallery_filter_all">Todas</string>
     <string name="gallery_filter_rx">Recibidas</string>
     <string name="gallery_filter_tx">Enviadas</string>

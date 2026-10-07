@@ -49,14 +49,12 @@
     <string name="cat_state_disconnected">niet verbonden</string>
     <string name="cat_state_error">verbindingsfout</string>
     <string name="cat_state_vox">geen CAT-verbinding</string>
-    <string name="header_more_description">Meer: radio, operator, logboek, instellingen</string>
+    <string name="header_more_description">Meer: radio, operator, logboek</string>
     <string name="more_title">Meer</string>
     <string name="more_radio_audio">Radio &amp; audio</string>
     <string name="more_operator">Operator</string>
     <string name="more_logbook">Logboek</string>
     <string name="more_logbook_sub">SSTV-QSO\'s · ADIF-export · Cloudlog</string>
-    <string name="more_settings">Instellingen</string>
-    <string name="more_settings_sub">Al het andere</string>
     <string name="freq_sheet_title">Frequentie</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">nacht</string>
@@ -554,6 +552,7 @@
     <string name="settings_save_rx_photos">Ontvangen beelden opslaan in Photos</string>
     <string name="settings_save_rx_photos_desc">Voltooide SSTV-beelden verschijnen ook in de Photos-app onder Pictures/SSTVAF (Android 10+)</string>
     <string name="tab_gallery">Galerij</string>
+    <string name="tab_settings">Instellingen</string>
     <string name="gallery_filter_all">Alle</string>
     <string name="gallery_filter_rx">Ontvangen</string>
     <string name="gallery_filter_tx">Verzonden</string>
