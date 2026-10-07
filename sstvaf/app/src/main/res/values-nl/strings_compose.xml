@@ -56,6 +56,16 @@
     <string name="a11y_show_password">Wachtwoord tonen</string>
     <string name="a11y_hide_password">Wachtwoord verbergen</string>
     <string name="log_heatmap_description">Gridvakkenkaart: %1$d van %2$d velden gewerkt</string>
+    <string name="wefax_start">Start</string>
+    <string name="wefax_stop">Stop</string>
+    <string name="wefax_status_idle">Gereed</string>
+    <string name="wefax_status_listening">Wachten op fasering…</string>
+    <string name="wefax_status_receiving">Ontvangen</string>
+    <string name="wefax_status_stopped">Gestopt</string>
+    <string name="wefax_rows_format">%1$d regels</string>
+    <string name="wefax_saved">Opgeslagen in Galerij — %1$s</string>
+    <string name="wefax_canvas_description">Ontvangen weerfax</string>
+    <string name="wefax_canvas_empty">De faxstrook verschijnt hier</string>
     <string name="freq_sheet_title">Frequentie</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">nacht</string>

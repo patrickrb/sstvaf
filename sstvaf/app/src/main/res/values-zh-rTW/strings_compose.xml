@@ -56,6 +56,16 @@
     <string name="a11y_show_password">顯示密碼</string>
     <string name="a11y_hide_password">隱藏密碼</string>
     <string name="log_heatmap_description">網格地圖：已通聯 %2$d 個欄位中的 %1$d 個</string>
+    <string name="wefax_start">開始</string>
+    <string name="wefax_stop">停止</string>
+    <string name="wefax_status_idle">就緒</string>
+    <string name="wefax_status_listening">等待相位同步…</string>
+    <string name="wefax_status_receiving">接收中</string>
+    <string name="wefax_status_stopped">已停止</string>
+    <string name="wefax_rows_format">%1$d 行</string>
+    <string name="wefax_saved">已儲存到圖庫 — %1$s</string>
+    <string name="wefax_canvas_description">收到的氣象傳真</string>
+    <string name="wefax_canvas_empty">傳真條帶將顯示在此處</string>
     <string name="freq_sheet_title">頻率</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">夜間</string>

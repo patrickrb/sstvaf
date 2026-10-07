@@ -129,8 +129,9 @@ internal fun bandBarLabel(freqHz: Long, bandName: String): String {
 
 /**
  * Which tabs carry the band bar. Only the surfaces you operate a radio from:
- * Receive and Send care what the dial says; Gallery, Logbook and Settings do
+ * Receive, Send and WEFAX care what the dial says (a fax chart starts with
+ * tuning the station's broadcast frequency); Gallery, Logbook and Settings do
  * not, and giving them the bar would just push their content down.
  */
 internal fun showsBandBar(tab: SstvTab): Boolean =
-    tab == SstvTab.RX || tab == SstvTab.TX
+    tab == SstvTab.RX || tab == SstvTab.TX || tab == SstvTab.WEFAX

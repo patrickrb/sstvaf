@@ -56,6 +56,16 @@
     <string name="a11y_show_password">Afficher le mot de passe</string>
     <string name="a11y_hide_password">Masquer le mot de passe</string>
     <string name="log_heatmap_description">Carte des carrés de grille : %1$d champs contactés sur %2$d</string>
+    <string name="wefax_start">Démarrer</string>
+    <string name="wefax_stop">Arrêter</string>
+    <string name="wefax_status_idle">Prêt</string>
+    <string name="wefax_status_listening">En attente de phasage…</string>
+    <string name="wefax_status_receiving">Réception</string>
+    <string name="wefax_status_stopped">Arrêté</string>
+    <string name="wefax_rows_format">%1$d lignes</string>
+    <string name="wefax_saved">Enregistré dans la galerie — %1$s</string>
+    <string name="wefax_canvas_description">Fax météo reçu</string>
+    <string name="wefax_canvas_empty">La bande de fax apparaîtra ici</string>
     <string name="freq_sheet_title">Fréquence</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">nuit</string>

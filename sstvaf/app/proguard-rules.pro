@@ -32,6 +32,12 @@
     native <methods>;
 }
 
+# WEFAX decoder bridge: libsstvaf.so resolves
+# Java_radio_ks3ckc_sstvaf_wefax_NativeWefaxCodec_* the same way.
+-keepclasseswithmembers class radio.ks3ckc.sstvaf.wefax.NativeWefaxCodec {
+    native <methods>;
+}
+
 # --- Reflection: USB serial driver discovery ---
 # UsbSerialProber instantiates each driver via getConstructor(UsbDevice.class)
 # .newInstance(...), and ProbeTable invokes the static getSupportedDevices()

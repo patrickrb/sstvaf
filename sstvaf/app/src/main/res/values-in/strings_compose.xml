@@ -56,6 +56,16 @@
     <string name="a11y_show_password">Tampilkan kata sandi</string>
     <string name="a11y_hide_password">Sembunyikan kata sandi</string>
     <string name="log_heatmap_description">Peta kotak grid: %1$d dari %2$d bidang telah dikerjakan</string>
+    <string name="wefax_start">Mulai</string>
+    <string name="wefax_stop">Berhenti</string>
+    <string name="wefax_status_idle">Siap</string>
+    <string name="wefax_status_listening">Menunggu fasa…</string>
+    <string name="wefax_status_receiving">Menerima</string>
+    <string name="wefax_status_stopped">Berhenti</string>
+    <string name="wefax_rows_format">%1$d baris</string>
+    <string name="wefax_saved">Disimpan ke Galeri — %1$s</string>
+    <string name="wefax_canvas_description">Faks cuaca yang diterima</string>
+    <string name="wefax_canvas_empty">Strip faks akan muncul di sini</string>
     <string name="freq_sheet_title">Frekuensi</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">malam</string>

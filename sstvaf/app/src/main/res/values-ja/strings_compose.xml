@@ -56,6 +56,16 @@
     <string name="a11y_show_password">パスワードを表示</string>
     <string name="a11y_hide_password">パスワードを非表示</string>
     <string name="log_heatmap_description">グリッドマップ: %2$d フィールド中 %1$d 交信済み</string>
+    <string name="wefax_start">開始</string>
+    <string name="wefax_stop">停止</string>
+    <string name="wefax_status_idle">待機中</string>
+    <string name="wefax_status_listening">位相同期を待機中…</string>
+    <string name="wefax_status_receiving">受信中</string>
+    <string name="wefax_status_stopped">停止しました</string>
+    <string name="wefax_rows_format">%1$d 行</string>
+    <string name="wefax_saved">ギャラリーに保存 — %1$s</string>
+    <string name="wefax_canvas_description">受信した気象FAX</string>
+    <string name="wefax_canvas_empty">FAXの画像がここに表示されます</string>
     <string name="freq_sheet_title">周波数</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">夜間</string>

@@ -44,8 +44,9 @@ import radio.ks3ckc.sstvaf.ui.motion.rememberHaptics
 import com.k1af.ft8af.R
 
 /**
- * The bottom tabs: watch for pictures, send one, browse what you have, review
- * your contacts, and — far right, where FT8AF keeps it — configure the station.
+ * The bottom tabs: watch for pictures, send one, copy a weather fax, browse
+ * what you have, review your contacts, and — far right, where FT8AF keeps it —
+ * configure the station.
  *
  * Every destination is on the bar now; the header's overflow sheet is gone.
  * Waterfall stays gone — SSTV carries its mode in the VIS header, so the
@@ -61,6 +62,10 @@ import com.k1af.ft8af.R
 enum class SstvTab(@StringRes val labelRes: Int) {
     RX(R.string.tab_receive),
     TX(R.string.tab_send),
+    // WEFAX sits with the operating surfaces: like Receive and Send it is a
+    // screen you work a tuned radio from (and it carries the band bar), not a
+    // place you browse what you already have.
+    WEFAX(R.string.tab_wefax),
     GALLERY(R.string.tab_gallery),
     LOG(R.string.tab_logbook),
     SETTINGS(R.string.tab_settings),
@@ -211,6 +216,7 @@ internal fun TabIcon(tab: SstvTab, color: Color, strokeWidth: Float) {
     when (tab) {
         SstvTab.RX -> SstvAfIcons.RxImage(color = color, strokeWidth = strokeWidth)
         SstvTab.TX -> SstvAfIcons.Send(color = color, strokeWidth = strokeWidth)
+        SstvTab.WEFAX -> SstvAfIcons.Globe(color = color, strokeWidth = strokeWidth)
         SstvTab.GALLERY -> SstvAfIcons.Gallery(color = color, strokeWidth = strokeWidth)
         SstvTab.LOG -> SstvAfIcons.Book(color = color, strokeWidth = strokeWidth)
         SstvTab.SETTINGS -> SstvAfIcons.Cog(color = color, strokeWidth = strokeWidth)

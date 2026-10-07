@@ -56,6 +56,16 @@
     <string name="a11y_show_password">Zobrazit heslo</string>
     <string name="a11y_hide_password">Skrýt heslo</string>
     <string name="log_heatmap_description">Mapa gridových čtverců: odpracováno %1$d z %2$d polí</string>
+    <string name="wefax_start">Spustit</string>
+    <string name="wefax_stop">Zastavit</string>
+    <string name="wefax_status_idle">Připraveno</string>
+    <string name="wefax_status_listening">Čekání na fázování…</string>
+    <string name="wefax_status_receiving">Přijímá se</string>
+    <string name="wefax_status_stopped">Zastaveno</string>
+    <string name="wefax_rows_format">%1$d řádků</string>
+    <string name="wefax_saved">Uloženo do galerie — %1$s</string>
+    <string name="wefax_canvas_description">Přijatý meteofax</string>
+    <string name="wefax_canvas_empty">Zde se zobrazí faxový pás</string>
     <string name="freq_sheet_title">Frekvence</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">noc</string>
