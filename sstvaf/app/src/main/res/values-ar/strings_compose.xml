@@ -539,6 +539,8 @@
     <string name="rx_status_save_failed">فشل الحفظ</string>
     <string name="rx_status_lost">فُقدت الإشارة</string>
     <string name="rx_status_auto_detect">كشف تلقائي</string>
+    <string name="rx_mode_lock_auto">تلقائي</string>
+    <string name="rx_mode_lock_auto_option">تلقائي (كشف VIS)</string>
     <string name="rx_quality_value">الجودة %1$s</string>
     <string name="rx_received_today">استُقبلت اليوم</string>
     <string name="rx_received_all">الكل</string>

@@ -539,6 +539,8 @@
     <string name="rx_status_save_failed">저장 실패</string>
     <string name="rx_status_lost">신호 손실</string>
     <string name="rx_status_auto_detect">자동 감지</string>
+    <string name="rx_mode_lock_auto">자동</string>
+    <string name="rx_mode_lock_auto_option">자동 (VIS 감지)</string>
     <string name="rx_quality_value">품질 %1$s</string>
     <string name="rx_received_today">오늘 수신</string>
     <string name="rx_received_all">전체</string>

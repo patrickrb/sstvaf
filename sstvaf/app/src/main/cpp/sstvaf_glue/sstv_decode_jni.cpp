@@ -115,6 +115,17 @@ Java_radio_ks3ckc_sstvaf_sstv_NativeSstvCodec_nativeDecoderQuality(
     return dec != nullptr ? sstv_decoder_quality(dec) : 0.0f;
 }
 
+// sstv_decoder_set_forced_mode(dec, mode_id) — operator mode lock (-1 =
+// auto). Returns 0 or a negative SSTV_ERR_* (unknown mode id).
+extern "C" JNIEXPORT jint JNICALL
+Java_radio_ks3ckc_sstvaf_sstv_NativeSstvCodec_nativeDecoderSetForcedMode(
+        JNIEnv*, jobject, jlong handle, jint modeId)
+{
+    sstv_decoder_t* dec = decoder_from_handle(handle);
+    return dec != nullptr ? sstv_decoder_set_forced_mode(dec, modeId)
+                          : SSTV_ERR_BAD_ARGS;
+}
+
 // sstv_decoder_reset(dec) — back to IDLE hunting; keeps the handle valid.
 extern "C" JNIEXPORT void JNICALL
 Java_radio_ks3ckc_sstvaf_sstv_NativeSstvCodec_nativeDecoderReset(

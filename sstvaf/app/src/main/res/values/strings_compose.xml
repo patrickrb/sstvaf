@@ -674,6 +674,12 @@
     <string name="rx_status_lost">Signal lost</string>
     <!-- Right of the status row while idle: the operator picks no mode on receive. -->
     <string name="rx_status_auto_detect">auto-detect</string>
+    <!-- RX mode-lock chip (prefix label, unlocked value, menu's automatic entry).
+         Locking a mode makes the decoder ignore the VIS header and decode
+         every transmission as that mode — the rescue for QRM-garbled VIS. -->
+    <string name="rx_mode_lock_label" translatable="false">MODE</string>
+    <string name="rx_mode_lock_auto">Auto</string>
+    <string name="rx_mode_lock_auto_option">Auto (VIS detect)</string>
     <!-- %1$s is a percentage or an em dash when nothing has decoded. -->
     <string name="rx_quality_value">Quality %1$s</string>
     <string name="rx_received_today">RECEIVED TODAY</string>

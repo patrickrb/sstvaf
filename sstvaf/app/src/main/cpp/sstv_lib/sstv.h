@@ -119,6 +119,18 @@ float  sstv_decoder_slant_ppm(const sstv_decoder_t* d);
 // 0..1 blend of sync-hit-rate and in-band signal coherence.
 float  sstv_decoder_quality(const sstv_decoder_t* d);
 
+// Manual mode lock. With a forced mode set (SSTV_MODE_*), the decoder still
+// hunts for the calibration header (leader + VIS start bit) — that anchors
+// line timing and frequency calibration — but ignores the VIS data, parity
+// and stop-bit checks and decodes as `mode_id`, so a transmission whose VIS
+// is garbled by QRM/QSB still produces an image. Pass -1 to return to
+// automatic VIS mode selection. Takes effect at the next header detection;
+// an in-flight image decode is not disturbed. The lock survives
+// sstv_decoder_reset() — it is an operator setting, not decode state.
+// Returns 0, or SSTV_ERR_BAD_ARGS for a null handle / unknown mode id.
+int    sstv_decoder_set_forced_mode(sstv_decoder_t* d, int mode_id);
+int    sstv_decoder_forced_mode(const sstv_decoder_t* d);  // id or -1
+
 void   sstv_decoder_reset(sstv_decoder_t* d);
 void   sstv_decoder_destroy(sstv_decoder_t* d);
 

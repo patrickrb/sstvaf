@@ -539,6 +539,8 @@
     <string name="rx_status_save_failed">Opslaan mislukt</string>
     <string name="rx_status_lost">Signaal verloren</string>
     <string name="rx_status_auto_detect">automatisch detecteren</string>
+    <string name="rx_mode_lock_auto">Auto</string>
+    <string name="rx_mode_lock_auto_option">Auto (VIS-detectie)</string>
     <string name="rx_quality_value">Kwaliteit %1$s</string>
     <string name="rx_received_today">VANDAAG ONTVANGEN</string>
     <string name="rx_received_all">Alle</string>

@@ -455,3 +455,17 @@ internal fun rxMillisUntilNextLocalDay(nowMillis: Long, zone: ZoneId): Long {
  */
 internal fun rxCanvasMaxHeightDp(screenHeightDp: Int): Int =
     (screenHeightDp * 0.56f).roundToInt().coerceAtLeast(140)
+
+/**
+ * Options for the RX mode-lock selector: automatic VIS detection (null)
+ * first, then every mode in native-id order — the same order the TX mode
+ * sheet uses, so the two lists never disagree.
+ */
+internal fun rxModeLockOptions(): List<SstvMode?> = listOf(null) + SstvMode.entries
+
+/**
+ * The mode-lock chip's value text: the locked mode's short code, or null
+ * when unlocked (the caller shows the localized "Auto" string — resource
+ * resolution stays in the Composable).
+ */
+internal fun rxModeLockChipLabel(lock: SstvMode?): String? = lock?.shortCode

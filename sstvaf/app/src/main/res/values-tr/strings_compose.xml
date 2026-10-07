@@ -539,6 +539,8 @@
     <string name="rx_status_save_failed">Kaydetme başarısız</string>
     <string name="rx_status_lost">Sinyal kayboldu</string>
     <string name="rx_status_auto_detect">otomatik algıla</string>
+    <string name="rx_mode_lock_auto">Otomatik</string>
+    <string name="rx_mode_lock_auto_option">Otomatik (VIS algılama)</string>
     <string name="rx_quality_value">Kalite %1$s</string>
     <string name="rx_received_today">BUGÜN ALINANLAR</string>
     <string name="rx_received_all">Tümü</string>
