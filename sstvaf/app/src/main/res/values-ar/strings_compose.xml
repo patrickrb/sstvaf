@@ -49,12 +49,6 @@
     <string name="cat_state_disconnected">غير متصل</string>
     <string name="cat_state_error">خطأ في الاتصال</string>
     <string name="cat_state_vox">لا يوجد اتصال CAT</string>
-    <string name="header_more_description">المزيد: الراديو، المشغّل، سجل الاتصالات</string>
-    <string name="more_title">المزيد</string>
-    <string name="more_radio_audio">الراديو والصوت</string>
-    <string name="more_operator">المشغّل</string>
-    <string name="more_logbook">سجل الاتصالات</string>
-    <string name="more_logbook_sub">اتصالات SSTV · تصدير ADIF · Cloudlog</string>
     <string name="freq_sheet_title">التردد</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">ليلاً</string>
@@ -160,7 +154,6 @@
     <string name="log_tab_stats">الإحصاءات</string>
     <string name="log_tab_recent">الأخيرة</string>
     <string name="log_tab_awards">الجوائز</string>
-    <string name="log_title">السجل</string>
     <string name="log_subtitle_qsos_all_bands">%1$d QSOs · كل النطاقات</string>
     <string name="log_cd_sync_to_logging_services">مزامنة مع خدمات التسجيل</string>
     <string name="log_cd_export_qsos">تصدير QSOs</string>
@@ -553,6 +546,8 @@
     <string name="settings_save_rx_photos_desc">تظهر صور SSTV المكتملة أيضاً في تطبيق Photos ضمن Pictures/SSTVAF (Android 10+)</string>
     <string name="tab_gallery">المعرض</string>
     <string name="tab_settings">الإعدادات</string>
+    <string name="band_bar_caption">النطاق والتردد</string>
+    <string name="tab_logbook">سجل الاتصالات</string>
     <string name="gallery_filter_all">الكل</string>
     <string name="gallery_filter_rx">المُستقبَلة</string>
     <string name="gallery_filter_tx">المُرسَلة</string>

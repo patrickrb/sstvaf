@@ -49,12 +49,6 @@
     <string name="cat_state_disconnected">未接続</string>
     <string name="cat_state_error">接続エラー</string>
     <string name="cat_state_vox">CATリンクなし</string>
-    <string name="header_more_description">その他: 無線機、オペレーター、ログブック</string>
-    <string name="more_title">その他</string>
-    <string name="more_radio_audio">無線機 &amp; 音声</string>
-    <string name="more_operator">オペレーター</string>
-    <string name="more_logbook">ログブック</string>
-    <string name="more_logbook_sub">SSTV QSO · ADIF エクスポート · Cloudlog</string>
     <string name="freq_sheet_title">周波数</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">夜間</string>
@@ -160,7 +154,6 @@
     <string name="log_tab_stats">統計</string>
     <string name="log_tab_recent">最近</string>
     <string name="log_tab_awards">アワード</string>
-    <string name="log_title">ログブック</string>
     <string name="log_subtitle_qsos_all_bands">%1$d QSO · 全バンド</string>
     <string name="log_cd_sync_to_logging_services">ログサービスに同期</string>
     <string name="log_cd_export_qsos">QSO をエクスポート</string>
@@ -553,6 +546,8 @@
     <string name="settings_save_rx_photos_desc">完成した SSTV 画像は Photos アプリの Pictures/SSTVAF にも表示されます（Android 10 以降）</string>
     <string name="tab_gallery">ギャラリー</string>
     <string name="tab_settings">設定</string>
+    <string name="band_bar_caption">バンドと周波数</string>
+    <string name="tab_logbook">ログブック</string>
     <string name="gallery_filter_all">すべて</string>
     <string name="gallery_filter_rx">受信</string>
     <string name="gallery_filter_tx">送信</string>

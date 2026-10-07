@@ -49,12 +49,6 @@
     <string name="cat_state_disconnected">tidak terhubung</string>
     <string name="cat_state_error">kesalahan koneksi</string>
     <string name="cat_state_vox">tanpa tautan CAT</string>
-    <string name="header_more_description">Lainnya: radio, operator, buku log</string>
-    <string name="more_title">Lainnya</string>
-    <string name="more_radio_audio">Radio &amp; audio</string>
-    <string name="more_operator">Operator</string>
-    <string name="more_logbook">Buku Log</string>
-    <string name="more_logbook_sub">QSO SSTV · ekspor ADIF · Cloudlog</string>
     <string name="freq_sheet_title">Frekuensi</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">malam</string>
@@ -160,7 +154,6 @@
     <string name="log_tab_stats">Statistik</string>
     <string name="log_tab_recent">Terbaru</string>
     <string name="log_tab_awards">Penghargaan</string>
-    <string name="log_title">Buku Log</string>
     <string name="log_subtitle_qsos_all_bands">%1$d QSO · Semua band</string>
     <string name="log_cd_sync_to_logging_services">Sinkronkan ke layanan logging</string>
     <string name="log_cd_export_qsos">Ekspor QSO</string>
@@ -553,6 +546,8 @@
     <string name="settings_save_rx_photos_desc">Gambar SSTV yang selesai juga muncul di aplikasi Photos di bawah Pictures/SSTVAF (Android 10+)</string>
     <string name="tab_gallery">Galeri</string>
     <string name="tab_settings">Pengaturan</string>
+    <string name="band_bar_caption">Band dan frekuensi</string>
+    <string name="tab_logbook">Buku Log</string>
     <string name="gallery_filter_all">Semua</string>
     <string name="gallery_filter_rx">Diterima</string>
     <string name="gallery_filter_tx">Dikirim</string>

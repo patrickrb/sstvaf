@@ -49,12 +49,6 @@
     <string name="cat_state_disconnected">non connesso</string>
     <string name="cat_state_error">errore di connessione</string>
     <string name="cat_state_vox">nessun collegamento CAT</string>
-    <string name="header_more_description">Altro: radio, operatore, logbook</string>
-    <string name="more_title">Altro</string>
-    <string name="more_radio_audio">Radio &amp; audio</string>
-    <string name="more_operator">Operatore</string>
-    <string name="more_logbook">Logbook</string>
-    <string name="more_logbook_sub">QSO SSTV · esportazione ADIF · Cloudlog</string>
     <string name="freq_sheet_title">Frequenza</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">notte</string>
@@ -160,7 +154,6 @@
     <string name="log_tab_stats">Statistiche</string>
     <string name="log_tab_recent">Recenti</string>
     <string name="log_tab_awards">Diplomi</string>
-    <string name="log_title">Log</string>
     <string name="log_subtitle_qsos_all_bands">%1$d QSO · Tutte le bande</string>
     <string name="log_cd_sync_to_logging_services">Sincronizza con i servizi di logging</string>
     <string name="log_cd_export_qsos">Esporta QSO</string>
@@ -553,6 +546,8 @@
     <string name="settings_save_rx_photos_desc">Le immagini SSTV completate compaiono anche nell\'app Photos in Pictures/SSTVAF (Android 10+)</string>
     <string name="tab_gallery">Galleria</string>
     <string name="tab_settings">Impostazioni</string>
+    <string name="band_bar_caption">Banda e frequenza</string>
+    <string name="tab_logbook">Logbook</string>
     <string name="gallery_filter_all">Tutte</string>
     <string name="gallery_filter_rx">Ricevute</string>
     <string name="gallery_filter_tx">Inviate</string>

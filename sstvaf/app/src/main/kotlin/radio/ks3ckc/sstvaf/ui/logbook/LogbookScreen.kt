@@ -94,7 +94,6 @@ import radio.ks3ckc.sstvaf.ui.components.GlassCard
 import radio.ks3ckc.sstvaf.ui.components.QsoStatus
 import radio.ks3ckc.sstvaf.ui.components.ShimmerBox
 import radio.ks3ckc.sstvaf.ui.components.StatusPill
-import radio.ks3ckc.sstvaf.ui.components.TopBar
 import radio.ks3ckc.sstvaf.ui.components.TopBarSubtitle
 import radio.ks3ckc.sstvaf.ui.decode.UsStateLookup
 import radio.ks3ckc.sstvaf.ui.tx.initialTxMode
@@ -152,7 +151,7 @@ private data class AwardProgress(
 // ---------------------------------------------------------------------------
 
 @Composable
-fun LogbookScreen(mainViewModel: MainViewModel, onBack: () -> Unit) {
+fun LogbookScreen(mainViewModel: MainViewModel) {
     var activeTab by remember { mutableStateOf(LogbookTab.STATS) }
     var exportSheetVisible by remember { mutableStateOf(false) }
     var manualQsoVisible by remember { mutableStateOf(false) }
@@ -265,15 +264,21 @@ fun LogbookScreen(mainViewModel: MainViewModel, onBack: () -> Unit) {
                 .fillMaxSize()
                 .background(BgApp),
         ) {
-            // Top bar
-            TopBar(
-                title = stringResource(R.string.log_title),
-                onBack = onBack,
-                subtitle = {
-                    val count = if (stats.totalQsos > 0) stats.totalQsos else records.size
-                    TopBarSubtitle(text = stringResource(R.string.log_subtitle_qsos_all_bands, count))
-                },
-                actions = {
+            // Hosted as a tab, so the shell's header already says "Logbook" —
+            // this row carries just the QSO count and the actions instead of a
+            // second title.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 18.dp, end = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val count = if (stats.totalQsos > 0) stats.totalQsos else records.size
+                TopBarSubtitle(
+                    text = stringResource(R.string.log_subtitle_qsos_all_bands, count),
+                    modifier = Modifier.weight(1f),
+                )
+                Row {
                     IconButton(onClick = { manualQsoVisible = true }) {
                         Icon(
                             imageVector = Icons.Filled.Add,
@@ -344,8 +349,8 @@ fun LogbookScreen(mainViewModel: MainViewModel, onBack: () -> Unit) {
                             tint = TextMuted,
                         )
                     }
-                },
-            )
+                }
+            }
 
             // Segmented tab switcher
             SegmentedTabRow(

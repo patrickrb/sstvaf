@@ -49,12 +49,6 @@
     <string name="cat_state_disconnected">не підключено</string>
     <string name="cat_state_error">помилка підключення</string>
     <string name="cat_state_vox">немає CAT-зв\'язку</string>
-    <string name="header_more_description">Більше: радіо, оператор, журнал</string>
-    <string name="more_title">Більше</string>
-    <string name="more_radio_audio">Радіо та аудіо</string>
-    <string name="more_operator">Оператор</string>
-    <string name="more_logbook">Журнал</string>
-    <string name="more_logbook_sub">SSTV QSO · експорт ADIF · Cloudlog</string>
     <string name="freq_sheet_title">Частота</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">ніч</string>
@@ -160,7 +154,6 @@
     <string name="log_tab_stats">Статистика</string>
     <string name="log_tab_recent">Нещодавні</string>
     <string name="log_tab_awards">Нагороди</string>
-    <string name="log_title">Журнал</string>
     <string name="log_subtitle_qsos_all_bands">%1$d QSOs · Усі діапазони</string>
     <string name="log_cd_sync_to_logging_services">Синхронізація зі службами журналювання</string>
     <string name="log_cd_export_qsos">Експорт QSOs</string>
@@ -553,6 +546,8 @@
     <string name="settings_save_rx_photos_desc">Завершені SSTV-зображення також з\'являються в застосунку Photos у Pictures/SSTVAF (Android 10+)</string>
     <string name="tab_gallery">Галерея</string>
     <string name="tab_settings">Налаштування</string>
+    <string name="band_bar_caption">Діапазон і частота</string>
+    <string name="tab_logbook">Журнал</string>
     <string name="gallery_filter_all">Усі</string>
     <string name="gallery_filter_rx">Прийняті</string>
     <string name="gallery_filter_tx">Надіслані</string>
