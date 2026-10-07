@@ -52,13 +52,13 @@ import radio.ks3ckc.sstvaf.theme.GeistMonoFamily
 import radio.ks3ckc.sstvaf.theme.StatusConfirmed
 import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
-import radio.ks3ckc.sstvaf.ui.components.TopBar
 import radio.ks3ckc.sstvaf.wefax.WefaxPreset
 import radio.ks3ckc.sstvaf.wefax.WefaxRxState
 import radio.ks3ckc.sstvaf.wefax.wefaxGrayToArgb
 
 /**
- * The WEFAX (HF radiofax) receive screen, reached from the overflow sheet.
+ * The WEFAX (HF radiofax) receive tab. Hosted by the shell, so the header
+ * already says "WEFAX" and the band bar rides above — no chrome of its own.
  *
  * A fax transmission is a continuous line stream with no length header, so
  * unlike the SSTV tab this surface is operator-driven: pick the line
@@ -69,7 +69,7 @@ import radio.ks3ckc.sstvaf.wefax.wefaxGrayToArgb
  * WefaxScreenLogic.kt (unit tested), this file is the thin Compose wrapper.
  */
 @Composable
-fun WefaxScreen(mainViewModel: MainViewModel, onBack: () -> Unit) {
+fun WefaxScreen(mainViewModel: MainViewModel) {
     val listener = mainViewModel.wefaxSignalListener
     val rxState by listener.rxState.observeAsState(WefaxRxState.Idle)
     val lastSaved by mainViewModel.wefaxAutoSaveController.lastSaved.observeAsState(null)
@@ -136,11 +136,6 @@ fun WefaxScreen(mainViewModel: MainViewModel, onBack: () -> Unit) {
             .fillMaxSize()
             .background(BgApp),
     ) {
-        TopBar(
-            title = stringResource(R.string.wefax_title),
-            onBack = onBack,
-        )
-
         Column(
             modifier = Modifier
                 .fillMaxSize()

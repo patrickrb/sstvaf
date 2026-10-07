@@ -49,13 +49,6 @@
     <string name="cat_state_disconnected">niet verbonden</string>
     <string name="cat_state_error">verbindingsfout</string>
     <string name="cat_state_vox">geen CAT-verbinding</string>
-    <string name="header_more_description">Meer: radio, operator, logboek, instellingen</string>
-    <string name="more_title">Meer</string>
-    <string name="more_radio_audio">Radio &amp; audio</string>
-    <string name="more_operator">Operator</string>
-    <string name="more_logbook">Logboek</string>
-    <string name="more_logbook_sub">SSTV-QSO\'s · ADIF-export · Cloudlog</string>
-    <string name="more_wefax_sub">Weerfax-ontvangst · opgeslagen in Galerij</string>
     <string name="wefax_start">Start</string>
     <string name="wefax_stop">Stop</string>
     <string name="wefax_status_idle">Gereed</string>
@@ -66,8 +59,6 @@
     <string name="wefax_saved">Opgeslagen in Galerij — %1$s</string>
     <string name="wefax_canvas_description">Ontvangen weerfax</string>
     <string name="wefax_canvas_empty">De faxstrook verschijnt hier</string>
-    <string name="more_settings">Instellingen</string>
-    <string name="more_settings_sub">Al het andere</string>
     <string name="freq_sheet_title">Frequentie</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">nacht</string>
@@ -173,7 +164,6 @@
     <string name="log_tab_stats">Statistieken</string>
     <string name="log_tab_recent">Recent</string>
     <string name="log_tab_awards">Onderscheidingen</string>
-    <string name="log_title">Logboek</string>
     <string name="log_subtitle_qsos_all_bands">%1$d QSOs · Alle banden</string>
     <string name="log_cd_sync_to_logging_services">Synchroniseren met logdiensten</string>
     <string name="log_cd_export_qsos">QSO\'s exporteren</string>
@@ -189,6 +179,7 @@
     <string name="log_section_grid_coverage">Griddekking</string>
     <string name="log_section_signal_trend">Signaaltrend</string>
     <string name="log_no_qsos_yet">Nog geen QSOs</string>
+    <string name="log_signal_trend_no_data">Nog niet genoeg signaalrapporten voor een grafiek</string>
     <string name="log_no_qsos_recorded_yet">Nog geen QSOs vastgelegd</string>
     <string name="log_search_placeholder">Zoek roepnaam, grid, band…</string>
     <string name="log_search_no_matches">Geen QSO\'s komen overeen met “%1$s”</string>
@@ -558,6 +549,8 @@
     <string name="rx_status_save_failed">Opslaan mislukt</string>
     <string name="rx_status_lost">Signaal verloren</string>
     <string name="rx_status_auto_detect">automatisch detecteren</string>
+    <string name="rx_mode_lock_auto">Auto</string>
+    <string name="rx_mode_lock_auto_option">Auto (VIS-detectie)</string>
     <string name="rx_quality_value">Kwaliteit %1$s</string>
     <string name="rx_received_today">VANDAAG ONTVANGEN</string>
     <string name="rx_received_all">Alle</string>
@@ -565,6 +558,9 @@
     <string name="settings_save_rx_photos">Ontvangen beelden opslaan in Photos</string>
     <string name="settings_save_rx_photos_desc">Voltooide SSTV-beelden verschijnen ook in de Photos-app onder Pictures/SSTVAF (Android 10+)</string>
     <string name="tab_gallery">Galerij</string>
+    <string name="tab_settings">Instellingen</string>
+    <string name="band_bar_caption">Band en frequentie</string>
+    <string name="tab_logbook">Logboek</string>
     <string name="gallery_filter_all">Alle</string>
     <string name="gallery_filter_rx">Ontvangen</string>
     <string name="gallery_filter_tx">Verzonden</string>

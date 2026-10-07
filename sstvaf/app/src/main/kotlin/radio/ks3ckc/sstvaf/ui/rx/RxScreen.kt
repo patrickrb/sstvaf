@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,6 +58,7 @@ import kotlinx.coroutines.withContext
 import radio.ks3ckc.sstvaf.gallery.RxSaveOutcome
 import radio.ks3ckc.sstvaf.gallery.SavedImage
 import radio.ks3ckc.sstvaf.sstv.LastDecodedImage
+import radio.ks3ckc.sstvaf.sstv.SstvMode
 import radio.ks3ckc.sstvaf.sstv.SstvRxState
 import radio.ks3ckc.sstvaf.theme.Accent
 import radio.ks3ckc.sstvaf.theme.BgApp
@@ -91,6 +94,7 @@ fun RxScreen(
     val rxState by listener.rxState.observeAsState(SstvRxState.Idle)
 
     var rxEnabled by remember { mutableStateOf(listener.isEnabled()) }
+    var lockedMode by remember { mutableStateOf(listener.modeLock()) }
 
     // Dial frequency label — recomposes when the user retunes. The band name is
     // resolved the same three-tier way as the app-shell TX strip pill (list
@@ -208,25 +212,36 @@ fun RxScreen(
         // decoder, and silently removing the off switch would be a behaviour
         // change hiding inside a visual one. It sits above the canvas, small,
         // rather than in the shell's header, which has no business owning it.
+        // The mode-lock chip shares the row on the left: RX-only concerns live
+        // together, above the canvas they affect.
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.End,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(
-                text = stringResource(R.string.rx_toggle_label),
-                color = TextMuted,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Toggle(
-                checked = rxEnabled,
-                onCheckedChange = { on ->
-                    rxEnabled = on
-                    listener.setEnabled(on)
+            RxModeLockChip(
+                lock = lockedMode,
+                onSelect = { mode ->
+                    lockedMode = mode
+                    listener.setModeLock(mode)
                 },
             )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(R.string.rx_toggle_label),
+                    color = TextMuted,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Toggle(
+                    checked = rxEnabled,
+                    onCheckedChange = { on ->
+                        rxEnabled = on
+                        listener.setEnabled(on)
+                    },
+                )
+            }
         }
 
         Box(
@@ -375,6 +390,66 @@ private fun rxStatusLabel(kind: RxStatusKind, state: SstvRxState): String {
         stringResource(res, mode)
     } else {
         stringResource(res)
+    }
+}
+
+/**
+ * The RX mode-lock selector: a small chip reading "MODE AUTO" (or the locked
+ * mode's short code, accented) that opens a menu of Auto + every mode. The
+ * lock rescues a transmission whose VIS header is garbled by QRM — the codec
+ * then decodes every detected header as the chosen mode.
+ */
+@Composable
+private fun RxModeLockChip(
+    lock: SstvMode?,
+    onSelect: (SstvMode?) -> Unit,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    Box {
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .background(if (lock != null) BgSurface3 else BgSurface)
+                .clickable(role = Role.Button) { menuOpen = true }
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.rx_mode_lock_label),
+                color = TextMuted,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = rxModeLockChipLabel(lock)
+                    ?: stringResource(R.string.rx_mode_lock_auto),
+                color = if (lock != null) Accent else TextPrimary,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = GeistMonoFamily,
+            )
+        }
+        DropdownMenu(
+            expanded = menuOpen,
+            onDismissRequest = { menuOpen = false },
+        ) {
+            for (option in rxModeLockOptions()) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = option?.displayName
+                                ?: stringResource(R.string.rx_mode_lock_auto_option),
+                            color = if (option == lock) Accent else TextPrimary,
+                        )
+                    },
+                    onClick = {
+                        menuOpen = false
+                        onSelect(option)
+                    },
+                )
+            }
+        }
     }
 }
 

@@ -82,18 +82,11 @@
     <string name="cat_state_disconnected">not connected</string>
     <string name="cat_state_error">connection error</string>
     <string name="cat_state_vox">no CAT link</string>
-    <string name="header_more_description">More: radio, operator, logbook, settings</string>
 
-    <!-- ===== More sheet (header overflow) ===== -->
-    <string name="more_title">More</string>
-    <string name="more_radio_audio">Radio &amp; audio</string>
-    <string name="more_operator">Operator</string>
-    <string name="more_logbook">Logbook</string>
-    <string name="more_logbook_sub">SSTV QSOs · ADIF export · Cloudlog</string>
-    <string name="more_wefax" translatable="false">WEFAX</string>
-    <string name="more_wefax_sub">Weather fax receive · saved to Gallery</string>
-    <!-- ===== WEFAX receive screen ===== -->
-    <string name="wefax_title" translatable="false">WEFAX</string>
+    <!-- ===== WEFAX receive tab ===== -->
+    <!-- WEFAX is an acronym (weather facsimile) and stays untranslated; the
+         tab label doubles as the screen title like every other tab. -->
+    <string name="tab_wefax" translatable="false">WEFAX</string>
     <string name="wefax_start">Start</string>
     <string name="wefax_stop">Stop</string>
     <!-- LPM/IOC preset chip prefix; the value is fax-schedule notation like "120/576". -->
@@ -108,8 +101,6 @@
     <string name="wefax_saved">Saved to Gallery — %1$s</string>
     <string name="wefax_canvas_description">Received weather fax</string>
     <string name="wefax_canvas_empty">The fax strip will appear here</string>
-    <string name="more_settings">Settings</string>
-    <string name="more_settings_sub">Everything else</string>
 
     <!-- ===== Frequency sheet ===== -->
     <string name="freq_sheet_title">Frequency</string>
@@ -238,7 +229,6 @@
     <string name="log_tab_stats">Stats</string>
     <string name="log_tab_recent">Recent</string>
     <string name="log_tab_awards">Awards</string>
-    <string name="log_title">Logbook</string>
     <string name="log_subtitle_qsos_all_bands">%1$d QSOs · All bands</string>
     <string name="log_cd_sync_to_logging_services">Sync to logging services</string>
     <string name="log_cd_export_qsos">Export QSOs</string>
@@ -254,6 +244,7 @@
     <string name="log_section_grid_coverage">Grid Coverage</string>
     <string name="log_section_signal_trend">Signal Trend</string>
     <string name="log_no_qsos_yet">No QSOs yet</string>
+    <string name="log_signal_trend_no_data">Not enough signal reports to chart yet</string>
     <string name="log_no_qsos_recorded_yet">No QSOs recorded yet</string>
     <string name="log_search_placeholder">Search callsign, grid, band…</string>
     <string name="log_search_no_matches">No QSOs match “%1$s”</string>
@@ -700,6 +691,12 @@
     <string name="rx_status_lost">Signal lost</string>
     <!-- Right of the status row while idle: the operator picks no mode on receive. -->
     <string name="rx_status_auto_detect">auto-detect</string>
+    <!-- RX mode-lock chip (prefix label, unlocked value, menu's automatic entry).
+         Locking a mode makes the decoder ignore the VIS header and decode
+         every transmission as that mode — the rescue for QRM-garbled VIS. -->
+    <string name="rx_mode_lock_label" translatable="false">MODE</string>
+    <string name="rx_mode_lock_auto">Auto</string>
+    <string name="rx_mode_lock_auto_option">Auto (VIS detect)</string>
     <!-- %1$s is a percentage or an em dash when nothing has decoded. -->
     <string name="rx_quality_value">Quality %1$s</string>
     <string name="rx_received_today">RECEIVED TODAY</string>
@@ -711,6 +708,9 @@
 
     <!-- ===== Gallery tab (PR 7) ===== -->
     <string name="tab_gallery">Gallery</string>
+    <string name="tab_settings">Settings</string>
+    <string name="band_bar_caption">Band &amp; frequency</string>
+    <string name="tab_logbook">Logbook</string>
     <string name="gallery_filter_all">All</string>
     <string name="gallery_filter_rx">Received</string>
     <string name="gallery_filter_tx">Sent</string>

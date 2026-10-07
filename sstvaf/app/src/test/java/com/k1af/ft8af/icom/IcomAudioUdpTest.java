@@ -165,6 +165,181 @@ public class IcomAudioUdpTest {
         assertThat(rig.innerSeq).isEqualTo(seqBefore);
     }
 
+    // ---- RX: real-time delivery gate over tracked audio packets ----
+
+    /**
+     * Fake-socket RX rig, same pattern as {@link IcomUdpBaseRetransmitTest}:
+     * outbound packets are recorded instead of sent, and every audio payload
+     * handed to {@code OnReceivedAudioData} is captured.
+     */
+    private static class RecordingRxIcomAudioUdp extends IcomAudioUdp {
+        final List<byte[]> sentPackets = new ArrayList<>();
+        final List<byte[]> deliveredAudio = new ArrayList<>();
+
+        RecordingRxIcomAudioUdp() {
+            localId = 0x11223344;
+            remoteId = 0x55667788;
+            onStreamEvents = audioCapture(deliveredAudio);
+        }
+
+        @Override
+        public synchronized void sendUntrackedPacket(byte[] data) {
+            sentPackets.add(data);
+        }
+    }
+
+    /** OnStreamEvents stub that only captures delivered audio payloads. */
+    private static IcomUdpBase.OnStreamEvents audioCapture(final List<byte[]> deliveredAudio) {
+        return new IcomUdpBase.OnStreamEvents() {
+            @Override
+            public void OnReceivedIAmHere(byte[] data) {
+            }
+
+            @Override
+            public void OnReceivedCivData(byte[] data) {
+            }
+
+            @Override
+            public void OnReceivedAudioData(byte[] audioData) {
+                deliveredAudio.add(audioData);
+            }
+
+            @Override
+            public void OnUdpSendIOException(IcomUdpBase.IcomUdpStyle style, java.io.IOException e) {
+            }
+
+            @Override
+            public void OnLoginResponse(boolean authIsOK) {
+            }
+        };
+    }
+
+    /** A tracked audio packet as the rig would send it (type=0x00, given header seq). */
+    private static byte[] rigAudioPacket(short seq, byte marker) {
+        byte[] audio = new byte[]{marker, (byte) (marker + 1)};
+        return IComPacketTypes.AudioPacket.getTxAudioPacket(
+                audio, seq, 0x55667788, 0x11223344, (short) 0);
+    }
+
+    private static List<Byte> firstBytes(List<byte[]> payloads) {
+        List<Byte> markers = new ArrayList<>();
+        for (byte[] payload : payloads) {
+            markers.add(payload[0]);
+        }
+        return markers;
+    }
+
+    @Test
+    public void rxAudio_inOrderTrackedPacketsAreAllDelivered() {
+        RecordingRxIcomAudioUdp rig = new RecordingRxIcomAudioUdp();
+
+        rig.onDataReceived(null, rigAudioPacket((short) 1, (byte) 10));
+        rig.onDataReceived(null, rigAudioPacket((short) 2, (byte) 20));
+        rig.onDataReceived(null, rigAudioPacket((short) 3, (byte) 30));
+
+        assertThat(firstBytes(rig.deliveredAudio))
+                .containsExactly((byte) 10, (byte) 20, (byte) 30).inOrder();
+        assertThat(rig.sentPackets).isEmpty();
+    }
+
+    @Test
+    public void rxAudio_lateOriginalIsDroppedNotInjectedLate() {
+        RecordingRxIcomAudioUdp rig = new RecordingRxIcomAudioUdp();
+
+        rig.onDataReceived(null, rigAudioPacket((short) 1, (byte) 10));
+        rig.onDataReceived(null, rigAudioPacket((short) 3, (byte) 30)); // 2 lost
+        // Seq 2 shows up after all (UDP reordering or a retransmitted copy):
+        // its play-out moment has passed — injecting it now would garble the
+        // stream worse than the gap did, so it must be dropped.
+        rig.onDataReceived(null, rigAudioPacket((short) 2, (byte) 20));
+
+        assertThat(firstBytes(rig.deliveredAudio))
+                .containsExactly((byte) 10, (byte) 30).inOrder();
+    }
+
+    @Test
+    public void rxAudio_duplicateIsDeliveredOnlyOnce() {
+        RecordingRxIcomAudioUdp rig = new RecordingRxIcomAudioUdp();
+        byte[] packet = rigAudioPacket((short) 5, (byte) 50);
+
+        rig.onDataReceived(null, packet);
+        rig.onDataReceived(null, packet);
+
+        assertThat(rig.deliveredAudio).hasSize(1);
+    }
+
+    @Test
+    public void rxAudio_wrapBoundaryNewerPacketIsDelivered() {
+        RecordingRxIcomAudioUdp rig = new RecordingRxIcomAudioUdp();
+
+        rig.onDataReceived(null, rigAudioPacket((short) 0xFFFF, (byte) 10));
+        // 0x0001 is a small forward step across the 16-bit wrap — newer, not
+        // "65534 packets old"; the gate must be wrap-aware and deliver it.
+        rig.onDataReceived(null, rigAudioPacket((short) 0x0001, (byte) 20));
+
+        assertThat(firstBytes(rig.deliveredAudio))
+                .containsExactly((byte) 10, (byte) 20).inOrder();
+        // ...and the old pre-wrap sequence is now stale.
+        rig.onDataReceived(null, rigAudioPacket((short) 0xFFFE, (byte) 30));
+        assertThat(rig.deliveredAudio).hasSize(2);
+    }
+
+    @Test
+    public void rxAudio_untrackedSeqZeroPacketsAlwaysPassAndDoNotMoveTheGate() {
+        RecordingRxIcomAudioUdp rig = new RecordingRxIcomAudioUdp();
+
+        rig.onDataReceived(null, rigAudioPacket((short) 0, (byte) 10)); // untracked
+        rig.onDataReceived(null, rigAudioPacket((short) 7, (byte) 20));
+        rig.onDataReceived(null, rigAudioPacket((short) 0, (byte) 30)); // untracked, still passes
+        rig.onDataReceived(null, rigAudioPacket((short) 6, (byte) 40)); // late tracked: dropped
+
+        assertThat(firstBytes(rig.deliveredAudio))
+                .containsExactly((byte) 10, (byte) 20, (byte) 30).inOrder();
+    }
+
+    @Test
+    public void rxAudio_gapSendsNoRetransmitRequest() {
+        // Audio is real time: a retransmission would arrive after its play-out
+        // moment, so the audio stream never asks for one (a control/CI-V
+        // stream with the same gap does — see IcomUdpBaseRetransmitTest).
+        RecordingRxIcomAudioUdp rig = new RecordingRxIcomAudioUdp();
+
+        rig.onDataReceived(null, rigAudioPacket((short) 1, (byte) 10));
+        rig.onDataReceived(null, rigAudioPacket((short) 4, (byte) 40)); // 2 and 3 lost
+
+        assertThat(rig.sentPackets).isEmpty();
+        // The stream itself keeps flowing: the newer packet is delivered.
+        assertThat(firstBytes(rig.deliveredAudio))
+                .containsExactly((byte) 10, (byte) 40).inOrder();
+    }
+
+    @Test
+    public void rxAudio_xieguAudioStreamSharesTheSameGate() {
+        // XieGuAudioUdp delivers audio through the same AudioUdp gate: dups
+        // are dropped and a gap triggers no retransmit request (a request
+        // would NPE here on the absent socket, failing the test).
+        XieGuAudioUdp rig = new XieGuAudioUdp();
+        List<byte[]> delivered = new ArrayList<>();
+        rig.onStreamEvents = audioCapture(delivered);
+
+        rig.onDataReceived(null, rigAudioPacket((short) 1, (byte) 10));
+        rig.onDataReceived(null, rigAudioPacket((short) 1, (byte) 10)); // duplicate
+        rig.onDataReceived(null, rigAudioPacket((short) 3, (byte) 30)); // gap over 2
+
+        assertThat(firstBytes(delivered))
+                .containsExactly((byte) 10, (byte) 30).inOrder();
+    }
+
+    @Test
+    public void rxAudio_halfRangeForwardDistanceStillCountsAsNewer() {
+        // The wrap-aware rule: forward distance <= 0x8000 is newer. Pin the
+        // boundary on both sides.
+        AudioUdp gate = new AudioUdp();
+        assertThat(gate.shouldDeliverAudioSeq((short) 0x0001)).isTrue();
+        assertThat(gate.shouldDeliverAudioSeq((short) 0x8001)).isTrue();  // +0x8000: newer
+        assertThat(gate.shouldDeliverAudioSeq((short) 0x0002)).isFalse(); // +0x8001: older
+    }
+
     // ---- guard is released when the real transmission finishes ----
 
     @Test

@@ -280,4 +280,57 @@ class SstvSignalListenerTest {
         assertThat(logs.any { it.contains("NOT attached") }).isTrue()
         listener.stop()
     }
+
+    @Test
+    fun modeLockReachesTheLiveSessionImmediately() {
+        val listener = newListener()
+        listener.startDirect()
+
+        listener.setModeLock(SstvMode.MARTIN_2)
+
+        assertThat(codec.forcedMode).isEqualTo(SstvMode.MARTIN_2)
+        assertThat(listener.modeLock()).isEqualTo(SstvMode.MARTIN_2)
+        assertThat(logs.any { it.contains("mode lock Martin 2") }).isTrue()
+        listener.stop()
+    }
+
+    @Test
+    fun modeLockSetBeforeStartIsAppliedToTheNewSession() {
+        val listener = newListener()
+        listener.setModeLock(SstvMode.SCOTTIE_1)
+        assertThat(codec.setForcedModeCalls).isEqualTo(0) // no session yet
+
+        listener.startDirect()
+
+        assertThat(codec.forcedMode).isEqualTo(SstvMode.SCOTTIE_1)
+        assertThat(codec.setForcedModeCalls).isEqualTo(1)
+        listener.stop()
+    }
+
+    @Test
+    fun clearingTheModeLockRestoresAutoOnTheSession() {
+        val listener = newListener()
+        listener.startDirect()
+        listener.setModeLock(SstvMode.MARTIN_2)
+
+        listener.setModeLock(null)
+
+        assertThat(codec.forcedMode).isNull()
+        assertThat(listener.modeLock()).isNull()
+        assertThat(logs.any { it.contains("mode lock off (auto VIS)") }).isTrue()
+        listener.stop()
+    }
+
+    @Test
+    fun settingTheSameModeLockTwiceIsANoOp() {
+        val listener = newListener()
+        listener.startDirect()
+        listener.setModeLock(SstvMode.MARTIN_2)
+        val callsAfterFirst = codec.setForcedModeCalls
+
+        listener.setModeLock(SstvMode.MARTIN_2)
+
+        assertThat(codec.setForcedModeCalls).isEqualTo(callsAfterFirst)
+        listener.stop()
+    }
 }

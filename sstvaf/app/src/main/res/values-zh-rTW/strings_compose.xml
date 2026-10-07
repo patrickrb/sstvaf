@@ -49,13 +49,6 @@
     <string name="cat_state_disconnected">未連線</string>
     <string name="cat_state_error">連線錯誤</string>
     <string name="cat_state_vox">無 CAT 連結</string>
-    <string name="header_more_description">更多：無線電、操作員、日誌、設定</string>
-    <string name="more_title">更多</string>
-    <string name="more_radio_audio">無線電與音訊</string>
-    <string name="more_operator">操作員</string>
-    <string name="more_logbook">日誌</string>
-    <string name="more_logbook_sub">SSTV QSO · ADIF 匯出 · Cloudlog</string>
-    <string name="more_wefax_sub">氣象傳真接收 · 儲存到圖庫</string>
     <string name="wefax_start">開始</string>
     <string name="wefax_stop">停止</string>
     <string name="wefax_status_idle">就緒</string>
@@ -66,8 +59,6 @@
     <string name="wefax_saved">已儲存到圖庫 — %1$s</string>
     <string name="wefax_canvas_description">收到的氣象傳真</string>
     <string name="wefax_canvas_empty">傳真條帶將顯示在此處</string>
-    <string name="more_settings">設定</string>
-    <string name="more_settings_sub">其他所有項目</string>
     <string name="freq_sheet_title">頻率</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">夜間</string>
@@ -173,7 +164,6 @@
     <string name="log_tab_stats">統計</string>
     <string name="log_tab_recent">最近</string>
     <string name="log_tab_awards">獎項</string>
-    <string name="log_title">日誌</string>
     <string name="log_subtitle_qsos_all_bands">%1$d 筆 QSOs · 全波段</string>
     <string name="log_cd_sync_to_logging_services">同步至日誌服務</string>
     <string name="log_cd_export_qsos">匯出 QSOs</string>
@@ -189,6 +179,7 @@
     <string name="log_section_grid_coverage">方格涵蓋範圍</string>
     <string name="log_section_signal_trend">訊號趨勢</string>
     <string name="log_no_qsos_yet">尚無 QSOs</string>
+    <string name="log_signal_trend_no_data">訊號報告還不足以繪製圖表</string>
     <string name="log_no_qsos_recorded_yet">尚未記錄任何 QSOs</string>
     <string name="log_search_placeholder">搜尋呼號、網格、波段…</string>
     <string name="log_search_no_matches">沒有符合「%1$s」的 QSO</string>
@@ -558,6 +549,8 @@
     <string name="rx_status_save_failed">儲存失敗</string>
     <string name="rx_status_lost">訊號中斷</string>
     <string name="rx_status_auto_detect">自動偵測</string>
+    <string name="rx_mode_lock_auto">自動</string>
+    <string name="rx_mode_lock_auto_option">自動（VIS 偵測）</string>
     <string name="rx_quality_value">品質 %1$s</string>
     <string name="rx_received_today">今日接收</string>
     <string name="rx_received_all">全部</string>
@@ -565,6 +558,9 @@
     <string name="settings_save_rx_photos">將接收的影像儲存至 Photos</string>
     <string name="settings_save_rx_photos_desc">完成的 SSTV 影像也會出現在 Photos 應用程式的 Pictures/SSTVAF 中（Android 10 以上）</string>
     <string name="tab_gallery">圖庫</string>
+    <string name="tab_settings">設定</string>
+    <string name="band_bar_caption">波段與頻率</string>
+    <string name="tab_logbook">日誌</string>
     <string name="gallery_filter_all">全部</string>
     <string name="gallery_filter_rx">接收</string>
     <string name="gallery_filter_tx">傳送</string>

@@ -1,6 +1,5 @@
 package radio.ks3ckc.sstvaf
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,60 +42,47 @@ import com.k1af.ft8af.rigs.BaseRigOperation
 import radio.ks3ckc.sstvaf.theme.BgApp
 import radio.ks3ckc.sstvaf.ui.components.AdaptiveShell
 import radio.ks3ckc.sstvaf.ui.components.AppHeader
+import radio.ks3ckc.sstvaf.ui.components.BandBar
 import radio.ks3ckc.sstvaf.ui.components.FrequencyPickerSheet
-import radio.ks3ckc.sstvaf.ui.components.MoreDestination
-import radio.ks3ckc.sstvaf.ui.components.MoreSheet
 import radio.ks3ckc.sstvaf.ui.components.SstvTab
 import radio.ks3ckc.sstvaf.ui.components.TabBar
 import radio.ks3ckc.sstvaf.ui.components.TabRail
 import radio.ks3ckc.sstvaf.ui.components.TransmitGlow
 import radio.ks3ckc.sstvaf.ui.components.controlModeLabel
-import radio.ks3ckc.sstvaf.ui.components.frequencyChipLabel
 import radio.ks3ckc.sstvaf.ui.components.headerCatDotColor
-import radio.ks3ckc.sstvaf.ui.components.operatorSummaryLine
 import radio.ks3ckc.sstvaf.ui.components.catStateDescriptionRes
 import radio.ks3ckc.sstvaf.ui.components.radioSummaryLine
 import radio.ks3ckc.sstvaf.ui.components.selectBandIndex
+import radio.ks3ckc.sstvaf.ui.components.showsBandBar
 import radio.ks3ckc.sstvaf.ui.gallery.GalleryScreen
 import radio.ks3ckc.sstvaf.ui.logbook.LogbookScreen
 import radio.ks3ckc.sstvaf.ui.rx.RxScreen
-import radio.ks3ckc.sstvaf.ui.settings.RadioAudioSettings
 import radio.ks3ckc.sstvaf.ui.settings.SettingsScreen
 import radio.ks3ckc.sstvaf.ui.tx.TxComposeScreen
 import radio.ks3ckc.sstvaf.ui.wefax.WefaxScreen
 import radio.ks3ckc.sstvaf.gallery.ImageDirection
 
 /**
- * A full screen reached from the header's overflow sheet. These cover the whole
- * canvas — no tab bar, no dial chip — because they are places you go to read or
- * configure, not surfaces you operate a radio from.
- */
-private enum class AppScreen { SETTINGS, RADIO_AUDIO, LOGBOOK, WEFAX }
-
-/** Which bottom sheet the shell is showing, if any. */
-private enum class AppSheet { FREQUENCY, MORE }
-
-/**
- * The app shell: a Receive / Send / Gallery tab bar under a header carrying the
- * dial and an overflow button.
+ * The app shell: a Receive / Send / Gallery / Logbook / Settings tab bar under
+ * a title-only header, with the band selector ([BandBar]) between them on the
+ * operating tabs.
  *
- * Down from six tabs and a permanent TX strip. The strip is gone entirely (see
- * [AppHeader]) and Waterfall with it — SSTV puts its mode in the VIS header, so
- * the decoder reads the mode itself and there was nothing on that screen for an
- * operator to act on. Logbook and Settings moved into the overflow sheet
- * ([MoreSheet]), which leaves the bar carrying only the three screens an
- * operator actually works from.
+ * The header's top-right corner is empty on purpose. The frequency chip that
+ * lived there was the app's most-used control in its least obvious spot — it
+ * grew into the full-width BandBar. The overflow button next to it is gone
+ * with its sheet: every destination it held is a tab (Logbook, Settings) or a
+ * Settings category (Radio & audio, Operator), so there was nothing left to
+ * overflow.
  *
- * Navigation is three pieces of state: which [SstvTab] is active, which
- * [AppScreen] is covering it (if any), and which [AppSheet] is open (if any).
- * No NavHost — the tab content is a plain swap, as it has always been here.
+ * Navigation is two pieces of state: which [SstvTab] is active, and whether
+ * the band picker sheet is open. No NavHost — the tab content is a plain
+ * swap, as it has always been here.
  */
 @Composable
 fun SstvAfApp(mainViewModel: MainViewModel) {
     val context = LocalContext.current
     var activeTab by rememberSaveable { mutableStateOf(SstvTab.RX) }
-    var activeScreen by rememberSaveable { mutableStateOf<AppScreen?>(null) }
-    var activeSheet by rememberSaveable { mutableStateOf<AppSheet?>(null) }
+    var bandSheetVisible by rememberSaveable { mutableStateOf(false) }
 
     // Tune carrier state. TUNE now lives in the Frequency sheet rather than on a
     // permanently-visible strip, so it can't be hit by a stray thumb mid-QSO.
@@ -118,7 +104,7 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
         txLevel = ((volumeLive ?: GeneralVariables.volumePercent) * 100).toInt()
     }
 
-    // The dial, for the header chip and the sheet's selected row. bandIndex is
+    // The dial, for the band bar and the sheet's selected row. bandIndex is
     // observed so both recompose when the operator (or the rig) retunes.
     val bandIndex by GeneralVariables.mutableBandChange.observeAsState(GeneralVariables.bandListIndex)
     val freqHz = GeneralVariables.band
@@ -126,12 +112,11 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
         ?: OperationBand.bandList.firstOrNull { it.band == freqHz }?.waveLength
         ?: BaseRigOperation.getMeterFromFreq(freqHz)
         ?: ""
-    val frequencyLabel = frequencyChipLabel(freqHz, bandName)
     val catDotColor = headerCatDotColor(controlMode, catState)
     // The dot's text counterpart. Colour alone cannot answer "is the rig
     // actually talking to us" for a TalkBack user or anyone who cannot tell the
     // green from the amber, so the same state is carried as words into the
-    // chip's content description and the More sheet's radio row.
+    // band bar's content description and the Frequency sheet's status line.
     val catStateDescription = stringResource(catStateDescriptionRes(controlMode, catState))
 
     // Whether the Frequency sheet shows the TX level slider. Honours the
@@ -141,8 +126,7 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
         GeneralVariables.showTxVolumeSlider,
     )
 
-    // Live rig summary for the Frequency sheet's status line and the More
-    // sheet's radio row.
+    // Live rig summary for the Frequency sheet's status line.
     val rigNameList = remember { RigNameList.getInstance(context) }
     val rigName = remember(GeneralVariables.modelNo) {
         rigNameList.getRigNameByIndex(GeneralVariables.modelNo).name
@@ -154,14 +138,6 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
         controlLabel = controlLabel,
         connectionStateLabel = catStateDescription,
     )
-    val gridLive by GeneralVariables.mutableMyMaidenheadGrid.observeAsState(
-        GeneralVariables.getMyMaidenheadGrid(),
-    )
-    val operatorSummary = operatorSummaryLine(
-        callsign = GeneralVariables.myCallsign.orEmpty(),
-        grid = gridLive.orEmpty(),
-        fallbackCallsign = stringResource(R.string.op_no_call),
-    )
 
     // Observe SWR lockout state
     val swrLocked by mainViewModel.meterProtectionController.swrLockout.observeAsState(false)
@@ -172,11 +148,6 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
     // full height instead of losing it to the bottom bar (issue #20).
     val screenWidthDp = LocalConfiguration.current.screenWidthDp
     val useRail = AdaptiveShell.useNavigationRail(screenWidthDp)
-
-    // Back pops the screen layer before it reaches the activity's exit handler.
-    // Sheets install their own handler (see SstvAfBottomSheet), so an open sheet
-    // consumes Back first and this only fires once the sheet is gone.
-    BackHandler(enabled = activeScreen != null && activeSheet == null) { activeScreen = null }
 
     // The tab content is wrapped in movableContentOf so switching between the
     // bottom-bar and rail layouts (e.g. on rotation) re-parents the live screen
@@ -220,6 +191,9 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
                         activeTab = SstvTab.TX
                     },
                 )
+                SstvTab.WEFAX -> WefaxScreen(mainViewModel)
+                SstvTab.LOG -> LogbookScreen(mainViewModel)
+                SstvTab.SETTINGS -> SettingsScreen(mainViewModel)
             }
         }
     }
@@ -268,63 +242,41 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
                 }
             }
 
-            val screen = activeScreen
-            if (screen != null) {
-                // Full screen: it owns its own chrome (title + back chevron), and
-                // neither the tab bar nor the dial chip is shown.
-                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                    when (screen) {
-                        AppScreen.SETTINGS -> SettingsScreen(
-                            mainViewModel,
-                            onBack = { activeScreen = null },
-                        )
-                        AppScreen.RADIO_AUDIO -> RadioAudioSettings(
-                            mainViewModel,
-                            onBack = { activeScreen = null },
-                        )
-                        AppScreen.LOGBOOK -> LogbookScreen(
-                            mainViewModel,
-                            onBack = { activeScreen = null },
-                        )
-                        AppScreen.WEFAX -> WefaxScreen(
-                            mainViewModel,
-                            onBack = { activeScreen = null },
-                        )
-                    }
+            // The band bar rides under the header on the operating tabs only —
+            // Gallery, Logbook and Settings don't care what the dial says.
+            val bandBar: @Composable () -> Unit = {
+                if (showsBandBar(activeTab)) {
+                    BandBar(
+                        bandName = bandName,
+                        freqHz = freqHz,
+                        dotColor = catDotColor,
+                        catStateDescription = catStateDescription,
+                        onClick = { bandSheetVisible = true },
+                    )
                 }
-            } else if (useRail) {
+            }
+
+            if (useRail) {
                 // Wide layout: rail on the left, header + content fill the rest.
                 Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     TabRail(
                         activeTab = activeTab,
-                        onTabSelected = { activeTab = it; activeSheet = null },
+                        onTabSelected = { activeTab = it; bandSheetVisible = false },
                     )
                     Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                        AppHeader(
-                            title = stringResource(activeTab.labelRes),
-                            frequencyLabel = frequencyLabel,
-                            catDotColor = catDotColor,
-                            catStateDescription = catStateDescription,
-                            onOpenFrequency = { activeSheet = AppSheet.FREQUENCY },
-                            onOpenMore = { activeSheet = AppSheet.MORE },
-                        )
+                        AppHeader(title = stringResource(activeTab.labelRes))
+                        bandBar()
                         Box(modifier = Modifier.weight(1f).fillMaxWidth()) { content() }
                     }
                 }
             } else {
-                // Compact layout: header, content, then the bottom tab bar.
-                AppHeader(
-                    title = stringResource(activeTab.labelRes),
-                    frequencyLabel = frequencyLabel,
-                    catDotColor = catDotColor,
-                    catStateDescription = catStateDescription,
-                    onOpenFrequency = { activeSheet = AppSheet.FREQUENCY },
-                    onOpenMore = { activeSheet = AppSheet.MORE },
-                )
+                // Compact layout: header, band bar, content, then the tab bar.
+                AppHeader(title = stringResource(activeTab.labelRes))
+                bandBar()
                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) { content() }
                 TabBar(
                     activeTab = activeTab,
-                    onTabSelected = { activeTab = it; activeSheet = null },
+                    onTabSelected = { activeTab = it; bandSheetVisible = false },
                 )
             }
         }
@@ -338,7 +290,7 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
         // Sheets are siblings of the whole shell so their scrim covers the tab
         // bar and header too.
         FrequencyPickerSheet(
-            visible = activeSheet == AppSheet.FREQUENCY,
+            visible = bandSheetVisible,
             currentFreqHz = freqHz,
             catStatusLabel = radioSummary,
             catDotColor = catDotColor,
@@ -347,10 +299,10 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
             isTuning = isTuning,
             tuneRemainingSec = tuneRemainingSec,
             tuneMaxSeconds = GeneralVariables.tuneMaxOnSeconds,
-            onDismiss = { activeSheet = null },
+            onDismiss = { bandSheetVisible = false },
             onSelectBandIndex = { idx ->
                 selectBandIndex(mainViewModel, context, idx)
-                activeSheet = null
+                bandSheetVisible = false
             },
             onTxLevelChange = { newLevel ->
                 txLevel = newLevel
@@ -369,25 +321,6 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
                     mainViewModel.tuneOperator.stopTune()
                 } else {
                     mainViewModel.startTune()
-                }
-            },
-        )
-
-        MoreSheet(
-            visible = activeSheet == AppSheet.MORE,
-            radioSummary = radioSummary,
-            operatorSummary = operatorSummary,
-            onDismiss = { activeSheet = null },
-            onNavigate = { destination ->
-                activeSheet = null
-                activeScreen = when (destination) {
-                    MoreDestination.RADIO_AUDIO -> AppScreen.RADIO_AUDIO
-                    // Operator identity lives on the Settings landing, as the card
-                    // at the top; it gets its own sheet when Settings is rebuilt.
-                    MoreDestination.OPERATOR -> AppScreen.SETTINGS
-                    MoreDestination.LOGBOOK -> AppScreen.LOGBOOK
-                    MoreDestination.WEFAX -> AppScreen.WEFAX
-                    MoreDestination.SETTINGS -> AppScreen.SETTINGS
                 }
             },
         )

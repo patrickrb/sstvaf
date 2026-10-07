@@ -49,13 +49,6 @@
     <string name="cat_state_disconnected">не подключено</string>
     <string name="cat_state_error">ошибка подключения</string>
     <string name="cat_state_vox">нет CAT-связи</string>
-    <string name="header_more_description">Ещё: радио, оператор, журнал, настройки</string>
-    <string name="more_title">Ещё</string>
-    <string name="more_radio_audio">Радио и звук</string>
-    <string name="more_operator">Оператор</string>
-    <string name="more_logbook">Журнал</string>
-    <string name="more_logbook_sub">SSTV QSO · экспорт ADIF · Cloudlog</string>
-    <string name="more_wefax_sub">Приём метеофакса · сохраняется в галерею</string>
     <string name="wefax_start">Старт</string>
     <string name="wefax_stop">Стоп</string>
     <string name="wefax_status_idle">Готов</string>
@@ -66,8 +59,6 @@
     <string name="wefax_saved">Сохранено в галерею — %1$s</string>
     <string name="wefax_canvas_description">Принятый метеофакс</string>
     <string name="wefax_canvas_empty">Полоса факса появится здесь</string>
-    <string name="more_settings">Настройки</string>
-    <string name="more_settings_sub">Всё остальное</string>
     <string name="freq_sheet_title">Частота</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">ночь</string>
@@ -173,7 +164,6 @@
     <string name="log_tab_stats">Статистика</string>
     <string name="log_tab_recent">Недавние</string>
     <string name="log_tab_awards">Дипломы</string>
-    <string name="log_title">Журнал</string>
     <string name="log_subtitle_qsos_all_bands">%1$d QSOs · Все диапазоны</string>
     <string name="log_cd_sync_to_logging_services">Синхронизация со службами журналов</string>
     <string name="log_cd_export_qsos">Экспорт QSOs</string>
@@ -189,6 +179,7 @@
     <string name="log_section_grid_coverage">Охват квадратов</string>
     <string name="log_section_signal_trend">Динамика сигнала</string>
     <string name="log_no_qsos_yet">Пока нет QSOs</string>
+    <string name="log_signal_trend_no_data">Пока недостаточно рапортов сигнала для графика</string>
     <string name="log_no_qsos_recorded_yet">QSOs пока не записаны</string>
     <string name="log_search_placeholder">Поиск по позывному, локатору, диапазону…</string>
     <string name="log_search_no_matches">Нет QSO по запросу «%1$s»</string>
@@ -558,6 +549,8 @@
     <string name="rx_status_save_failed">Ошибка сохранения</string>
     <string name="rx_status_lost">Сигнал потерян</string>
     <string name="rx_status_auto_detect">автоопределение</string>
+    <string name="rx_mode_lock_auto">Авто</string>
+    <string name="rx_mode_lock_auto_option">Авто (определение VIS)</string>
     <string name="rx_quality_value">Качество %1$s</string>
     <string name="rx_received_today">ПРИНЯТО СЕГОДНЯ</string>
     <string name="rx_received_all">Все</string>
@@ -565,6 +558,9 @@
     <string name="settings_save_rx_photos">Сохранять принятые изображения в Photos</string>
     <string name="settings_save_rx_photos_desc">Готовые изображения SSTV также появляются в приложении Photos в разделе Pictures/SSTVAF (Android 10+)</string>
     <string name="tab_gallery">Галерея</string>
+    <string name="tab_settings">Настройки</string>
+    <string name="band_bar_caption">Диапазон и частота</string>
+    <string name="tab_logbook">Журнал</string>
     <string name="gallery_filter_all">Все</string>
     <string name="gallery_filter_rx">Принятые</string>
     <string name="gallery_filter_tx">Отправленные</string>

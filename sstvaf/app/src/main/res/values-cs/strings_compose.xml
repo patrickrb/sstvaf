@@ -49,13 +49,6 @@
     <string name="cat_state_disconnected">nepřipojeno</string>
     <string name="cat_state_error">chyba připojení</string>
     <string name="cat_state_vox">žádné CAT spojení</string>
-    <string name="header_more_description">Více: rádio, operátor, deník, nastavení</string>
-    <string name="more_title">Více</string>
-    <string name="more_radio_audio">Rádio &amp; zvuk</string>
-    <string name="more_operator">Operátor</string>
-    <string name="more_logbook">Deník</string>
-    <string name="more_logbook_sub">SSTV QSO · export ADIF · Cloudlog</string>
-    <string name="more_wefax_sub">Příjem meteofaxu · ukládá se do galerie</string>
     <string name="wefax_start">Spustit</string>
     <string name="wefax_stop">Zastavit</string>
     <string name="wefax_status_idle">Připraveno</string>
@@ -66,8 +59,6 @@
     <string name="wefax_saved">Uloženo do galerie — %1$s</string>
     <string name="wefax_canvas_description">Přijatý meteofax</string>
     <string name="wefax_canvas_empty">Zde se zobrazí faxový pás</string>
-    <string name="more_settings">Nastavení</string>
-    <string name="more_settings_sub">Vše ostatní</string>
     <string name="freq_sheet_title">Frekvence</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">noc</string>
@@ -173,7 +164,6 @@
     <string name="log_tab_stats">Statistiky</string>
     <string name="log_tab_recent">Nedávné</string>
     <string name="log_tab_awards">Diplomy</string>
-    <string name="log_title">Deník</string>
     <string name="log_subtitle_qsos_all_bands">%1$d QSOs · Všechna pásma</string>
     <string name="log_cd_sync_to_logging_services">Synchronizovat s logovacími službami</string>
     <string name="log_cd_export_qsos">Exportovat QSOs</string>
@@ -189,6 +179,7 @@
     <string name="log_section_grid_coverage">Pokrytí lokátorů</string>
     <string name="log_section_signal_trend">Trend signálu</string>
     <string name="log_no_qsos_yet">Zatím žádná QSOs</string>
+    <string name="log_signal_trend_no_data">Zatím není dost reportů signálu pro graf</string>
     <string name="log_no_qsos_recorded_yet">Zatím nezaznamenána žádná QSOs</string>
     <string name="log_search_placeholder">Hledat volací znak, lokátor, pásmo…</string>
     <string name="log_search_no_matches">Žádné QSO neodpovídá „%1$s“</string>
@@ -558,6 +549,8 @@
     <string name="rx_status_save_failed">Uložení selhalo</string>
     <string name="rx_status_lost">Signál ztracen</string>
     <string name="rx_status_auto_detect">automatická detekce</string>
+    <string name="rx_mode_lock_auto">Auto</string>
+    <string name="rx_mode_lock_auto_option">Automaticky (detekce VIS)</string>
     <string name="rx_quality_value">Kvalita %1$s</string>
     <string name="rx_received_today">PŘIJATO DNES</string>
     <string name="rx_received_all">Vše</string>
@@ -565,6 +558,9 @@
     <string name="settings_save_rx_photos">Ukládat přijaté obrázky do Photos</string>
     <string name="settings_save_rx_photos_desc">Dokončené obrázky SSTV se objeví také v aplikaci Photos ve složce Pictures/SSTVAF (Android 10+)</string>
     <string name="tab_gallery">Galerie</string>
+    <string name="tab_settings">Nastavení</string>
+    <string name="band_bar_caption">Pásmo a frekvence</string>
+    <string name="tab_logbook">Deník</string>
     <string name="gallery_filter_all">Vše</string>
     <string name="gallery_filter_rx">Přijaté</string>
     <string name="gallery_filter_tx">Odeslané</string>

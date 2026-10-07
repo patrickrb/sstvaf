@@ -49,13 +49,6 @@
     <string name="cat_state_disconnected">non connecté</string>
     <string name="cat_state_error">erreur de connexion</string>
     <string name="cat_state_vox">pas de liaison CAT</string>
-    <string name="header_more_description">Plus : radio, opérateur, journal, réglages</string>
-    <string name="more_title">Plus</string>
-    <string name="more_radio_audio">Radio &amp; audio</string>
-    <string name="more_operator">Opérateur</string>
-    <string name="more_logbook">Journal</string>
-    <string name="more_logbook_sub">QSO SSTV · export ADIF · Cloudlog</string>
-    <string name="more_wefax_sub">Réception de fax météo · enregistré dans la galerie</string>
     <string name="wefax_start">Démarrer</string>
     <string name="wefax_stop">Arrêter</string>
     <string name="wefax_status_idle">Prêt</string>
@@ -66,8 +59,6 @@
     <string name="wefax_saved">Enregistré dans la galerie — %1$s</string>
     <string name="wefax_canvas_description">Fax météo reçu</string>
     <string name="wefax_canvas_empty">La bande de fax apparaîtra ici</string>
-    <string name="more_settings">Réglages</string>
-    <string name="more_settings_sub">Tout le reste</string>
     <string name="freq_sheet_title">Fréquence</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">nuit</string>
@@ -173,7 +164,6 @@
     <string name="log_tab_stats">Statistiques</string>
     <string name="log_tab_recent">Récents</string>
     <string name="log_tab_awards">Diplômes</string>
-    <string name="log_title">Journal</string>
     <string name="log_subtitle_qsos_all_bands">%1$d QSOs · Toutes bandes</string>
     <string name="log_cd_sync_to_logging_services">Synchroniser avec les services de journalisation</string>
     <string name="log_cd_export_qsos">Exporter les QSOs</string>
@@ -189,6 +179,7 @@
     <string name="log_section_grid_coverage">Couverture des grilles</string>
     <string name="log_section_signal_trend">Tendance du signal</string>
     <string name="log_no_qsos_yet">Aucun QSO pour le moment</string>
+    <string name="log_signal_trend_no_data">Pas encore assez de reports de signal pour tracer une courbe</string>
     <string name="log_no_qsos_recorded_yet">Aucun QSO enregistré pour le moment</string>
     <string name="log_search_placeholder">Rechercher indicatif, locator, bande…</string>
     <string name="log_search_no_matches">Aucun QSO ne correspond à « %1$s »</string>
@@ -558,6 +549,8 @@
     <string name="rx_status_save_failed">Échec de l\'enregistrement</string>
     <string name="rx_status_lost">Signal perdu</string>
     <string name="rx_status_auto_detect">détection auto</string>
+    <string name="rx_mode_lock_auto">Auto</string>
+    <string name="rx_mode_lock_auto_option">Auto (détection VIS)</string>
     <string name="rx_quality_value">Qualité %1$s</string>
     <string name="rx_received_today">REÇUES AUJOURD\'HUI</string>
     <string name="rx_received_all">Toutes</string>
@@ -565,6 +558,9 @@
     <string name="settings_save_rx_photos">Enregistrer les images reçues dans Photos</string>
     <string name="settings_save_rx_photos_desc">Les images SSTV terminées apparaissent aussi dans l\'application Photos sous Pictures/SSTVAF (Android 10+)</string>
     <string name="tab_gallery">Galerie</string>
+    <string name="tab_settings">Réglages</string>
+    <string name="band_bar_caption">Bande et fréquence</string>
+    <string name="tab_logbook">Journal</string>
     <string name="gallery_filter_all">Toutes</string>
     <string name="gallery_filter_rx">Reçues</string>
     <string name="gallery_filter_tx">Envoyées</string>
