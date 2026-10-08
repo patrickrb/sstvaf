@@ -95,6 +95,7 @@ struct sstv_decoder {
 
     int status;
     const sstv_mode_t* mode;
+    int forced_mode;          // operator mode lock (SSTV_MODE_*), -1 = auto
     double f_off;             // tuning offset (f_cal - 1900), pre-VIS states
 
     // Two-point frequency calibration, fixed at VIS time: the measured
@@ -288,6 +289,7 @@ sstv_decoder_t* sstv_decoder_create(int sample_rate)
     d->cal0 = SSTV_FREQ_SYNC;
     d->cal_slope = 1.0;
     d->status = SSTV_STATUS_IDLE;
+    d->forced_mode = -1;
     return d;
 }
 
@@ -320,6 +322,22 @@ void sstv_decoder_reset(sstv_decoder_t* d)
     d->coh_tot = d->coh_good = 0;
     d->rows_done = 0;
     d->r36_have0 = 0;
+    // d->forced_mode is deliberately NOT cleared: the mode lock is an
+    // operator setting that must survive the between-frames reset the RX
+    // engine issues after every decode.
+}
+
+int sstv_decoder_set_forced_mode(sstv_decoder_t* d, int mode_id)
+{
+    if (!d) return SSTV_ERR_BAD_ARGS;
+    if (mode_id != -1 && !sstv_mode_get(mode_id)) return SSTV_ERR_BAD_ARGS;
+    d->forced_mode = mode_id;
+    return 0;
+}
+
+int sstv_decoder_forced_mode(const sstv_decoder_t* d)
+{
+    return d ? d->forced_mode : -1;
 }
 
 void sstv_decoder_destroy(sstv_decoder_t* d)
@@ -650,10 +668,51 @@ static void vis_reject(sstv_decoder_t* d)
     d->status = SSTV_STATUS_IDLE;
 }
 
+// Accept `m` as the transmission's mode and enter IMAGE: allocate the frame
+// buffers and anchor the line timing at the end of the VIS stop bit (t0 is
+// the start-bit leading edge, µs).
+static void vis_accept(sstv_decoder_t* d, const sstv_mode_t* m, double t0)
+{
+    d->mode = m;
+    free_image_state(d);
+    d->image = (uint32_t*)calloc((size_t)m->width * (size_t)m->height,
+                                 sizeof(uint32_t));
+    d->comp_pool = (uint8_t*)malloc((size_t)SSTV_COMP_COUNT * (size_t)m->width);
+    d->r36_y0 = (uint8_t*)malloc((size_t)m->width);
+    d->r36_c0 = (uint8_t*)malloc((size_t)m->width);
+    if (!d->image || !d->comp_pool || !d->r36_y0 || !d->r36_c0) {
+        free_image_state(d);
+        d->mode = 0;
+        vis_reject(d);
+        return;
+    }
+    for (int i = 0; i < SSTV_COMP_COUNT; i++) {
+        d->comp[i] = d->comp_pool + (size_t)i * m->width;
+    }
+
+    d->rows_done = 0;
+    d->r36_have0 = 0;
+    d->n_frames = m->height / m->rows_per_frame;
+    d->frame_idx = 0;
+    d->T_nom = m->line_us;
+    d->t_img = t0 + 10.0 * VIS_CELL_US + m->starting_sync_us;
+    d->B = d->T_nom;
+    d->A = d->t_img + m->sync_offset_us + m->sync_us * 0.5;
+    d->reg_n = 0;
+    d->reg_pos = 0;
+    d->miss_streak = 0;
+    d->sync_attempts = d->sync_hits = 0;
+    d->coh_tot = d->coh_good = 0;
+    d->mag_base = d->mag_ema;
+    d->status = SSTV_STATUS_IMAGE;
+    d->wait_n = d->n;  // image_step computes its own needs
+}
+
 static void vis_evaluate(sstv_decoder_t* d)
 {
     double t0 = t_of(d, d->vis_t0);
     int code = 0, ones = 0;
+    int forced = d->forced_mode >= 0;
 
     // Fix the two-point calibration: the leader mean anchored 1900 Hz
     // (f_off); the start bit's own body anchors 1200 Hz. Under noise the
@@ -663,12 +722,32 @@ static void vis_evaluate(sstv_decoder_t* d)
     double m_s = win_mean_det(d, t0 + 5000.0, t0 + 25000.0);
     double slope = (m_l - m_s) / (SSTV_FREQ_LEADER - SSTV_FREQ_SYNC);
     if (slope < 0.7 || slope > 1.3) {
-        // Not a credible start bit level.
-        vis_reject(d);
-        return;
+        if (!forced) {
+            // Not a credible start bit level.
+            vis_reject(d);
+            return;
+        }
+        // Locked mode: the operator asserts a transmission is here, so a
+        // start bit too garbled to calibrate on falls back to the plain
+        // leader offset instead of rejecting the header.
+        m_s = SSTV_FREQ_SYNC + d->f_off;
+        slope = 1.0;
     }
     d->cal0 = m_s;
     d->cal_slope = slope;
+
+    // The operator's mode lock bypasses the VIS payload entirely — the
+    // header found above still anchors timing and calibration, but the
+    // data/parity/stop cells (the parts QRM garbles first) are not read.
+    if (forced) {
+        const sstv_mode_t* fm = sstv_mode_get(d->forced_mode);
+        if (fm) {
+            vis_accept(d, fm, t0);
+            return;
+        }
+        vis_reject(d);  // unreachable: the setter validates the id
+        return;
+    }
 
     // 1100/1300 Hz sit symmetrically around 1200, so the calibrated split
     // is exactly the measured start-bit level.
@@ -715,40 +794,7 @@ static void vis_evaluate(sstv_decoder_t* d)
         return;
     }
 
-    // Accept.
-    d->mode = m;
-    free_image_state(d);
-    d->image = (uint32_t*)calloc((size_t)m->width * (size_t)m->height,
-                                 sizeof(uint32_t));
-    d->comp_pool = (uint8_t*)malloc((size_t)SSTV_COMP_COUNT * (size_t)m->width);
-    d->r36_y0 = (uint8_t*)malloc((size_t)m->width);
-    d->r36_c0 = (uint8_t*)malloc((size_t)m->width);
-    if (!d->image || !d->comp_pool || !d->r36_y0 || !d->r36_c0) {
-        free_image_state(d);
-        d->mode = 0;
-        vis_reject(d);
-        return;
-    }
-    for (int i = 0; i < SSTV_COMP_COUNT; i++) {
-        d->comp[i] = d->comp_pool + (size_t)i * m->width;
-    }
-
-    d->rows_done = 0;
-    d->r36_have0 = 0;
-    d->n_frames = m->height / m->rows_per_frame;
-    d->frame_idx = 0;
-    d->T_nom = m->line_us;
-    d->t_img = t0 + 10.0 * VIS_CELL_US + m->starting_sync_us;
-    d->B = d->T_nom;
-    d->A = d->t_img + m->sync_offset_us + m->sync_us * 0.5;
-    d->reg_n = 0;
-    d->reg_pos = 0;
-    d->miss_streak = 0;
-    d->sync_attempts = d->sync_hits = 0;
-    d->coh_tot = d->coh_good = 0;
-    d->mag_base = d->mag_ema;
-    d->status = SSTV_STATUS_IMAGE;
-    d->wait_n = d->n;  // image_step computes its own needs
+    vis_accept(d, m, t0);
 }
 
 // ---------------------------------------------------------------------------

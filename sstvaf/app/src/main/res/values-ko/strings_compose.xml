@@ -49,12 +49,23 @@
     <string name="cat_state_disconnected">연결 안 됨</string>
     <string name="cat_state_error">연결 오류</string>
     <string name="cat_state_vox">CAT 링크 없음</string>
-    <string name="header_more_description">더보기: 무전기, 운용자, 로그북</string>
-    <string name="more_title">더보기</string>
-    <string name="more_radio_audio">무전기 &amp; 오디오</string>
-    <string name="more_operator">운용자</string>
-    <string name="more_logbook">로그북</string>
-    <string name="more_logbook_sub">SSTV QSO · ADIF 내보내기 · Cloudlog</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">닫기</string>
+    <string name="a11y_stepper_decrease">%1$s 줄이기</string>
+    <string name="a11y_stepper_increase">%1$s 늘리기</string>
+    <string name="a11y_show_password">비밀번호 표시</string>
+    <string name="a11y_hide_password">비밀번호 숨기기</string>
+    <string name="log_heatmap_description">그리드 맵: %2$d개 필드 중 %1$d개 교신 완료</string>
+    <string name="wefax_start">시작</string>
+    <string name="wefax_stop">중지</string>
+    <string name="wefax_status_idle">준비됨</string>
+    <string name="wefax_status_listening">페이징 대기 중…</string>
+    <string name="wefax_status_receiving">수신 중</string>
+    <string name="wefax_status_stopped">중지됨</string>
+    <string name="wefax_rows_format">%1$d줄</string>
+    <string name="wefax_saved">갤러리에 저장됨 — %1$s</string>
+    <string name="wefax_canvas_description">수신된 기상 팩스</string>
+    <string name="wefax_canvas_empty">팩스 스트립이 여기에 표시됩니다</string>
     <string name="freq_sheet_title">주파수</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">야간</string>
@@ -160,7 +171,6 @@
     <string name="log_tab_stats">통계</string>
     <string name="log_tab_recent">최근</string>
     <string name="log_tab_awards">어워드</string>
-    <string name="log_title">로그북</string>
     <string name="log_subtitle_qsos_all_bands">%1$d QSO · 전 밴드</string>
     <string name="log_cd_sync_to_logging_services">로깅 서비스에 동기화</string>
     <string name="log_cd_export_qsos">QSO 내보내기</string>
@@ -176,6 +186,7 @@
     <string name="log_section_grid_coverage">그리드 커버리지</string>
     <string name="log_section_signal_trend">신호 추이</string>
     <string name="log_no_qsos_yet">아직 QSO 없음</string>
+    <string name="log_signal_trend_no_data">차트를 그리기에 신호 리포트가 아직 부족합니다</string>
     <string name="log_no_qsos_recorded_yet">아직 기록된 QSO 없음</string>
     <string name="log_search_placeholder">콜사인, 그리드, 밴드 검색…</string>
     <string name="log_search_no_matches">“%1$s”에 일치하는 QSO가 없습니다</string>
@@ -545,6 +556,8 @@
     <string name="rx_status_save_failed">저장 실패</string>
     <string name="rx_status_lost">신호 손실</string>
     <string name="rx_status_auto_detect">자동 감지</string>
+    <string name="rx_mode_lock_auto">자동</string>
+    <string name="rx_mode_lock_auto_option">자동 (VIS 감지)</string>
     <string name="rx_quality_value">품질 %1$s</string>
     <string name="rx_received_today">오늘 수신</string>
     <string name="rx_received_all">전체</string>
@@ -553,6 +566,8 @@
     <string name="settings_save_rx_photos_desc">완성된 SSTV 이미지가 Photos 앱의 Pictures/SSTVAF에도 표시됩니다(Android 10 이상)</string>
     <string name="tab_gallery">갤러리</string>
     <string name="tab_settings">설정</string>
+    <string name="band_bar_caption">밴드 및 주파수</string>
+    <string name="tab_logbook">로그북</string>
     <string name="gallery_filter_all">전체</string>
     <string name="gallery_filter_rx">수신</string>
     <string name="gallery_filter_tx">송신</string>
@@ -693,6 +708,8 @@
     <string name="mode_group_fast">빠름 · 1분 이내</string>
     <string name="mode_group_standard">표준</string>
     <string name="mode_group_high_resolution">고해상도</string>
+    <string name="mode_group_digital">디지털 · 베타</string>
+    <string name="mode_digital_sub">오류 정정이 있는 압축 사진 — SSTVAF 전용</string>
     <string name="mode_note_most_common">20m에서 가장 일반적</string>
     <string name="mode_card_label">모드</string>
     <string name="mode_card_description">SSTV 모드 %1$s</string>

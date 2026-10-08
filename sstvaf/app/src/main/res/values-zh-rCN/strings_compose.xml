@@ -49,12 +49,23 @@
     <string name="cat_state_disconnected">未连接</string>
     <string name="cat_state_error">连接错误</string>
     <string name="cat_state_vox">无 CAT 链接</string>
-    <string name="header_more_description">更多：电台、操作员、日志</string>
-    <string name="more_title">更多</string>
-    <string name="more_radio_audio">电台和音频</string>
-    <string name="more_operator">操作员</string>
-    <string name="more_logbook">日志</string>
-    <string name="more_logbook_sub">SSTV QSO · ADIF 导出 · Cloudlog</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">关闭</string>
+    <string name="a11y_stepper_decrease">减小%1$s</string>
+    <string name="a11y_stepper_increase">增大%1$s</string>
+    <string name="a11y_show_password">显示密码</string>
+    <string name="a11y_hide_password">隐藏密码</string>
+    <string name="log_heatmap_description">网格地图：已通联 %2$d 个字段中的 %1$d 个</string>
+    <string name="wefax_start">开始</string>
+    <string name="wefax_stop">停止</string>
+    <string name="wefax_status_idle">就绪</string>
+    <string name="wefax_status_listening">等待相位同步…</string>
+    <string name="wefax_status_receiving">接收中</string>
+    <string name="wefax_status_stopped">已停止</string>
+    <string name="wefax_rows_format">%1$d 行</string>
+    <string name="wefax_saved">已保存到图库 — %1$s</string>
+    <string name="wefax_canvas_description">收到的气象传真</string>
+    <string name="wefax_canvas_empty">传真条带将显示在此处</string>
     <string name="freq_sheet_title">频率</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">夜间</string>
@@ -160,7 +171,6 @@
     <string name="log_tab_stats">统计</string>
     <string name="log_tab_recent">最近</string>
     <string name="log_tab_awards">奖项</string>
-    <string name="log_title">日志本</string>
     <string name="log_subtitle_qsos_all_bands">%1$d 个 QSO · 全部波段</string>
     <string name="log_cd_sync_to_logging_services">同步到日志服务</string>
     <string name="log_cd_export_qsos">导出 QSO</string>
@@ -176,6 +186,7 @@
     <string name="log_section_grid_coverage">网格覆盖</string>
     <string name="log_section_signal_trend">信号趋势</string>
     <string name="log_no_qsos_yet">还没有 QSO</string>
+    <string name="log_signal_trend_no_data">信号报告还不足以绘制图表</string>
     <string name="log_no_qsos_recorded_yet">尚未记录任何 QSO</string>
     <string name="log_search_placeholder">搜索呼号、网格、波段…</string>
     <string name="log_search_no_matches">没有与“%1$s”匹配的 QSO</string>
@@ -545,6 +556,8 @@
     <string name="rx_status_save_failed">保存失败</string>
     <string name="rx_status_lost">信号丢失</string>
     <string name="rx_status_auto_detect">自动检测</string>
+    <string name="rx_mode_lock_auto">自动</string>
+    <string name="rx_mode_lock_auto_option">自动（VIS 检测）</string>
     <string name="rx_quality_value">质量 %1$s</string>
     <string name="rx_received_today">今日接收</string>
     <string name="rx_received_all">全部</string>
@@ -553,6 +566,8 @@
     <string name="settings_save_rx_photos_desc">已完成的 SSTV 图像也会显示在 Photos 应用的 Pictures/SSTVAF 下（Android 10+）</string>
     <string name="tab_gallery">图库</string>
     <string name="tab_settings">设置</string>
+    <string name="band_bar_caption">波段与频率</string>
+    <string name="tab_logbook">日志</string>
     <string name="gallery_filter_all">全部</string>
     <string name="gallery_filter_rx">已接收</string>
     <string name="gallery_filter_tx">已发送</string>
@@ -693,6 +708,8 @@
     <string name="mode_group_fast">快速 · 一分钟以内</string>
     <string name="mode_group_standard">标准</string>
     <string name="mode_group_high_resolution">高分辨率</string>
+    <string name="mode_group_digital">数字 · 测试版</string>
+    <string name="mode_digital_sub">带纠错的压缩照片 — 仅限 SSTVAF</string>
     <string name="mode_note_most_common">在 20m 上最常见</string>
     <string name="mode_card_label">模式</string>
     <string name="mode_card_description">SSTV 模式 %1$s</string>

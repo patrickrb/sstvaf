@@ -280,4 +280,125 @@ class SstvSignalListenerTest {
         assertThat(logs.any { it.contains("NOT attached") }).isTrue()
         listener.stop()
     }
+
+    @Test
+    fun digitalTransmissionOnTheTapPublishesADigitalResult() {
+        val listener = newListener(queueCapacity = 16)
+        listener.startDirect()
+
+        val payload = ByteArray(500) { (it * 7).toByte() }
+        val image = radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvCodec.Image(
+            radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvCodec.Format.JPEG, 160, 120, payload,
+        )
+        val onAir = radio.ks3ckc.sstvaf.sstv.digital.upsampleForDeviceRate(
+            radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvCodec(
+                radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode.STANDARD,
+            ).encode(image),
+            12000,
+        )
+        val audio = FloatArray(6000) + onAir + FloatArray(18000) // lead + tail silence
+
+        var pos = 0
+        while (pos < audio.size) {
+            val take = 2400.coerceAtMost(audio.size - pos)
+            listener.onAudioBuffer(audio.copyOfRange(pos, pos + take), take)
+            listener.stepOnce(0)
+            pos += take
+        }
+        shadowOf(Looper.getMainLooper()).idle()
+
+        val result = listener.digitalResult.value
+        assertThat(result).isNotNull()
+        assertThat(result!!.payload).isEqualTo(payload)
+        assertThat(result.mode)
+            .isEqualTo(radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode.STANDARD)
+        listener.stop()
+    }
+
+    @Test
+    fun modeLockReachesTheLiveSessionImmediately() {
+        val listener = newListener()
+        listener.startDirect()
+
+        listener.setModeLock(SstvMode.MARTIN_2)
+
+        assertThat(codec.forcedMode).isEqualTo(SstvMode.MARTIN_2)
+        assertThat(listener.modeLock()).isEqualTo(SstvMode.MARTIN_2)
+        assertThat(logs.any { it.contains("mode lock Martin 2") }).isTrue()
+        listener.stop()
+    }
+
+    @Test
+    fun digitalFramesAlsoArriveOnTheDirectCallback() {
+        // The direct callback is the durable per-frame handoff (postValue
+        // coalesces); it must fire for the same frame the LiveData carries.
+        val listener = newListener(queueCapacity = 16)
+        val delivered = mutableListOf<radio.ks3ckc.sstvaf.sstv.digital.DigitalRxImage>()
+        listener.onDigitalImage = { delivered += it }
+        listener.startDirect()
+
+        val payload = ByteArray(300) { (it * 3).toByte() }
+        val image = radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvCodec.Image(
+            radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvCodec.Format.JPEG, 80, 60, payload,
+        )
+        val onAir = radio.ks3ckc.sstvaf.sstv.digital.upsampleForDeviceRate(
+            radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvCodec(
+                radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode.FAST,
+            ).encode(image),
+            12000,
+        )
+        val audio = FloatArray(6000) + onAir + FloatArray(18000)
+        var pos = 0
+        while (pos < audio.size) {
+            val take = 2400.coerceAtMost(audio.size - pos)
+            listener.onAudioBuffer(audio.copyOfRange(pos, pos + take), take)
+            listener.stepOnce(0)
+            pos += take
+        }
+
+        assertThat(delivered).hasSize(1)
+        assertThat(delivered.single().payload).isEqualTo(payload)
+        listener.stop()
+        shadowOf(Looper.getMainLooper()).idle()
+    }
+
+    @Test
+    fun modeLockSetBeforeStartIsAppliedToTheNewSession() {
+        val listener = newListener()
+        listener.setModeLock(SstvMode.SCOTTIE_1)
+        assertThat(codec.setForcedModeCalls).isEqualTo(0) // no session yet
+
+        listener.startDirect()
+
+        assertThat(codec.forcedMode).isEqualTo(SstvMode.SCOTTIE_1)
+        assertThat(codec.setForcedModeCalls).isEqualTo(1)
+        listener.stop()
+    }
+
+    @Test
+    fun clearingTheModeLockRestoresAutoOnTheSession() {
+        val listener = newListener()
+        listener.startDirect()
+        listener.setModeLock(SstvMode.MARTIN_2)
+
+        listener.setModeLock(null)
+
+        assertThat(codec.forcedMode).isNull()
+        assertThat(listener.modeLock()).isNull()
+        assertThat(logs.any { it.contains("mode lock off (auto VIS)") }).isTrue()
+        listener.stop()
+    }
+
+    @Test
+    fun settingTheSameModeLockTwiceIsANoOp() {
+        val listener = newListener()
+        listener.startDirect()
+        listener.setModeLock(SstvMode.MARTIN_2)
+        val callsAfterFirst = codec.setForcedModeCalls
+
+        listener.setModeLock(SstvMode.MARTIN_2)
+
+        assertThat(codec.setForcedModeCalls).isEqualTo(callsAfterFirst)
+        listener.stop()
+    }
 }

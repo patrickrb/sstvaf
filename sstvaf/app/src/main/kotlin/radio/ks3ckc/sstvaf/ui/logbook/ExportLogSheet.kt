@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
@@ -345,7 +346,7 @@ private fun PrimaryActionButton(
             .height(46.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(if (enabled) Accent else AccentSoft)
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -370,7 +371,7 @@ private fun SecondaryActionButton(
             .clip(RoundedCornerShape(12.dp))
             .background(BgSurface3)
             .border(1.dp, Border, RoundedCornerShape(12.dp))
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(

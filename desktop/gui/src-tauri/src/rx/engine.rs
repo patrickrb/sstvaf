@@ -19,6 +19,7 @@ use serde::Serialize;
 
 use crate::dsp::decoder::DecodeStatus;
 use crate::modes::ModeInfo;
+use crate::rx::save::CompletedFrame;
 use crate::rx::session::SstvSession;
 
 /// What the receiver is doing, as shown on the RX screen.
@@ -68,6 +69,8 @@ pub enum RxEvent {
     },
     Info(String),
     Error(String),
+    /// A completed decode was written to disk by the auto-saver.
+    Saved { path: String, filename: String },
 }
 
 pub struct RxEngine<S: SstvSession> {
@@ -78,6 +81,11 @@ pub struct RxEngine<S: SstvSession> {
     /// How many rows have already been sent to the UI this transmission.
     rows_sent: usize,
     vis_logged: bool,
+    /// The full-frame snapshot of the last COMPLETE decode, waiting for the
+    /// auto-saver to collect it. Aborts never populate this, and
+    /// [`take_completed_frame`](RxEngine::take_completed_frame) empties it, so
+    /// each finished image is handed out at most once.
+    completed: Option<CompletedFrame>,
 }
 
 impl<S: SstvSession> RxEngine<S> {
@@ -88,11 +96,19 @@ impl<S: SstvSession> RxEngine<S> {
             hold_terminal: false,
             rows_sent: 0,
             vis_logged: false,
+            completed: None,
         }
     }
 
     pub fn state(&self) -> &RxState {
         &self.state
+    }
+
+    /// Collect the snapshot of the last completed decode, if one is waiting.
+    /// Destructive on purpose: whoever takes the frame owns saving it, and a
+    /// second call cannot save the same image twice.
+    pub fn take_completed_frame(&mut self) -> Option<CompletedFrame> {
+        self.completed.take()
     }
 
     /// Feed captured audio blocks and poll the decoder once. Returns the events
@@ -193,6 +209,11 @@ impl<S: SstvSession> RxEngine<S> {
                         "image complete — {} rows={rows} quality={quality:.2}",
                         m.name
                     )));
+                    // Snapshot the whole frame for the auto-saver NOW — the
+                    // reset below discards it. Only this branch snapshots:
+                    // aborted/partial frames are deliberately never saved
+                    // (parity with the Android RxAutoSaveController).
+                    self.snapshot_completed(m, rows, quality);
                     RxState::Complete {
                         mode: *m,
                         rows,
@@ -219,6 +240,28 @@ impl<S: SstvSession> RxEngine<S> {
         self.hold_terminal = true;
         self.rows_sent = 0;
         self.vis_logged = false;
+    }
+
+    /// Copy the finished image out of the session into [`Self::completed`].
+    /// A cheap in-memory copy (~300 KB for Robot 36), so it stays on the
+    /// decode thread; the file write it feeds happens elsewhere.
+    fn snapshot_completed(&mut self, mode: &ModeInfo, rows: usize, quality: f32) {
+        let keep = rows.min(mode.height as usize);
+        if keep == 0 {
+            return;
+        }
+        let mut pixels = vec![0u32; keep * mode.width as usize];
+        let copied = self.session.read_rows(0, keep, &mut pixels);
+        if copied == 0 {
+            return;
+        }
+        pixels.truncate(copied * mode.width as usize);
+        self.completed = Some(CompletedFrame {
+            mode: *mode,
+            rows: copied,
+            pixels,
+            quality,
+        });
     }
 
     /// Publish a state, suppressing repeats so the UI isn't spammed 4x/second
@@ -590,6 +633,10 @@ mod tests {
             },
             RxEvent::Info("hunting".into()),
             RxEvent::Error("audio queue overflow".into()),
+            RxEvent::Saved {
+                path: "/home/op/Pictures/SSTVAF/sstv-20260929-134502-R36.png".into(),
+                filename: "sstv-20260929-134502-R36.png".into(),
+            },
         ];
         for ev in events {
             let json = serde_json::to_value(&ev).expect("event must serialize");
@@ -610,6 +657,89 @@ mod tests {
         assert_eq!(json["data"]["kind"], "complete");
         assert_eq!(json["data"]["mode"]["short_code"], "R36");
         assert_eq!(json["data"]["rows"], 240);
+    }
+
+    #[test]
+    fn saved_events_carry_path_and_filename_under_their_tag() {
+        let json = serde_json::to_value(RxEvent::Saved {
+            path: "/p/sstv-20260929-134502-R36.png".into(),
+            filename: "sstv-20260929-134502-R36.png".into(),
+        })
+        .unwrap();
+        assert_eq!(json["event"], "saved");
+        assert_eq!(json["data"]["filename"], "sstv-20260929-134502-R36.png");
+        assert_eq!(json["data"]["path"], "/p/sstv-20260929-134502-R36.png");
+    }
+
+    #[test]
+    fn a_complete_decode_snapshots_the_full_frame_exactly_once() {
+        let mut s = FakeSession::decoding(robot36(), 240);
+        s.status = DecodeStatus::Done;
+        s.quality = 0.9;
+        let mut e = RxEngine::new(s);
+        e.feed(&[]);
+
+        let frame = e.take_completed_frame().expect("a completed frame");
+        assert_eq!(frame.mode.id, 0);
+        assert_eq!(frame.rows, 240);
+        assert_eq!(frame.quality, 0.9);
+        assert_eq!(frame.pixels.len(), 240 * 320);
+        assert!(frame.pixels.iter().all(|p| *p == 0xFFAABBCC));
+
+        // Exactly once: polling again (the held terminal state) must not
+        // resurrect the frame, and a second take gets nothing.
+        e.feed(&[]);
+        assert!(e.take_completed_frame().is_none());
+    }
+
+    #[test]
+    fn an_aborted_decode_leaves_nothing_to_save() {
+        let mut s = FakeSession::decoding(robot36(), 100);
+        s.status = DecodeStatus::Aborted;
+        let mut e = RxEngine::new(s);
+        e.feed(&[]);
+        assert!(
+            e.take_completed_frame().is_none(),
+            "partial frames must not be auto-saved"
+        );
+    }
+
+    #[test]
+    fn done_without_a_mode_leaves_nothing_to_save() {
+        let mut s = FakeSession::new();
+        s.status = DecodeStatus::Done;
+        let mut e = RxEngine::new(s);
+        e.feed(&[]);
+        assert!(e.take_completed_frame().is_none());
+    }
+
+    #[test]
+    fn a_snapshot_clamps_rows_to_the_mode_height() {
+        let mut s = FakeSession::decoding(robot36(), 999);
+        s.status = DecodeStatus::Done;
+        let mut e = RxEngine::new(s);
+        e.feed(&[]);
+        let frame = e.take_completed_frame().expect("a completed frame");
+        assert_eq!(frame.rows, 240);
+        assert_eq!(frame.pixels.len(), 240 * 320);
+    }
+
+    #[test]
+    fn each_completed_transmission_yields_its_own_frame() {
+        let mut s = FakeSession::decoding(robot36(), 240);
+        s.status = DecodeStatus::Done;
+        let mut e = RxEngine::new(s);
+        e.feed(&[]);
+        assert!(e.take_completed_frame().is_some());
+
+        // A second transmission completes; its frame must be offered anew.
+        e.session.status = DecodeStatus::Image;
+        e.session.mode = Some(robot36());
+        e.session.rows_ready = 240;
+        e.feed(&[]);
+        e.session.status = DecodeStatus::Done;
+        e.feed(&[]);
+        assert!(e.take_completed_frame().is_some());
     }
 
     #[test]

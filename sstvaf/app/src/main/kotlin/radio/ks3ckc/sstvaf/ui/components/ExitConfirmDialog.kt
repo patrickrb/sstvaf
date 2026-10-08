@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -107,7 +108,7 @@ private fun DialogSecondaryButton(
             .clip(RoundedCornerShape(12.dp))
             .background(BgSurface3)
             .border(1.dp, Border, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
+            .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -130,7 +131,7 @@ private fun DialogDestructiveButton(
             .height(46.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(StatusBad)
-            .clickable(onClick = onClick),
+            .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(

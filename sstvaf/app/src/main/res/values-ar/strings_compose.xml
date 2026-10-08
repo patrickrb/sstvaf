@@ -49,12 +49,23 @@
     <string name="cat_state_disconnected">غير متصل</string>
     <string name="cat_state_error">خطأ في الاتصال</string>
     <string name="cat_state_vox">لا يوجد اتصال CAT</string>
-    <string name="header_more_description">المزيد: الراديو، المشغّل، سجل الاتصالات</string>
-    <string name="more_title">المزيد</string>
-    <string name="more_radio_audio">الراديو والصوت</string>
-    <string name="more_operator">المشغّل</string>
-    <string name="more_logbook">سجل الاتصالات</string>
-    <string name="more_logbook_sub">اتصالات SSTV · تصدير ADIF · Cloudlog</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">إغلاق</string>
+    <string name="a11y_stepper_decrease">تقليل %1$s</string>
+    <string name="a11y_stepper_increase">زيادة %1$s</string>
+    <string name="a11y_show_password">إظهار كلمة المرور</string>
+    <string name="a11y_hide_password">إخفاء كلمة المرور</string>
+    <string name="log_heatmap_description">خريطة المربعات الشبكية: تم العمل مع %1$d من أصل %2$d حقلًا</string>
+    <string name="wefax_start">بدء</string>
+    <string name="wefax_stop">إيقاف</string>
+    <string name="wefax_status_idle">جاهز</string>
+    <string name="wefax_status_listening">بانتظار إشارة التزامن…</string>
+    <string name="wefax_status_receiving">جارٍ الاستقبال</string>
+    <string name="wefax_status_stopped">متوقف</string>
+    <string name="wefax_rows_format">%1$d سطرًا</string>
+    <string name="wefax_saved">حُفظ في المعرض — %1$s</string>
+    <string name="wefax_canvas_description">فاكس طقس مستلم</string>
+    <string name="wefax_canvas_empty">سيظهر شريط الفاكس هنا</string>
     <string name="freq_sheet_title">التردد</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">ليلاً</string>
@@ -160,7 +171,6 @@
     <string name="log_tab_stats">الإحصاءات</string>
     <string name="log_tab_recent">الأخيرة</string>
     <string name="log_tab_awards">الجوائز</string>
-    <string name="log_title">السجل</string>
     <string name="log_subtitle_qsos_all_bands">%1$d QSOs · كل النطاقات</string>
     <string name="log_cd_sync_to_logging_services">مزامنة مع خدمات التسجيل</string>
     <string name="log_cd_export_qsos">تصدير QSOs</string>
@@ -176,6 +186,7 @@
     <string name="log_section_grid_coverage">تغطية المربعات</string>
     <string name="log_section_signal_trend">اتجاه الإشارة</string>
     <string name="log_no_qsos_yet">لا QSOs بعد</string>
+    <string name="log_signal_trend_no_data">لا توجد تقارير إشارة كافية للرسم البياني بعد</string>
     <string name="log_no_qsos_recorded_yet">لم تُسجَّل QSOs بعد</string>
     <string name="log_search_placeholder">ابحث عن نداء أو مربّع أو نطاق…</string>
     <string name="log_search_no_matches">لا توجد اتصالات QSO تطابق ”%1$s“</string>
@@ -545,6 +556,8 @@
     <string name="rx_status_save_failed">فشل الحفظ</string>
     <string name="rx_status_lost">فُقدت الإشارة</string>
     <string name="rx_status_auto_detect">كشف تلقائي</string>
+    <string name="rx_mode_lock_auto">تلقائي</string>
+    <string name="rx_mode_lock_auto_option">تلقائي (كشف VIS)</string>
     <string name="rx_quality_value">الجودة %1$s</string>
     <string name="rx_received_today">استُقبلت اليوم</string>
     <string name="rx_received_all">الكل</string>
@@ -553,6 +566,8 @@
     <string name="settings_save_rx_photos_desc">تظهر صور SSTV المكتملة أيضاً في تطبيق Photos ضمن Pictures/SSTVAF (Android 10+)</string>
     <string name="tab_gallery">المعرض</string>
     <string name="tab_settings">الإعدادات</string>
+    <string name="band_bar_caption">النطاق والتردد</string>
+    <string name="tab_logbook">سجل الاتصالات</string>
     <string name="gallery_filter_all">الكل</string>
     <string name="gallery_filter_rx">المُستقبَلة</string>
     <string name="gallery_filter_tx">المُرسَلة</string>
@@ -693,6 +708,8 @@
     <string name="mode_group_fast">سريع · أقل من دقيقة</string>
     <string name="mode_group_standard">قياسي</string>
     <string name="mode_group_high_resolution">دقة عالية</string>
+    <string name="mode_group_digital">رقمي · تجريبي</string>
+    <string name="mode_digital_sub">صورة مضغوطة مع تصحيح الأخطاء — SSTVAF فقط</string>
     <string name="mode_note_most_common">الأكثر شيوعاً على 20m</string>
     <string name="mode_card_label">الوضع</string>
     <string name="mode_card_description">وضع SSTV %1$s</string>

@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -227,6 +228,14 @@ internal fun SliderRow(
             onValueChangeFinished = onValueChangeFinished,
             valueRange = valueRange,
             steps = steps,
+            // Name the slider after the row and speak the formatted value
+            // (e.g. "1500 Hz") instead of the raw 0..1-scaled float; the label
+            // and value Texts are sibling nodes TalkBack doesn't associate.
+            modifier =
+                Modifier.semantics {
+                    contentDescription = label
+                    stateDescription = valueLabel
+                },
             colors = SliderDefaults.colors(
                 thumbColor = Accent,
                 activeTrackColor = Accent,

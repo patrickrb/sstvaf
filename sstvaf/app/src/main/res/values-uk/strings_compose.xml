@@ -49,12 +49,23 @@
     <string name="cat_state_disconnected">не підключено</string>
     <string name="cat_state_error">помилка підключення</string>
     <string name="cat_state_vox">немає CAT-зв\'язку</string>
-    <string name="header_more_description">Більше: радіо, оператор, журнал</string>
-    <string name="more_title">Більше</string>
-    <string name="more_radio_audio">Радіо та аудіо</string>
-    <string name="more_operator">Оператор</string>
-    <string name="more_logbook">Журнал</string>
-    <string name="more_logbook_sub">SSTV QSO · експорт ADIF · Cloudlog</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">Закрити</string>
+    <string name="a11y_stepper_decrease">Зменшити %1$s</string>
+    <string name="a11y_stepper_increase">Збільшити %1$s</string>
+    <string name="a11y_show_password">Показати пароль</string>
+    <string name="a11y_hide_password">Приховати пароль</string>
+    <string name="log_heatmap_description">Карта квадратів: відпрацьовано %1$d із %2$d полів</string>
+    <string name="wefax_start">Старт</string>
+    <string name="wefax_stop">Стоп</string>
+    <string name="wefax_status_idle">Готово</string>
+    <string name="wefax_status_listening">Очікування фазування…</string>
+    <string name="wefax_status_receiving">Приймання</string>
+    <string name="wefax_status_stopped">Зупинено</string>
+    <string name="wefax_rows_format">%1$d рядків</string>
+    <string name="wefax_saved">Збережено в галерею — %1$s</string>
+    <string name="wefax_canvas_description">Прийнятий метеофакс</string>
+    <string name="wefax_canvas_empty">Смуга факсу з\'явиться тут</string>
     <string name="freq_sheet_title">Частота</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">ніч</string>
@@ -160,7 +171,6 @@
     <string name="log_tab_stats">Статистика</string>
     <string name="log_tab_recent">Нещодавні</string>
     <string name="log_tab_awards">Нагороди</string>
-    <string name="log_title">Журнал</string>
     <string name="log_subtitle_qsos_all_bands">%1$d QSOs · Усі діапазони</string>
     <string name="log_cd_sync_to_logging_services">Синхронізація зі службами журналювання</string>
     <string name="log_cd_export_qsos">Експорт QSOs</string>
@@ -176,6 +186,7 @@
     <string name="log_section_grid_coverage">Покриття локаторів</string>
     <string name="log_section_signal_trend">Тренд сигналу</string>
     <string name="log_no_qsos_yet">Ще немає QSOs</string>
+    <string name="log_signal_trend_no_data">Ще недостатньо рапортів сигналу для графіка</string>
     <string name="log_no_qsos_recorded_yet">Ще не записано жодного QSO</string>
     <string name="log_search_placeholder">Пошук за позивним, локатором, діапазоном…</string>
     <string name="log_search_no_matches">Жодне QSO не відповідає «%1$s»</string>
@@ -545,6 +556,8 @@
     <string name="rx_status_save_failed">Не вдалося зберегти</string>
     <string name="rx_status_lost">Сигнал втрачено</string>
     <string name="rx_status_auto_detect">автовизначення</string>
+    <string name="rx_mode_lock_auto">Авто</string>
+    <string name="rx_mode_lock_auto_option">Авто (визначення VIS)</string>
     <string name="rx_quality_value">Якість %1$s</string>
     <string name="rx_received_today">ПРИЙНЯТО СЬОГОДНІ</string>
     <string name="rx_received_all">Усі</string>
@@ -553,6 +566,8 @@
     <string name="settings_save_rx_photos_desc">Завершені SSTV-зображення також з\'являються в застосунку Photos у Pictures/SSTVAF (Android 10+)</string>
     <string name="tab_gallery">Галерея</string>
     <string name="tab_settings">Налаштування</string>
+    <string name="band_bar_caption">Діапазон і частота</string>
+    <string name="tab_logbook">Журнал</string>
     <string name="gallery_filter_all">Усі</string>
     <string name="gallery_filter_rx">Прийняті</string>
     <string name="gallery_filter_tx">Надіслані</string>
@@ -693,6 +708,8 @@
     <string name="mode_group_fast">ШВИДКІ · МЕНШЕ ХВИЛИНИ</string>
     <string name="mode_group_standard">СТАНДАРТНІ</string>
     <string name="mode_group_high_resolution">ВИСОКА РОЗДІЛЬНА ЗДАТНІСТЬ</string>
+    <string name="mode_group_digital">ЦИФРОВИЙ · БЕТА</string>
+    <string name="mode_digital_sub">Стиснуте фото з корекцією помилок — лише SSTVAF</string>
     <string name="mode_note_most_common">найпоширеніший на 20m</string>
     <string name="mode_card_label">РЕЖИМ</string>
     <string name="mode_card_description">Режим SSTV %1$s</string>

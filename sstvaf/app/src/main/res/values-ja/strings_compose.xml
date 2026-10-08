@@ -49,12 +49,23 @@
     <string name="cat_state_disconnected">未接続</string>
     <string name="cat_state_error">接続エラー</string>
     <string name="cat_state_vox">CATリンクなし</string>
-    <string name="header_more_description">その他: 無線機、オペレーター、ログブック</string>
-    <string name="more_title">その他</string>
-    <string name="more_radio_audio">無線機 &amp; 音声</string>
-    <string name="more_operator">オペレーター</string>
-    <string name="more_logbook">ログブック</string>
-    <string name="more_logbook_sub">SSTV QSO · ADIF エクスポート · Cloudlog</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">閉じる</string>
+    <string name="a11y_stepper_decrease">%1$sを下げる</string>
+    <string name="a11y_stepper_increase">%1$sを上げる</string>
+    <string name="a11y_show_password">パスワードを表示</string>
+    <string name="a11y_hide_password">パスワードを非表示</string>
+    <string name="log_heatmap_description">グリッドマップ: %2$d フィールド中 %1$d 交信済み</string>
+    <string name="wefax_start">開始</string>
+    <string name="wefax_stop">停止</string>
+    <string name="wefax_status_idle">待機中</string>
+    <string name="wefax_status_listening">位相同期を待機中…</string>
+    <string name="wefax_status_receiving">受信中</string>
+    <string name="wefax_status_stopped">停止しました</string>
+    <string name="wefax_rows_format">%1$d 行</string>
+    <string name="wefax_saved">ギャラリーに保存 — %1$s</string>
+    <string name="wefax_canvas_description">受信した気象FAX</string>
+    <string name="wefax_canvas_empty">FAXの画像がここに表示されます</string>
     <string name="freq_sheet_title">周波数</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">夜間</string>
@@ -160,7 +171,6 @@
     <string name="log_tab_stats">統計</string>
     <string name="log_tab_recent">最近</string>
     <string name="log_tab_awards">アワード</string>
-    <string name="log_title">ログブック</string>
     <string name="log_subtitle_qsos_all_bands">%1$d QSO · 全バンド</string>
     <string name="log_cd_sync_to_logging_services">ログサービスに同期</string>
     <string name="log_cd_export_qsos">QSO をエクスポート</string>
@@ -176,6 +186,7 @@
     <string name="log_section_grid_coverage">グリッドカバレッジ</string>
     <string name="log_section_signal_trend">信号トレンド</string>
     <string name="log_no_qsos_yet">QSO がまだありません</string>
+    <string name="log_signal_trend_no_data">グラフ表示に十分なシグナルレポートがまだありません</string>
     <string name="log_no_qsos_recorded_yet">記録された QSO がまだありません</string>
     <string name="log_search_placeholder">コールサイン、グリッド、バンドを検索…</string>
     <string name="log_search_no_matches">「%1$s」に一致する QSO はありません</string>
@@ -545,6 +556,8 @@
     <string name="rx_status_save_failed">保存に失敗しました</string>
     <string name="rx_status_lost">信号を失いました</string>
     <string name="rx_status_auto_detect">自動検出</string>
+    <string name="rx_mode_lock_auto">自動</string>
+    <string name="rx_mode_lock_auto_option">自動（VIS検出）</string>
     <string name="rx_quality_value">品質 %1$s</string>
     <string name="rx_received_today">本日の受信</string>
     <string name="rx_received_all">すべて</string>
@@ -553,6 +566,8 @@
     <string name="settings_save_rx_photos_desc">完成した SSTV 画像は Photos アプリの Pictures/SSTVAF にも表示されます（Android 10 以降）</string>
     <string name="tab_gallery">ギャラリー</string>
     <string name="tab_settings">設定</string>
+    <string name="band_bar_caption">バンドと周波数</string>
+    <string name="tab_logbook">ログブック</string>
     <string name="gallery_filter_all">すべて</string>
     <string name="gallery_filter_rx">受信</string>
     <string name="gallery_filter_tx">送信</string>
@@ -693,6 +708,8 @@
     <string name="mode_group_fast">高速 · 1 分以内</string>
     <string name="mode_group_standard">標準</string>
     <string name="mode_group_high_resolution">高解像度</string>
+    <string name="mode_group_digital">デジタル · ベータ</string>
+    <string name="mode_digital_sub">誤り訂正付き圧縮写真 — SSTVAF間のみ</string>
     <string name="mode_note_most_common">20m で最も一般的</string>
     <string name="mode_card_label">モード</string>
     <string name="mode_card_description">SSTV モード %1$s</string>

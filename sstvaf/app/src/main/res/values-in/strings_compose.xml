@@ -49,12 +49,23 @@
     <string name="cat_state_disconnected">tidak terhubung</string>
     <string name="cat_state_error">kesalahan koneksi</string>
     <string name="cat_state_vox">tanpa tautan CAT</string>
-    <string name="header_more_description">Lainnya: radio, operator, buku log</string>
-    <string name="more_title">Lainnya</string>
-    <string name="more_radio_audio">Radio &amp; audio</string>
-    <string name="more_operator">Operator</string>
-    <string name="more_logbook">Buku Log</string>
-    <string name="more_logbook_sub">QSO SSTV · ekspor ADIF · Cloudlog</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">Tutup</string>
+    <string name="a11y_stepper_decrease">Kurangi %1$s</string>
+    <string name="a11y_stepper_increase">Tambah %1$s</string>
+    <string name="a11y_show_password">Tampilkan kata sandi</string>
+    <string name="a11y_hide_password">Sembunyikan kata sandi</string>
+    <string name="log_heatmap_description">Peta kotak grid: %1$d dari %2$d bidang telah dikerjakan</string>
+    <string name="wefax_start">Mulai</string>
+    <string name="wefax_stop">Berhenti</string>
+    <string name="wefax_status_idle">Siap</string>
+    <string name="wefax_status_listening">Menunggu fasa…</string>
+    <string name="wefax_status_receiving">Menerima</string>
+    <string name="wefax_status_stopped">Berhenti</string>
+    <string name="wefax_rows_format">%1$d baris</string>
+    <string name="wefax_saved">Disimpan ke Galeri — %1$s</string>
+    <string name="wefax_canvas_description">Faks cuaca yang diterima</string>
+    <string name="wefax_canvas_empty">Strip faks akan muncul di sini</string>
     <string name="freq_sheet_title">Frekuensi</string>
     <string name="freq_unit_mhz">MHz</string>
     <string name="freq_note_night">malam</string>
@@ -160,7 +171,6 @@
     <string name="log_tab_stats">Statistik</string>
     <string name="log_tab_recent">Terbaru</string>
     <string name="log_tab_awards">Penghargaan</string>
-    <string name="log_title">Buku Log</string>
     <string name="log_subtitle_qsos_all_bands">%1$d QSO · Semua band</string>
     <string name="log_cd_sync_to_logging_services">Sinkronkan ke layanan logging</string>
     <string name="log_cd_export_qsos">Ekspor QSO</string>
@@ -176,6 +186,7 @@
     <string name="log_section_grid_coverage">Cakupan Grid</string>
     <string name="log_section_signal_trend">Tren Sinyal</string>
     <string name="log_no_qsos_yet">Belum ada QSO</string>
+    <string name="log_signal_trend_no_data">Belum cukup laporan sinyal untuk grafik</string>
     <string name="log_no_qsos_recorded_yet">Belum ada QSO yang tercatat</string>
     <string name="log_search_placeholder">Cari callsign, grid, band…</string>
     <string name="log_search_no_matches">Tidak ada QSO yang cocok dengan “%1$s”</string>
@@ -545,6 +556,8 @@
     <string name="rx_status_save_failed">Gagal menyimpan</string>
     <string name="rx_status_lost">Sinyal hilang</string>
     <string name="rx_status_auto_detect">deteksi-otomatis</string>
+    <string name="rx_mode_lock_auto">Otomatis</string>
+    <string name="rx_mode_lock_auto_option">Otomatis (deteksi VIS)</string>
     <string name="rx_quality_value">Kualitas %1$s</string>
     <string name="rx_received_today">DITERIMA HARI INI</string>
     <string name="rx_received_all">Semua</string>
@@ -553,6 +566,8 @@
     <string name="settings_save_rx_photos_desc">Gambar SSTV yang selesai juga muncul di aplikasi Photos di bawah Pictures/SSTVAF (Android 10+)</string>
     <string name="tab_gallery">Galeri</string>
     <string name="tab_settings">Pengaturan</string>
+    <string name="band_bar_caption">Band dan frekuensi</string>
+    <string name="tab_logbook">Buku Log</string>
     <string name="gallery_filter_all">Semua</string>
     <string name="gallery_filter_rx">Diterima</string>
     <string name="gallery_filter_tx">Dikirim</string>
@@ -693,6 +708,8 @@
     <string name="mode_group_fast">CEPAT · KURANG DARI SEMENIT</string>
     <string name="mode_group_standard">STANDAR</string>
     <string name="mode_group_high_resolution">RESOLUSI TINGGI</string>
+    <string name="mode_group_digital">DIGITAL · BETA</string>
+    <string name="mode_digital_sub">Foto terkompresi dengan koreksi galat — hanya SSTVAF</string>
     <string name="mode_note_most_common">paling umum di 20m</string>
     <string name="mode_card_label">MODE</string>
     <string name="mode_card_description">Mode SSTV %1$s</string>

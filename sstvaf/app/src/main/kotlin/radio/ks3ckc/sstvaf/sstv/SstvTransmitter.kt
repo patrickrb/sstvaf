@@ -4,6 +4,9 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.k1af.ft8af.GeneralVariables
 import com.k1af.ft8af.transmit.PttController
+import radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvCodec
+import radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode
+import radio.ks3ckc.sstvaf.sstv.digital.encodeDigitalForRate
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -134,7 +137,24 @@ class SstvTransmitter @JvmOverloads constructor(
      * Returns false without keying when a transmission is already running or
      * the Tune carrier is active.
      */
-    fun transmit(pixels: IntArray, width: Int, height: Int, mode: SstvMode): Boolean {
+    fun transmit(pixels: IntArray, width: Int, height: Int, mode: SstvMode): Boolean =
+        startTransmission(
+            label = "mode=${mode.displayName} ${width}x$height",
+        ) { sampleRate -> codec.encode(pixels, width, height, mode, sampleRate) }
+
+    /**
+     * Start transmitting a digital-SSTV frame of [image] in [digitalMode].
+     * Same keying/pre-tone/CW-ID/progress plumbing as the analog path — the
+     * only difference is the waveform source (the COFDM codec at its 6 kHz
+     * design rate, upsampled to the device audio rate).
+     */
+    internal fun transmitDigital(image: DigitalSstvCodec.Image, digitalMode: DigitalSstvMode): Boolean =
+        startTransmission(
+            label = "mode=${digitalMode.displayName} ${image.width}x${image.height}" +
+                " payload=${image.payload.size}B",
+        ) { sampleRate -> encodeDigitalForRate(image, digitalMode, sampleRate) }
+
+    private fun startTransmission(label: String, encode: (Int) -> FloatArray): Boolean {
         if (tuneActive.isActive()) {
             log("SSTV TX: rejected — tune carrier active")
             return false
@@ -151,7 +171,7 @@ class SstvTransmitter @JvmOverloads constructor(
         // with the last one's result while it is still in flight.
         mutableLastResult.postValue(null)
         mutableImageWindow.postValue(TxImageWindow.WHOLE)
-        workerRunner(Runnable { runTransmission(pixels, width, height, mode) })
+        workerRunner(Runnable { runTransmission(label, encode) })
         return true
     }
 
@@ -173,14 +193,14 @@ class SstvTransmitter @JvmOverloads constructor(
 
     // ------------------------------------------------------------------
 
-    private fun runTransmission(pixels: IntArray, width: Int, height: Int, mode: SstvMode) {
+    private fun runTransmission(label: String, encode: (Int) -> FloatArray) {
         var keyed = false
         var completed = false
         val startedAt = clock()
         try {
             val sampleRate = sampleRateSource()
             // Encode BEFORE keying: a bad image/mode must never key the rig.
-            val encoded = codec.encode(pixels, width, height, mode, sampleRate)
+            val encoded = encode(sampleRate)
             // Read once so a mid-TX settings change can't split behavior
             // between the pre-tone and the settle sleep below.
             val controlsPtt = keyerControlsPttSource()
@@ -209,7 +229,7 @@ class SstvTransmitter @JvmOverloads constructor(
                 ),
             )
             log(
-                "SSTV TX: start — mode=${mode.displayName} ${width}x$height" +
+                "SSTV TX: start — $label" +
                     " samples=${imageAudio.size} rate=$sampleRate durationMs=$durationMs" +
                     (if (imageAudio.size > encoded.size) " voxPreToneMs=$preToneMs" else "") +
                     if (cwTail.isNotEmpty()) " cwId=${cwId.text} wpm=${cwId.wpm}" else "",

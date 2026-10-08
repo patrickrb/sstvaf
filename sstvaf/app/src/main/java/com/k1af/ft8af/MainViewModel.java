@@ -113,6 +113,10 @@ import radio.ks3ckc.sstvaf.gallery.ReceivedImageStore;
 import radio.ks3ckc.sstvaf.gallery.RxAutoSaveController;
 import radio.ks3ckc.sstvaf.sstv.SstvSignalListener;
 import radio.ks3ckc.sstvaf.sstv.SstvTransmitter;
+import radio.ks3ckc.sstvaf.sstv.digital.DigitalRxSaveController;
+import radio.ks3ckc.sstvaf.wefax.NativeWefaxCodec;
+import radio.ks3ckc.sstvaf.wefax.WefaxAutoSaveController;
+import radio.ks3ckc.sstvaf.wefax.WefaxSignalListener;
 import radio.ks3ckc.sstvaf.ui.tx.TxComposerState;
 
 import java.io.File;
@@ -165,6 +169,9 @@ public class MainViewModel extends ViewModel {
     // Received-image persistence (PR 6): PNG + metadata row per completed decode.
     public ReceivedImageStore receivedImageStore;//saved SSTV images (app storage + Photos)
     public RxAutoSaveController rxAutoSaveController;//auto-saves Complete decodes
+    public DigitalRxSaveController digitalRxSaveController;//renders + saves digital frames
+    public WefaxSignalListener wefaxSignalListener;//on-demand WEFAX radiofax RX engine
+    public WefaxAutoSaveController wefaxAutoSaveController;//persists finished fax strips
 
     // Transmit plumbing, extracted from the retired FT8 engine (PR 3).
     public PttController pttController;//rig keying (CAT/RTS/DTR + SCO) around a TX
@@ -636,6 +643,17 @@ public class MainViewModel extends ViewModel {
                 GeneralVariables.getMainContext(), databaseOpr.getDb());
         rxAutoSaveController = new RxAutoSaveController(receivedImageStore);
         rxAutoSaveController.attach(sstvSignalListener.getRxState());
+        // Digital frames ride the same tap; render + save them alongside.
+        digitalRxSaveController = new DigitalRxSaveController(receivedImageStore);
+        digitalRxSaveController.attach(sstvSignalListener);
+
+        // ===== WEFAX radiofax RX =====
+        // On-demand (the fax screen starts/stops it), sharing the recorder
+        // fan-out and the image store with SSTV RX. Finished strips are
+        // persisted by the auto-save controller on its own thread.
+        wefaxSignalListener = new WefaxSignalListener(new NativeWefaxCodec());
+        wefaxAutoSaveController = new WefaxAutoSaveController(receivedImageStore);
+        wefaxAutoSaveController.attach(wefaxSignalListener);
 
         sstvTransmitter = new SstvTransmitter(sstvCodec,
                 new SstvTransmitter.Keyer() {

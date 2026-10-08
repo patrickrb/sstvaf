@@ -18,6 +18,10 @@ anyhow = "1"
 cpal = "0.15"
 rubato = "0.15"
 ringbuf = "0.4"
+# auto-save of completed decodes: PNG encoding + UTC filename timestamps.
+# Both already in the dependency graph transitively, so this adds nothing new.
+png = "0.17"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
 
 # The clean-room SSTV codec (cpp/sstv_lib) is compiled from source in build.rs
 # via the `cc` crate — the same C the Android app runs through JNI, with no

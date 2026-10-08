@@ -21,7 +21,14 @@ export type RxEvent =
   | { event: "state"; data: RxState }
   | { event: "rows"; data: { first_row: number; width: number; pixels: number[] } }
   | { event: "info"; data: string }
-  | { event: "error"; data: string };
+  | { event: "error"; data: string }
+  | { event: "saved"; data: SavedImage };
+
+/** A completed decode the backend auto-saved to disk. */
+export interface SavedImage {
+  path: string;
+  filename: string;
+}
 
 /**
  * Convert the codec's 0xAARRGGBB pixels into the RGBA byte order canvas
@@ -94,6 +101,14 @@ export function qualityPercent(state: RxState): number | null {
     return Math.round(Math.max(0, Math.min(1, state.quality)) * 100);
   }
   return null;
+}
+
+/**
+ * The "Saved <filename>" line under the status readout, or null when nothing
+ * has been auto-saved yet this session.
+ */
+export function describeSaved(saved: SavedImage | null): string | null {
+  return saved ? `Saved ${saved.filename}` : null;
 }
 
 /**

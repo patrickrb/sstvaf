@@ -18,6 +18,12 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import radio.ks3ckc.sstvaf.theme.Accent
@@ -37,8 +43,10 @@ fun SstvAfIconButton(
     pulseOnAction: Boolean = false,
     pulseColor: Color = Accent,
     enabled: Boolean = true,
+    contentDescription: String? = null,
     content: @Composable () -> Unit,
 ) {
+    val a11yOnClick = onClick
     var pulseTrigger by remember { mutableIntStateOf(0) }
     val pulse = remember { Animatable(0f) }
     LaunchedEffect(pulseTrigger) {
@@ -57,6 +65,26 @@ fun SstvAfIconButton(
         modifier = modifier
             .size(size)
             .clip(CircleShape)
+            // pressableScale drives the tap through detectTapGestures, which
+            // publishes NO semantics: without this block the button has no
+            // role, no name and — crucially — no onClick action, so TalkBack
+            // can neither identify nor activate it. The content is a drawn
+            // glyph, so the caller-supplied contentDescription is the only
+            // possible name.
+            .semantics {
+                role = Role.Button
+                if (contentDescription != null) {
+                    this.contentDescription = contentDescription
+                }
+                if (enabled) {
+                    onClick {
+                        a11yOnClick()
+                        true
+                    }
+                } else {
+                    disabled()
+                }
+            }
             .pressableScale(
                 enabled = enabled,
                 onClick = {

@@ -8,6 +8,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -57,6 +58,9 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -94,7 +98,6 @@ import radio.ks3ckc.sstvaf.ui.components.GlassCard
 import radio.ks3ckc.sstvaf.ui.components.QsoStatus
 import radio.ks3ckc.sstvaf.ui.components.ShimmerBox
 import radio.ks3ckc.sstvaf.ui.components.StatusPill
-import radio.ks3ckc.sstvaf.ui.components.TopBar
 import radio.ks3ckc.sstvaf.ui.components.TopBarSubtitle
 import radio.ks3ckc.sstvaf.ui.decode.UsStateLookup
 import radio.ks3ckc.sstvaf.ui.tx.initialTxMode
@@ -152,7 +155,7 @@ private data class AwardProgress(
 // ---------------------------------------------------------------------------
 
 @Composable
-fun LogbookScreen(mainViewModel: MainViewModel, onBack: () -> Unit) {
+fun LogbookScreen(mainViewModel: MainViewModel) {
     var activeTab by remember { mutableStateOf(LogbookTab.STATS) }
     var exportSheetVisible by remember { mutableStateOf(false) }
     var manualQsoVisible by remember { mutableStateOf(false) }
@@ -265,15 +268,21 @@ fun LogbookScreen(mainViewModel: MainViewModel, onBack: () -> Unit) {
                 .fillMaxSize()
                 .background(BgApp),
         ) {
-            // Top bar
-            TopBar(
-                title = stringResource(R.string.log_title),
-                onBack = onBack,
-                subtitle = {
-                    val count = if (stats.totalQsos > 0) stats.totalQsos else records.size
-                    TopBarSubtitle(text = stringResource(R.string.log_subtitle_qsos_all_bands, count))
-                },
-                actions = {
+            // Hosted as a tab, so the shell's header already says "Logbook" —
+            // this row carries just the QSO count and the actions instead of a
+            // second title.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 18.dp, end = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val count = if (stats.totalQsos > 0) stats.totalQsos else records.size
+                TopBarSubtitle(
+                    text = stringResource(R.string.log_subtitle_qsos_all_bands, count),
+                    modifier = Modifier.weight(1f),
+                )
+                Row {
                     IconButton(onClick = { manualQsoVisible = true }) {
                         Icon(
                             imageVector = Icons.Filled.Add,
@@ -344,8 +353,8 @@ fun LogbookScreen(mainViewModel: MainViewModel, onBack: () -> Unit) {
                             tint = TextMuted,
                         )
                     }
-                },
-            )
+                }
+            }
 
             // Segmented tab switcher
             SegmentedTabRow(
@@ -579,7 +588,12 @@ internal fun SegmentedTabRow(
                     .padding(2.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(bgColor)
-                    .clickable { onSelected(tab) },
+                    // selectable so TalkBack announces "tab" + which one is
+                    // active; colour/weight are the only visual cues.
+                    .selectable(
+                        selected = isSelected,
+                        role = Role.Tab,
+                    ) { onSelected(tab) },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -937,12 +951,21 @@ private fun GridSquareHeatmap(
     val rows = 10  // 0..9 (latitude bands, typically A-R letters mapped, but for the field
                    // grid we show longitude letters across, latitude digits down)
 
+    // Worked/not-worked is conveyed by cell colour alone, with no text
+    // equivalent anywhere on the card, so summarize the map for TalkBack.
+    val heatmapDescription =
+        stringResource(
+            R.string.log_heatmap_description,
+            heatmapWorkedFieldCount(workedFields, cols, rows),
+            cols * rows,
+        )
     GlassCard(modifier = modifier) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState())
-                .padding(12.dp),
+                .padding(12.dp)
+                .semantics { contentDescription = heatmapDescription },
         ) {
             for (row in 0 until rows) {
                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -971,6 +994,23 @@ private fun GridSquareHeatmap(
     }
 }
 
+/**
+ * How many of the heatmap's displayed cells are worked. The heatmap draws an
+ * 18x10 window (longitude fields A..R across, latitude fields A..J down), so a
+ * worked field outside that window — or a malformed designator — must not be
+ * counted, or the spoken summary would claim more lit cells than are drawn.
+ */
+internal fun heatmapWorkedFieldCount(
+    workedFields: Set<String>,
+    cols: Int = 18,
+    rows: Int = 10,
+): Int =
+    workedFields.count { field ->
+        field.length == 2 &&
+            field[0] in 'A' until 'A' + cols &&
+            field[1] in 'A' until 'A' + rows
+    }
+
 // ---------------------------------------------------------------------------
 // Signal trend sparkline (Canvas)
 // ---------------------------------------------------------------------------
@@ -981,14 +1021,23 @@ private fun SignalSparkline(
     modifier: Modifier = Modifier,
     progress: Float = 1f,
 ) {
-    if (records.isEmpty()) {
+    // Real per-QSO data only: the received signal report (rst_rcvd) persisted
+    // on each QSO row. Rows without a parsable RST/RSV report contribute no
+    // point, and with fewer than two points there is no trend to draw — say
+    // so honestly instead of inventing one.
+    val dataPoints = remember(records) { signalStrengthPoints(records) }
+    val placeholderRes = signalTrendPlaceholderRes(
+        hasRecords = records.isNotEmpty(),
+        pointCount = dataPoints.size,
+    )
+    if (placeholderRes != null) {
         GlassCard(modifier = modifier) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = stringResource(R.string.log_no_qsos_yet),
+                    text = stringResource(placeholderRes),
                     color = TextFaint,
                     fontSize = 11.sp,
                     fontFamily = GeistMonoFamily,
@@ -996,16 +1045,6 @@ private fun SignalSparkline(
             }
         }
         return
-    }
-
-    // QSLCallsignRecord does not carry SNR, so we synthesize a coarse trend
-    // from the per-record index. This is a visualization placeholder until
-    // SNR is persisted on the QSO log row.
-    val dataPoints = remember(records) {
-        records.takeLast(30).mapIndexed { index, _ ->
-            val base = -15f + (index % 20) * 1.2f
-            base.coerceIn(-25f, 5f)
-        }
     }
 
     GlassCard(modifier = modifier) {
@@ -1024,21 +1063,91 @@ private fun SignalSparkline(
     }
 }
 
+/**
+ * Which placeholder the signal-trend card shows instead of a chart, or null
+ * when there are enough real data points ([SPARKLINE_MIN_POINTS]) to draw one.
+ * Extracted from [SignalSparkline] so the decision is unit-testable.
+ */
+internal fun signalTrendPlaceholderRes(hasRecords: Boolean, pointCount: Int): Int? = when {
+    !hasRecords -> R.string.log_no_qsos_yet
+    pointCount < SPARKLINE_MIN_POINTS -> R.string.log_signal_trend_no_data
+    else -> null
+}
+
+/** A line needs two points; fewer real reports than that means no chart. */
+internal const val SPARKLINE_MIN_POINTS = 2
+
+/** How many of the most recent QSOs the signal-trend sparkline considers. */
+internal const val SPARKLINE_MAX_POINTS = 30
+
+/** The RST/RSV strength digit's fixed scale, 1..9 — the sparkline's y-axis. */
+internal const val RSV_STRENGTH_MIN = 1f
+internal const val RSV_STRENGTH_MAX = 9f
+
+/**
+ * Strength values for the signal-trend sparkline, oldest to newest, taken from
+ * the received signal reports actually persisted on the QSO rows
+ * ([QSLCallsignRecord.rstReceived], ADIF rst_rcvd).
+ *
+ * SSTV QSOs exchange an RSV report ("595" — readability/strength/video) and
+ * classic phone/CW logs an RST ("59"/"599"); in both, the second digit is the
+ * strength, 1..9 — the one honest per-QSO signal metric the log carries.
+ * Reports that don't have one — empty rows, "no report" sentinels, or
+ * FT8-heritage signed dB SNRs ("-15"), which live on a different scale and
+ * can't share this axis — yield no point rather than a made-up value. At most
+ * [maxPoints] of the most recent QSOs contribute.
+ */
+internal fun signalStrengthPoints(
+    records: List<QSLCallsignRecord>,
+    maxPoints: Int = SPARKLINE_MAX_POINTS,
+): List<Float> =
+    sortQsosByDateTimeDesc(records)
+        .mapNotNull { rsvStrength(it.rstReceived) }
+        .take(maxPoints)
+        .asReversed()
+        .map { it.toFloat() }
+
+/**
+ * The strength digit of an RST/RSV report, or null when the report doesn't
+ * carry one. Accepts the 2-digit RS ("59") and 3-digit RST/RSV ("599", "595")
+ * shapes with a strength of 1..9 (strength 0 does not exist in RST). Anything
+ * else — blank, signed dB SNRs ("-15", "+05"), the -100/-120 "no report"
+ * sentinels — is not RST-shaped and yields null.
+ */
+internal fun rsvStrength(report: String?): Int? {
+    val r = report?.trim() ?: return null
+    if (r.length !in 2..3 || r.any { !it.isDigit() }) return null
+    val strength = r[1] - '0'
+    return if (strength >= 1) strength else null
+}
+
+/**
+ * Vertical position of a strength value on the sparkline's fixed 1..9 RST/RSV
+ * strength axis: 0 = top of the chart (S9), 1 = bottom (S1). A fixed axis
+ * keeps the chart honest — a run of solid 5-strength reports draws mid-chart
+ * instead of being min/max-normalized into fake drama.
+ */
+internal fun strengthYFraction(
+    value: Float,
+    min: Float = RSV_STRENGTH_MIN,
+    max: Float = RSV_STRENGTH_MAX,
+): Float {
+    val range = (max - min).coerceAtLeast(1f)
+    return (1f - (value - min) / range).coerceIn(0f, 1f)
+}
+
 private fun DrawScope.drawSparkline(
     data: List<Float>,
     lineColor: Color,
     fillColor: Color,
 ) {
-    if (data.size < 2) return
+    if (data.size < SPARKLINE_MIN_POINTS) return
 
-    val minVal = data.min()
-    val maxVal = data.max()
-    val range = (maxVal - minVal).coerceAtLeast(1f)
     val w = size.width
     val h = size.height
     val stepX = w / (data.size - 1).toFloat()
 
-    fun yOf(value: Float): Float = h - ((value - minVal) / range) * h
+    fun yOf(value: Float): Float = strengthYFraction(value) * h
 
     // Build path
     val linePath = Path().apply {
@@ -2041,7 +2150,7 @@ private fun CatchUpSyncDialog(
                     .clip(RoundedCornerShape(12.dp))
                     .background(if (state.inProgress) BgSurface3 else Accent)
                     .let { m ->
-                        if (state.inProgress) m else m.clickable(onClick = onDismiss)
+                        if (state.inProgress) m else m.clickable(role = Role.Button, onClick = onDismiss)
                     },
                 contentAlignment = Alignment.Center,
             ) {

@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import com.k1af.ft8af.GeneralVariables
 import com.k1af.ft8af.R
 import radio.ks3ckc.sstvaf.sstv.SstvMode
+import radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode
 import radio.ks3ckc.sstvaf.theme.Accent
 import radio.ks3ckc.sstvaf.theme.BgApp
 import radio.ks3ckc.sstvaf.theme.BgSurface
@@ -72,6 +73,7 @@ internal fun TxConfirmSheet(
     bandLabel: String,
     cwTailSeconds: Double,
     voxPreToneSeconds: Double = 0.0,
+    digitalMode: DigitalSstvMode? = null,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
@@ -113,13 +115,13 @@ internal fun TxConfirmSheet(
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = confirmDurationLine(mode, cwTailSeconds, voxPreToneSeconds),
+                        text = confirmDurationLine(mode, cwTailSeconds, voxPreToneSeconds, digitalMode),
                         color = TextPrimary,
                         fontSize = 13.sp,
                         fontFamily = GeistMonoFamily,
                     )
                     Text(
-                        text = stringResource(txAirtimeClass(mode, cwTailSeconds).labelRes),
+                        text = stringResource(txAirtimeClass(mode, cwTailSeconds, digitalMode).labelRes),
                         color = TextMuted,
                         fontSize = 12.sp,
                     )

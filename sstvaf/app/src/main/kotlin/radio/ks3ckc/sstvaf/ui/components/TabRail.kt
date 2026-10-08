@@ -27,6 +27,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,7 +46,7 @@ import radio.ks3ckc.sstvaf.ui.motion.rememberHaptics
  *
  * Mirrors TabBar's icon set, labels, active-accent colour and haptic tick so the
  * two navigation surfaces feel like one control that merely re-flows with size.
- * The rail keeps its scroll wrapper even though four entries fit anywhere a
+ * The rail keeps its scroll wrapper even though five entries fit anywhere a
  * rail is used, so a future tab (or a very short split-screen canvas) can't
  * silently push an entry out of reach.
  */
@@ -101,10 +104,14 @@ fun TabRail(
             Column(
                 modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
+                    // Role.Tab + selected: mirrors TabBar so both navigation
+                    // surfaces announce e.g. "Receive, tab, selected".
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
+                        role = Role.Tab,
                     ) { onTabSelected(tab) }
+                    .semantics { selected = isActive }
                     .padding(vertical = 6.dp, horizontal = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(4.dp),

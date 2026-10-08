@@ -388,7 +388,13 @@ private fun FramePanel(selected: ImageFrame, onPick: (ImageFrame) -> Unit) {
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .clickable(role = Role.Button) { onPick(frame) },
+                    // selectable, not clickable: the active frame is otherwise
+                    // conveyed only by the preview's border colour, which
+                    // TalkBack cannot read.
+                    .selectable(
+                        selected = frame == selected,
+                        role = Role.RadioButton,
+                    ) { onPick(frame) },
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
@@ -623,7 +629,12 @@ private fun SizeRow(selected: Float, onPick: (Float) -> Unit) {
                     .size(width = 32.dp, height = 28.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(if (isSelected) Accent else BgSurface3)
-                    .clickable(role = Role.Button) { onPick(fraction) },
+                    // selectable so TalkBack announces which size is active;
+                    // colour is the only visual cue.
+                    .selectable(
+                        selected = isSelected,
+                        role = Role.RadioButton,
+                    ) { onPick(fraction) },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -649,7 +660,12 @@ private fun StyleRow(selected: OverlayStyle, onPick: (OverlayStyle) -> Unit) {
                     .height(28.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(if (isSelected) Accent else BgSurface3)
-                    .clickable(role = Role.Button) { onPick(style) }
+                    // selectable so TalkBack announces which style is active;
+                    // colour is the only visual cue.
+                    .selectable(
+                        selected = isSelected,
+                        role = Role.RadioButton,
+                    ) { onPick(style) }
                     .padding(horizontal = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -752,7 +768,13 @@ private fun MonoField(
             keyboardActions = androidx.compose.foundation.text.KeyboardActions(
                 onDone = { onDone() },
             ),
-            modifier = Modifier.fillMaxWidth(),
+            // The placeholder Text disappears once the field has content and is
+            // never associated with the field anyway, so name the field itself
+            // or TalkBack announces an anonymous edit box.
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .semantics { contentDescription = placeholder },
         )
     }
 }

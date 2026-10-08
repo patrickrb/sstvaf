@@ -2051,6 +2051,10 @@ public class DatabaseOpr extends SQLiteOpenHelper {
                     ",q.qso_date as last_time ,q.mode ,q.isQSL,q.isLotW_QSL\n" +
                     ",max(" + normTimeOn + ") as last_time_on\n" +
                     ",max(q.synced_cloudlog) as synced_cloudlog\n" +
+                    // Received signal report of the group's representative row (real
+                    // logged data, drives the logbook's signal-trend chart). max()
+                    // keeps the GROUP BY unchanged.
+                    ",max(q.rst_rcvd) as rst_rcvd\n" +
                     "from QSLTable q inner join QSLTable q2 ON q.id =q2.id \n" +
                     "where (q.[call] like ?)\n" +
                     filterStr +
@@ -2081,6 +2085,10 @@ public class DatabaseOpr extends SQLiteOpenHelper {
                     record.setMode(cursor.getString(cursor.getColumnIndex("mode")));
                     record.setGrid(cursor.getString(cursor.getColumnIndex("grid")));
                     record.setBand(cursor.getString(cursor.getColumnIndex("band")));
+                    int idxRst = cursor.getColumnIndex("rst_rcvd");
+                    if (idxRst >= 0) {
+                        record.setRstReceived(cursor.getString(idxRst));
+                    }
                     records.add(record);
                 }
             } finally {

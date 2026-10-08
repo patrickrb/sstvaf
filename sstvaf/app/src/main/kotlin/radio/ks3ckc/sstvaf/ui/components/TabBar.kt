@@ -32,6 +32,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,15 +44,16 @@ import radio.ks3ckc.sstvaf.ui.motion.rememberHaptics
 import com.k1af.ft8af.R
 
 /**
- * The bottom tabs: watch for pictures, send one, browse what you have, and —
- * far right, where FT8AF keeps it — configure the station.
+ * The bottom tabs: watch for pictures, send one, copy a weather fax, browse
+ * what you have, review your contacts, and — far right, where FT8AF keeps it —
+ * configure the station.
  *
- * Down from six. Waterfall is gone outright — SSTV carries its mode in the VIS
- * header, so the decoder auto-detects it and there is nothing for the operator
- * to tune by eye. Logbook stays behind the header's overflow button
- * ([MoreSheet]); Settings earned its tab back because a buried Settings made
- * first-run setup (callsign, rig, audio) hard to find, and FT8AF operators
- * expect it on the bar.
+ * Every destination is on the bar now; the header's overflow sheet is gone.
+ * Waterfall stays gone — SSTV carries its mode in the VIS header, so the
+ * decoder auto-detects it and there is nothing for the operator to tune by
+ * eye. Logbook and Settings earned their tabs back because burying them behind
+ * an overflow button made them hard to find, and FT8AF operators expect both
+ * on the bar.
  *
  * The label resource doubles as the screen title — the header shows the same
  * word as the tab (see [AppHeader]), so there is only one name per screen to
@@ -58,7 +62,12 @@ import com.k1af.ft8af.R
 enum class SstvTab(@StringRes val labelRes: Int) {
     RX(R.string.tab_receive),
     TX(R.string.tab_send),
+    // WEFAX sits with the operating surfaces: like Receive and Send it is a
+    // screen you work a tuned radio from (and it carries the band bar), not a
+    // place you browse what you already have.
+    WEFAX(R.string.tab_wefax),
     GALLERY(R.string.tab_gallery),
+    LOG(R.string.tab_logbook),
     SETTINGS(R.string.tab_settings),
 }
 
@@ -164,10 +173,15 @@ fun TabBar(
                         val cx = coords.positionInParent().x + coords.size.width / 2f
                         tabBounds[tab] = cx to coords.size.width.toFloat()
                     }
+                    // Role.Tab + selected: the Column's only text is the label, so
+                    // TalkBack merges it and announces e.g. "Receive, tab, selected"
+                    // instead of an anonymous clickable.
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
+                        role = Role.Tab,
                     ) { onTabSelected(tab) }
+                    .semantics { selected = isActive }
                     .padding(vertical = 8.dp, horizontal = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -202,7 +216,9 @@ internal fun TabIcon(tab: SstvTab, color: Color, strokeWidth: Float) {
     when (tab) {
         SstvTab.RX -> SstvAfIcons.RxImage(color = color, strokeWidth = strokeWidth)
         SstvTab.TX -> SstvAfIcons.Send(color = color, strokeWidth = strokeWidth)
+        SstvTab.WEFAX -> SstvAfIcons.Globe(color = color, strokeWidth = strokeWidth)
         SstvTab.GALLERY -> SstvAfIcons.Gallery(color = color, strokeWidth = strokeWidth)
+        SstvTab.LOG -> SstvAfIcons.Book(color = color, strokeWidth = strokeWidth)
         SstvTab.SETTINGS -> SstvAfIcons.Cog(color = color, strokeWidth = strokeWidth)
     }
 }

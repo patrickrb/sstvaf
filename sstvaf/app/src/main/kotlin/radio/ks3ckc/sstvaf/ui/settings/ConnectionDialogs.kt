@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
@@ -85,7 +86,7 @@ private fun DialogAccentButton(
             .height(46.dp)
             .clip(buttonShape)
             .background(bg)
-            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
+            .then(if (enabled) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -177,7 +178,7 @@ fun BluetoothPickerDialog(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
+                                .clickable(role = Role.Button) {
                                     ToastMessage.show(
                                         String.format(
                                             GeneralVariables.getStringFromResource(R.string.select_bluetooth_device),
@@ -348,7 +349,7 @@ fun FlexRadioPickerDialog(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
+                                .clickable(role = Role.Button) {
                                     ToastMessage.show(
                                         String.format(
                                             GeneralVariables.getStringFromResource(R.string.select_flex_device),
@@ -493,7 +494,7 @@ fun XieguRadioPickerDialog(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
+                                .clickable(role = Role.Button) {
                                     ToastMessage.show(
                                         String.format(
                                             GeneralVariables.getStringFromResource(R.string.select_xiegu_device),
@@ -657,7 +658,12 @@ fun IcomLoginDialog(
                                 if (passwordVisible) R.drawable.ic_baseline_visibility_24
                                 else R.drawable.ic_visibility_off,
                             ),
-                            contentDescription = stringResource(R.string.show_password),
+                            contentDescription =
+                                if (passwordVisible) {
+                                    stringResource(R.string.a11y_hide_password)
+                                } else {
+                                    stringResource(R.string.a11y_show_password)
+                                },
                             tint = TextMuted,
                             modifier = Modifier.size(20.dp),
                         )
