@@ -38,7 +38,10 @@ android {
 
     defaultConfig {
         applicationId "radio.ks3ckc.sstvaf"
-        minSdk 23
+        // 24 is the floor Play's automatic protection accepts: an App Bundle
+        // with minSdk 23 is rejected at upload ("Play automatic protection
+        // requires a minimum SDK version of 24 or higher").
+        minSdk 24
         targetSdk 36
         // Required for the androidTest suite to actually run: our instrumented
         // tests use @RunWith(AndroidJUnit4::class). Without this, AGP falls back
@@ -184,7 +187,8 @@ dependencies {
 
     implementation 'androidx.appcompat:appcompat:1.6.1'
     // EXIF orientation for photos loaded into the TX composer (the framework
-    // ExifInterface stream constructor needs API 24; minSdk is 23).
+    // ExifInterface is kept off the framework class for its wider format and
+    // bug-fix coverage).
     implementation 'androidx.exifinterface:exifinterface:1.3.7'
     implementation 'com.google.android.material:material:1.12.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
