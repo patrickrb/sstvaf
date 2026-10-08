@@ -49,6 +49,13 @@
     <string name="cat_state_disconnected">bağlı değil</string>
     <string name="cat_state_error">bağlantı hatası</string>
     <string name="cat_state_vox">CAT bağlantısı yok</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">Kapat</string>
+    <string name="a11y_stepper_decrease">%1$s azalt</string>
+    <string name="a11y_stepper_increase">%1$s artır</string>
+    <string name="a11y_show_password">Şifreyi göster</string>
+    <string name="a11y_hide_password">Şifreyi gizle</string>
+    <string name="log_heatmap_description">Grid kare haritası: %2$d alandan %1$d tanesi çalışıldı</string>
     <string name="wefax_start">Başlat</string>
     <string name="wefax_stop">Durdur</string>
     <string name="wefax_status_idle">Hazır</string>

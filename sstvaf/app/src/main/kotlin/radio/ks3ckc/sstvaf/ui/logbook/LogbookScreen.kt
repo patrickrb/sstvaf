@@ -8,6 +8,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -57,6 +58,9 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -584,7 +588,12 @@ internal fun SegmentedTabRow(
                     .padding(2.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(bgColor)
-                    .clickable { onSelected(tab) },
+                    // selectable so TalkBack announces "tab" + which one is
+                    // active; colour/weight are the only visual cues.
+                    .selectable(
+                        selected = isSelected,
+                        role = Role.Tab,
+                    ) { onSelected(tab) },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -942,12 +951,21 @@ private fun GridSquareHeatmap(
     val rows = 10  // 0..9 (latitude bands, typically A-R letters mapped, but for the field
                    // grid we show longitude letters across, latitude digits down)
 
+    // Worked/not-worked is conveyed by cell colour alone, with no text
+    // equivalent anywhere on the card, so summarize the map for TalkBack.
+    val heatmapDescription =
+        stringResource(
+            R.string.log_heatmap_description,
+            heatmapWorkedFieldCount(workedFields, cols, rows),
+            cols * rows,
+        )
     GlassCard(modifier = modifier) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState())
-                .padding(12.dp),
+                .padding(12.dp)
+                .semantics { contentDescription = heatmapDescription },
         ) {
             for (row in 0 until rows) {
                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -975,6 +993,23 @@ private fun GridSquareHeatmap(
         }
     }
 }
+
+/**
+ * How many of the heatmap's displayed cells are worked. The heatmap draws an
+ * 18x10 window (longitude fields A..R across, latitude fields A..J down), so a
+ * worked field outside that window — or a malformed designator — must not be
+ * counted, or the spoken summary would claim more lit cells than are drawn.
+ */
+internal fun heatmapWorkedFieldCount(
+    workedFields: Set<String>,
+    cols: Int = 18,
+    rows: Int = 10,
+): Int =
+    workedFields.count { field ->
+        field.length == 2 &&
+            field[0] in 'A' until 'A' + cols &&
+            field[1] in 'A' until 'A' + rows
+    }
 
 // ---------------------------------------------------------------------------
 // Signal trend sparkline (Canvas)
@@ -2115,7 +2150,7 @@ private fun CatchUpSyncDialog(
                     .clip(RoundedCornerShape(12.dp))
                     .background(if (state.inProgress) BgSurface3 else Accent)
                     .let { m ->
-                        if (state.inProgress) m else m.clickable(onClick = onDismiss)
+                        if (state.inProgress) m else m.clickable(role = Role.Button, onClick = onDismiss)
                     },
                 contentAlignment = Alignment.Center,
             ) {

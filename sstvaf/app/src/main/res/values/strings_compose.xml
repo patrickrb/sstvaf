@@ -82,6 +82,13 @@
     <string name="cat_state_disconnected">not connected</string>
     <string name="cat_state_error">connection error</string>
     <string name="cat_state_vox">no CAT link</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">Close</string>
+    <string name="a11y_stepper_decrease">Decrease %1$s</string>
+    <string name="a11y_stepper_increase">Increase %1$s</string>
+    <string name="a11y_show_password">Show password</string>
+    <string name="a11y_hide_password">Hide password</string>
+    <string name="log_heatmap_description">Grid square map: %1$d of %2$d fields worked</string>
 
     <!-- ===== WEFAX receive tab ===== -->
     <!-- WEFAX is an acronym (weather facsimile) and stays untranslated; the

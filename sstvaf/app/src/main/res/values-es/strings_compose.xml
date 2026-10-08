@@ -49,6 +49,13 @@
     <string name="cat_state_disconnected">no conectado</string>
     <string name="cat_state_error">error de conexión</string>
     <string name="cat_state_vox">sin enlace CAT</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">Cerrar</string>
+    <string name="a11y_stepper_decrease">Reducir %1$s</string>
+    <string name="a11y_stepper_increase">Aumentar %1$s</string>
+    <string name="a11y_show_password">Mostrar contraseña</string>
+    <string name="a11y_hide_password">Ocultar contraseña</string>
+    <string name="log_heatmap_description">Mapa de cuadrículas: %1$d de %2$d campos trabajados</string>
     <string name="wefax_start">Iniciar</string>
     <string name="wefax_stop">Detener</string>
     <string name="wefax_status_idle">Listo</string>

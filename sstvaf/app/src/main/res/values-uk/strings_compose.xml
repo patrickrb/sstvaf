@@ -49,6 +49,13 @@
     <string name="cat_state_disconnected">не підключено</string>
     <string name="cat_state_error">помилка підключення</string>
     <string name="cat_state_vox">немає CAT-зв\'язку</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">Закрити</string>
+    <string name="a11y_stepper_decrease">Зменшити %1$s</string>
+    <string name="a11y_stepper_increase">Збільшити %1$s</string>
+    <string name="a11y_show_password">Показати пароль</string>
+    <string name="a11y_hide_password">Приховати пароль</string>
+    <string name="log_heatmap_description">Карта квадратів: відпрацьовано %1$d із %2$d полів</string>
     <string name="wefax_start">Старт</string>
     <string name="wefax_stop">Стоп</string>
     <string name="wefax_status_idle">Готово</string>

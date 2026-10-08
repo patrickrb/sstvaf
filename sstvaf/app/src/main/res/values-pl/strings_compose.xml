@@ -49,6 +49,13 @@
     <string name="cat_state_disconnected">brak połączenia</string>
     <string name="cat_state_error">błąd połączenia</string>
     <string name="cat_state_vox">brak łącza CAT</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">Zamknij</string>
+    <string name="a11y_stepper_decrease">Zmniejsz %1$s</string>
+    <string name="a11y_stepper_increase">Zwiększ %1$s</string>
+    <string name="a11y_show_password">Pokaż hasło</string>
+    <string name="a11y_hide_password">Ukryj hasło</string>
+    <string name="log_heatmap_description">Mapa kwadratów lokatora: przepracowano %1$d z %2$d pól</string>
     <string name="wefax_start">Start</string>
     <string name="wefax_stop">Stop</string>
     <string name="wefax_status_idle">Gotowy</string>

@@ -49,6 +49,13 @@
     <string name="cat_state_disconnected">연결 안 됨</string>
     <string name="cat_state_error">연결 오류</string>
     <string name="cat_state_vox">CAT 링크 없음</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">닫기</string>
+    <string name="a11y_stepper_decrease">%1$s 줄이기</string>
+    <string name="a11y_stepper_increase">%1$s 늘리기</string>
+    <string name="a11y_show_password">비밀번호 표시</string>
+    <string name="a11y_hide_password">비밀번호 숨기기</string>
+    <string name="log_heatmap_description">그리드 맵: %2$d개 필드 중 %1$d개 교신 완료</string>
     <string name="wefax_start">시작</string>
     <string name="wefax_stop">중지</string>
     <string name="wefax_status_idle">준비됨</string>

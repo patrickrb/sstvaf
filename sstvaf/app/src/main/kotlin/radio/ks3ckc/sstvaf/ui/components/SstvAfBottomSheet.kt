@@ -35,6 +35,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import com.k1af.ft8af.R
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.layout.onSizeChanged
@@ -86,7 +89,10 @@ fun SstvAfBottomSheet(
         enter = fadeIn(),
         exit = fadeOut(),
     ) {
-        // Scrim overlay
+        // Scrim overlay. The onClickLabel/role name the tap-outside-to-close
+        // affordance for TalkBack, which otherwise reaches an anonymous
+        // full-screen clickable.
+        val dismissLabel = stringResource(R.string.a11y_close_sheet)
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -94,6 +100,8 @@ fun SstvAfBottomSheet(
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
+                    onClickLabel = dismissLabel,
+                    role = Role.Button,
                 ) { onDismiss() }
         )
     }

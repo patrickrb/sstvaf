@@ -25,6 +25,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -448,10 +450,14 @@ private fun ExportSettingsDialog(
                         fontSize = 12.sp,
                     )
                 }
+                val sensitiveLabel = stringResource(R.string.settings_backup_include_sensitive)
                 Switch(
                     checked = includeSensitive,
                     onCheckedChange = onToggleSensitive,
                     colors = SwitchDefaults.colors(checkedTrackColor = Accent),
+                    // The label Column is a sibling node, so name the switch or
+                    // TalkBack announces a bare "switch, on".
+                    modifier = Modifier.semantics { contentDescription = sensitiveLabel },
                 )
             }
             Row(

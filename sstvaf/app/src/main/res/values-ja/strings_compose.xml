@@ -49,6 +49,13 @@
     <string name="cat_state_disconnected">未接続</string>
     <string name="cat_state_error">接続エラー</string>
     <string name="cat_state_vox">CATリンクなし</string>
+    <!-- Accessibility-only labels (spoken by TalkBack, never drawn) -->
+    <string name="a11y_close_sheet">閉じる</string>
+    <string name="a11y_stepper_decrease">%1$sを下げる</string>
+    <string name="a11y_stepper_increase">%1$sを上げる</string>
+    <string name="a11y_show_password">パスワードを表示</string>
+    <string name="a11y_hide_password">パスワードを非表示</string>
+    <string name="log_heatmap_description">グリッドマップ: %2$d フィールド中 %1$d 交信済み</string>
     <string name="wefax_start">開始</string>
     <string name="wefax_stop">停止</string>
     <string name="wefax_status_idle">待機中</string>
