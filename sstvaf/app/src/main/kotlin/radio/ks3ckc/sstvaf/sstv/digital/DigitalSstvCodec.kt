@@ -58,6 +58,24 @@ internal class DigitalSstvCodec(val mode: DigitalSstvMode = DigitalSstvMode.STAN
         return encodeFrame(meta, image.payload, (0 until meta.blockCount).toList())
     }
 
+    /**
+     * Exact sample count [encode] produces for a [payloadBytes]-byte payload,
+     * computed from the frame layout (preamble + header + body symbols)
+     * without synthesizing a waveform — duration estimates on the UI path
+     * must never pay for a dry-run encode.
+     */
+    fun encodedSampleCount(payloadBytes: Int): Int {
+        val blocks = maxOf(
+            (payloadBytes.coerceAtLeast(0) + DigitalSstvContainer.BLOCK_DATA_LEN - 1) /
+                DigitalSstvContainer.BLOCK_DATA_LEN,
+            1,
+        )
+        val symbols = 1 + // preamble
+            segmentSymbolCount(DigitalSstvContainer.HEADER_CW) +
+            segmentSymbolCount(blocks * DigitalSstvContainer.BLOCK_CW)
+        return symbols * symbolLength
+    }
+
     /** Encode a retransmission carrying only [indices] (a BSR response). */
     fun encodeRetransmission(image: Image, indices: List<Int>): FloatArray {
         val meta = DigitalSstvContainer.metadataFor(image.format, image.width, image.height, image.payload)

@@ -701,6 +701,8 @@
     <string name="mode_group_fast">快速 · 一分钟以内</string>
     <string name="mode_group_standard">标准</string>
     <string name="mode_group_high_resolution">高分辨率</string>
+    <string name="mode_group_digital">数字 · 测试版</string>
+    <string name="mode_digital_sub">带纠错的压缩照片 — 仅限 SSTVAF</string>
     <string name="mode_note_most_common">在 20m 上最常见</string>
     <string name="mode_card_label">模式</string>
     <string name="mode_card_description">SSTV 模式 %1$s</string>

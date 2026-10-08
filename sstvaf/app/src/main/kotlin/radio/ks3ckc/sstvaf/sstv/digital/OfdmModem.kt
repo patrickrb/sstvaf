@@ -135,9 +135,22 @@ internal class OfdmModem(val params: OfdmParams = OfdmParams()) {
      * first [searchLimit] offsets by normalized cross-correlation. Returns the
      * best offset, or 0 when the buffer is too short to search.
      */
-    fun findFrameStart(audio: DoubleArray, searchLimit: Int): Int {
+    fun findFrameStart(audio: DoubleArray, searchLimit: Int): Int =
+        findFrameStartScored(audio, searchLimit).first
+
+    /**
+     * As [findFrameStart], also returning the winning offset's normalized
+     * correlation score. The score is dot²/(energy·preambleEnergy) — 1.0 for
+     * the preamble itself, near 0 for noise — so a live detector can gate on
+     * "is a frame even here" rather than trusting the argmax of noise.
+     */
+    fun findFrameStartScored(audio: DoubleArray, searchLimit: Int): Pair<Int, Double> {
         val limit = minOf(searchLimit, audio.size - symbolLength)
-        if (limit < 0) return 0
+        if (limit < 0) return 0 to 0.0
+        var preambleEnergy = 0.0
+        for (n in 0 until symbolLength) {
+            preambleEnergy += preambleWave[n] * preambleWave[n]
+        }
         var best = 0
         var bestScore = -1.0
         for (off in 0..limit) {
@@ -154,7 +167,7 @@ internal class OfdmModem(val params: OfdmParams = OfdmParams()) {
                 best = off
             }
         }
-        return best
+        return best to bestScore / (preambleEnergy + 1e-12)
     }
 
     // --- helpers ---

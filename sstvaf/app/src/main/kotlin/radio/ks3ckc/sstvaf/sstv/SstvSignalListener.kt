@@ -4,6 +4,8 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.k1af.ft8af.GeneralVariables
 import com.k1af.ft8af.wave.HamRecorder
+import radio.ks3ckc.sstvaf.sstv.digital.DigitalRxImage
+import radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvRxEngine
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -39,6 +41,29 @@ class SstvSignalListener @JvmOverloads constructor(
 
     /** Live receive state for the (future, PR 6) RX UI. */
     val rxState: LiveData<SstvRxState> get() = mutableRxState
+
+    private val mutableDigitalResult = MutableLiveData<DigitalRxImage?>(null)
+
+    /**
+     * The last completed digital-SSTV image, decoded by the parallel COFDM
+     * detector that rides the same audio tap (see [DigitalSstvRxEngine]).
+     * Digital frames are all-or-nothing (no per-row progress), so they get
+     * their own durable holder instead of a [SstvRxState] variant; the save
+     * controller renders the payload and files it with the RX images.
+     */
+    val digitalResult: LiveData<DigitalRxImage?> get() = mutableDigitalResult
+
+    /** The digital detector; driven from the decode thread only. */
+    private val digitalEngine = DigitalSstvRxEngine(log)
+
+    /**
+     * Invoked on the decode thread for EVERY completed digital frame — the
+     * durable per-frame handoff (LiveData postValue coalesces under a busy
+     * main looper, which could silently drop a frame between dispatches).
+     * The callback must be fast or offload its own work.
+     */
+    @Volatile
+    var onDigitalImage: ((DigitalRxImage) -> Unit)? = null
 
     @Volatile
     private var currentState: SstvRxState = SstvRxState.Idle
@@ -79,9 +104,32 @@ class SstvSignalListener @JvmOverloads constructor(
     fun stop() {
         if (!running.compareAndSet(true, false)) return
         detachFromRecorder()
-        decodeThread?.interrupt()
+        val thread = decodeThread
         decodeThread = null
         queue.clear()
+        var joined = true
+        if (thread != null) {
+            thread.interrupt()
+            // Bounded join before touching the digital engine: the interrupt
+            // only wakes queue.poll — an in-flight COFDM decode attempt runs
+            // to completion, and the engine is not thread-safe.
+            try {
+                thread.join(STOP_JOIN_MS)
+            } catch (ie: InterruptedException) {
+                Thread.currentThread().interrupt()
+            }
+            joined = !thread.isAlive
+        }
+        if (joined) {
+            // Thread is gone; safe to reset the digital detector so a later
+            // start() hunts from a clean slate.
+            digitalEngine.reset()
+        } else {
+            // Pathological: a decode attempt outlived the join budget. The
+            // stepOnce running-gate stops it from pushing further; leave the
+            // engine untouched rather than race it.
+            log("SSTV RX: decode thread still busy at stop; digital reset skipped")
+        }
         // Direct-driven (test) mode has no thread to do the teardown.
         synchronized(sessionLock) {
             if (decodeThreadless) {
@@ -226,14 +274,34 @@ class SstvSignalListener @JvmOverloads constructor(
     internal fun stepOnce(waitMs: Long) {
         val first =
             if (waitMs > 0) queue.poll(waitMs, TimeUnit.MILLISECONDS) else queue.poll()
+        // Drain to a local list first: the analog session push happens under
+        // sessionLock, but the digital detector (which can spend hundreds of
+        // milliseconds on a decode attempt) must run OUTSIDE it so the UI's
+        // readNewRows never waits on a COFDM demod.
+        val drained = ArrayList<FloatArray>(4)
+        if (first != null) drained.add(first)
+        while (true) {
+            drained.add(queue.poll() ?: break)
+        }
         synchronized(sessionLock) {
             val s = session ?: return
-            var buf = first
-            while (buf != null) {
+            for (buf in drained) {
                 s.push(buf, buf.size)
-                buf = queue.poll()
             }
             publishFromSession(s)
+        }
+        for (buf in drained) {
+            // The running gate pairs with stop()'s bounded join: once stop()
+            // begins, this thread must not keep driving the shared engine.
+            if (!running.get()) return
+            digitalEngine.push(buf, buf.size)?.let { result ->
+                // Direct handoff first: postValue coalesces when the main
+                // looper is busy, so the durable per-frame delivery for the
+                // save controller is this callback (invoked on the decode
+                // thread); the LiveData stays for UI observation.
+                onDigitalImage?.invoke(result)
+                mutableDigitalResult.postValue(result)
+            }
         }
     }
 
@@ -361,5 +429,8 @@ class SstvSignalListener @JvmOverloads constructor(
 
         /** Rate limit for the overflow log line. */
         internal const val DROP_LOG_EVERY = 50L
+
+        /** Bound on waiting for the decode thread during stop(). */
+        internal const val STOP_JOIN_MS = 2000L
     }
 }

@@ -1,8 +1,12 @@
 package radio.ks3ckc.sstvaf.ui.tx
 
+import android.graphics.Bitmap
 import androidx.annotation.StringRes
 import com.k1af.ft8af.R
 import radio.ks3ckc.sstvaf.sstv.SstvMode
+import radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode
+import radio.ks3ckc.sstvaf.sstv.digital.digitalDurationSeconds
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -92,7 +96,19 @@ internal fun confirmDurationLine(
     mode: SstvMode,
     cwTailSeconds: Double = 0.0,
     voxPreToneSeconds: Double = 0.0,
+    digitalMode: DigitalSstvMode? = null,
 ): String {
+    // With a digital transport the analog mode only names the canvas — the
+    // on-air name and airtime are the COFDM frame's. The duration is an
+    // estimate (payload budget, not the final JPEG size), hence the ≈.
+    if (digitalMode != null) {
+        val total = (
+            digitalTxDurationSeconds(digitalMode) +
+                cwTailSeconds.coerceAtLeast(0.0) + voxPreToneSeconds.coerceAtLeast(0.0)
+            ).roundToInt()
+        val idNote = if (cwTailSeconds > 0.0) " (incl. CW ID)" else ""
+        return "${digitalMode.displayName} — ${modeResolutionLabel(mode)} — ≈$total seconds$idNote"
+    }
     val total = totalTxDurationSeconds(mode, cwTailSeconds, voxPreToneSeconds).roundToInt()
     val idNote = if (cwTailSeconds > 0.0) " (incl. CW ID)" else ""
     return "${mode.displayName} — ${modeResolutionLabel(mode)} — $total seconds$idNote"
@@ -125,8 +141,17 @@ internal enum class TxAirtimeClass(@StringRes val labelRes: Int) {
  * Folds in the CW ID tail via [totalTxDurationSeconds], so enabling the ID can
  * bump a mode into the next class up when it nudges the total past a boundary.
  */
-internal fun txAirtimeClass(mode: SstvMode, cwTailSeconds: Double = 0.0): TxAirtimeClass {
-    val total = totalTxDurationSeconds(mode, cwTailSeconds)
+internal fun txAirtimeClass(
+    mode: SstvMode,
+    cwTailSeconds: Double = 0.0,
+    digitalMode: DigitalSstvMode? = null,
+): TxAirtimeClass {
+    val total =
+        if (digitalMode != null) {
+            digitalTxDurationSeconds(digitalMode) + cwTailSeconds.coerceAtLeast(0.0)
+        } else {
+            totalTxDurationSeconds(mode, cwTailSeconds)
+        }
     return when {
         total < 60.0 -> TxAirtimeClass.QUICK
         total < 120.0 -> TxAirtimeClass.MODERATE
@@ -314,6 +339,88 @@ internal fun performTransmit(
     log(
         "SSTV TX composer: transmit started — mode=${mode.displayName}" +
             " ${width}x$height freqHz=$freqHz",
+    )
+    return true
+}
+
+// ---------------------------------------------------------------------------
+// Digital SSTV (COFDM) transmit
+// ---------------------------------------------------------------------------
+
+/**
+ * The JPEG payload budget for a digital transmission. At the STANDARD
+ * robustness mode's throughput this is roughly 45 s of airtime — in analog
+ * terms, Martin 2 territory — while still carrying a full-color photo the
+ * analog modes can only approximate.
+ */
+internal const val DIGITAL_PAYLOAD_BUDGET_BYTES = 12 * 1024
+
+/** JPEG quality ladder tried by [compressForDigital], best first. */
+private val DIGITAL_JPEG_QUALITIES = intArrayOf(85, 75, 65, 55, 45, 35)
+
+/**
+ * Compress [bitmap] to a JPEG no larger than [budgetBytes], walking the
+ * quality ladder downward; when even the lowest rung overshoots, that rung's
+ * bytes are returned anyway (a slightly longer transmission beats refusing
+ * to send).
+ */
+internal fun compressForDigital(
+    bitmap: Bitmap,
+    budgetBytes: Int = DIGITAL_PAYLOAD_BUDGET_BYTES,
+): ByteArray {
+    var last: ByteArray = ByteArray(0)
+    for (quality in DIGITAL_JPEG_QUALITIES) {
+        val out = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, quality, out)
+        last = out.toByteArray()
+        if (last.size <= budgetBytes) return last
+    }
+    return last
+}
+
+/**
+ * Estimated on-air seconds for a digital transmission of [payloadBytes] in
+ * [digitalMode]. Pure arithmetic over the frame layout — cheap enough for
+ * composition, so no memo is needed.
+ */
+internal fun digitalTxDurationSeconds(
+    digitalMode: DigitalSstvMode,
+    payloadBytes: Int = DIGITAL_PAYLOAD_BUDGET_BYTES,
+): Double = digitalDurationSeconds(payloadBytes, digitalMode)
+
+/**
+ * As [performTransmit], for a digital frame: start first (a rejected start
+ * must not save), then persist the composed pixels as the TX gallery copy
+ * under the digital mode's name.
+ */
+@Suppress("LongParameterList")
+internal fun performDigitalTransmit(
+    pixels: IntArray,
+    width: Int,
+    height: Int,
+    payload: ByteArray,
+    digitalMode: DigitalSstvMode,
+    freqHz: Long,
+    utcMillis: Long,
+    starter: (ByteArray, Int, Int, DigitalSstvMode) -> Boolean,
+    saver: (IntArray, Int, Int, DigitalSstvMode, Long, Long) -> Unit,
+    log: (String) -> Unit,
+): Boolean {
+    val accepted = starter(payload, width, height, digitalMode)
+    if (!accepted) {
+        log("SSTV TX composer: digital transmit rejected — mode=${digitalMode.displayName}")
+        return false
+    }
+    try {
+        saver(pixels, width, height, digitalMode, utcMillis, freqHz)
+    } catch (e: IOException) {
+        // Same contract as the analog path: the frame is already on the air,
+        // losing the gallery copy is the lesser failure.
+        log("SSTV TX composer: digital gallery save failed — $e")
+    }
+    log(
+        "SSTV TX composer: digital transmit started — mode=${digitalMode.displayName}" +
+            " ${width}x$height payload=${payload.size}B freqHz=$freqHz",
     )
     return true
 }

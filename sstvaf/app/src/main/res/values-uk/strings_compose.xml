@@ -701,6 +701,8 @@
     <string name="mode_group_fast">ШВИДКІ · МЕНШЕ ХВИЛИНИ</string>
     <string name="mode_group_standard">СТАНДАРТНІ</string>
     <string name="mode_group_high_resolution">ВИСОКА РОЗДІЛЬНА ЗДАТНІСТЬ</string>
+    <string name="mode_group_digital">ЦИФРОВИЙ · БЕТА</string>
+    <string name="mode_digital_sub">Стиснуте фото з корекцією помилок — лише SSTVAF</string>
     <string name="mode_note_most_common">найпоширеніший на 20m</string>
     <string name="mode_card_label">РЕЖИМ</string>
     <string name="mode_card_description">Режим SSTV %1$s</string>

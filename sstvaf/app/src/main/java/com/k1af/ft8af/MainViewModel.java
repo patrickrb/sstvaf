@@ -113,6 +113,7 @@ import radio.ks3ckc.sstvaf.gallery.ReceivedImageStore;
 import radio.ks3ckc.sstvaf.gallery.RxAutoSaveController;
 import radio.ks3ckc.sstvaf.sstv.SstvSignalListener;
 import radio.ks3ckc.sstvaf.sstv.SstvTransmitter;
+import radio.ks3ckc.sstvaf.sstv.digital.DigitalRxSaveController;
 import radio.ks3ckc.sstvaf.wefax.NativeWefaxCodec;
 import radio.ks3ckc.sstvaf.wefax.WefaxAutoSaveController;
 import radio.ks3ckc.sstvaf.wefax.WefaxSignalListener;
@@ -168,6 +169,7 @@ public class MainViewModel extends ViewModel {
     // Received-image persistence (PR 6): PNG + metadata row per completed decode.
     public ReceivedImageStore receivedImageStore;//saved SSTV images (app storage + Photos)
     public RxAutoSaveController rxAutoSaveController;//auto-saves Complete decodes
+    public DigitalRxSaveController digitalRxSaveController;//renders + saves digital frames
     public WefaxSignalListener wefaxSignalListener;//on-demand WEFAX radiofax RX engine
     public WefaxAutoSaveController wefaxAutoSaveController;//persists finished fax strips
 
@@ -641,6 +643,9 @@ public class MainViewModel extends ViewModel {
                 GeneralVariables.getMainContext(), databaseOpr.getDb());
         rxAutoSaveController = new RxAutoSaveController(receivedImageStore);
         rxAutoSaveController.attach(sstvSignalListener.getRxState());
+        // Digital frames ride the same tap; render + save them alongside.
+        digitalRxSaveController = new DigitalRxSaveController(receivedImageStore);
+        digitalRxSaveController.attach(sstvSignalListener);
 
         // ===== WEFAX radiofax RX =====
         // On-demand (the fax screen starts/stops it), sharing the recorder

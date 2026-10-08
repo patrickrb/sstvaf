@@ -701,6 +701,8 @@
     <string name="mode_group_fast">高速 · 1 分以内</string>
     <string name="mode_group_standard">標準</string>
     <string name="mode_group_high_resolution">高解像度</string>
+    <string name="mode_group_digital">デジタル · ベータ</string>
+    <string name="mode_digital_sub">誤り訂正付き圧縮写真 — SSTVAF間のみ</string>
     <string name="mode_note_most_common">20m で最も一般的</string>
     <string name="mode_card_label">モード</string>
     <string name="mode_card_description">SSTV モード %1$s</string>

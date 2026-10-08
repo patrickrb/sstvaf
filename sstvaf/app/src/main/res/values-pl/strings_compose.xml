@@ -701,6 +701,8 @@
     <string name="mode_group_fast">SZYBKIE · PONIŻEJ MINUTY</string>
     <string name="mode_group_standard">STANDARDOWE</string>
     <string name="mode_group_high_resolution">WYSOKA ROZDZIELCZOŚĆ</string>
+    <string name="mode_group_digital">CYFROWY · BETA</string>
+    <string name="mode_digital_sub">Skompresowane zdjęcie z korekcją błędów — tylko SSTVAF</string>
     <string name="mode_note_most_common">najczęstszy na 20m</string>
     <string name="mode_card_label">TRYB</string>
     <string name="mode_card_description">Tryb SSTV %1$s</string>

@@ -9,11 +9,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.k1af.ft8af.R
 import radio.ks3ckc.sstvaf.sstv.SstvMode
+import radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvMode
 import radio.ks3ckc.sstvaf.theme.Accent
 import radio.ks3ckc.sstvaf.theme.BgApp
 import radio.ks3ckc.sstvaf.theme.BgSurface2
@@ -46,6 +49,7 @@ import radio.ks3ckc.sstvaf.theme.TextMuted
 import radio.ks3ckc.sstvaf.theme.TextPrimary
 import radio.ks3ckc.sstvaf.ui.components.SstvAfBottomSheet
 import radio.ks3ckc.sstvaf.ui.components.SstvAfIcons
+import kotlin.math.roundToInt
 
 /**
  * The SSTV mode picker, opened from the Send screen's mode card.
@@ -68,6 +72,8 @@ internal fun ModeSheet(
     selected: SstvMode,
     onDismiss: () -> Unit,
     onSelect: (SstvMode) -> Unit,
+    selectedDigital: DigitalSstvMode? = null,
+    onSelectDigital: (DigitalSstvMode) -> Unit = {},
 ) {
     SstvAfBottomSheet(visible = visible, onDismiss = onDismiss) {
         // Sixteen rows, three group headings and a title do not fit a phone, and
@@ -117,13 +123,78 @@ internal fun ModeSheet(
                     for (mode in group.modes) {
                         ModeRow(
                             mode = mode,
-                            selected = mode == selected,
+                            selected = mode == selected && selectedDigital == null,
                             onClick = { onSelect(mode) },
                         )
                     }
                 }
             }
+
+            // Digital (COFDM) modes: a compressed photo with FEC instead of
+            // analog scanlines. SSTVAF-to-SSTVAF only for now, hence the
+            // (beta) flag; the duration is an estimate at the standard photo
+            // payload budget, not a fixed scan time.
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = stringResource(R.string.mode_group_digital),
+                    modifier = Modifier.padding(horizontal = 2.dp, vertical = 2.dp),
+                    color = TextFaint,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.06.sp,
+                )
+                for (dmode in DigitalSstvMode.entries) {
+                    DigitalModeRow(
+                        mode = dmode,
+                        selected = dmode == selectedDigital,
+                        onClick = { onSelectDigital(dmode) },
+                    )
+                }
+            }
         }
+    }
+}
+
+/** One digital mode: name, payload note, estimated duration, radio circle. */
+@Composable
+private fun DigitalModeRow(
+    mode: DigitalSstvMode,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (selected) Accent.copy(alpha = 0.10f) else Color.Transparent)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = mode.displayName,
+                color = TextPrimary,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+            )
+            Text(
+                text = stringResource(R.string.mode_digital_sub),
+                color = TextMuted,
+                fontSize = 11.sp,
+            )
+        }
+        Text(
+            text = stringResource(
+                R.string.mode_digital_duration,
+                formatMinSec(digitalTxDurationSeconds(mode).roundToInt()),
+            ),
+            color = TextMuted,
+            fontSize = 12.sp,
+            fontFamily = GeistMonoFamily,
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        SelectionRing(selected = selected)
     }
 }
 
@@ -234,8 +305,10 @@ internal fun ModeCard(
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    digitalMode: DigitalSstvMode? = null,
 ) {
-    val description = stringResource(R.string.mode_card_description, mode.displayName)
+    val shownName = digitalMode?.displayName ?: mode.displayName
+    val description = stringResource(R.string.mode_card_description, shownName)
     val actionLabel = stringResource(R.string.mode_card_action)
     Column(
         modifier = modifier
@@ -272,7 +345,7 @@ internal fun ModeCard(
             horizontalArrangement = Arrangement.spacedBy(5.dp),
         ) {
             Text(
-                text = mode.displayName,
+                text = shownName,
                 color = if (enabled) TextPrimary else TextFaint,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
