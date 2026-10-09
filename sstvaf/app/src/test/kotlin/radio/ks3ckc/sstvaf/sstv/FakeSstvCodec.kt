@@ -45,6 +45,8 @@ class FakeSstvCodec : SstvCodec {
         val rowsReady: Int = 0,
         val quality: Float = 0f,
         val slantPpm: Float = 0f,
+        /** false = the native decoder locked on the sync train with no VIS. */
+        val visLocked: Boolean = true,
     )
 
     /** Consumed one entry per push(); empty = state holds. */
@@ -111,6 +113,8 @@ class FakeSstvCodec : SstvCodec {
         override fun slantPpm(): Float = current.slantPpm
 
         override fun quality(): Float = current.quality
+
+        override fun visLocked(): Boolean = current.mode != null && current.visLocked
 
         override fun reset() {
             resetCount++

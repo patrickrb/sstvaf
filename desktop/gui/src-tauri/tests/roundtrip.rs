@@ -178,10 +178,19 @@ fn reset_returns_the_decoder_to_hunting_and_it_decodes_again() {
     assert_eq!(dec.rows_ready(), 0);
     assert!(dec.mode().is_none());
 
-    // A second transmission on the same handle must decode just as well — no
-    // state may survive the reset and skew the line timing.
+    // A second transmission on the same handle must decode just as well. The
+    // reset rewinds the state machine but deliberately keeps the demodulated
+    // audio history (a header that preempted the previous image is anchored
+    // in it), so the second decode is not bit-identical to a fresh handle's —
+    // the demod filters carry a few samples of the previous audio — but it
+    // must be indistinguishable in practice.
     let second = roundtrip_on(&mut dec, mode, &source);
-    assert_eq!(first, second, "decode differed before and after reset");
+    assert!(mean_abs_error(&source, &second) < 12.0);
+    let drift = mean_abs_error(&first, &second);
+    assert!(
+        drift < 1.0,
+        "decode after reset drifted {drift:.2} levels from the first decode"
+    );
 }
 
 #[test]

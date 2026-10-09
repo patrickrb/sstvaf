@@ -47,7 +47,7 @@ enum {
 // Decoder status
 // ---------------------------------------------------------------------------
 enum {
-    SSTV_STATUS_IDLE = 0,   // hunting for the 1900 Hz leader
+    SSTV_STATUS_IDLE = 0,   // hunting for the 1900 Hz leader / a sync train
     SSTV_STATUS_LEADER,     // leader seen; hunting for the VIS start bit
     SSTV_STATUS_VIS,        // start bit seen; sampling the VIS cells
     SSTV_STATUS_IMAGE,      // VIS accepted; decoding image lines
@@ -119,6 +119,12 @@ float  sstv_decoder_slant_ppm(const sstv_decoder_t* d);
 // 0..1 blend of sync-hit-rate and in-band signal coherence.
 float  sstv_decoder_quality(const sstv_decoder_t* d);
 
+// How the current image was locked: 1 = timed off a decoded VIS header,
+// 0 = locked onto the line-sync train alone (transmission joined
+// mid-image, or its header was unreadable; rows then start at the top of
+// the frame). 0 before any lock.
+int    sstv_decoder_vis_locked(const sstv_decoder_t* d);
+
 // Manual mode lock. With a forced mode set (SSTV_MODE_*), the decoder still
 // hunts for the calibration header (leader + VIS start bit) — that anchors
 // line timing and frequency calibration — but ignores the VIS data, parity
@@ -131,6 +137,11 @@ float  sstv_decoder_quality(const sstv_decoder_t* d);
 int    sstv_decoder_set_forced_mode(sstv_decoder_t* d, int mode_id);
 int    sstv_decoder_forced_mode(const sstv_decoder_t* d);  // id or -1
 
+// Drop the current image and go back to hunting. The demodulated audio
+// history is kept (only the state machine rewinds), so a calibration header
+// that preempted the previous image (status ABORTED with a new header
+// decoded underneath it) puts the decoder straight into IMAGE for the new
+// transmission — check sstv_decoder_status() after a reset, not before.
 void   sstv_decoder_reset(sstv_decoder_t* d);
 void   sstv_decoder_destroy(sstv_decoder_t* d);
 
