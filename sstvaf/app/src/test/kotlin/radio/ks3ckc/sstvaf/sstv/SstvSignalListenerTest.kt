@@ -94,6 +94,58 @@ class SstvSignalListenerTest {
     }
 
     @Test
+    fun logsSyncLockWhenTheDecoderLockedWithoutAVis() {
+        val listener = newListener()
+        listener.startDirect()
+
+        codec.script += FakeSstvCodec.ScriptedState(
+            DecodeStatus.IMAGE, SstvMode.SCOTTIE_2, rowsReady = 4, quality = 0.9f,
+            visLocked = false,
+        )
+        listener.feedAndStep()
+        assertThat(listener.stateNow()).isEqualTo(
+            SstvRxState.Decoding(SstvMode.SCOTTIE_2, 4, 256, 0.9f, 0f),
+        )
+        val lockLine = logs.single { it.contains("lock") }
+        assertThat(lockLine).contains("sync lock (no VIS heard)")
+        assertThat(lockLine).contains("Scottie 2")
+        assertThat(lockLine).doesNotContain("VIS lock")
+
+        // Logged once per image, not once per poll.
+        codec.script += FakeSstvCodec.ScriptedState(
+            DecodeStatus.IMAGE, SstvMode.SCOTTIE_2, rowsReady = 40, quality = 0.9f,
+            visLocked = false,
+        )
+        listener.feedAndStep()
+        assertThat(logs.count { it.contains("lock") }).isEqualTo(1)
+    }
+
+    @Test
+    fun abortedThenImmediateImageAfterResetPublishesDecoding() {
+        // VIS preemption: the native decoder ends the stale image ABORTED and
+        // is back in IMAGE for the new transmission right after reset(). The
+        // engine must publish the new Decoding state without waiting for an
+        // Idle in between.
+        val listener = newListener()
+        listener.startDirect()
+        codec.script += FakeSstvCodec.ScriptedState(
+            DecodeStatus.ABORTED, SstvMode.ROBOT_36, rowsReady = 66, quality = 0.4f,
+        )
+        listener.feedAndStep()
+        assertThat(listener.stateNow()).isEqualTo(SstvRxState.Aborted(66, SstvMode.ROBOT_36))
+        assertThat(codec.resetCount).isEqualTo(1)
+
+        codec.script += FakeSstvCodec.ScriptedState(
+            DecodeStatus.IMAGE, SstvMode.MARTIN_2, rowsReady = 0, quality = 0f,
+        )
+        listener.feedAndStep()
+        assertThat(listener.stateNow()).isEqualTo(
+            SstvRxState.Decoding(SstvMode.MARTIN_2, 0, 256, 0f, 0f),
+        )
+        assertThat(logs.count { it.contains("VIS lock") && it.contains("Martin 2") }).isEqualTo(1)
+    }
+
+    @Test
     fun completeSnapshotsFrameIntoLastDecodedImageBeforeReset() {
         val listener = newListener()
         listener.startDirect()

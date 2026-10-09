@@ -98,9 +98,10 @@ int main(void)
         check(mode == kCodes[i].mode && status == SSTV_STATUS_IMAGE, label);
     }
 
-    // 2. Tuning offsets: ±30 Hz and ±80 Hz.
-    static const double kOffsets[] = { -80.0, -30.0, 30.0, 80.0 };
-    for (int i = 0; i < 4; i++) {
+    // 2. Tuning offsets: ±30 Hz, ±80 Hz and ±180 Hz (an SSB dial that is
+    //    off by most of a VIS tone spacing — common on off-air recordings).
+    static const double kOffsets[] = { -180.0, -80.0, -30.0, 30.0, 80.0, 180.0 };
+    for (int i = 0; i < 6; i++) {
         int mode = detect(44, kOffsets[i], 0, 300.0, 0.0, 0, 0);
         snprintf(label, sizeof(label), "Martin 1 detected at %+.0f Hz offset",
                  kOffsets[i]);
@@ -214,21 +215,28 @@ int main(void)
         }
         float tail[4096] = { 0 };
 
-        // Auto: the corrupted header must not decode anything.
+        // Auto: the corrupted header is rejected as a VIS, so the decoder
+        // falls back to the header-less sync-train lock (test_sstv_robust
+        // covers that path in depth) — the mode still comes out of the
+        // line timing, flagged as a non-VIS lock.
         sstv_decoder_t* d = sstv_decoder_create(RATE);
         sstv_test_push_all(d, buf, need);
         for (int i = 0; i < 8; i++) sstv_test_push_all(d, tail, 4096);
-        check(sstv_decoder_mode(d) == -1 && sstv_decoder_rows_ready(d) == 0,
-              "lock roundtrip: corrupted VIS yields nothing on auto");
+        check(sstv_decoder_mode(d) == SSTV_MODE_MARTIN2 &&
+                  sstv_decoder_vis_locked(d) == 0,
+              "lock roundtrip: corrupted VIS on auto falls back to a sync lock");
         sstv_decoder_destroy(d);
 
-        // Locked: full image, PSNR at the mode's roundtrip floor.
+        // Locked: full image, PSNR at the mode's roundtrip floor, and the
+        // header itself (not the sync train) anchored the image.
         d = sstv_decoder_create(RATE);
         sstv_decoder_set_forced_mode(d, SSTV_MODE_MARTIN2);
         sstv_test_push_all(d, buf, need);
         for (int i = 0; i < 8; i++) sstv_test_push_all(d, tail, 4096);
         check(sstv_decoder_status(d) == SSTV_STATUS_DONE,
               "lock roundtrip: corrupted VIS reaches DONE under the lock");
+        check(sstv_decoder_vis_locked(d) == 1,
+              "lock roundtrip: the forced header counts as a VIS lock");
         check(sstv_decoder_rows_ready(d) == m->height,
               "lock roundtrip: all rows decoded");
         uint32_t* out = (uint32_t*)calloc((size_t)m->width * m->height,

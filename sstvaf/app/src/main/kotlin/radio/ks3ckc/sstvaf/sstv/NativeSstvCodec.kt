@@ -99,6 +99,9 @@ class NativeSstvCodec : SstvCodec {
         override fun quality(): Float = nativeDecoderQuality(requireHandle())
 
         @Synchronized
+        override fun visLocked(): Boolean = nativeDecoderVisLocked(requireHandle()) != 0
+
+        @Synchronized
         override fun reset() {
             nativeDecoderReset(requireHandle())
         }
@@ -150,6 +153,8 @@ class NativeSstvCodec : SstvCodec {
     private external fun nativeDecoderSlantPpm(handle: Long): Float
 
     private external fun nativeDecoderQuality(handle: Long): Float
+
+    private external fun nativeDecoderVisLocked(handle: Long): Int
 
     private external fun nativeDecoderReset(handle: Long)
 
