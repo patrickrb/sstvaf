@@ -320,8 +320,12 @@ class SstvSignalListener @JvmOverloads constructor(
                 val mode = s.mode() ?: return
                 if (!visLockLogged) {
                     visLockLogged = true
+                    // A sync lock means no readable VIS: the transmission was
+                    // joined mid-image or its header was garbled, so rows
+                    // start at the top of the frame wherever the image was.
+                    val how = if (s.visLocked()) "VIS lock" else "sync lock (no VIS heard)"
                     log(
-                        "SSTV RX: VIS lock — mode=${mode.displayName}" +
+                        "SSTV RX: $how — mode=${mode.displayName}" +
                             " (vis=${mode.visCode}, ${mode.width}x${mode.height})",
                     )
                 }

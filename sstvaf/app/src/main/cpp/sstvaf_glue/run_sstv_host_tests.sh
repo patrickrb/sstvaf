@@ -10,6 +10,12 @@
 #   run_sstv_host_tests.sh --emit    # re-emit golden checksums (paste into
 #                                    # test_sstv_golden.c; never hand-edit)
 #   CC=gcc run_sstv_host_tests.sh    # override the compiler (default: clang)
+#   run_sstv_host_tests.sh --tool    # build the sstv_wav_decode debugging CLI
+#                                    # into ./sstv_wav_decode (see
+#                                    # fixtures/README.md)
+#
+# test_sstv_recordings runs the decoder over the real recordings in
+# ./fixtures; the other suites are synthetic.
 
 set -euo pipefail
 
@@ -51,6 +57,12 @@ if [ "${1:-}" = "--emit" ]; then
     exit "$?"
 fi
 
+if [ "${1:-}" = "--tool" ]; then
+    "$CC" "${cflags[@]}" "$here/sstv_wav_decode.c" "${lib_srcs[@]}" "${ldlibs[@]}"         -o "$here/sstv_wav_decode"
+    echo "built $here/sstv_wav_decode"
+    exit 0
+fi
+
 suites=(
     test_sstv_modes
     test_sstv_golden
@@ -58,13 +70,19 @@ suites=(
     test_sstv_roundtrip
     test_sstv_slant
     test_sstv_robot36_chroma
+    test_sstv_robust
+    test_sstv_recordings
     test_wefax
 )
 
 for suite in "${suites[@]}"; do
     out="$tmp/$suite"
     "$CC" "${cflags[@]}" "$here/$suite.c" "${lib_srcs[@]}" "${ldlibs[@]}" -o "$out"
-    "$out"
+    if [ "$suite" = "test_sstv_recordings" ]; then
+        "$out" "$here/fixtures"
+    else
+        "$out"
+    fi
 done
 
 echo "all SSTV host test suites passed"

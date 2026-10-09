@@ -101,7 +101,20 @@ interface DecoderSession : AutoCloseable {
     /** 0..1 blend of sync-hit-rate and in-band coherence. */
     fun quality(): Float
 
-    /** Back to IDLE hunting; the session stays usable. */
+    /**
+     * How the current image was locked: true when it was timed off a decoded
+     * VIS header, false when the decoder locked onto the line-sync train
+     * alone (transmission joined mid-image, or an unreadable header — rows
+     * then start at the top of the frame). False before any lock.
+     */
+    fun visLocked(): Boolean
+
+    /**
+     * Back to hunting; the session stays usable. When a new calibration
+     * header preempted the image that just ended, the decoder is already in
+     * IMAGE for the new transmission afterwards — poll [status] again rather
+     * than assuming IDLE.
+     */
     fun reset()
 
     /** Release the native handle; the session is unusable afterwards. */

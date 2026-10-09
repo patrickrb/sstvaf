@@ -122,6 +122,26 @@ export JAVA_HOME=<jdk17-home>
 ./gradlew testDebugUnitTest --tests <fully.qualified.ClassName>
 ```
 
+### Native SSTV decoder tests (host, no device)
+
+The decoder (`sstvaf/app/src/main/cpp/sstv_lib/`) has its own C test suites
+in `sstvaf/app/src/main/cpp/sstvaf_glue/test_sstv_*.c`, built with a host
+clang by `run_sstv_host_tests.ps1` (Windows) / `run_sstv_host_tests.sh`
+(macOS/Linux, also what CI runs on every PR). **Any decoder change must keep
+every suite green, including `test_sstv_recordings`**, which runs real
+off-air recordings from `sstvaf_glue/fixtures/` (see its README for what
+each clip guards and where it came from) — synthetic round trips passed for
+months while real YouTube/ISS audio failed to decode, so the recordings are
+the gate. The same clips run on-device through the production listener in
+`SstvRealRecordingTest` (androidTest).
+
+When a real signal fails, do not guess: build the debugging CLI
+(`run_sstv_host_tests.ps1 -Tool` / `.sh --tool`), convert the audio to
+12 kHz mono (`ffmpeg -i in -ac 1 -ar 12000 -sample_fmt s16 out.wav`) and run
+`sstv_wav_decode out.wav --out img.ppm --trace track.csv`; it prints every
+state transition with timestamps and dumps the demodulated frequency track.
+Then add the clip as a fixture so the failure class stays covered.
+
 ### UI / responsive-layout testing
 
 Unit tests don't catch layout that breaks by *shape*. Whenever you touch a

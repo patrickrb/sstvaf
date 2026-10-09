@@ -126,7 +126,19 @@ Java_radio_ks3ckc_sstvaf_sstv_NativeSstvCodec_nativeDecoderSetForcedMode(
                           : SSTV_ERR_BAD_ARGS;
 }
 
-// sstv_decoder_reset(dec) — back to IDLE hunting; keeps the handle valid.
+// sstv_decoder_vis_locked(dec) -> 1 when the image was timed off a decoded
+// VIS header, 0 for a sync-train (header-less) lock or before any lock.
+extern "C" JNIEXPORT jint JNICALL
+Java_radio_ks3ckc_sstvaf_sstv_NativeSstvCodec_nativeDecoderVisLocked(
+        JNIEnv*, jobject, jlong handle)
+{
+    sstv_decoder_t* dec = decoder_from_handle(handle);
+    return dec != nullptr ? sstv_decoder_vis_locked(dec) : 0;
+}
+
+// sstv_decoder_reset(dec) — back to hunting; keeps the handle valid. A
+// header that preempted the previous image puts the decoder straight back
+// into IMAGE (see sstv.h), so the Kotlin side re-polls status afterwards.
 extern "C" JNIEXPORT void JNICALL
 Java_radio_ks3ckc_sstvaf_sstv_NativeSstvCodec_nativeDecoderReset(
         JNIEnv*, jobject, jlong handle)
