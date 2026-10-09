@@ -164,14 +164,58 @@ static void test_phase_jump_insert(void)
     check(r.status == SSTV_STATUS_DONE && r.rows == m->height,
           "insert 25 ms: still a full Robot 36 decode");
     uint32_t* out = read_image(d, m);
+    // Row 100 contains the silence itself; rows 101..103 are the off-grid
+    // frames the re-anchor re-decodes and the frame it re-evaluates against
+    // the moved fit, so they must be as good as the rest.
+    double at_jump = psnr_rows(img, out, m->width, 101, 110, 0);
     double after = psnr_rows(img, out, m->width, 110, m->height, 0);
-    printf("  info: insert 25 ms -> quality %.2f, PSNR after re-anchor %.1f dB\n",
-           r.quality, after);
+    printf("  info: insert 25 ms -> quality %.2f, PSNR at re-anchor %.1f dB, after %.1f dB\n",
+           r.quality, at_jump, after);
+    check(at_jump >= 23.0, "insert 25 ms: the re-anchored frames themselves (PSNR >= 23 dB)");
     check(after >= 23.0, "insert 25 ms: rows after the jump re-anchored (PSNR >= 23 dB)");
     check(r.quality >= 0.9, "insert 25 ms: sync hit rate recovered");
     free(out);
     sstv_decoder_destroy(d);
     free(buf2);
+    free(buf);
+    free(img);
+}
+
+// ---------------------------------------------------------------------------
+// 2b. Production failure: the RX engine drops one whole 200 ms recorder
+//     buffer (2400 samples) on queue overflow — longer than a Robot 36 line
+//     — so every later sync lands 50 ms off-grid and one source line is
+//     gone. Rows after the re-anchor must track source rows one line later.
+// ---------------------------------------------------------------------------
+static void test_phase_jump_dropped_buffer(void)
+{
+    const sstv_mode_t* m = sstv_mode_get(SSTV_MODE_ROBOT36);
+    uint32_t* img;
+    int n;
+    float* buf = encode_card(SSTV_MODE_ROBOT36, &img, &n);
+
+    int cut_at = line_start_sample(m, 100) + (int)(0.3 * m->line_us * RATE / 1e6);
+    int cut_len = 2400;
+    memmove(buf + cut_at, buf + cut_at + cut_len,
+            (size_t)(n - cut_at - cut_len) * sizeof(float));
+    n -= cut_len;
+
+    sstv_decoder_t* d = sstv_decoder_create(RATE);
+    run_decoder(d, buf, n);
+    result_t r;
+    read_result(d, &r);
+    check(r.status == SSTV_STATUS_DONE && r.rows == m->height,
+          "dropped 200 ms buffer: Robot 36 still reaches DONE with every row");
+    uint32_t* out = read_image(d, m);
+    int off = -1;
+    double after = psnr_best_offset(img, out, m->width, m->height, 112, m->height - 2, 2, &off);
+    printf("  info: dropped 200 ms buffer -> quality %.2f, rows after re-anchor track source"
+           " rows %+d, PSNR %.1f dB\n", r.quality, off, after);
+    check(off == 1, "dropped 200 ms buffer: rows after the drop are one source line later");
+    check(after >= 23.0, "dropped 200 ms buffer: rows after the drop re-anchored (PSNR >= 23 dB)");
+    check(r.quality >= 0.9, "dropped 200 ms buffer: sync hit rate recovered");
+    free(out);
+    sstv_decoder_destroy(d);
     free(buf);
     free(img);
 }
@@ -425,6 +469,7 @@ int main(void)
 
     test_phase_jump_cut();
     test_phase_jump_insert();
+    test_phase_jump_dropped_buffer();
 
     headerless_case(SSTV_MODE_SCOTTIE1, 3.5, -1, 38.0, 12);
     headerless_case(SSTV_MODE_ROBOT36, 2.25, -1, 22.0, 12);

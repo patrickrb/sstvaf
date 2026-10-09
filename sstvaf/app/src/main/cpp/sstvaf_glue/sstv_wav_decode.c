@@ -177,8 +177,13 @@ int main(int argc, char** argv)
     if (m && out_path && rows > 0 && s == SSTV_STATUS_IMAGE) {
         uint32_t* img = (uint32_t*)calloc((size_t)m->width * m->height, 4);
         sstv_decoder_read_rows(d, 0, rows, img);
-        write_ppm(out_path, img, m->width, m->height);
-        printf("  wrote %s (partial, %d rows)\n", out_path, rows);
+        // Same numbering as the finished images so a partial after a
+        // complete one does not overwrite it.
+        char path[1024];
+        if (images == 0) snprintf(path, sizeof(path), "%s", out_path);
+        else snprintf(path, sizeof(path), "%s.%d.ppm", out_path, images);
+        write_ppm(path, img, m->width, m->height);
+        printf("  wrote %s (partial, %d rows)\n", path, rows);
         free(img);
         images++;
     }

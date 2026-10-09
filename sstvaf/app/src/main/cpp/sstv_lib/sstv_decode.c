@@ -850,13 +850,23 @@ static void image_step(sstv_decoder_t* d)
                     // syncs join the regression as ordinary hits.
                     for (int i = 0; i < d->reg_n; i++) d->reg_c[i] += shift;
                     d->A += shift;
-                    for (int i = 0; i < d->reacq_n; i++) {
+                    // The earlier off-grid syncs join the regression as hits
+                    // and their frames are re-decoded (their audio is fully
+                    // buffered: they end before this frame started). This
+                    // frame itself goes back through the normal path — a
+                    // positive shift moves its end past what `need` was
+                    // computed for, so its availability deadline and its
+                    // sync must be re-evaluated against the moved fit rather
+                    // than decoding a clipped tail now.
+                    for (int i = 0; i < d->reacq_n - 1; i++) {
                         reg_add(d, d->reacq_k[i], d->reacq_c[i]);
                     }
-                    d->sync_hits += d->reacq_n;
+                    d->sync_hits += d->reacq_n - 1;
+                    d->sync_attempts--;  // counted again on re-evaluation
                     d->miss_streak = 0;
                     redecode_frames(d, d->reacq_k[0], k);
                     d->reacq_n = 0;
+                    continue;
                 }
             } else {
                 d->reacq_n = 0;

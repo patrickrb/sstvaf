@@ -76,7 +76,11 @@ static float* sstv_wav_read_mono(const char* path, int* rate_out, int* n_out)
         }
     }
     fclose(f);
-    if (!data || channels <= 0 || rate <= 0 || bits <= 0) {
+    // Only integer PCM (1) and IEEE float (3) are decoded; anything else
+    // (mu-law 7, A-law 6, ADPCM, MP3-in-WAV...) would be misread as PCM and
+    // produce confidently wrong decoder results, so it is a parse error.
+    if (!data || channels <= 0 || rate <= 0 || bits <= 0 ||
+        (fmt_tag != 1 && fmt_tag != 3)) {
         free(data);
         return 0;
     }
