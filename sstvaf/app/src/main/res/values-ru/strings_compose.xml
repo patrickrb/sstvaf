@@ -555,6 +555,7 @@
     <string name="rx_status_saved">Сохранено в галерею</string>
     <string name="rx_status_save_failed">Ошибка сохранения</string>
     <string name="rx_status_lost">Сигнал потерян</string>
+    <string name="rx_status_unsupported">Неподдерживаемый режим (VIS %1$d)</string>
     <string name="rx_status_auto_detect">автоопределение</string>
     <string name="rx_mode_lock_auto">Авто</string>
     <string name="rx_mode_lock_auto_option">Авто (определение VIS)</string>

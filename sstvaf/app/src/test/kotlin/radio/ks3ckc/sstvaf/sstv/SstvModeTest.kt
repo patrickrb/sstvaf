@@ -53,6 +53,57 @@ class SstvModeTest {
     }
 
     @Test
+    fun decodeEventValuesPinnedToNativeEnums() {
+        // Mirror of SSTV_EVT_* / SSTV_VISREJ_* in cpp/sstv_lib/sstv.h.
+        assertThat(DecodeEventType.LEADER_TIMEOUT.nativeValue).isEqualTo(1)
+        assertThat(DecodeEventType.VIS_REJECTED.nativeValue).isEqualTo(2)
+        assertThat(DecodeEventType.VIS_ACCEPTED.nativeValue).isEqualTo(3)
+        assertThat(DecodeEventType.SYNC_LOCK.nativeValue).isEqualTo(4)
+        assertThat(DecodeEventType.fromNative(2)).isEqualTo(DecodeEventType.VIS_REJECTED)
+        assertThat(DecodeEventType.fromNative(99)).isNull()
+
+        assertThat(VisRejectReason.LEADER_LEVEL.nativeValue).isEqualTo(1)
+        assertThat(VisRejectReason.START_LEVEL.nativeValue).isEqualTo(2)
+        assertThat(VisRejectReason.STOP_BIT.nativeValue).isEqualTo(3)
+        assertThat(VisRejectReason.PARITY.nativeValue).isEqualTo(4)
+        assertThat(VisRejectReason.NO_AUDIO.nativeValue).isEqualTo(5)
+        assertThat(VisRejectReason.UNKNOWN_MODE.nativeValue).isEqualTo(6)
+        assertThat(VisRejectReason.fromNative(6)).isEqualTo(VisRejectReason.UNKNOWN_MODE)
+        assertThat(VisRejectReason.fromNative(0)).isNull()
+    }
+
+    @Test
+    fun decodeEventDerivedFieldsFollowTheType() {
+        val rejected = DecodeEvent(DecodeEventType.VIS_REJECTED, 6, 55, 1200L, -12)
+        assertThat(rejected.rejectReason).isEqualTo(VisRejectReason.UNKNOWN_MODE)
+        assertThat(rejected.mode).isNull()
+
+        val accepted = DecodeEvent(DecodeEventType.VIS_ACCEPTED, SstvMode.SCOTTIE_1.modeId, 60, 0L, 0)
+        assertThat(accepted.rejectReason).isNull()
+        assertThat(accepted.mode).isEqualTo(SstvMode.SCOTTIE_1)
+
+        val synced = DecodeEvent(DecodeEventType.SYNC_LOCK, SstvMode.ROBOT_36.modeId, -1, 0L, 3)
+        assertThat(synced.mode).isEqualTo(SstvMode.ROBOT_36)
+    }
+
+    @Test
+    fun nativeEventUnpackingReadsFiveIntsPerEventAndSkipsUnknownTypes() {
+        val packed = intArrayOf(
+            2, 6, 55, 1200, -12, // VIS_REJECTED unknown mode, code 55
+            9, 0, 0, 0, 0, // a type this build does not know
+            1, 0, -1, 3000, 7, // LEADER_TIMEOUT
+        )
+        val events = NativeSstvCodec.unpackEvents(packed, 3)
+        assertThat(events).containsExactly(
+            DecodeEvent(DecodeEventType.VIS_REJECTED, 6, 55, 1200L, -12),
+            DecodeEvent(DecodeEventType.LEADER_TIMEOUT, 0, -1, 3000L, 7),
+        ).inOrder()
+        assertThat(NativeSstvCodec.unpackEvents(packed, 0)).isEmpty()
+        // A count beyond the array is clamped, never read out of bounds.
+        assertThat(NativeSstvCodec.unpackEvents(packed, 10)).hasSize(2)
+    }
+
+    @Test
     fun dimensionsMatchModeTable() {
         assertThat(SstvMode.ROBOT_36.width to SstvMode.ROBOT_36.height).isEqualTo(320 to 240)
         assertThat(SstvMode.ROBOT_72.width to SstvMode.ROBOT_72.height).isEqualTo(320 to 240)

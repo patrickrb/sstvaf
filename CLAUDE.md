@@ -231,6 +231,23 @@ useful source. Pull it with:
 adb -s <phone-serial> pull /sdcard/Android/data/radio.ks3ckc.sstvaf/files/debug.log /tmp/
 ```
 
+Testers can also send it from inside the app: Settings → About → Share logs
+opens the share sheet with `debug.log` attached.
+
+For an "I could hear SSTV but nothing decoded" report, read the `SSTV RX:`
+lines between the operator's own decodes. The RX engine logs every verdict of
+the header hunt, not just locks: `header: 1900 Hz leader heard … but no VIS
+start bit followed` (collapsed to one line per 10 s), `header rejected —
+<reason> (vis=N, offset ±N Hz)`, `unsupported mode — clean VIS code N heard`
+(the other station is sending a mode the app has no decoder for; the RX
+screen shows "Unsupported mode (VIS N)"), and the lock lines carry the
+measured tuning offset. An `input level — peak/rms … over 30 s` line is
+written for every 30 s of audio the decoder was fed; `silent (all zero)`
+there means the capture is delivering nothing, not that the signal is weak.
+No `SSTV RX:` lines at all while audio was audible means no leader ever
+reached the detector — look at the input level and the audio path
+(`MicRecorder:` lines say whether it is the phone mic, USB, or network).
+
 For runtime detail not in `debug.log` (audio recording loop, system USB events,
 crashes), use `adb logcat`. Useful tags: `NativeSstvCodec`, `MicRecorder`,
 `UsbAudioDevice`, `CableConnector`, `CableSerialPort`, `UsbHostManager`,

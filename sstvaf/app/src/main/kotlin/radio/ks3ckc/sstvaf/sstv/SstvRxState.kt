@@ -37,6 +37,15 @@ sealed class SstvRxState {
         val partialRows: Int,
         val mode: SstvMode?,
     ) : SstvRxState()
+
+    /**
+     * A clean calibration header was heard whose VIS code no supported mode
+     * owns — the other station is sending a mode this app cannot decode.
+     * Held (like the terminal states) until the next transmission starts,
+     * so the operator sees why nothing appeared instead of a silent return
+     * to "Listening".
+     */
+    data class UnsupportedMode(val visCode: Int) : SstvRxState()
 }
 
 /**

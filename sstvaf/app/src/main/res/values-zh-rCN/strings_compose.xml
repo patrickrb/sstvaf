@@ -555,6 +555,7 @@
     <string name="rx_status_saved">已保存到相册</string>
     <string name="rx_status_save_failed">保存失败</string>
     <string name="rx_status_lost">信号丢失</string>
+    <string name="rx_status_unsupported">不支持的模式 (VIS %1$d)</string>
     <string name="rx_status_auto_detect">自动检测</string>
     <string name="rx_mode_lock_auto">自动</string>
     <string name="rx_mode_lock_auto_option">自动（VIS 检测）</string>

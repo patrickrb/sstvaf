@@ -555,6 +555,7 @@
     <string name="rx_status_saved">Galeriye kaydedildi</string>
     <string name="rx_status_save_failed">Kaydetme başarısız</string>
     <string name="rx_status_lost">Sinyal kayboldu</string>
+    <string name="rx_status_unsupported">Desteklenmeyen mod (VIS %1$d)</string>
     <string name="rx_status_auto_detect">otomatik algıla</string>
     <string name="rx_mode_lock_auto">Otomatik</string>
     <string name="rx_mode_lock_auto_option">Otomatik (VIS algılama)</string>

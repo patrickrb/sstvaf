@@ -453,4 +453,126 @@ class SstvSignalListenerTest {
         assertThat(codec.setForcedModeCalls).isEqualTo(callsAfterFirst)
         listener.stop()
     }
+
+    // ----- header-hunt diagnostics ------------------------------------------
+
+    private fun rejected(reason: VisRejectReason, code: Int, atMs: Long = 1000L, offsetHz: Int = 0) =
+        DecodeEvent(DecodeEventType.VIS_REJECTED, reason.nativeValue, code, atMs, offsetHz)
+
+    @Test
+    fun unknownVisCodePublishesUnsupportedModeAndHoldsItWhileHunting() {
+        val listener = newListener()
+        listener.startDirect()
+
+        // The decoder read a clean header for a mode this app has no decoder
+        // for (Wraase SC2-180 is VIS 55) and went straight back to IDLE.
+        codec.events += rejected(VisRejectReason.UNKNOWN_MODE, code = 55, offsetHz = -12)
+        listener.feedAndStep()
+        assertThat(listener.stateNow()).isEqualTo(SstvRxState.UnsupportedMode(55))
+        val line = logs.single { it.contains("unsupported mode") }
+        assertThat(line).contains("VIS code 55")
+        assertThat(line).contains("offset -12 Hz")
+
+        // Still IDLE on later polls: the verdict stays up, like Complete does.
+        listener.feedAndStep()
+        assertThat(listener.stateNow()).isEqualTo(SstvRxState.UnsupportedMode(55))
+
+        // The next transmission replaces it.
+        codec.script += FakeSstvCodec.ScriptedState(DecodeStatus.LEADER)
+        listener.feedAndStep()
+        assertThat(listener.stateNow()).isEqualTo(SstvRxState.Leader)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertThat(listener.rxState.value).isEqualTo(SstvRxState.Leader)
+    }
+
+    @Test
+    fun rejectedHeadersAreLoggedWithReasonAndCodeButChangeNoState() {
+        val listener = newListener()
+        listener.startDirect()
+
+        codec.events += rejected(VisRejectReason.PARITY, code = 44, offsetHz = 30)
+        codec.events += rejected(VisRejectReason.STOP_BIT, code = -1, offsetHz = 0)
+        listener.feedAndStep()
+
+        assertThat(listener.stateNow()).isEqualTo(SstvRxState.Idle)
+        val lines = logs.filter { it.contains("header rejected") }
+        assertThat(lines).hasSize(2)
+        assertThat(lines[0]).contains("parity")
+        assertThat(lines[0]).contains("vis=44")
+        assertThat(lines[0]).contains("offset +30 Hz")
+        assertThat(lines[1]).contains("stop bit")
+        assertThat(lines[1]).contains("vis=?")
+    }
+
+    @Test
+    fun leaderTimeoutsCollapseToOneLinePerIntervalOfAudio() {
+        val listener = newListener()
+        listener.startDirect()
+        fun timeout(atMs: Long, offsetHz: Int = 0) =
+            DecodeEvent(DecodeEventType.LEADER_TIMEOUT, 0, -1, atMs, offsetHz)
+
+        // Three timeouts inside one interval: one line, then silence.
+        codec.events += timeout(2_000L, offsetHz = 15)
+        codec.events += timeout(4_000L)
+        codec.events += timeout(6_000L)
+        listener.feedAndStep()
+        var lines = logs.filter { it.contains("no VIS start bit") }
+        assertThat(lines).hasSize(1)
+        assertThat(lines[0]).contains("offset +15 Hz")
+        assertThat(lines[0]).doesNotContain("(x")
+
+        // Past the interval the next one is logged, with the suppressed count.
+        codec.events += timeout(2_000L + SstvSignalListener.LEADER_NOTE_INTERVAL_MS)
+        listener.feedAndStep()
+        lines = logs.filter { it.contains("no VIS start bit") }
+        assertThat(lines).hasSize(2)
+        assertThat(lines[1]).contains("(x3)")
+        assertThat(listener.stateNow()).isEqualTo(SstvRxState.Idle)
+    }
+
+    @Test
+    fun lockLineCarriesTheHeaderTuningOffset() {
+        val listener = newListener()
+        listener.startDirect()
+
+        codec.events += DecodeEvent(
+            DecodeEventType.VIS_ACCEPTED, SstvMode.MARTIN_1.modeId, 44, 1_200L, -37,
+        )
+        codec.script += FakeSstvCodec.ScriptedState(
+            DecodeStatus.IMAGE, SstvMode.MARTIN_1, rowsReady = 1, quality = 1f,
+        )
+        listener.feedAndStep()
+
+        val lock = logs.single { it.contains("VIS lock") }
+        assertThat(lock).contains("Martin 1")
+        assertThat(lock).contains("offset -37 Hz")
+        // Accepted headers produce no line of their own: the lock line is it.
+        assertThat(logs.none { it.contains("header rejected") || it.contains("accepted") }).isTrue()
+    }
+
+    @Test
+    fun inputLevelIsLoggedOncePerThirtySecondsOfAudio() {
+        val listener = newListener(queueCapacity = 256)
+        listener.startDirect()
+        val chunk = FloatArray(2400) { 0.5f } // 200 ms at 12 kHz, -6 dBFS square
+
+        // 29.8 s: nothing yet.
+        repeat(149) { listener.onAudioBuffer(chunk, chunk.size) }
+        listener.stepOnce(0)
+        assertThat(logs.none { it.contains("input level") }).isTrue()
+
+        // The 150th buffer completes the window.
+        listener.onAudioBuffer(chunk, chunk.size)
+        listener.stepOnce(0)
+        val lines = logs.filter { it.contains("input level") }
+        assertThat(lines).hasSize(1)
+        assertThat(lines[0]).isEqualTo("SSTV RX: input level — peak -6.0 dBFS, rms -6.0 dBFS over 30 s")
+
+        // A silent next window says so explicitly.
+        repeat(150) { listener.onAudioBuffer(FloatArray(2400), 2400) }
+        listener.stepOnce(0)
+        assertThat(logs.last { it.contains("input level") })
+            .isEqualTo("SSTV RX: input level — silent (all zero) over 30 s")
+        listener.stop()
+    }
 }

@@ -87,6 +87,16 @@ class SstvSignalListener @JvmOverloads constructor(
     private var holdTerminalState = false
     private var visLockLogged = false
 
+    /** Tuning offset reported with the header that produced the current lock. */
+    private var lockOffsetHz: Int? = null
+
+    /** Leader-timeout log rate limit (audio time of the last line, timeouts since). */
+    private var lastLeaderNoteMs = Long.MIN_VALUE
+    private var leaderTimeoutsSinceNote = 0
+
+    /** What the decoder is actually being fed; one line per 30 s of audio. */
+    private val inputLevel = InputLevelSummary(sampleRate)
+
     /** Operator mode lock (null = automatic VIS selection). */
     @Volatile
     private var modeLock: SstvMode? = null
@@ -283,11 +293,14 @@ class SstvSignalListener @JvmOverloads constructor(
         while (true) {
             drained.add(queue.poll() ?: break)
         }
+        for (buf in drained) inputLevel.add(buf, buf.size)
+        inputLevel.summaryIfDue()?.let { log("SSTV RX: input level — $it") }
         synchronized(sessionLock) {
             val s = session ?: return
             for (buf in drained) {
                 s.push(buf, buf.size)
             }
+            for (event in s.drainEvents()) onDecodeEvent(event)
             publishFromSession(s)
         }
         for (buf in drained) {
@@ -302,6 +315,55 @@ class SstvSignalListener @JvmOverloads constructor(
                 onDigitalImage?.invoke(result)
                 mutableDigitalResult.postValue(result)
             }
+        }
+    }
+
+    /**
+     * Log what the header hunt decided. Every verdict that is not a lock
+     * gets a line — this is the information that was missing from a field
+     * log where an audible transmission left no trace at all. Leader
+     * timeouts are the one verdict noise can produce on its own, so they
+     * are collapsed to one line per [LEADER_NOTE_INTERVAL_MS] of audio.
+     */
+    private fun onDecodeEvent(event: DecodeEvent) {
+        val offset = formatOffset(event.tuningOffsetHz)
+        when (event.type) {
+            DecodeEventType.LEADER_TIMEOUT -> {
+                leaderTimeoutsSinceNote++
+                val due = lastLeaderNoteMs == Long.MIN_VALUE ||
+                    event.audioTimeMs - lastLeaderNoteMs >= LEADER_NOTE_INTERVAL_MS
+                if (due) {
+                    val extra =
+                        if (leaderTimeoutsSinceNote > 1) " (x$leaderTimeoutsSinceNote)" else ""
+                    log(
+                        "SSTV RX: header: 1900 Hz leader heard ($offset)" +
+                            " but no VIS start bit followed$extra",
+                    )
+                    lastLeaderNoteMs = event.audioTimeMs
+                    leaderTimeoutsSinceNote = 0
+                }
+            }
+
+            DecodeEventType.VIS_REJECTED -> {
+                val reason = event.rejectReason
+                val code = if (event.visCode >= 0) event.visCode.toString() else "?"
+                if (reason == VisRejectReason.UNKNOWN_MODE) {
+                    log(
+                        "SSTV RX: unsupported mode — clean VIS code ${event.visCode}" +
+                            " heard ($offset) but no decoder for it",
+                    )
+                    setState(SstvRxState.UnsupportedMode(event.visCode))
+                    holdTerminalState = true
+                } else {
+                    log(
+                        "SSTV RX: header rejected — ${reason?.label ?: "reason ${event.arg}"}" +
+                            " (vis=$code, $offset)",
+                    )
+                }
+            }
+
+            DecodeEventType.VIS_ACCEPTED, DecodeEventType.SYNC_LOCK ->
+                lockOffsetHz = event.tuningOffsetHz
         }
     }
 
@@ -324,9 +386,10 @@ class SstvSignalListener @JvmOverloads constructor(
                     // joined mid-image or its header was garbled, so rows
                     // start at the top of the frame wherever the image was.
                     val how = if (s.visLocked()) "VIS lock" else "sync lock (no VIS heard)"
+                    val offset = lockOffsetHz?.let { ", ${formatOffset(it)}" } ?: ""
                     log(
                         "SSTV RX: $how — mode=${mode.displayName}" +
-                            " (vis=${mode.visCode}, ${mode.width}x${mode.height})",
+                            " (vis=${mode.visCode}, ${mode.width}x${mode.height}$offset)",
                     )
                 }
                 setState(
@@ -387,6 +450,7 @@ class SstvSignalListener @JvmOverloads constructor(
         s.reset()
         holdTerminalState = true
         visLockLogged = false
+        lockOffsetHz = null
     }
 
     private fun setState(next: SstvRxState) {
@@ -436,5 +500,11 @@ class SstvSignalListener @JvmOverloads constructor(
 
         /** Bound on waiting for the decode thread during stop(). */
         internal const val STOP_JOIN_MS = 2000L
+
+        /** Leader-without-start-bit notes are collapsed to one per this much audio. */
+        internal const val LEADER_NOTE_INTERVAL_MS = 10_000L
+
+        /** `offset +12 Hz` — how far the leader sat from 1900 Hz. */
+        internal fun formatOffset(hz: Int): String = "offset ${if (hz >= 0) "+" else ""}$hz Hz"
     }
 }

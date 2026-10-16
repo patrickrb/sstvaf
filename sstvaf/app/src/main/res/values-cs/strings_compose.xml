@@ -555,6 +555,7 @@
     <string name="rx_status_saved">Uloženo do Galerie</string>
     <string name="rx_status_save_failed">Uložení selhalo</string>
     <string name="rx_status_lost">Signál ztracen</string>
+    <string name="rx_status_unsupported">Nepodporovaný režim (VIS %1$d)</string>
     <string name="rx_status_auto_detect">automatická detekce</string>
     <string name="rx_mode_lock_auto">Auto</string>
     <string name="rx_mode_lock_auto_option">Automaticky (detekce VIS)</string>

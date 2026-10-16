@@ -101,6 +101,15 @@ class NativeSstvCodec : SstvCodec {
         @Synchronized
         override fun visLocked(): Boolean = nativeDecoderVisLocked(requireHandle()) != 0
 
+        /** Reused across drains; 5 ints per event, see sstv_decode_jni.cpp. */
+        private val eventBuf = IntArray(EVENT_CAPACITY * EVENT_INTS)
+
+        @Synchronized
+        override fun drainEvents(): List<DecodeEvent> {
+            val n = nativeDecoderDrainEvents(requireHandle(), eventBuf)
+            return unpackEvents(eventBuf, n)
+        }
+
         @Synchronized
         override fun reset() {
             nativeDecoderReset(requireHandle())
@@ -156,6 +165,8 @@ class NativeSstvCodec : SstvCodec {
 
     private external fun nativeDecoderVisLocked(handle: Long): Int
 
+    private external fun nativeDecoderDrainEvents(handle: Long, out: IntArray): Int
+
     private external fun nativeDecoderReset(handle: Long)
 
     private external fun nativeDecoderDestroy(handle: Long)
@@ -169,6 +180,35 @@ class NativeSstvCodec : SstvCodec {
          * the clip boundary; the TX volume is applied later in the sink.
          */
         const val ENCODE_AMPLITUDE = 0.95f
+
+        /** `SSTV_EVENT_CAPACITY` in sstv.h: the most events one drain returns. */
+        internal const val EVENT_CAPACITY = 16
+
+        /** Ints per packed event (type, arg, arg2, time ms, offset Hz). */
+        internal const val EVENT_INTS = 5
+
+        /**
+         * Unpack [count] events laid out by `nativeDecoderDrainEvents` (5 ints
+         * each). Events whose type the Kotlin side does not know are skipped
+         * rather than crashing an older app on a newer native library.
+         */
+        internal fun unpackEvents(packed: IntArray, count: Int): List<DecodeEvent> {
+            if (count <= 0) return emptyList()
+            val n = minOf(count, packed.size / EVENT_INTS)
+            val out = ArrayList<DecodeEvent>(n)
+            for (i in 0 until n) {
+                val base = i * EVENT_INTS
+                val type = DecodeEventType.fromNative(packed[base]) ?: continue
+                out += DecodeEvent(
+                    type = type,
+                    arg = packed[base + 1],
+                    visCode = packed[base + 2],
+                    audioTimeMs = packed[base + 3].toLong(),
+                    tuningOffsetHz = packed[base + 4],
+                )
+            }
+            return out
+        }
 
         init {
             try {

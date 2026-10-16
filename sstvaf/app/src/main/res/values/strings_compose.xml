@@ -696,6 +696,8 @@
     <string name="rx_status_saved">Saved to Gallery</string>
     <string name="rx_status_save_failed">Save failed</string>
     <string name="rx_status_lost">Signal lost</string>
+    <!-- A clean header was heard whose VIS code (%1$d) belongs to no mode this app decodes. -->
+    <string name="rx_status_unsupported">Unsupported mode (VIS %1$d)</string>
     <!-- Right of the status row while idle: the operator picks no mode on receive. -->
     <string name="rx_status_auto_detect">auto-detect</string>
     <!-- RX mode-lock chip (prefix label, unlocked value, menu's automatic entry).

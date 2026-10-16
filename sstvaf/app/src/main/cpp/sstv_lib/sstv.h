@@ -137,6 +137,56 @@ int    sstv_decoder_vis_locked(const sstv_decoder_t* d);
 int    sstv_decoder_set_forced_mode(sstv_decoder_t* d, int mode_id);
 int    sstv_decoder_forced_mode(const sstv_decoder_t* d);  // id or -1
 
+// ---------------------------------------------------------------------------
+// Header-hunt diagnostics
+// ---------------------------------------------------------------------------
+// The status API cannot tell "no leader was ever heard" from "a header was
+// read and thrown away", and that difference is the whole diagnosis when an
+// operator reports audible SSTV that never produced a picture. The live
+// header hunt therefore records what it did with every candidate header
+// (the shadow hunt that runs under IMAGE is silent — image content imitates
+// headers routinely and its rejections mean nothing). A receiver drains the
+// queue with sstv_decoder_events() and logs it.
+enum {
+    // A 1900 Hz leader was recognised but no VIS start bit followed within
+    // the leader timeout. f_off_hz carries the measured tuning offset.
+    SSTV_EVT_LEADER_TIMEOUT = 1,
+    // A start bit was found but the header was rejected: arg = SSTV_VISREJ_*,
+    // arg2 = the 7-bit VIS code when the cells were read (parity / unknown
+    // mode), else -1.
+    SSTV_EVT_VIS_REJECTED   = 2,
+    // A header was accepted: arg = mode id, arg2 = VIS code (the mode's own
+    // code under a forced mode).
+    SSTV_EVT_VIS_ACCEPTED   = 3,
+    // The header-less sync-train lock picked a mode: arg = mode id.
+    SSTV_EVT_SYNC_LOCK      = 4
+};
+
+enum {
+    SSTV_VISREJ_LEADER_LEVEL = 1,  // tone before the start bit not near 1900 Hz
+    SSTV_VISREJ_START_LEVEL  = 2,  // start-bit level not credible (slope out of range)
+    SSTV_VISREJ_STOP_BIT     = 3,  // stop bit not at the 1200 Hz level
+    SSTV_VISREJ_PARITY       = 4,  // data + parity cells failed even parity
+    SSTV_VISREJ_NO_AUDIO     = 5,  // a VIS cell fell outside the audio history
+    SSTV_VISREJ_UNKNOWN_MODE = 6   // clean VIS code, but no mode has it
+};
+
+typedef struct {
+    int    type;       // SSTV_EVT_*
+    int    arg, arg2;  // per type, see above
+    double t_s;        // decoder time of the event: seconds of audio pushed
+    double f_off_hz;   // measured leader tuning offset (Hz); 0 when n/a
+} sstv_event_t;
+
+// Queue depth. Older events are dropped when a caller falls behind.
+#define SSTV_EVENT_CAPACITY 16
+
+// Drain up to `max` pending events into `out`, oldest first; returns the
+// count (0 for a null handle). The queue survives sstv_decoder_reset() —
+// the rejection that explains a miss happens right before the reset that
+// follows the previous image.
+int    sstv_decoder_events(sstv_decoder_t* d, sstv_event_t* out, int max);
+
 // Drop the current image and go back to hunting. The demodulated audio
 // history is kept (only the state machine rewinds), so a calibration header
 // that preempted the previous image (status ABORTED with a new header

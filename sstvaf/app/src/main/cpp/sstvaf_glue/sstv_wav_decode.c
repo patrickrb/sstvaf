@@ -38,6 +38,51 @@ static const char* status_name(int s)
     }
 }
 
+static const char* visrej_name(int why)
+{
+    switch (why) {
+    case SSTV_VISREJ_LEADER_LEVEL: return "leader level";
+    case SSTV_VISREJ_START_LEVEL: return "start-bit level";
+    case SSTV_VISREJ_STOP_BIT: return "stop bit";
+    case SSTV_VISREJ_PARITY: return "parity";
+    case SSTV_VISREJ_NO_AUDIO: return "no audio";
+    case SSTV_VISREJ_UNKNOWN_MODE: return "unknown mode";
+    default: return "?";
+    }
+}
+
+// Print whatever the live header hunt decided since the last call.
+static void print_events(sstv_decoder_t* d)
+{
+    sstv_event_t ev[SSTV_EVENT_CAPACITY];
+    int n = sstv_decoder_events(d, ev, SSTV_EVENT_CAPACITY);
+    for (int i = 0; i < n; i++) {
+        const sstv_mode_t* m;
+        switch (ev[i].type) {
+        case SSTV_EVT_LEADER_TIMEOUT:
+            printf("  %8.3f s: header: leader heard (offset %+.0f Hz), no start bit\n",
+                   ev[i].t_s, ev[i].f_off_hz);
+            break;
+        case SSTV_EVT_VIS_REJECTED:
+            printf("  %8.3f s: header: VIS rejected (%s, code %d, offset %+.0f Hz)\n",
+                   ev[i].t_s, visrej_name(ev[i].arg), ev[i].arg2, ev[i].f_off_hz);
+            break;
+        case SSTV_EVT_VIS_ACCEPTED:
+            m = sstv_mode_get(ev[i].arg);
+            printf("  %8.3f s: header: VIS accepted (%s, code %d, offset %+.0f Hz)\n",
+                   ev[i].t_s, m ? m->name : "?", ev[i].arg2, ev[i].f_off_hz);
+            break;
+        case SSTV_EVT_SYNC_LOCK:
+            m = sstv_mode_get(ev[i].arg);
+            printf("  %8.3f s: header: sync-train lock (%s, offset %+.0f Hz)\n",
+                   ev[i].t_s, m ? m->name : "?", ev[i].f_off_hz);
+            break;
+        default:
+            break;
+        }
+    }
+}
+
 static int write_ppm(const char* path, const uint32_t* argb, int w, int h)
 {
     FILE* f = fopen(path, "wb");
@@ -129,6 +174,7 @@ int main(int argc, char** argv)
     for (int off = 0; off < n; off += chunk) {
         int c = (n - off < chunk) ? (n - off) : chunk;
         sstv_decoder_push(d, pcm + off, c);
+        print_events(d);
         int s = sstv_decoder_status(d);
         double t = (double)(off + c) / rate;
         if (s != last_status) {
