@@ -187,8 +187,9 @@ internal enum class RxStatusKind {
 
     /**
      * A clean header arrived for a mode this app does not decode. Shown
-     * until the next transmission so the operator learns the picture was
-     * never going to appear, instead of watching "Listening" and wondering.
+     * until a later transmission actually locks, so the operator learns the
+     * picture was never going to appear, instead of watching "Listening"
+     * and wondering.
      */
     UNSUPPORTED,
 }

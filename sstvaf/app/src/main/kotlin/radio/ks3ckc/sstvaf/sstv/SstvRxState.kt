@@ -41,9 +41,11 @@ sealed class SstvRxState {
     /**
      * A clean calibration header was heard whose VIS code no supported mode
      * owns — the other station is sending a mode this app cannot decode.
-     * Held (like the terminal states) until the next transmission starts,
-     * so the operator sees why nothing appeared instead of a silent return
-     * to "Listening".
+     * Held until a header or sync lock establishes decoding (or a terminal
+     * state follows) — NOT merely until the next leader candidate, because
+     * the rest of that same transmission's picture keeps producing leader
+     * candidates — so the operator sees why nothing appeared instead of a
+     * silent return to "Listening".
      */
     data class UnsupportedMode(val visCode: Int) : SstvRxState()
 }

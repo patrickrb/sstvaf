@@ -373,8 +373,18 @@ class SstvSignalListener @JvmOverloads constructor(
                 if (!holdTerminalState) setState(SstvRxState.Idle)
 
             DecodeStatus.LEADER, DecodeStatus.VIS -> {
-                holdTerminalState = false
-                setState(SstvRxState.Leader)
+                // An unsupported-mode verdict outlives leader candidates: the
+                // hunt resumes through the rest of that very transmission,
+                // whose mid-gray picture content satisfies the leader gate
+                // again and again. Publishing "signal detected" for each of
+                // those (and Idle when they time out) would erase the one
+                // thing the operator needs to read. Only a lock (IMAGE) or a
+                // terminal state replaces it; a genuinely new transmission
+                // locks within a second of its header anyway.
+                if (currentState !is SstvRxState.UnsupportedMode) {
+                    holdTerminalState = false
+                    setState(SstvRxState.Leader)
+                }
             }
 
             DecodeStatus.IMAGE -> {

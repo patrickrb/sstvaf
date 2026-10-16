@@ -476,13 +476,52 @@ class SstvSignalListenerTest {
         // Still IDLE on later polls: the verdict stays up, like Complete does.
         listener.feedAndStep()
         assertThat(listener.stateNow()).isEqualTo(SstvRxState.UnsupportedMode(55))
+        shadowOf(Looper.getMainLooper()).idle()
+        assertThat(listener.rxState.value).isEqualTo(SstvRxState.UnsupportedMode(55))
+    }
 
-        // The next transmission replaces it.
+    @Test
+    fun unsupportedModeSurvivesLeaderCandidatesUntilALockReplacesIt() {
+        val listener = newListener()
+        listener.startDirect()
+
+        // The rejection and a fresh leader candidate land in the SAME step:
+        // the hunt resumed straight into the unsupported transmission's
+        // picture, whose mid-gray content satisfies the leader gate.
+        codec.events += rejected(VisRejectReason.UNKNOWN_MODE, code = 55)
+        codec.script += FakeSstvCodec.ScriptedState(DecodeStatus.LEADER)
+        listener.feedAndStep()
+        assertThat(listener.stateNow()).isEqualTo(SstvRxState.UnsupportedMode(55))
+
+        // Candidate times out (IDLE), another appears (LEADER), VIS cells are
+        // being sampled (VIS): still the verdict.
+        codec.script += FakeSstvCodec.ScriptedState(DecodeStatus.IDLE)
+        listener.feedAndStep()
+        codec.script += FakeSstvCodec.ScriptedState(DecodeStatus.LEADER)
+        listener.feedAndStep()
+        codec.script += FakeSstvCodec.ScriptedState(DecodeStatus.VIS)
+        listener.feedAndStep()
+        assertThat(listener.stateNow()).isEqualTo(SstvRxState.UnsupportedMode(55))
+        shadowOf(Looper.getMainLooper()).idle()
+        assertThat(listener.rxState.value).isEqualTo(SstvRxState.UnsupportedMode(55))
+
+        // A confirmed lock replaces it.
+        codec.script += FakeSstvCodec.ScriptedState(
+            DecodeStatus.IMAGE, SstvMode.MARTIN_1, rowsReady = 2, quality = 1f,
+        )
+        listener.feedAndStep()
+        assertThat(listener.stateNow()).isEqualTo(
+            SstvRxState.Decoding(SstvMode.MARTIN_1, 2, 256, 1f, 0f),
+        )
+
+        // And once that image is over, leader candidates publish normally again.
+        codec.script += FakeSstvCodec.ScriptedState(
+            DecodeStatus.DONE, SstvMode.MARTIN_1, rowsReady = 256, quality = 1f,
+        )
+        listener.feedAndStep()
         codec.script += FakeSstvCodec.ScriptedState(DecodeStatus.LEADER)
         listener.feedAndStep()
         assertThat(listener.stateNow()).isEqualTo(SstvRxState.Leader)
-        shadowOf(Looper.getMainLooper()).idle()
-        assertThat(listener.rxState.value).isEqualTo(SstvRxState.Leader)
     }
 
     @Test
