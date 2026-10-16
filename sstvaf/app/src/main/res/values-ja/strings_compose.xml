@@ -555,6 +555,7 @@
     <string name="rx_status_saved">ギャラリーに保存しました</string>
     <string name="rx_status_save_failed">保存に失敗しました</string>
     <string name="rx_status_lost">信号を失いました</string>
+    <string name="rx_status_unsupported">非対応モード (VIS %1$d)</string>
     <string name="rx_status_auto_detect">自動検出</string>
     <string name="rx_mode_lock_auto">自動</string>
     <string name="rx_mode_lock_auto_option">自動（VIS検出）</string>

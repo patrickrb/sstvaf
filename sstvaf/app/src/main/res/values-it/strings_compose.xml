@@ -555,6 +555,7 @@
     <string name="rx_status_saved">Salvata nella Galleria</string>
     <string name="rx_status_save_failed">Salvataggio non riuscito</string>
     <string name="rx_status_lost">Segnale perso</string>
+    <string name="rx_status_unsupported">Modalità non supportata (VIS %1$d)</string>
     <string name="rx_status_auto_detect">rilevamento automatico</string>
     <string name="rx_mode_lock_auto">Auto</string>
     <string name="rx_mode_lock_auto_option">Auto (rilevamento VIS)</string>

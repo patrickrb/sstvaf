@@ -43,6 +43,9 @@ internal fun rxRenderKind(state: SstvRxState): RxRenderKind = when (state) {
     is SstvRxState.Decoding -> RxRenderKind.DECODING
     is SstvRxState.Complete -> RxRenderKind.COMPLETE
     is SstvRxState.Aborted -> RxRenderKind.ABORTED
+    // Nothing to draw: the header was heard but no picture will follow. The
+    // status card carries the explanation.
+    is SstvRxState.UnsupportedMode -> RxRenderKind.LISTENING
 }
 
 /** Decode progress in whole percent, clamped 0..100; 0 for a degenerate total. */
@@ -181,6 +184,14 @@ internal enum class RxStatusKind {
 
     /** Signal lost mid-picture. */
     LOST,
+
+    /**
+     * A clean header arrived for a mode this app does not decode. Shown
+     * until a later transmission actually locks, so the operator learns the
+     * picture was never going to appear, instead of watching "Listening"
+     * and wondering.
+     */
+    UNSUPPORTED,
 }
 
 /**
@@ -229,16 +240,17 @@ internal fun rxStatusKind(
         RxSaveState.NONE, RxSaveState.PENDING -> RxStatusKind.COMPLETE
     }
     state is SstvRxState.Aborted -> RxStatusKind.LOST
+    state is SstvRxState.UnsupportedMode -> RxStatusKind.UNSUPPORTED
     else -> RxStatusKind.LISTENING
 }
 
 /**
  * Whether the status dot animates. A receiver that is switched off is not
- * doing anything, and a lost signal is a finished failure — neither should
- * imply ongoing activity.
+ * doing anything, and a lost signal or an unsupported mode is a finished
+ * failure — none of them should imply ongoing activity.
  */
 internal fun rxStatusPulses(kind: RxStatusKind): Boolean =
-    kind != RxStatusKind.OFF && kind != RxStatusKind.LOST
+    kind != RxStatusKind.OFF && kind != RxStatusKind.LOST && kind != RxStatusKind.UNSUPPORTED
 
 /**
  * Whether the canvas earns its "Saved ✓" badge.
@@ -267,7 +279,7 @@ internal fun rxStatusRightLabel(state: SstvRxState, receiveEnabled: Boolean): St
     // formatRxEta already renders "m:ss"; reused rather than adding a second
     // identical formatter. Here it is a total, not a countdown.
     is SstvRxState.Complete -> formatRxEta(state.mode.txDurationSeconds.roundToInt())
-    is SstvRxState.Aborted -> null
+    is SstvRxState.Aborted, is SstvRxState.UnsupportedMode -> null
 }
 
 /**
@@ -278,7 +290,7 @@ internal fun rxStatusRightLabel(state: SstvRxState, receiveEnabled: Boolean): St
  * than snapping back to zero.
  */
 internal fun rxProgressFraction(state: SstvRxState): Float = when (state) {
-    is SstvRxState.Idle, is SstvRxState.Leader -> 0f
+    is SstvRxState.Idle, is SstvRxState.Leader, is SstvRxState.UnsupportedMode -> 0f
     is SstvRxState.Decoding ->
         if (state.totalRows <= 0) 0f
         else (state.rowsReady.toFloat() / state.totalRows).coerceIn(0f, 1f)
@@ -385,6 +397,7 @@ internal fun rxStatusLabelRes(kind: RxStatusKind): Int = when (kind) {
     RxStatusKind.SAVED -> R.string.rx_status_saved
     RxStatusKind.SAVE_FAILED -> R.string.rx_status_save_failed
     RxStatusKind.LOST -> R.string.rx_status_lost
+    RxStatusKind.UNSUPPORTED -> R.string.rx_status_unsupported
 }
 
 /**
@@ -395,6 +408,14 @@ internal fun rxStatusLabelRes(kind: RxStatusKind): Int = when (kind) {
  */
 internal fun rxStatusLabelTakesMode(kind: RxStatusKind): Boolean =
     kind == RxStatusKind.DECODING
+
+/**
+ * Whether [rxStatusLabelRes] returns a format string needing the VIS code.
+ * Only the unsupported-mode label does: the code is the one thing the
+ * operator can report back ("the other station sent VIS 55").
+ */
+internal fun rxStatusLabelTakesVisCode(kind: RxStatusKind): Boolean =
+    kind == RxStatusKind.UNSUPPORTED
 
 // ---------------------------------------------------------------------------
 // "Received today" strip

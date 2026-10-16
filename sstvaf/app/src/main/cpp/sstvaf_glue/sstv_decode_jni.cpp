@@ -136,6 +136,47 @@ Java_radio_ks3ckc_sstvaf_sstv_NativeSstvCodec_nativeDecoderVisLocked(
     return dec != nullptr ? sstv_decoder_vis_locked(dec) : 0;
 }
 
+// sstv_decoder_events(dec, ...) — drain the header-hunt diagnostics ring
+// into `out`, packed as 5 ints per event: type (SSTV_EVT_*), arg, arg2,
+// decoder time in ms, leader tuning offset in whole Hz. Returns the event
+// count (0 for a null handle or an undersized array).
+extern "C" JNIEXPORT jint JNICALL
+Java_radio_ks3ckc_sstvaf_sstv_NativeSstvCodec_nativeDecoderDrainEvents(
+        JNIEnv* env, jobject, jlong handle, jintArray out)
+{
+    sstv_decoder_t* dec = decoder_from_handle(handle);
+    if (dec == nullptr || out == nullptr) {
+        return 0;
+    }
+    jsize len = env->GetArrayLength(out);
+    int max = (int)(len / 5);
+    if (max <= 0) {
+        return 0;
+    }
+    if (max > SSTV_EVENT_CAPACITY) {
+        max = SSTV_EVENT_CAPACITY;
+    }
+    sstv_event_t events[SSTV_EVENT_CAPACITY];
+    int n = sstv_decoder_events(dec, events, max);
+    if (n <= 0) {
+        return 0;
+    }
+    jint* buf = env->GetIntArrayElements(out, nullptr);
+    if (buf == nullptr) {
+        return 0;
+    }
+    for (int i = 0; i < n; i++) {
+        buf[i * 5 + 0] = events[i].type;
+        buf[i * 5 + 1] = events[i].arg;
+        buf[i * 5 + 2] = events[i].arg2;
+        buf[i * 5 + 3] = (jint)(events[i].t_s * 1000.0);
+        buf[i * 5 + 4] = (jint)(events[i].f_off_hz >= 0.0 ? events[i].f_off_hz + 0.5
+                                                           : events[i].f_off_hz - 0.5);
+    }
+    env->ReleaseIntArrayElements(out, buf, 0);
+    return n;
+}
+
 // sstv_decoder_reset(dec) — back to hunting; keeps the handle valid. A
 // header that preempted the previous image puts the decoder straight back
 // into IMAGE (see sstv.h), so the Kotlin side re-polls status afterwards.

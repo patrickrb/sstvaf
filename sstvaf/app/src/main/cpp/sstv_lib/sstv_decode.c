@@ -226,7 +226,46 @@ struct sstv_decoder {
     uint8_t* r36_c0;
     int r36_type0;            // SSTV_COMP_CR or SSTV_COMP_CB
     int r36_have0;
+
+    // Header-hunt diagnostics (sstv_decoder_events): a ring of the live
+    // hunt's verdicts, oldest at evt_head, evt_n deep.
+    sstv_event_t evt[SSTV_EVENT_CAPACITY];
+    int evt_head, evt_n;
 };
+
+// ---------------------------------------------------------------------------
+// Diagnostics ring
+// ---------------------------------------------------------------------------
+static void evt_push(sstv_decoder_t* d, int type, int arg, int arg2, double f_off)
+{
+    int slot;
+    if (d->evt_n < SSTV_EVENT_CAPACITY) {
+        slot = (d->evt_head + d->evt_n) % SSTV_EVENT_CAPACITY;
+        d->evt_n++;
+    } else {
+        // Full: overwrite the oldest so a reader that fell behind still
+        // sees the most recent verdicts, which are the ones it will ask about.
+        slot = d->evt_head;
+        d->evt_head = (d->evt_head + 1) % SSTV_EVENT_CAPACITY;
+    }
+    d->evt[slot].type = type;
+    d->evt[slot].arg = arg;
+    d->evt[slot].arg2 = arg2;
+    d->evt[slot].t_s = (double)d->n * d->usps * 1e-6;
+    d->evt[slot].f_off_hz = f_off;
+}
+
+int sstv_decoder_events(sstv_decoder_t* d, sstv_event_t* out, int max)
+{
+    if (!d || !out || max <= 0) return 0;
+    int n = 0;
+    while (n < max && d->evt_n > 0) {
+        out[n++] = d->evt[d->evt_head];
+        d->evt_head = (d->evt_head + 1) % SSTV_EVENT_CAPACITY;
+        d->evt_n--;
+    }
+    return n;
+}
 
 // ---------------------------------------------------------------------------
 // Ring access helpers
@@ -970,16 +1009,28 @@ static void enter_image_vis(sstv_decoder_t* d, const sstv_mode_t* m, double t0,
 // bit even under a forced mode, and data cells that sit within
 // VIS_STRICT_TOL_HZ of a clean 1100/1300 Hz tone — pixels never drop below
 // the 1500 Hz black level for a 30 ms cell at a time.
+//
+// `why_out` (may be NULL) receives 0 on acceptance or the SSTV_VISREJ_*
+// reason for a rejection; `code_out` (may be NULL) the 7-bit VIS code once
+// the data cells were read, else -1. These feed the diagnostics ring for
+// the live hunt.
 static const sstv_mode_t* vis_evaluate(const sstv_decoder_t* d, const hdr_t* h,
                                        int strict, double* t0_out,
-                                       double* cal0_out, double* slope_out)
+                                       double* cal0_out, double* slope_out,
+                                       int* why_out, int* code_out)
 {
     double t0 = t_of(d, h->vis_t0);
     int code = 0, ones = 0;
     int forced = d->forced_mode >= 0;
+    int why_dummy, code_dummy;
+    if (!why_out) why_out = &why_dummy;
+    if (!code_out) code_out = &code_dummy;
+    *why_out = 0;
+    *code_out = -1;
 
     if (strict &&
         (double)(h->vis_t0 - h->leader_at) * d->usps < HDR_STRICT_LEADER_US) {
+        *why_out = SSTV_VISREJ_LEADER_LEVEL;
         return 0;
     }
 
@@ -993,12 +1044,16 @@ static const sstv_mode_t* vis_evaluate(const sstv_decoder_t* d, const hdr_t* h,
     // stretch of picture a second earlier, whose mean is not 1900 Hz. That
     // stretch must itself read as a leader, or this is not a header.
     double m_l = win_mean_det(d, t0 - 150000.0, t0 - 30000.0);
-    if (fabs(m_l - SSTV_FREQ_LEADER) > LEADER_MEAN_TOL_HZ) return 0;
+    if (fabs(m_l - SSTV_FREQ_LEADER) > LEADER_MEAN_TOL_HZ) {
+        *why_out = SSTV_VISREJ_LEADER_LEVEL;
+        return 0;
+    }
     double m_s = win_mean_det(d, t0 + 5000.0, t0 + 25000.0);
     double slope = (m_l - m_s) / (SSTV_FREQ_LEADER - SSTV_FREQ_SYNC);
     if (slope < 0.7 || slope > 1.3) {
         if (!forced || strict) {
             // Not a credible start bit level.
+            *why_out = SSTV_VISREJ_START_LEVEL;
             return 0;
         }
         // Locked mode: the operator asserts a transmission is here, so a
@@ -1021,10 +1076,18 @@ static const sstv_mode_t* vis_evaluate(const sstv_decoder_t* d, const hdr_t* h,
     // header found above still anchors timing and calibration, but the
     // data/parity cells (the parts QRM garbles first) are not read.
     if (forced) {
-        if (strict && !stop_ok) return 0;
-        return sstv_mode_get(d->forced_mode);
+        if (strict && !stop_ok) {
+            *why_out = SSTV_VISREJ_STOP_BIT;
+            return 0;
+        }
+        const sstv_mode_t* fm = sstv_mode_get(d->forced_mode);
+        *code_out = fm ? fm->vis_code : -1;
+        return fm;
     }
-    if (!stop_ok) return 0;
+    if (!stop_ok) {
+        *why_out = SSTV_VISREJ_STOP_BIT;
+        return 0;
+    }
 
     // 1100/1300 Hz sit symmetrically around 1200, so the calibrated split
     // is exactly the measured start-bit level.
@@ -1041,12 +1104,18 @@ static const sstv_mode_t* vis_evaluate(const sstv_decoder_t* d, const hdr_t* h,
         // gates degenerate cases where the window is empty.
         int below, total;
         count_below(d, a, b, split, &below, &total);
-        if (total <= 0) return 0;
+        if (total <= 0) {
+            *why_out = SSTV_VISREJ_NO_AUDIO;
+            return 0;
+        }
         double mf = win_mean_det(d, a, b);
         int bit = (mf < split) ? 1 : 0;
         if (strict) {
             double want = split + (bit ? -100.0 : 100.0) * slope;
-            if (fabs(mf - want) > VIS_STRICT_TOL_HZ) return 0;
+            if (fabs(mf - want) > VIS_STRICT_TOL_HZ) {
+                *why_out = SSTV_VISREJ_START_LEVEL;
+                return 0;
+            }
         }
         if (c < 7) {
             code |= bit << c;
@@ -1054,15 +1123,21 @@ static const sstv_mode_t* vis_evaluate(const sstv_decoder_t* d, const hdr_t* h,
         ones += bit;
     }
 
-    if (ones & 1) return 0;  // even parity over data+parity bits
-    return sstv_mode_by_vis(code);
+    *code_out = code;
+    if (ones & 1) {  // even parity over data+parity bits
+        *why_out = SSTV_VISREJ_PARITY;
+        return 0;
+    }
+    const sstv_mode_t* m = sstv_mode_by_vis(code);
+    if (!m) *why_out = SSTV_VISREJ_UNKNOWN_MODE;
+    return m;
 }
 
 // ---------------------------------------------------------------------------
 // Header hunt: one det-track step of IDLE -> LEADER -> VIS. Returns 1 when
 // the machine sits in VIS with every cell available (evaluate now).
 // ---------------------------------------------------------------------------
-static int hdr_step(const sstv_decoder_t* d, hdr_t* h, long long cur)
+static int hdr_step(sstv_decoder_t* d, hdr_t* h, long long cur)
 {
     switch (h->st) {
     case SSTV_STATUS_IDLE:
@@ -1109,6 +1184,11 @@ static int hdr_step(const sstv_decoder_t* d, hdr_t* h, long long cur)
         }
         if ((double)(cur - h->leader_at) * d->usps > LEADER_TIMEOUT_US) {
             h->st = SSTV_STATUS_IDLE;
+            // Only the live hunt reports: the shadow hunt under IMAGE hears
+            // "leaders" in every mid-gray stretch of picture.
+            if (h == &d->hdr) {
+                evt_push(d, SSTV_EVT_LEADER_TIMEOUT, 0, -1, h->f_off);
+            }
         }
         return 0;
     }
@@ -1261,6 +1341,7 @@ static void hl_try_lock(sstv_decoder_t* d)
     d->sync_attempts = d->sync_hits = first + 1;
     d->t_img = frame_start_us(d, 0);
     hl_clear(d);
+    evt_push(d, SSTV_EVT_SYNC_LOCK, best->id, -1, f_sync - SSTV_FREQ_SYNC);
 }
 
 // Per det-sample pulse tracker: runs of f < 1350 Hz (nominal — nothing is
@@ -1382,12 +1463,17 @@ void sstv_decoder_push(sstv_decoder_t* d, const float* samples, int n)
         case SSTV_STATUS_VIS:
             if (hdr_step(d, &d->hdr, cur)) {
                 double t0, cal0, slope;
-                const sstv_mode_t* m = vis_evaluate(d, &d->hdr, 0, &t0, &cal0, &slope);
+                int why, code;
+                double f_off = d->hdr.f_off;
+                const sstv_mode_t* m = vis_evaluate(d, &d->hdr, 0, &t0, &cal0, &slope,
+                                                    &why, &code);
                 hdr_init(&d->hdr);
                 if (m) {
+                    evt_push(d, SSTV_EVT_VIS_ACCEPTED, m->id, code, f_off);
                     enter_image_vis(d, m, t0, cal0, slope);
                     break;
                 }
+                evt_push(d, SSTV_EVT_VIS_REJECTED, why, code, f_off);
             }
             d->status = d->hdr.st;
             // Header-less lock runs alongside the header hunt: a sync
@@ -1407,7 +1493,8 @@ void sstv_decoder_push(sstv_decoder_t* d, const float* samples, int n)
             // applied by the reset that follows.
             if (d->status == SSTV_STATUS_IMAGE && hdr_step(d, &d->shadow, cur)) {
                 double t0, cal0, slope;
-                const sstv_mode_t* m = vis_evaluate(d, &d->shadow, 1, &t0, &cal0, &slope);
+                const sstv_mode_t* m = vis_evaluate(d, &d->shadow, 1, &t0, &cal0, &slope,
+                                                    0, 0);
                 hdr_init(&d->shadow);
                 if (m) {
                     d->pend_valid = 1;

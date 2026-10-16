@@ -555,6 +555,7 @@
     <string name="rx_status_saved">Tersimpan ke Galeri</string>
     <string name="rx_status_save_failed">Gagal menyimpan</string>
     <string name="rx_status_lost">Sinyal hilang</string>
+    <string name="rx_status_unsupported">Mode tidak didukung (VIS %1$d)</string>
     <string name="rx_status_auto_detect">deteksi-otomatis</string>
     <string name="rx_mode_lock_auto">Otomatis</string>
     <string name="rx_mode_lock_auto_option">Otomatis (deteksi VIS)</string>

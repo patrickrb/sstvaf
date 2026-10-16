@@ -52,6 +52,9 @@ class FakeSstvCodec : SstvCodec {
     /** Consumed one entry per push(); empty = state holds. */
     val script = ArrayDeque<ScriptedState>()
 
+    /** Header-hunt verdicts handed out by the next [DecoderSession.drainEvents]. */
+    val events = ArrayDeque<DecodeEvent>()
+
     var sessionsCreated = 0
         private set
     var pushCount = 0
@@ -115,6 +118,12 @@ class FakeSstvCodec : SstvCodec {
         override fun quality(): Float = current.quality
 
         override fun visLocked(): Boolean = current.mode != null && current.visLocked
+
+        override fun drainEvents(): List<DecodeEvent> {
+            val out = events.toList()
+            events.clear()
+            return out
+        }
 
         override fun reset() {
             resetCount++

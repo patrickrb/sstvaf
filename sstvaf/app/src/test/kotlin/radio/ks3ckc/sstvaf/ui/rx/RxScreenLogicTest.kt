@@ -38,6 +38,44 @@ class RxScreenLogicTest {
         assertThat(rxRenderKind(state)).isEqualTo(RxRenderKind.ABORTED)
     }
 
+    // ----- unsupported mode ---------------------------------------------
+
+    @Test
+    fun unsupportedMode_canvasListensWhileTheCardExplains() {
+        val state = SstvRxState.UnsupportedMode(visCode = 55)
+        assertThat(rxRenderKind(state)).isEqualTo(RxRenderKind.LISTENING)
+        assertThat(rxStatusKind(state, receiveEnabled = true, saveState = RxSaveState.NONE))
+            .isEqualTo(RxStatusKind.UNSUPPORTED)
+        // Receive off still wins: a switched-off receiver reports nothing else.
+        assertThat(rxStatusKind(state, receiveEnabled = false, saveState = RxSaveState.NONE))
+            .isEqualTo(RxStatusKind.OFF)
+    }
+
+    @Test
+    fun unsupportedMode_isAFinishedVerdictNotActivity() {
+        val state = SstvRxState.UnsupportedMode(visCode = 55)
+        assertThat(rxStatusPulses(RxStatusKind.UNSUPPORTED)).isFalse()
+        assertThat(rxStatusRightLabel(state, receiveEnabled = true)).isNull()
+        assertThat(rxProgressFraction(state)).isEqualTo(0f)
+        assertThat(rxRowsLabel(state)).isEqualTo("— / —")
+        assertThat(rxQualityLabel(state)).isEqualTo("—")
+        assertThat(rxSlantLabel(state)).isEmpty()
+        assertThat(rxShowsCanvasImage(state)).isFalse()
+        assertThat(rxRevealFraction(state)).isEqualTo(0f)
+        assertThat(rxShowsSavedBadge(state, RxSaveState.SAVED)).isFalse()
+    }
+
+    @Test
+    fun unsupportedMode_labelTakesTheVisCodeAndNothingElseDoes() {
+        assertThat(rxStatusLabelRes(RxStatusKind.UNSUPPORTED))
+            .isEqualTo(com.k1af.ft8af.R.string.rx_status_unsupported)
+        assertThat(rxStatusLabelTakesVisCode(RxStatusKind.UNSUPPORTED)).isTrue()
+        assertThat(rxStatusLabelTakesMode(RxStatusKind.UNSUPPORTED)).isFalse()
+        for (kind in RxStatusKind.entries.filter { it != RxStatusKind.UNSUPPORTED }) {
+            assertThat(rxStatusLabelTakesVisCode(kind)).isFalse()
+        }
+    }
+
     // ----- rxProgressPercent ----------------------------------------------
 
     @Test

@@ -555,6 +555,7 @@
     <string name="rx_status_saved">Enregistrée dans la Galerie</string>
     <string name="rx_status_save_failed">Échec de l\'enregistrement</string>
     <string name="rx_status_lost">Signal perdu</string>
+    <string name="rx_status_unsupported">Mode non pris en charge (VIS %1$d)</string>
     <string name="rx_status_auto_detect">détection auto</string>
     <string name="rx_mode_lock_auto">Auto</string>
     <string name="rx_mode_lock_auto_option">Auto (détection VIS)</string>

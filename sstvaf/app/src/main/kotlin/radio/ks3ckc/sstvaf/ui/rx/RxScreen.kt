@@ -391,11 +391,16 @@ private fun RxRecentStrip(
 @Composable
 private fun rxStatusLabel(kind: RxStatusKind, state: SstvRxState): String {
     val res = rxStatusLabelRes(kind)
-    return if (rxStatusLabelTakesMode(kind)) {
-        val mode = (state as? SstvRxState.Decoding)?.mode?.displayName.orEmpty()
-        stringResource(res, mode)
-    } else {
-        stringResource(res)
+    return when {
+        rxStatusLabelTakesMode(kind) -> {
+            val mode = (state as? SstvRxState.Decoding)?.mode?.displayName.orEmpty()
+            stringResource(res, mode)
+        }
+        rxStatusLabelTakesVisCode(kind) -> {
+            val code = (state as? SstvRxState.UnsupportedMode)?.visCode ?: 0
+            stringResource(res, code)
+        }
+        else -> stringResource(res)
     }
 }
 

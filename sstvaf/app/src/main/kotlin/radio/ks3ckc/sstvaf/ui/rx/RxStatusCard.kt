@@ -245,4 +245,7 @@ internal fun rxStatusDotColor(kind: RxStatusKind): Color = when (kind) {
     RxStatusKind.SAVED -> StatusConfirmed
     RxStatusKind.SAVE_FAILED -> StatusBad
     RxStatusKind.LOST -> StatusBad
+    // Amber, not red: the app heard a valid transmission and is telling the
+    // operator why it will not decode it — a limitation, not a fault.
+    RxStatusKind.UNSUPPORTED -> Signal
 }

@@ -32,6 +32,77 @@ enum class DecodeStatus(val nativeValue: Int) {
 }
 
 /**
+ * What the decoder's live header hunt did with a candidate header. Mirrors
+ * `SSTV_EVT_*` in `cpp/sstv_lib/sstv.h` (pinned by [SstvModeTest]). The
+ * status API alone cannot tell "no leader was ever heard" from "a header was
+ * read and thrown away", and that difference is the diagnosis when an
+ * operator reports audible SSTV that never produced a picture.
+ */
+enum class DecodeEventType(val nativeValue: Int) {
+    /** A 1900 Hz leader was heard but no VIS start bit followed. */
+    LEADER_TIMEOUT(1),
+
+    /** A start bit was found but the header was rejected ([VisRejectReason]). */
+    VIS_REJECTED(2),
+
+    /** A header was accepted; the decoder entered IMAGE. */
+    VIS_ACCEPTED(3),
+
+    /** The header-less sync-train lock picked a mode. */
+    SYNC_LOCK(4),
+    ;
+
+    companion object {
+        fun fromNative(value: Int): DecodeEventType? =
+            entries.firstOrNull { it.nativeValue == value }
+    }
+}
+
+/** Why a header was rejected. Mirrors `SSTV_VISREJ_*` in `sstv.h`. */
+enum class VisRejectReason(val nativeValue: Int, val label: String) {
+    LEADER_LEVEL(1, "leader level"),
+    START_LEVEL(2, "start-bit level"),
+    STOP_BIT(3, "stop bit"),
+    PARITY(4, "parity"),
+    NO_AUDIO(5, "no audio"),
+
+    /** The VIS read cleanly but no supported mode has that code. */
+    UNKNOWN_MODE(6, "unknown mode"),
+    ;
+
+    companion object {
+        fun fromNative(value: Int): VisRejectReason? =
+            entries.firstOrNull { it.nativeValue == value }
+    }
+}
+
+/**
+ * One header-hunt verdict from [DecoderSession.drainEvents].
+ *
+ * [arg] is the mode id for [DecodeEventType.VIS_ACCEPTED] / [DecodeEventType.SYNC_LOCK]
+ * and the [VisRejectReason] native value for [DecodeEventType.VIS_REJECTED];
+ * [visCode] is the 7-bit code the cells read (-1 when they were never read).
+ * [audioTimeMs] is decoder time (milliseconds of audio pushed so far);
+ * [tuningOffsetHz] the measured leader offset from 1900 Hz.
+ */
+data class DecodeEvent(
+    val type: DecodeEventType,
+    val arg: Int,
+    val visCode: Int,
+    val audioTimeMs: Long,
+    val tuningOffsetHz: Int,
+) {
+    val rejectReason: VisRejectReason?
+        get() = if (type == DecodeEventType.VIS_REJECTED) VisRejectReason.fromNative(arg) else null
+
+    val mode: SstvMode?
+        get() = when (type) {
+            DecodeEventType.VIS_ACCEPTED, DecodeEventType.SYNC_LOCK -> SstvMode.fromModeId(arg)
+            else -> null
+        }
+}
+
+/**
  * The SSTV codec surface the engine layer builds on. Implemented by
  * [NativeSstvCodec] (JNI to cpp/sstv_lib) in the app and by `FakeSstvCodec`
  * in JVM tests.
@@ -108,6 +179,13 @@ interface DecoderSession : AutoCloseable {
      * then start at the top of the frame). False before any lock.
      */
     fun visLocked(): Boolean
+
+    /**
+     * Drain the header-hunt diagnostics queued since the last call, oldest
+     * first (see [DecodeEvent]). The queue survives [reset]; the native
+     * decoder keeps the newest [DecodeEvent]s when a caller falls behind.
+     */
+    fun drainEvents(): List<DecodeEvent>
 
     /**
      * Back to hunting; the session stays usable. When a new calibration
