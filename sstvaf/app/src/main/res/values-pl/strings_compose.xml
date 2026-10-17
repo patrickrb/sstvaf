@@ -555,6 +555,7 @@
     <string name="rx_status_saved">Zapisano w Galerii</string>
     <string name="rx_status_save_failed">Zapis nie powiódł się</string>
     <string name="rx_status_lost">Utracono sygnał</string>
+    <string name="rx_status_unsupported">Nieobsługiwany tryb (VIS %1$d)</string>
     <string name="rx_status_auto_detect">autowykrywanie</string>
     <string name="rx_mode_lock_auto">Auto</string>
     <string name="rx_mode_lock_auto_option">Auto (wykrywanie VIS)</string>

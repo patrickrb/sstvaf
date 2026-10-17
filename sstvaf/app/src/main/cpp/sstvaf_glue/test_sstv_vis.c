@@ -131,6 +131,120 @@ int main(void)
     check(detect(3, 0.0, 0, 300.0, 0.0, 0, 0) == -1,
           "unknown (parity-valid) VIS code rejected");
 
+    // 5b. Header-hunt diagnostics (sstv_decoder_events): every verdict of
+    //     the live hunt is queued with its reason, so a receiver can log
+    //     why an audible transmission produced nothing.
+    {
+        sstv_event_t ev[SSTV_EVENT_CAPACITY];
+
+        // Accepted header: one VIS_ACCEPTED carrying mode id + code + offset.
+        {
+            float* buf = (float*)calloc(BUF_SAMPLES, sizeof(float));
+            sstv_test_osc_t o;
+            tosc_init(&o, RATE, buf, BUF_SAMPLES);
+            tosc_tone_ms(&o, 700, 50, 0.0);
+            sstv_test_gen_header(&o, 44, 30.0, 0, 300.0, 0.7);
+            tosc_tone_ms(&o, 1530, 400, 0.7);
+            sstv_decoder_t* d = sstv_decoder_create(RATE);
+            check(sstv_decoder_events(d, ev, SSTV_EVENT_CAPACITY) == 0,
+                  "events: none before any audio");
+            sstv_test_push_all(d, buf, o.pos);
+            int n = sstv_decoder_events(d, ev, SSTV_EVENT_CAPACITY);
+            check(n == 1 && ev[0].type == SSTV_EVT_VIS_ACCEPTED &&
+                      ev[0].arg == SSTV_MODE_MARTIN1 && ev[0].arg2 == 44,
+                  "events: accepted VIS reports mode and code");
+            check(n == 1 && fabs(ev[0].f_off_hz - 30.0) < 15.0,
+                  "events: accepted VIS carries the measured tuning offset");
+            check(n == 1 && ev[0].t_s > 0.9 && ev[0].t_s < 1.4,
+                  "events: accepted VIS is timestamped at the end of the header");
+            check(sstv_decoder_events(d, ev, SSTV_EVENT_CAPACITY) == 0,
+                  "events: drain empties the queue");
+            check(sstv_decoder_events(0, ev, SSTV_EVENT_CAPACITY) == 0 &&
+                      sstv_decoder_events(d, 0, 1) == 0 &&
+                      sstv_decoder_events(d, ev, 0) == 0,
+                  "events: bad args return 0");
+            sstv_decoder_destroy(d);
+            free(buf);
+        }
+
+        // Parity failure: VIS_REJECTED with the parity reason and the raw code.
+        {
+            float* buf = (float*)calloc(BUF_SAMPLES, sizeof(float));
+            sstv_test_osc_t o;
+            tosc_init(&o, RATE, buf, BUF_SAMPLES);
+            tosc_tone_ms(&o, 700, 50, 0.0);
+            sstv_test_gen_header(&o, 44, 0.0, 1, 300.0, 0.7);
+            tosc_tone_ms(&o, 1500, 400, 0.7);
+            sstv_decoder_t* d = sstv_decoder_create(RATE);
+            sstv_test_push_all(d, buf, o.pos);
+            int n = sstv_decoder_events(d, ev, SSTV_EVENT_CAPACITY);
+            check(n >= 1 && ev[0].type == SSTV_EVT_VIS_REJECTED &&
+                      ev[0].arg == SSTV_VISREJ_PARITY && ev[0].arg2 == 44,
+                  "events: parity failure names the reason and the code read");
+            sstv_decoder_destroy(d);
+            free(buf);
+        }
+
+        // Unknown mode: a clean VIS no mode owns is the one case an operator
+        // can act on (the other station is sending something unsupported).
+        {
+            float* buf = (float*)calloc(BUF_SAMPLES, sizeof(float));
+            sstv_test_osc_t o;
+            tosc_init(&o, RATE, buf, BUF_SAMPLES);
+            tosc_tone_ms(&o, 700, 50, 0.0);
+            sstv_test_gen_header(&o, 3, 0.0, 0, 300.0, 0.7);
+            tosc_tone_ms(&o, 1500, 400, 0.7);
+            sstv_decoder_t* d = sstv_decoder_create(RATE);
+            sstv_test_push_all(d, buf, o.pos);
+            int n = sstv_decoder_events(d, ev, SSTV_EVENT_CAPACITY);
+            check(n >= 1 && ev[0].type == SSTV_EVT_VIS_REJECTED &&
+                      ev[0].arg == SSTV_VISREJ_UNKNOWN_MODE && ev[0].arg2 == 3,
+                  "events: unknown mode reports the VIS code");
+            sstv_decoder_destroy(d);
+            free(buf);
+        }
+
+        // Leader with no start bit: a bare 1900 Hz carrier (a tune-up, or a
+        // header whose start bit never reached the receiver) times out.
+        {
+            float* buf = (float*)calloc(BUF_SAMPLES, sizeof(float));
+            sstv_test_osc_t o;
+            tosc_init(&o, RATE, buf, BUF_SAMPLES);
+            tosc_tone_ms(&o, 1900 - 40.0, 2600, 0.7);
+            sstv_decoder_t* d = sstv_decoder_create(RATE);
+            sstv_test_push_all(d, buf, o.pos);
+            int n = sstv_decoder_events(d, ev, SSTV_EVENT_CAPACITY);
+            check(n >= 1 && ev[0].type == SSTV_EVT_LEADER_TIMEOUT,
+                  "events: leader without a start bit times out");
+            check(n >= 1 && fabs(ev[0].f_off_hz + 40.0) < 15.0,
+                  "events: leader timeout carries the tuning offset");
+            sstv_decoder_destroy(d);
+            free(buf);
+        }
+
+        // Overflow keeps the newest verdicts; reset keeps the queue.
+        {
+            float* buf = (float*)calloc(RATE * 60, sizeof(float));
+            sstv_test_osc_t o;
+            tosc_init(&o, RATE, buf, RATE * 60);
+            // 20 bare leaders, each timing out: well past the ring depth.
+            for (int k = 0; k < 20; k++) {
+                tosc_tone_ms(&o, 1900, 2300, 0.7);
+                tosc_tone_ms(&o, 700, 300, 0.0);
+            }
+            sstv_decoder_t* d = sstv_decoder_create(RATE);
+            sstv_test_push_all(d, buf, o.pos);
+            sstv_decoder_reset(d);
+            int n = sstv_decoder_events(d, ev, SSTV_EVENT_CAPACITY);
+            check(n == SSTV_EVENT_CAPACITY, "events: ring holds the capacity after overflow");
+            check(n == SSTV_EVENT_CAPACITY && ev[n - 1].t_s > ev[0].t_s &&
+                      ev[n - 1].t_s > 50.0,
+                  "events: overflow drops the oldest and keeps the newest");
+            sstv_decoder_destroy(d);
+            free(buf);
+        }
+    }
+
     // 6. Truncated leader: 30 ms leaders can never fill 80% of the 100 ms
     //    detection window (30+10+30 ms of header only spans 70 ms of 1900 Hz
     //    across the break), so the decoder must stay hunting and detect

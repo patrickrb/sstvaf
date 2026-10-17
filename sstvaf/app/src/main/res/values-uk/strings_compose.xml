@@ -555,6 +555,7 @@
     <string name="rx_status_saved">Збережено до Галереї</string>
     <string name="rx_status_save_failed">Не вдалося зберегти</string>
     <string name="rx_status_lost">Сигнал втрачено</string>
+    <string name="rx_status_unsupported">Непідтримуваний режим (VIS %1$d)</string>
     <string name="rx_status_auto_detect">автовизначення</string>
     <string name="rx_mode_lock_auto">Авто</string>
     <string name="rx_mode_lock_auto_option">Авто (визначення VIS)</string>

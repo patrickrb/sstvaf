@@ -555,6 +555,7 @@
     <string name="rx_status_saved">갤러리에 저장됨</string>
     <string name="rx_status_save_failed">저장 실패</string>
     <string name="rx_status_lost">신호 손실</string>
+    <string name="rx_status_unsupported">지원되지 않는 모드 (VIS %1$d)</string>
     <string name="rx_status_auto_detect">자동 감지</string>
     <string name="rx_mode_lock_auto">자동</string>
     <string name="rx_mode_lock_auto_option">자동 (VIS 감지)</string>
