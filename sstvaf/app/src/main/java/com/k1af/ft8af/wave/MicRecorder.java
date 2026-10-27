@@ -45,6 +45,16 @@ public class MicRecorder {
     private boolean useUsbAudio = false;
 
     private volatile boolean isRunning = false;//whether currently in recording state
+    // Owner intent: whether the caller wants capture running, set/cleared only by
+    // start()/stopRecord(), the two owner-facing entry points. Deliberately
+    // separate from isRunning, which the capture thread also clears as a side
+    // effect when a capture fails. reinitialize() used to key its restart off
+    // isRunning, so one failed start -- most visibly the first-launch capture
+    // that ran before RECORD_AUDIO was granted, or a transient createRecord
+    // failure right after a replug -- left every later reinitialize() (USB
+    // attach, SCO, RX channel change, the permission grant) skipping start(),
+    // and RX stayed deaf for the rest of the session.
+    private volatile boolean shouldBeRunning = false;
     private OnDataListener onDataListener;
 
     // AudioRecord capture-thread handoff. reinitialize() can be called from
@@ -474,6 +484,7 @@ public class MicRecorder {
     }
 
     public synchronized void start(){
+        shouldBeRunning = true;
         if (isRunning) return;
 
         if (useUsbAudio && usbAudioDevice != null) {
@@ -730,9 +741,16 @@ public class MicRecorder {
 
     /**
      * Stop recording. When recording stops, all monitors in the listener list are removed.
+     *
+     * <p>Owner-facing: also clears {@link #shouldBeRunning}, so a later
+     * {@link #reinitialize()} (e.g. from a USB attach event) knows not to
+     * restart capture the operator explicitly stopped. {@link #reinitialize()}
+     * itself does the equivalent teardown inline rather than calling this, so
+     * its own internal stop/rebuild cycle never clears that intent flag.
      */
     public synchronized void stopRecord() {
         isRunning = false;
+        shouldBeRunning = false;
         if (useUsbAudio && usbAudioDevice != null) {
             usbAudioDevice.stopCapture();
         }
@@ -752,26 +770,20 @@ public class MicRecorder {
      * This handles the case where a USB audio device is connected after MicRecorder
      * was originally constructed.
      */
-    public synchronized void reinitialize() {
-        reinitialize(false);
-    }
-
-    /**
-     * {@link #reinitialize()}, optionally starting a capture that was not running.
-     * The RECORD_AUDIO grant needs that: the capture opened at app start, before
-     * the permission prompt was answered, failed and stopped, so a plain reinit
-     * would rebuild the AudioRecord and leave it idle.
-     */
     @SuppressLint("MissingPermission")
-    public synchronized void reinitialize(boolean startEvenIfStopped) {
-        boolean wasRunning = isRunning;
+    public synchronized void reinitialize() {
         OnDataListener savedListener = onDataListener;
 
-        // Supersede the running reader thread's generation, then stop capture.
+        // Supersede the running reader thread's generation, then stop capture
+        // inline (NOT via stopRecord(): that also clears shouldBeRunning, which
+        // must survive this method's own internal stop/rebuild cycle).
         captureGeneration++;
-        stopRecord();
+        isRunning = false;
+        if (useUsbAudio && usbAudioDevice != null) {
+            usbAudioDevice.stopCapture();
+        }
 
-        // Release old AudioRecord (stopRecord only sets isRunning=false). The
+        // Release old AudioRecord (the above only sets isRunning=false). The
         // reader thread may still be inside a blocking read() on it: stop()
         // unblocks that read, and we must wait for the thread to exit before
         // release() — releasing mid-read is a fatal native abort
@@ -842,20 +854,25 @@ public class MicRecorder {
             }
         }
 
-        // Restore listener and restart if it was running (or the caller insists)
+        // Restore listener and restart if the owner wants capture running
         onDataListener = savedListener;
-        if (startAfterReinit(wasRunning, startEvenIfStopped)) {
+        if (shouldRestartAfterReinitialize(shouldBeRunning)) {
             start();
         }
     }
 
     /**
-     * Whether {@link #reinitialize(boolean)} starts the rebuilt capture.
+     * Whether {@link #reinitialize()} should restart capture once it has
+     * rebuilt the audio input. Keyed on {@code shouldBeRunning} (owner
+     * intent, touched only by {@link #start()}/{@link #stopRecord()}), NOT
+     * {@code isRunning} -- a failed capture leaves {@code isRunning} false
+     * with no owner-driven {@link #stopRecord()} ever happening, and that
+     * must not be read as "capture no longer wanted".
      *
      * <p>Package-visible for testing.
      */
-    static boolean startAfterReinit(boolean wasRunning, boolean startEvenIfStopped) {
-        return wasRunning || startEvenIfStopped;
+    static boolean shouldRestartAfterReinitialize(boolean shouldBeRunning) {
+        return shouldBeRunning;
     }
 
     /**

@@ -238,27 +238,10 @@ public class HamRecorder {
 
     /**
      * Reinitialize the mic recorder to pick up newly connected USB audio devices.
-     * Re-wires the data listener after reinit.
+     * The data listener is wired first, so the capture the reinit restarts
+     * delivers to it from its first buffer.
      */
     public void reinitializeMicRecorder() {
-        reinitializeMicRecorder(false);
-    }
-
-    /**
-     * RECORD_AUDIO was just granted (first launch). The capture started in the
-     * constructor ran before the prompt was answered, so its AudioRecord failed
-     * and stopped while this recorder still reports running — RX is silently
-     * dead until the next app launch. Rebuild and start it now. No-op for
-     * network audio and direct-libusb USB capture, which never needed the
-     * permission.
-     */
-    public void restartMicAfterPermissionGrant() {
-        if (!isPhoneMicInUse()) return;
-        reinitializeMicRecorder(true);
-    }
-
-    private void reinitializeMicRecorder(boolean startEvenIfStopped) {
-        micRecorder.reinitialize(startEvenIfStopped);
         if (isMicRecord) {
             micRecorder.setOnDataListener(new MicRecorder.OnDataListener() {
                 @Override
@@ -267,6 +250,31 @@ public class HamRecorder {
                 }
             });
         }
+        micRecorder.reinitialize();
+    }
+
+    /**
+     * RECORD_AUDIO was just granted (first launch). The capture started in the
+     * constructor ran before the prompt was answered, so its AudioRecord failed
+     * and stopped; rebuild it now instead of leaving RX deaf until the next app
+     * launch. The reinit restarts it because start() recorded the intent before
+     * failing (MicRecorder.shouldBeRunning).
+     */
+    public void restartMicAfterPermissionGrant() {
+        if (!restartMicOnGrant(isRunning, isMicRecord, micRecorder.isUsingUsbDirect())) return;
+        reinitializeMicRecorder();
+    }
+
+    /**
+     * Whether a RECORD_AUDIO grant should rebuild the capture: only an
+     * AudioRecord capture on the mic source needed the permission. Network
+     * audio and a working direct-libusb USB capture are left alone -- tearing
+     * the latter down would drop RX and churn the libusb session for nothing.
+     *
+     * <p>Package-visible for testing.
+     */
+    static boolean restartMicOnGrant(boolean running, boolean micSource, boolean usbDirect) {
+        return phoneMicCaptureInUse(running, micSource, usbDirect);
     }
 
     /**

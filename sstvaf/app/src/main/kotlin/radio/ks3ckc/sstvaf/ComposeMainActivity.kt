@@ -696,10 +696,7 @@ class ComposeMainActivity : AppCompatActivity() {
 internal fun micGrantedIn(
     permissions: Array<out String>,
     grantResults: IntArray,
-): Boolean {
-    val i = permissions.indexOf(Manifest.permission.RECORD_AUDIO)
-    return i >= 0 && grantResults.getOrNull(i) == PackageManager.PERMISSION_GRANTED
-}
+): Boolean = permissionGrantedIn(permissions, grantResults, Manifest.permission.RECORD_AUDIO)
 
 /**
  * True if this permission result granted either fine or coarse location.
@@ -709,16 +706,21 @@ internal fun micGrantedIn(
 internal fun locationGrantedIn(
     permissions: Array<out String>,
     grantResults: IntArray,
-): Boolean {
-    for (i in permissions.indices) {
-        if (i >= grantResults.size) break
-        val p = permissions[i]
-        if ((p == Manifest.permission.ACCESS_FINE_LOCATION ||
-                p == Manifest.permission.ACCESS_COARSE_LOCATION) &&
-            grantResults[i] == PackageManager.PERMISSION_GRANTED
-        ) {
-            return true
-        }
-    }
-    return false
+): Boolean = permissionGrantedIn(
+    permissions,
+    grantResults,
+    Manifest.permission.ACCESS_FINE_LOCATION,
+    Manifest.permission.ACCESS_COARSE_LOCATION,
+)
+
+/**
+ * True if this permission result granted any of [wanted]. A cancelled request
+ * delivers an empty (or short) [grantResults], which counts as not granted.
+ */
+internal fun permissionGrantedIn(
+    permissions: Array<out String>,
+    grantResults: IntArray,
+    vararg wanted: String,
+): Boolean = permissions.indices.any { i ->
+    permissions[i] in wanted && grantResults.getOrNull(i) == PackageManager.PERMISSION_GRANTED
 }
