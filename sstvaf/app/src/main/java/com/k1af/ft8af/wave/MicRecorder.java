@@ -752,8 +752,18 @@ public class MicRecorder {
      * This handles the case where a USB audio device is connected after MicRecorder
      * was originally constructed.
      */
-    @SuppressLint("MissingPermission")
     public synchronized void reinitialize() {
+        reinitialize(false);
+    }
+
+    /**
+     * {@link #reinitialize()}, optionally starting a capture that was not running.
+     * The RECORD_AUDIO grant needs that: the capture opened at app start, before
+     * the permission prompt was answered, failed and stopped, so a plain reinit
+     * would rebuild the AudioRecord and leave it idle.
+     */
+    @SuppressLint("MissingPermission")
+    public synchronized void reinitialize(boolean startEvenIfStopped) {
         boolean wasRunning = isRunning;
         OnDataListener savedListener = onDataListener;
 
@@ -832,11 +842,20 @@ public class MicRecorder {
             }
         }
 
-        // Restore listener and restart if it was running
+        // Restore listener and restart if it was running (or the caller insists)
         onDataListener = savedListener;
-        if (wasRunning) {
+        if (startAfterReinit(wasRunning, startEvenIfStopped)) {
             start();
         }
+    }
+
+    /**
+     * Whether {@link #reinitialize(boolean)} starts the rebuilt capture.
+     *
+     * <p>Package-visible for testing.
+     */
+    static boolean startAfterReinit(boolean wasRunning, boolean startEvenIfStopped) {
+        return wasRunning || startEvenIfStopped;
     }
 
     /**

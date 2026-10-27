@@ -241,7 +241,24 @@ public class HamRecorder {
      * Re-wires the data listener after reinit.
      */
     public void reinitializeMicRecorder() {
-        micRecorder.reinitialize();
+        reinitializeMicRecorder(false);
+    }
+
+    /**
+     * RECORD_AUDIO was just granted (first launch). The capture started in the
+     * constructor ran before the prompt was answered, so its AudioRecord failed
+     * and stopped while this recorder still reports running — RX is silently
+     * dead until the next app launch. Rebuild and start it now. No-op for
+     * network audio and direct-libusb USB capture, which never needed the
+     * permission.
+     */
+    public void restartMicAfterPermissionGrant() {
+        if (!isPhoneMicInUse()) return;
+        reinitializeMicRecorder(true);
+    }
+
+    private void reinitializeMicRecorder(boolean startEvenIfStopped) {
+        micRecorder.reinitialize(startEvenIfStopped);
         if (isMicRecord) {
             micRecorder.setOnDataListener(new MicRecorder.OnDataListener() {
                 @Override

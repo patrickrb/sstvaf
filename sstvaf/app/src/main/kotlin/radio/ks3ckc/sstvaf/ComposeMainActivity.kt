@@ -272,10 +272,11 @@ class ComposeMainActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         // Proceed regardless; same behavior as original.
 
-        // RECORD_AUDIO just granted (first launch): start the background RX service now so
-        // it begins in this session instead of only after the next app launch.
-        val micIdx = permissions.indexOf(Manifest.permission.RECORD_AUDIO)
-        if (micIdx >= 0 && grantResults.getOrNull(micIdx) == PackageManager.PERMISSION_GRANTED) {
+        // RECORD_AUDIO just granted (first launch): the mic capture opened at startup failed
+        // without it, so rebuild it, and start the background RX service — both now, in this
+        // session, instead of only after the next app launch.
+        if (micGrantedIn(permissions, grantResults)) {
+            mainViewModel.restartAudioAfterMicGrant()
             startRxServiceIfPermitted()
         }
 
@@ -686,6 +687,18 @@ class ComposeMainActivity : AppCompatActivity() {
         RxForegroundService.stop(this)
         System.exit(0)
     }
+}
+
+/**
+ * True if this permission result granted RECORD_AUDIO. Top-level + [internal] so
+ * the first-launch mic restart can be unit-tested without constructing the Activity.
+ */
+internal fun micGrantedIn(
+    permissions: Array<out String>,
+    grantResults: IntArray,
+): Boolean {
+    val i = permissions.indexOf(Manifest.permission.RECORD_AUDIO)
+    return i >= 0 && grantResults.getOrNull(i) == PackageManager.PERMISSION_GRANTED
 }
 
 /**

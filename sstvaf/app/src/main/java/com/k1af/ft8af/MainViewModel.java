@@ -1307,6 +1307,17 @@ public class MainViewModel extends ViewModel {
     }
 
     /**
+     * RECORD_AUDIO was just granted: bring up the mic capture that could not
+     * open at startup without it (see {@link HamRecorder#restartMicAfterPermissionGrant}).
+     */
+    public void restartAudioAfterMicGrant() {
+        if (hamRecorder != null) {
+            GeneralVariables.fileLog("RECORD_AUDIO granted: restarting mic capture");
+            hamRecorder.restartMicAfterPermissionGrant();
+        }
+    }
+
+    /**
      * Settling time before an RX channel change actually reopens the capture.
      * The selector is an A/B control — the operator flips it while watching the
      * waterfall — and each reopen costs up to a second of RX plus, on USB-direct,
