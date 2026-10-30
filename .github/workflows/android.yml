@@ -35,7 +35,7 @@ name: Android CI & Release
 #
 # PATH-FILTERED: on pull requests and dev pushes this whole pipeline only runs
 # when Android-relevant files change (sstvaf/** — which includes the shared
-# native C core at sstvaf/app/src/main/cpp/ — or this workflow file). Pushes to
+# native C core at sstvaf/app/src/main/cpp/ — ham-radio-core/**, or this workflow file). Pushes to
 # staging/main and android-v* tags always build (a full release snapshot,
 # regardless of what changed). The always-run `android-gate` job is the single
 # required status check so branch protection never gets stuck "pending" when the
@@ -88,6 +88,7 @@ jobs:
           filters: |
             android:
               - 'sstvaf/**'
+              - 'ham-radio-core/**'
               - '.github/workflows/android.yml'
 
       - name: Decide whether to run
@@ -159,7 +160,7 @@ jobs:
 
       - name: Run unit tests
         working-directory: sstvaf
-        run: ./gradlew testDebugUnitTest --stacktrace
+        run: ./gradlew :ham-radio-core:test testDebugUnitTest --stacktrace
 
       - name: Generate coverage report
         working-directory: sstvaf
@@ -177,7 +178,7 @@ jobs:
           flags: android
 
       - name: Upload test reports on failure
-        if: steps.codecov.outcome == 'failure'
+        if: failure() || steps.codecov.outcome == 'failure'
         uses: actions/upload-artifact@v7
         with:
           name: unit-test-reports
@@ -185,6 +186,8 @@ jobs:
             sstvaf/app/build/reports/tests/
             sstvaf/app/build/test-results/
             sstvaf/app/build/reports/jacoco/
+            ham-radio-core/build/reports/tests/
+            ham-radio-core/build/test-results/
 
   instrumented:
     name: Instrumented tests (emulator)
@@ -436,12 +439,11 @@ jobs:
 
           ALL=$(git diff --name-only "$RANGE")
           # Only files that end up in the APK count: sstvaf/ (which includes the
-          # shared native core under sstvaf/app/src/main/cpp). desktop/,
-          # docs and CI don't — a promotion touching none of sstvaf/ builds but
-          # cuts no release.
-          ANDROID_FILES=$(printf '%s\n' "$ALL" | grep -E '^sstvaf/' || true)
+          # native core under sstvaf/app/src/main/cpp) and ham-radio-core/.
+          # Desktop, docs and CI don't count as Android release changes.
+          ANDROID_FILES=$(printf '%s\n' "$ALL" | grep -E '^(sstvaf|ham-radio-core)/' || true)
           if [[ -z "$ANDROID_FILES" ]]; then
-            echo "::notice::Nothing under sstvaf/ changed since ${PREV_TAG:-the baseline} — building only, not cutting a release."
+            echo "::notice::Nothing under sstvaf/ or ham-radio-core/ changed since ${PREV_TAG:-the baseline} — building only, not cutting a release."
             android_changed=false
           else
             android_changed=true
@@ -470,7 +472,7 @@ jobs:
             PRS+="- ${num_branch}${title:+: $title}"$'\n'
           done < <(git rev-list --merges "$RANGE")
           COUNT=$LOG_TOTAL
-          STAT=$(git diff --shortstat "$RANGE" -- sstvaf/ | sed 's/^ *//')
+          STAT=$(git diff --shortstat "$RANGE" -- sstvaf/ ham-radio-core/ | sed 's/^ *//')
           TOTAL=$(printf '%s\n' "$ALL" | grep -c . || true)
           ANDROID=$(printf '%s\n' "$ANDROID_FILES" | grep -c . || true)
           AREAS=$(set +o pipefail; printf '%s\n' "$ALL" \

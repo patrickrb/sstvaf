@@ -2,6 +2,8 @@ package com.k1af.ft8af.rigs;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import radio.core.cat.CatLiveness;
+
 import org.junit.Test;
 
 import java.util.ArrayList;

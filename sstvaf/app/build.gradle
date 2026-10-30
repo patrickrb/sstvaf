@@ -189,6 +189,8 @@ android {
 
 dependencies {
 
+    implementation project(':ham-radio-core')
+
     implementation 'androidx.appcompat:appcompat:1.6.1'
     // EXIF orientation for photos loaded into the TX composer (the framework
     // ExifInterface is kept off the framework class for its wider format and

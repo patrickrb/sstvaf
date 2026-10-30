@@ -64,7 +64,6 @@ import com.k1af.ft8af.log.QSLCallsignRecord;
 import com.k1af.ft8af.rigs.BaseRig;
 import com.k1af.ft8af.rigs.BaseRigOperation;
 import com.k1af.ft8af.rigs.CatConnectionState;
-import com.k1af.ft8af.rigs.CatLiveness;
 import com.k1af.ft8af.rigs.CatLivenessTracker;
 import com.k1af.ft8af.rigs.CivAddressConfig;
 import com.k1af.ft8af.rigs.DiscoveryTX500Rig;
@@ -107,6 +106,7 @@ import com.k1af.ft8af.wave.HamRecorder;
 import com.k1af.ft8af.wave.MicRecorder;
 import com.k1af.ft8af.x6100.X6100Radio;
 
+import radio.core.cat.CatLiveness;
 import radio.ks3ckc.sstvaf.UsbPermissionIntentsKt;
 import radio.ks3ckc.sstvaf.sstv.NativeSstvCodec;
 import radio.ks3ckc.sstvaf.gallery.ReceivedImageStore;

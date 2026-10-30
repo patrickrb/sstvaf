@@ -16,6 +16,8 @@ import com.k1af.ft8af.icom.IComPacketTypes;
 import com.k1af.ft8af.ui.ToastMessage;
 import com.k1af.ft8af.wave.FT8Resample;
 
+import radio.core.cat.CatLiveness;
+
 import java.util.Timer;
 import java.util.TimerTask;
 
