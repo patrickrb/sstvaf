@@ -1,0 +1,342 @@
+# SSTVAF Agent Instructions
+
+This is the canonical guidance for all coding agents. Read
+[docs/development.md](docs/development.md) for reproducible setup, build,
+tests, and troubleshooting. No credentials or radio are needed for host/JVM
+tests, desktop tests, or debug builds.
+
+## Fresh Amp orbs (Linux x86_64)
+
+Amp runs executable `.agents/setup` on fresh orbs (unless restoring an exact
+setup snapshot). Run `./.agents/setup` manually if needed. It installs JDK 17,
+clang, Android SDK 36, NDK 27.0.12077973, CMake 3.22.1, and desktop build
+prerequisites. It persists tool paths via `~/.config/sstvaf/env.sh` in new
+Bash login shells. No `.agents/resume` or backend service is needed.
+
+From the repository root after setup, in a new login shell:
+Run heavyweight Gradle and Cargo checks serially on small orbs.
+
+```bash
+bash sstvaf/app/src/main/cpp/sstvaf_glue/run_sstv_host_tests.sh
+bash desktop/run_cli_host_tests.sh
+sstvaf/gradlew -p sstvaf --no-daemon --max-workers=2 testDebugUnitTest
+sstvaf/gradlew -p sstvaf --no-daemon --max-workers=2 assembleDebug
+npm --prefix desktop/gui test
+npm --prefix desktop/gui run build
+cargo test --locked -j 2 --manifest-path desktop/gui/src-tauri/Cargo.toml
+```
+
+Orbs have no KVM: do not install/start Android emulators. Only install or run
+connected tests if `adb devices` lists an authorized device. Host tests are
+not device UI, microphone, USB/radio, or RF validation; report that limitation.
+See the desktop GUI README for native desktop development (the browser-only
+frontend cannot exercise Tauri audio/IPC).
+
+## Repository map
+
+- `sstvaf/`: Android Gradle project (not the old `ft8af/` directory).
+- `sstvaf/app/src/main/kotlin/radio/ks3ckc/sstvaf/`: SSTV/WEFAX pipelines,
+  Compose screens, gallery, TX composition, and app entry point.
+- `sstvaf/app/src/main/java/com/k1af/ft8af/`: inherited CAT, USB/audio,
+  log/database, and service code (legacy namespace is deliberate).
+- `sstvaf/app/src/main/cpp/`: codec (`sstv_lib`), JNI and host tests
+  (`sstvaf_glue`), Hamlib, USB audio, FFT/resampler glue.
+- `sstvaf/app/src/test/{java,kotlin}/`: JUnit4/Truth + Robolectric;
+  `sstvaf/app/src/androidTest/`: connected-device tests.
+- `desktop/`: host C CLI/tests; `desktop/gui/`: Tauri Rust + React/Vite.
+- `.github/workflows/`: `native-tests.yml`, `android.yml`, `desktop-gui.yml`,
+  and bootstrap regression check `orb-setup.yml`.
+
+> **This repo is SSTVAF** — an SSTV app built from the FT8AF codebase. The
+> transformation is complete: the FT8 engine is gone, replaced by the
+> clean-room SSTV codec in `cpp/sstv_lib/` (RX/Gallery/TX/Waterfall/Log/
+> Settings tabs). The Android module lives under `sstvaf/` (renamed from
+> `ft8af/` in #17). The `com.k1af.ft8af` package namespace is kept deliberately
+> because JNI `FindClass` strings depend on it. The native library is
+> `libsstvaf.so` (`System.loadLibrary("sstvaf")`).
+> The instructions below (build, test, deploy, debug-log paths) apply as
+> written.
+
+> **Placeholders.** This file is written for any contributor's machine.
+> Substitute your own values wherever you see `<…>`. The recurring ones:
+> `<windows-checkout>` / `<mac-checkout>` — your local clone of this repo;
+> `<jdk17-home>` — the home directory of a JDK 17 install;
+> `<phone-serial>` — your phone's serial from `adb devices`;
+> `<android-sdk>` — your Android SDK root.
+> Machine-specific notes (your paths, device serials, rig quirks) belong in an
+> untracked `CLAUDE.local.md`, not here.
+
+## Development environments
+
+Outside Linux orbs, contributors work from two kinds of checkout; figure
+out which one you're on first (`uname` / the primary working directory) and
+follow the matching path throughout:
+
+- **Windows** (`<windows-checkout>`, possibly driven from WSL) — uses the
+  `cmd.exe /c "gradlew.bat …"` wrapper, which picks up the Android Studio JBR.
+- **macOS** (`<mac-checkout>`) — builds and runs unit tests natively
+  (`./gradlew …`, needs JDK 17).
+
+Either kind of machine can build, test, install, and drive a real device when
+an Android phone is attached over USB debugging (an emulator is often attached
+alongside it). The gradle invocation is the main difference (`gradlew.bat`
+wrapper vs. `./gradlew` with JDK 17); where a section below gives a command for
+one, the other's equivalent is called out inline.
+
+On some devices `screencap` can come back all-black during the splash
+animation or when a hardware overlay is active; wait for the app to settle and
+retry, and use the accessibility tree only as a fallback (`uiautomator dump`
+often can't reach idle because the UI animates continuously).
+
+## Workflow
+
+**Every work item requires a pull request — no direct commits to `dev` or
+`main`.** Even a one-line docs or config change goes through a feature branch and
+a PR.
+
+**All PRs target the `dev` branch.** After finishing the code for any work item,
+open a pull request against `dev` (do the work on a feature branch, then
+`gh pr create --base dev`). Don't merge straight to `main`.
+
+**Promotion path: feature → `dev` → `staging` → `main`** (details in
+`docs/release-pipeline.md`). Merging `dev → staging` cuts an `android-dev.<run#>`
+prerelease on the Play **internal** track; Claude picks the semver bump from the
+PRs, commits and diff size since the last `android-v*` tag and writes the Play
+release notes (`android.yml`, needs the `ANTHROPIC_API_KEY` secret — without it
+the run falls back to a patch bump and PR titles). Merging `staging → main`
+ships that same version + notes as `android-v<x.y.z>` on the **production**
+track. A promotion that touches nothing under `sstvaf/` builds but cuts no
+release. The source gates (`staging-gate.yml`, `main-gate.yml`) reject PRs into
+`staging`/`main` from anywhere else.
+
+**Use a git worktree for every separate line of work.** Don't switch branches in
+your primary checkout — branch-switching there collides with anything else in
+flight (a running build, an `adb install`, a different task). Instead spin up an
+isolated worktree per task:
+
+```
+git worktree add ../<checkout-dir-name>-<short-task-name> -b feat/<task>
+```
+
+Notes for a fresh worktree:
+
+- The `sstvaf/app/src/main/cpp/` native sources (`sstv_lib`, `sstvaf_glue`,
+  the FFT/resampler glue in `ft8af_glue`, `libusb`, `kissfft`) are
+  **tracked** in git, so a fresh worktree builds with no manual copying.
+- Build/install from inside the worktree's `sstvaf` dir: Windows uses the wrapper
+  (`cmd.exe /c "gradlew.bat installDebug"`); macOS uses `./gradlew` (see Build &
+  Deploy for the JDK 17 requirement). Both can install to an attached device.
+
+Remove the worktree when the branch is merged: `git worktree remove <path>`.
+
+When nothing else is in flight in your checkout, a feature branch in place is
+fine, but a worktree per task is still the recommended default.
+
+## Testing
+
+**Every new code path requires a new test.** Any branch, helper, or behavior
+you add or change must be covered by a unit test in the same PR — this is not
+optional, even for small UI helpers.
+
+Compose `@Composable` and `DrawScope` code can't be unit-tested directly, so
+extract the decision/geometry logic into a plain top-level `internal` function
+or class (e.g. `buildQsoLog`, `QsoPathProjection`) and test that. Keep the
+Composable a thin wrapper that just calls the extracted logic.
+
+Tests live in `sstvaf/app/src/test/` (Kotlin under `.../kotlin`, Java under
+`.../java`), use JUnit4 + Truth (`assertThat`), and add
+`@RunWith(RobolectricTestRunner::class)` when the code under test touches
+Android/Play-Services types (e.g. anything reaching `MaidenheadGrid`,
+`GeneralVariables`, `LatLng`). Pure math/logic needs no runner.
+
+Run from the `sstvaf` dir.
+
+**Windows:**
+
+```
+cmd.exe /c "gradlew.bat testDebugUnitTest"
+# or a single class:
+cmd.exe /c "gradlew.bat testDebugUnitTest --tests <fully.qualified.ClassName>"
+```
+
+**macOS** (needs JDK 17 — see Build & Deploy):
+
+```
+export JAVA_HOME=<jdk17-home>
+./gradlew testDebugUnitTest
+# or a single class:
+./gradlew testDebugUnitTest --tests <fully.qualified.ClassName>
+```
+
+### Native SSTV decoder tests (host, no device)
+
+The decoder (`sstvaf/app/src/main/cpp/sstv_lib/`) has its own C test suites
+in `sstvaf/app/src/main/cpp/sstvaf_glue/test_sstv_*.c`, built with a host
+clang by `run_sstv_host_tests.ps1` (Windows) / `run_sstv_host_tests.sh`
+(macOS/Linux, also what CI runs on every PR). **Any decoder change must keep
+every suite green, including `test_sstv_recordings`**, which runs real
+off-air recordings from `sstvaf_glue/fixtures/` (see its README for what
+each clip guards and where it came from) — synthetic round trips passed for
+months while real YouTube/ISS audio failed to decode, so the recordings are
+the gate. The same clips run on-device through the production listener in
+`SstvRealRecordingTest` (androidTest).
+
+When a real signal fails, do not guess: build the debugging CLI
+(`run_sstv_host_tests.ps1 -Tool` / `.sh --tool`), convert the audio to
+12 kHz mono (`ffmpeg -i in -ac 1 -ar 12000 -sample_fmt s16 out.wav`) and run
+`sstv_wav_decode out.wav --out img.ppm --trace track.csv`; it prints every
+state transition with timestamps and dumps the demodulated frequency track.
+Then add the clip as a fixture so the failure class stays covered.
+
+### UI / responsive-layout testing
+
+Unit tests don't catch layout that breaks by *shape*. Whenever you touch a
+screen's layout, add a tab, or change the app shell, run the full
+**tab × device × orientation** sweep in **`docs/ui-testing.md`**: for each device
+class (compact phone, the Redmi Redpad 2 tablet, a ≥600dp landscape phone, a
+resizable Chromebook/desktop window), in **both portrait and landscape**, open
+**every** tab (RX/Gallery/TX/Waterfall/Logbook/Settings) and confirm its primary
+control isn't pushed off-screen or hidden behind the TX strip. On the emulator,
+force each cell with `adb shell wm size 2400x1080` (landscape) / `wm size reset`
+rather than trusting portrait alone. The adaptive shell reflows navigation but
+not each screen's own content, and a control looks fine in portrait while sitting
+past the fold in landscape — that's how the TX pick-image button regressed on
+tablets (issue #20). Real hardware (a physical Redmi Redpad 2 on Android 16 at
+minimum) is still required before closing a responsive-layout issue.
+
+## Build & Deploy
+
+After making code changes, always build and install on the connected device
+when one is attached.
+
+**Windows:** A WSL shell typically has no Linux JDK, so `./gradlew` fails with
+`JAVA_HOME is not set`. Use the Windows wrapper instead — it picks up the Android
+Studio JBR automatically:
+
+```
+cd sstvaf && cmd.exe /c "gradlew.bat installDebug"
+```
+
+**macOS:** AGP 8.7.3 / Gradle 8.9 need **JDK 17**; if your system JDK is older,
+builds fail without pointing `JAVA_HOME` at a 17. A user-local install (e.g. a
+Temurin 17 archive unpacked under your home directory — no sudo needed, unlike
+the Homebrew cask) works fine; wherever it lives is your `<jdk17-home>`. The
+`installDebug` task installs to *every* attached device (including the
+emulator); to target only the phone, build the APK and push it with an explicit
+serial:
+
+```
+cd sstvaf && JAVA_HOME=<jdk17-home> ./gradlew assembleDebug
+adb -s <phone-serial> install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+To drive the UI: `adb -s <phone-serial> exec-out screencap -p > shot.png` and
+tap with `adb -s <phone-serial> shell input tap <x> <y>` (coordinates in the
+device's real pixel space — check it with `adb -s <phone-serial> shell wm size`).
+
+When an emulator is attached alongside the phone, Gradle's install step prints
+`TimeoutException`/`Unknown API Level` warnings for the emulator and still
+installs on the phone; `Installed on 1 device.` means the phone got the APK, so
+ignore the emulator noise.
+
+When multiple devices are attached, target the phone explicitly with `-s` and
+its serial (from `adb devices`). If `adb` isn't on your PATH, it lives at
+`<android-sdk>/platform-tools/adb` (on Windows
+`<android-sdk>\platform-tools\adb.exe`; Homebrew installs on macOS put it at
+`/opt/homebrew/bin/adb`).
+
+### Hamlib (bundled CAT engine)
+
+The native build links a per-ABI static `libhamlib.a` (Hamlib 4.7.2, pinned in
+`sstvaf/app/src/main/cpp/hamlib/HAMLIB_PIN.txt`) into `libsstvaf.so`; it backs
+the "(Hamlib)" rig entries via `HamlibRig`. The archives under
+`cpp/hamlib/prebuilt/<abi>/` are **not tracked** (large, rebuildable). On
+Linux/macOS/CI, CMake runs `hamlib/build_android.sh` automatically the first
+time each ABI is built. On Windows the autotools build cannot run against the
+Windows NDK, so build the four archives once under WSL with a Linux NDK:
+
+```
+ANDROID_NDK_HOME=<linux-ndk> bash sstvaf/app/src/main/cpp/hamlib/build_android.sh
+```
+
+or copy `prebuilt/` from another checkout that already has them (a fresh
+worktree needs this before `installDebug` will configure). This is the same
+mechanism as FT8AF; the radio layer (`rigs/`, `connector/`, `serialport/`,
+`bluetooth/`, `icom/`, `flex/`, `x6100/`, `wave/`) is kept in sync with
+FT8AF's `dev` branch, which is the reference for all radio code.
+
+## Debug logs
+
+The app writes a structured event log to
+`/sdcard/Android/data/radio.ks3ckc.sstvaf/files/debug.log` via `fileLog()` in
+`ComposeMainActivity.kt` — CAT serial sends/recvs, USB attach events,
+autoConnect attempts, band/frequency changes, etc. This is usually the most
+useful source. Pull it with:
+
+```
+adb -s <phone-serial> pull /sdcard/Android/data/radio.ks3ckc.sstvaf/files/debug.log /tmp/
+```
+
+Testers can also send it from inside the app: Settings → About → Share logs
+opens the share sheet with `debug.log` attached.
+
+For an "I could hear SSTV but nothing decoded" report, read the `SSTV RX:`
+lines between the operator's own decodes. The RX engine logs every verdict of
+the header hunt, not just locks: `header: 1900 Hz leader heard … but no VIS
+start bit followed` (collapsed to one line per 10 s), `header rejected —
+<reason> (vis=N, offset ±N Hz)`, `unsupported mode — clean VIS code N heard`
+(the other station is sending a mode the app has no decoder for; the RX
+screen shows "Unsupported mode (VIS N)"), and the lock lines carry the
+measured tuning offset. An `input level — peak/rms … over 30 s` line is
+written for every 30 s of audio the decoder was fed; `silent (all zero)`
+there means the capture is delivering nothing, not that the signal is weak.
+No `SSTV RX:` lines at all while audio was audible means no leader ever
+reached the detector — look at the input level and the audio path
+(`MicRecorder:` lines say whether it is the phone mic, USB, or network).
+
+For runtime detail not in `debug.log` (audio recording loop, system USB events,
+crashes), use `adb logcat`. Useful tags: `NativeSstvCodec`, `MicRecorder`,
+`UsbAudioDevice`, `CableConnector`, `CableSerialPort`, `UsbHostManager`,
+`UsbAlsaManager`, `ComposeMainActivity`. (The Kotlin SSTV pipeline —
+`SstvSignalListener`, `SstvTransmitter` — logs through `fileLog()` into
+`debug.log` rather than logcat.) The app's `applicationId` is `radio.ks3ckc.sstvaf` (the same
+for every contributor — it's set in `sstvaf/app/build.gradle`) — pid-filter with
+`adb -s <phone-serial> logcat --pid=$(adb -s <phone-serial> shell pidof radio.ks3ckc.sstvaf)`
+when you only want app-internal lines.
+
+## TX audio pipeline
+
+How a transmit call becomes RF. The waveform is generated in full by the
+native codec — `NativeSstvCodec`/`SstvTransmitter` encode the whole SSTV
+transmission (calibration header + VIS + scan lines) as one buffer, and
+everything downstream just has to *not break it*. Two hard-won FT8AF-era
+lessons apply verbatim to SSTV; re-introducing either makes TX silently
+broken — the rig keys, audio is audible, ALC looks right, and nobody
+decodes the image.
+
+**1. Never clip the leading audio.** The sync information a receiver needs
+lives at the *start* of the buffer — for SSTV that's the 300 ms leader /
+1200 Hz break / VIS code; for FT8 it was the leading Costas array. The
+historical bug (FT8AF PR #93): a late-start compensation computed as
+`time_into_cycle_ms % cycle` instead of `max(0, time_into_cycle_ms - slack)`
+chopped a few hundred ms off the start of every on-time transmission —
+audible audio, zero decodes. SSTV has no 15 s cycle, so no start-skipping
+logic should exist at all; if playback ever needs to drop samples, drop
+them from the tail, never the head. Tell from log: reported play length
+shorter than the generated sample count.
+
+**2. `libusb_set_iso_packet_lengths` must use the audio rate, not
+`wMaxPacketSize`.** A USB Audio Class device plays back exactly the bytes
+per frame the host hands it. For USB FS, that's
+`(sampleRate * channels * bytesPerSample) / 1000` — e.g. 192 bytes/frame
+at 48 kHz stereo 16-bit. The endpoint's `wMaxPacketSize` (~200 for
+C-Media CM108-style chips) is the device's *max*, not the data rate.
+Sending that much per frame makes the device clock samples ~4 % faster
+than negotiated, shifting every tone up by the same ratio — for SSTV
+that skews the pixel-value frequency mapping and slants/garbles the
+image at the far end. Tell from log: `UsbAudioNative.nativeWrite`
+returns measurably faster than the audio duration. Fixed in FT8AF PR #94
+in `cpp/usb_audio_capture.cpp` (still the live code path). The
+Android-standard `AudioTrack` path is unaffected because the kernel UAC
+driver does this math automatically; the bug only bites the direct-libusb
+path used for car-dash kernels and similar.

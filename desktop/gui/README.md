@@ -82,7 +82,7 @@ no POSIX-only functions, so MSVC's `cl.exe` compiles it as-is. (The FT8AF-era
 
 ```
 cd desktop/gui
-npm install
+npm ci
 npm run tauri dev      # starts Vite + builds the Rust app + opens the window
 ```
 
@@ -95,7 +95,7 @@ npm run build                     # frontend only -> desktop/gui/dist
 npm run tauri build -- --no-bundle # compile check, what CI runs on PRs
 
 cd src-tauri
-cargo test                        # codec wrappers, mode table, round trip
+cargo test --locked -j 2          # codec wrappers, mode table, round trip
 cargo build --release
 ```
 
@@ -113,7 +113,7 @@ cargo build --release
   `done_needs_audio_past_the_final_line`.
 - **Never clip the leading audio on TX.** The 300 ms leader / 1200 Hz break /
   VIS code at the head of the buffer is what the receiving station syncs on. If
-  playback ever has to drop samples, drop them from the tail. See CLAUDE.md,
+  playback ever has to drop samples, drop them from the tail. See AGENTS.md,
   "TX audio pipeline", for the FT8AF-era bug this rule comes from.
 - `wefax.c` sits in `sstv_lib` but is a separate codec with its own API and no
   cross-references from the SSTV sources; `build.rs` omits it until the GUI

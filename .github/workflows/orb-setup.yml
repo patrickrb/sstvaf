@@ -1,0 +1,73 @@
+name: Orb readiness
+
+on:
+  pull_request:
+    branches: [dev, staging, main]
+    paths:
+      - '.agents/**'
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - 'README.md'
+      - 'docs/development.md'
+      - 'rust-toolchain.toml'
+      - 'sstvaf/gradlew'
+      - 'sstvaf/**/*.gradle'
+      - 'sstvaf/gradle/wrapper/**'
+      - 'desktop/run_cli_host_tests.sh'
+      - 'desktop/gui/package*.json'
+      - 'desktop/gui/src-tauri/Cargo.*'
+      - '.github/workflows/orb-setup.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bootstrap an empty SDK, then repeat (idempotence)
+        env:
+          ANDROID_HOME: ${{ runner.temp }}/sstvaf-android-sdk
+        run: |
+          test -x .agents/setup
+          test -x sstvaf/gradlew
+          bash -n .agents/setup
+          time ./.agents/setup
+          time ./.agents/setup
+          shellcheck .agents/setup
+          test "$(grep -c '^# SSTVAF orb toolchain$' "$HOME/.bash_profile")" = 1
+      - name: Check persisted toolchain from a clean login shell
+        run: |
+          env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin /bin/bash -lc '
+            set -euo pipefail
+            test "$JAVA_HOME" = /usr/lib/jvm/java-17-openjdk-amd64
+            test "$ANDROID_HOME" = "${{ runner.temp }}/sstvaf-android-sdk"
+            test "$ANDROID_SDK_ROOT" = "$ANDROID_HOME"
+            java -version
+            command -v sdkmanager adb clang cargo
+            test -f "$ANDROID_HOME/ndk/27.0.12077973/source.properties"
+            test -x "$ANDROID_HOME/cmake/3.22.1/bin/cmake"
+            bash sstvaf/app/src/main/cpp/sstvaf_glue/run_sstv_host_tests.sh
+            bash desktop/run_cli_host_tests.sh
+            sstvaf/gradlew -p sstvaf --no-daemon --max-workers=2 testDebugUnitTest assembleDebug
+          '
+      - name: Desktop frontend and Rust tests
+        run: |
+          bash -lc '
+            set -euo pipefail
+            npm --prefix desktop/gui test
+            npm --prefix desktop/gui run build
+            cargo test --locked -j 2 --manifest-path desktop/gui/src-tauri/Cargo.toml
+          '
+      - name: Upload JVM test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: orb-readiness-test-reports
+          path: |
+            sstvaf/app/build/reports/tests/
+            sstvaf/app/build/test-results/
+          if-no-files-found: ignore

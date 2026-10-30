@@ -16,4 +16,9 @@ CLAUDE.local.md
 # class files, jars and gradle caches before it was removed) had nothing
 # covering it. Trailing slashes keep build.gradle / build.gradle.kts tracked.
 .gradle/
+.kotlin/
 build/
+
+# Amp portal metadata and review artifacts are local to an orb.
+.amp/portals/
+.amp/in/
