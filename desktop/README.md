@@ -1,7 +1,7 @@
 # SSTVAF Desktop CLI (32-bit Windows build)
 
 A small, dependency-free command-line front end over the same clean-room SSTV
-codec that powers the SSTVAF Android app (`ft8af/app/src/main/cpp/sstv_lib`).
+codec that powers the SSTVAF Android app (`sstvaf/app/src/main/cpp/sstv_lib`).
 It exists so the codec can be used on a plain desktop PC — including **32-bit
 Windows** systems, cross-compiled from Linux and shipped as an **MSI** — with no
 Android device involved.
@@ -76,6 +76,10 @@ git mv desktop/ci/windows-msi.yml .github/workflows/
 ```
 
 ## Run the tests
+
+From the repository root; Amp orbs can install prerequisites with
+`./.agents/setup`. See [the development guide](../docs/development.md).
+The native CI job runs this suite on every PR.
 
 ```bash
 desktop/run_cli_host_tests.sh          # uses clang by default

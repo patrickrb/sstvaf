@@ -14,7 +14,7 @@ set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(cd "$here/.." && pwd)"
-cpp="$repo/ft8af/app/src/main/cpp"
+cpp="$repo/sstvaf/app/src/main/cpp"
 lib="$cpp/sstv_lib"
 glue="$cpp/sstvaf_glue"
 CC="${CC:-clang}"

@@ -1,5 +1,7 @@
 # Rust
 /src-tauri/target/
+# Tauri emits a schema for the current host; keep tracked schemas unchanged.
+/src-tauri/gen/schemas/*-schema.json
 
 # Node / frontend
 /node_modules/
