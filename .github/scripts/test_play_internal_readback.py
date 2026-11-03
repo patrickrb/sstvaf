@@ -69,7 +69,7 @@ class ReadbackTest(unittest.TestCase):
     def test_rejects_unspecified_status_and_http_failure(self):
         item = release(1283)
         item["releaseLifecycleState"] = "RELEASE_LIFECYCLE_STATE_UNSPECIFIED"
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(readback.ValidationFailure, "unrecognized"):
             readback.verify_internal(Session({"releases": [item]}), 1283, "draft")
         with self.assertRaises(PermissionError):
             readback.verify_internal(Session(error=PermissionError("denied")), 1283, "draft")
@@ -93,8 +93,11 @@ class ReadbackTest(unittest.TestCase):
                     self.assertEqual(report["observed"]["versionCode"], 1283)
                     self.assertEqual(report["observed"]["releaseLifecycleState"],
                                      "RELEASE_LIFECYCLE_STATE_DRAFT")
+                    self.assertEqual(report["stage"], "verified")
                 else:
                     self.assertNotIn("observed", report)
+                    self.assertIn("RELEASE_LIFECYCLE_STATE_PUBLISHED", report["validationError"])
+                    self.assertEqual(report["stage"], "request/validation")
 
     def test_cli_writes_failure_report_without_secret_exception_text(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -108,6 +111,8 @@ class ReadbackTest(unittest.TestCase):
             self.assertEqual(report["packageName"], "radio.ks3ckc.sstvaf")
             self.assertEqual(report["testerDeviceAvailability"], "not verified")
             self.assertNotIn("secret-not-json", path.read_text())
+            self.assertNotIn("validationError", report)
+            self.assertEqual(report["stage"], "credentials")
 
 
 if __name__ == "__main__":

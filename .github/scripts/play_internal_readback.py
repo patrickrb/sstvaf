@@ -21,6 +21,10 @@ STATES = {
 }
 
 
+class ValidationFailure(ValueError):
+    """Controlled non-secret diagnostics safe to include in the evidence report."""
+
+
 def verify_internal(session, version_code, expected_status):
     """Return sanitized evidence; fail closed if version/status/track differ."""
     response = session.get(URL, timeout=30)
@@ -30,17 +34,20 @@ def verify_internal(session, version_code, expected_status):
     matches = []
     for release in releases:
         if release["track"] != "internal":
-            raise ValueError("Response contains a non-internal track")
+            raise ValidationFailure("Response contains a non-internal track")
         codes = [artifact["versionCode"] for artifact in release.get("activeArtifacts", [])]
         if any(type(code) is not int or code <= 0 for code in codes):
-            raise ValueError("Response contains an invalid version code")
+            raise ValidationFailure("Response contains an invalid version code")
         if version_code in codes:
             matches.append(release)
     if len(matches) != 1:
-        raise ValueError("Expected version must occur in exactly one internal release")
+        raise ValidationFailure("Expected version must occur in exactly one internal release")
     release = matches[0]
     if release["releaseLifecycleState"] != STATES[expected_status]:
-        raise ValueError("Observed release lifecycle does not match expected status")
+        lifecycle = release["releaseLifecycleState"]
+        if lifecycle not in STATES.values():
+            lifecycle = "unrecognized"
+        raise ValidationFailure(f"Observed lifecycle {lifecycle} does not match expected status")
     return {
         "versionCode": version_code,
         "releaseName": release.get("releaseName", ""),
@@ -63,6 +70,7 @@ def main(argv=None):
         "expectedVersionCode": args.version_code,
         "expectedStatus": STATES[args.expected_status],
         "verified": False,
+        "stage": "credentials",
         "testerDeviceAvailability": "not verified",
         "note": "Published can include partial or halted releases; draft is not tester rollout.",
     }
@@ -77,12 +85,16 @@ def main(argv=None):
             json.loads(os.environ["PLAY_SERVICE_ACCOUNT_JSON"]),
             scopes=["https://www.googleapis.com/auth/androidpublisher"],
         )
+        report["stage"] = "request/validation"
         with AuthorizedSession(credentials) as session:
             report["observed"] = verify_internal(session, args.version_code, args.expected_status)
         report["verified"] = True
+        report["stage"] = "verified"
     except Exception as error:
         # Never serialize credentials, tokens, HTTP bodies or arbitrary exception text.
         report["errorType"] = type(error).__name__
+        if isinstance(error, ValidationFailure):
+            report["validationError"] = str(error)
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, indent=2) + "\n")
     print(f"SSTVAF internal read-back verified={report['verified']}; device availability not verified")
