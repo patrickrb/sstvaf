@@ -4,6 +4,8 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.k1af.ft8af.connector.BaseRigConnector;
 
+import radio.core.cat.CatLiveness;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

@@ -13,6 +13,7 @@ on:
       - 'sstvaf/gradlew'
       - 'sstvaf/**/*.gradle'
       - 'sstvaf/gradle/wrapper/**'
+      - 'ham-radio-core/**'
       - 'desktop/run_cli_host_tests.sh'
       - 'desktop/gui/package*.json'
       - 'desktop/gui/src-tauri/Cargo.*'
@@ -52,7 +53,8 @@ jobs:
             test -x "$ANDROID_HOME/cmake/3.22.1/bin/cmake"
             bash sstvaf/app/src/main/cpp/sstvaf_glue/run_sstv_host_tests.sh
             bash desktop/run_cli_host_tests.sh
-            sstvaf/gradlew -p sstvaf --no-daemon --max-workers=2 testDebugUnitTest assembleDebug
+            sstvaf/gradlew -p sstvaf --no-daemon --max-workers=1 -Dorg.gradle.jvmargs=-Xmx1536m -Pkotlin.compiler.execution.strategy=in-process :ham-radio-core:test testDebugUnitTest
+            sstvaf/gradlew -p sstvaf --no-daemon --max-workers=1 -Dorg.gradle.jvmargs=-Xmx1536m -Pkotlin.compiler.execution.strategy=in-process assembleDebug
           '
       - name: Desktop frontend and Rust tests
         run: |
@@ -70,4 +72,6 @@ jobs:
           path: |
             sstvaf/app/build/reports/tests/
             sstvaf/app/build/test-results/
+            ham-radio-core/build/reports/tests/
+            ham-radio-core/build/test-results/
           if-no-files-found: ignore
