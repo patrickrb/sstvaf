@@ -976,6 +976,30 @@ jobs:
         run: |
           echo "::warning::Play publish (track=${{ steps.tag.outputs.play_track }}) failed for ${{ steps.tag.outputs.release_tag }} (non-blocking). The signed AAB built and the GitHub Release was created; only the Play upload did not complete. Check the 'Publish AAB to Play' step log — common causes are an upgrade-path rejection or an expired Play edit."
 
+      # Read committed state independently of upload logs, for INTERNAL only.
+      # A GET-only read cannot upload, promote or commit a Play edit.
+      - name: Install internal read-back dependencies
+        if: github.event_name == 'push' && github.ref == 'refs/heads/staging' && steps.tag.outputs.play_track == 'internal' && steps.play_publish.outcome == 'success'
+        run: python3 -m pip install --quiet google-auth requests
+
+      - name: Verify committed Play internal draft
+        id: internal_readback
+        if: github.event_name == 'push' && github.ref == 'refs/heads/staging' && steps.tag.outputs.play_track == 'internal' && steps.play_publish.outcome == 'success'
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          python3 .github/scripts/play_internal_readback.py \
+            --version-code "$((GITHUB_RUN_NUMBER + 1000))" \
+            --expected-status draft --report "$RUNNER_TEMP/play-internal-readback.json"
+
+      - name: Upload internal read-back evidence
+        if: always() && steps.internal_readback.outcome != 'skipped' && steps.internal_readback.outcome != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: play-internal-readback
+          path: ${{ runner.temp }}/play-internal-readback.json
+          if-no-files-found: error
+
       - name: Release summary
         if: steps.tag.outputs.should_release == 'true'
         env:

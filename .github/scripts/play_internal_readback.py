@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+"""Read committed SSTVAF internal releases without creating or committing edits."""
+import argparse
+from datetime import datetime, timezone
+import json
+import os
+from pathlib import Path
+
+PACKAGE = "radio.ks3ckc.sstvaf"
+URL = (
+    "https://androidpublisher.googleapis.com/androidpublisher/v3/"
+    f"applications/{PACKAGE}/tracks/internal/releases"
+)
+STATES = {
+    "draft": "RELEASE_LIFECYCLE_STATE_DRAFT",
+    "notSentForReview": "RELEASE_LIFECYCLE_STATE_NOT_SENT_FOR_REVIEW",
+    "inReview": "RELEASE_LIFECYCLE_STATE_IN_REVIEW",
+    "approvedNotPublished": "RELEASE_LIFECYCLE_STATE_APPROVED_NOT_PUBLISHED",
+    "notApproved": "RELEASE_LIFECYCLE_STATE_NOT_APPROVED",
+    "published": "RELEASE_LIFECYCLE_STATE_PUBLISHED",
+}
+
+
+def verify_internal(session, version_code, expected_status):
+    """Return sanitized evidence; fail closed if version/status/track differ."""
+    response = session.get(URL, timeout=30)
+    response.raise_for_status()
+    payload = response.json()
+    releases = payload.get("releases", [])
+    matches = []
+    for release in releases:
+        if release["track"] != "internal":
+            raise ValueError("Response contains a non-internal track")
+        codes = [artifact["versionCode"] for artifact in release.get("activeArtifacts", [])]
+        if any(type(code) is not int or code <= 0 for code in codes):
+            raise ValueError("Response contains an invalid version code")
+        if version_code in codes:
+            matches.append(release)
+    if len(matches) != 1:
+        raise ValueError("Expected version must occur in exactly one internal release")
+    release = matches[0]
+    if release["releaseLifecycleState"] != STATES[expected_status]:
+        raise ValueError("Observed release lifecycle does not match expected status")
+    return {
+        "versionCode": version_code,
+        "releaseName": release.get("releaseName", ""),
+        "releaseLifecycleState": release["releaseLifecycleState"],
+    }
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version-code", type=int, required=True)
+    parser.add_argument("--expected-status", choices=STATES, required=True)
+    parser.add_argument("--report", type=Path, required=True)
+    args = parser.parse_args(argv)
+    report = {
+        "packageName": PACKAGE,
+        "track": "internal",
+        "requestUrl": URL,
+        "checkedAt": datetime.now(timezone.utc).isoformat(),
+        "workflowSourceCommit": os.environ.get("GITHUB_SHA", ""),
+        "expectedVersionCode": args.version_code,
+        "expectedStatus": STATES[args.expected_status],
+        "verified": False,
+        "testerDeviceAvailability": "not verified",
+        "note": "Published can include partial or halted releases; draft is not tester rollout.",
+    }
+    try:
+        if args.version_code <= 0:
+            raise ValueError("Expected version code must be positive")
+        # Same existing hosted service account/dependencies as play_track_watch.py.
+        from google.auth.transport.requests import AuthorizedSession
+        from google.oauth2 import service_account
+
+        credentials = service_account.Credentials.from_service_account_info(
+            json.loads(os.environ["PLAY_SERVICE_ACCOUNT_JSON"]),
+            scopes=["https://www.googleapis.com/auth/androidpublisher"],
+        )
+        with AuthorizedSession(credentials) as session:
+            report["observed"] = verify_internal(session, args.version_code, args.expected_status)
+        report["verified"] = True
+    except Exception as error:
+        # Never serialize credentials, tokens, HTTP bodies or arbitrary exception text.
+        report["errorType"] = type(error).__name__
+    args.report.parent.mkdir(parents=True, exist_ok=True)
+    args.report.write_text(json.dumps(report, indent=2) + "\n")
+    print(f"SSTVAF internal read-back verified={report['verified']}; device availability not verified")
+    return 0 if report["verified"] else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
