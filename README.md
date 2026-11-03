@@ -47,8 +47,7 @@ PD 50 / 90 / 120 / 160 / 180 / 240 / 290
 ## Install
 
 Grab the latest APK from the Releases page, or build it yourself (the Android
-module still lives in the `sstvaf/` directory — the heritage name is kept so
-history and tooling stay intact):
+Gradle project lives in the `sstvaf/` directory):
 
 ```bash
 cd sstvaf
@@ -57,6 +56,24 @@ cd sstvaf
 
 Windows: `cd sstvaf && gradlew.bat installDebug`. Builds need JDK 17
 (AGP 8.7.3 / Gradle 8.9).
+
+## Development and automated tests
+
+For a fresh Amp orb (Linux x86_64), run `./.agents/setup` from the repository
+root. It installs the JDK, Android SDK/NDK/CMake, desktop prerequisites, and
+host-test tools without requiring a phone or credentials. Then use a new
+Bash login shell:
+
+```bash
+bash -lc 'bash sstvaf/app/src/main/cpp/sstvaf_glue/run_sstv_host_tests.sh'
+bash -lc 'sstvaf/gradlew -p sstvaf --no-daemon --max-workers=2 testDebugUnitTest'
+bash -lc 'sstvaf/gradlew -p sstvaf --no-daemon --max-workers=2 assembleDebug'
+```
+
+See [the development guide](docs/development.md) for prerequisites on other
+hosts, targeted tests, reports, and troubleshooting. [AGENTS.md](AGENTS.md)
+is the canonical coding-agent guidance. Android device/UI and radio testing
+require a connected device or an emulator-capable host, not an Amp orb.
 
 ---
 

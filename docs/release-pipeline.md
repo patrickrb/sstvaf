@@ -106,3 +106,52 @@ These cannot be done from a workflow file — do them in the repo settings:
 4. **Play Console** → confirm the `PLAY_SERVICE_ACCOUNT_JSON` service account has
    release permission on the **production** track (it previously only needed
    internal). `main` merges now publish there.
+
+## Internal-only committed-state read-back
+
+After a successful staging internal upload, Android CI independently reads the
+committed SSTVAF internal releases using the existing hosted
+`PLAY_SERVICE_ACCOUNT_JSON`. It verifies the exact built version code
+(`GITHUB_RUN_NUMBER + 1000`) has lifecycle `DRAFT` and uploads the sanitized
+`play-internal-readback` JSON artifact, even if response validation fails.
+Failure makes the staging job fail; it does not retry an upload or roll anything
+out. Production and desktop lanes are unchanged.
+
+The **Play internal read-back** workflow also offers manual inspection of an
+existing internal version code and expected lifecycle, with no build/upload.
+Its PR test job uses fixtures only and has no credentials. GitHub may require
+the workflow to be present on the default branch before manual dispatch is
+available; do not promote to production just to register it. The automatic
+staging read-back does not depend on manual workflow registration.
+
+The script is pinned to `radio.ks3ckc.sstvaf` and track `internal`, using only
+the authenticated GET endpoint
+`applications/radio.ks3ckc.sstvaf/tracks/internal/releases`. It never creates
+edits, commits edits, uploads, promotes, or queries production. The API does not
+echo a package field: correct-package evidence is the fixed authenticated
+request URL in the report, not a fabricated response field. The report records
+the expected/observed version code and lifecycle, release name, read timestamp,
+and workflow source commit (not independent proof of the app binary's source).
+Release name is not Android `versionName`, which this endpoint does not return.
+
+API reference:
+https://developers.google.com/android-publisher/api-ref/rest/v3/applications.tracks.releases/list
+
+A draft is **not** tester rollout. `PUBLISHED` includes partial or halted
+releases and does not prove a specific tester/device can install. Reports
+therefore always mark tester/device availability unverified. The endpoint
+returns at most 20 non-obsolete releases; an absent version fails verification,
+not proof that the version never existed. Authentication/API/response failures
+produce a failed report without tokens, credentials or raw error bodies.
+
+Run the fixture tests with the same `google-auth requests` dependencies used by
+the existing watcher:
+
+```sh
+python -m unittest discover -s .github/scripts -p 'test_play_internal_readback.py' -v
+```
+
+All five radio apps remain INTERNAL TESTING ONLY until Patrick tests all five
+and subsequently explicitly approves production. Required independent reviews
+and branch protections still apply; a read-back artifact is not approval or
+physical-device/USB/CAT/PTT/RF validation.

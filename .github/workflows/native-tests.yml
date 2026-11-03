@@ -39,3 +39,6 @@ jobs:
 
       - name: Build & run SSTV host test suites
         run: bash sstvaf/app/src/main/cpp/sstvaf_glue/run_sstv_host_tests.sh
+
+      - name: Build & run desktop CLI host tests
+        run: bash desktop/run_cli_host_tests.sh

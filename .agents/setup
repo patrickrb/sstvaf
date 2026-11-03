@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# Non-interactive bootstrap for Debian/Ubuntu x86_64 Amp orbs.
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [[ "$(uname -s)" != Linux || "$(uname -m)" != x86_64 ]]; then
+    echo 'This bootstrap requires Linux x86_64; see docs/development.md for other hosts.' >&2
+    exit 1
+fi
+
+echo '==> Checking host packages (Android, native tests, and Tauri desktop)'
+packages=(
+    openjdk-17-jdk-headless clang curl ca-certificates unzip shellcheck
+    build-essential pkg-config libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev
+    libayatana-appindicator3-dev libudev-dev libasound2-dev libssl-dev patchelf
+)
+if ! command -v npm >/dev/null || ! command -v node >/dev/null; then
+    packages+=(nodejs npm)
+fi
+missing=()
+for package in "${packages[@]}"; do
+    if ! dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -qx 'install ok installed'; then
+        missing+=("$package")
+    fi
+done
+if ((${#missing[@]})); then
+    sudo_cmd=()
+    if ((EUID != 0)); then sudo_cmd=(sudo -n); fi
+    "${sudo_cmd[@]}" apt-get update -qq
+    "${sudo_cmd[@]}" env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${missing[@]}"
+fi
+
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+export PATH="$HOME/.cargo/bin:$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/12.0/bin:$ANDROID_HOME/platform-tools:$PATH"
+
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+echo '==> Installing pinned Android command-line tools (12.0)'
+if [[ ! -x "$ANDROID_HOME/cmdline-tools/12.0/bin/sdkmanager" ]]; then
+    curl --fail --location --retry 3 --connect-timeout 20 \
+        https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip \
+        -o "$tmp/tools.zip"
+    # Google's repository2-1.xml checksum for this exact archive.
+    echo "d313adb7aedccf6cf0cfca51ec180f0059f5f8f8  $tmp/tools.zip" | sha1sum --check --status
+    unzip -q "$tmp/tools.zip" -d "$tmp"
+    mkdir -p "$ANDROID_HOME/cmdline-tools"
+    mv "$tmp/cmdline-tools" "$ANDROID_HOME/cmdline-tools/12.0"
+fi
+
+sdkmanager="$ANDROID_HOME/cmdline-tools/12.0/bin/sdkmanager"
+echo '==> Accepting Android SDK licenses and checking build packages'
+# yes exits with SIGPIPE when sdkmanager finishes; still propagate sdkmanager's status.
+set +o pipefail
+yes | "$sdkmanager" --sdk_root="$ANDROID_HOME" --licenses > /dev/null
+set -o pipefail
+# Match compileSdk / AGP 8.7.3 defaults / CMake in sstvaf/app/build.gradle.
+"$sdkmanager" --sdk_root="$ANDROID_HOME" --install \
+    'platform-tools' 'platforms;android-36' 'build-tools;34.0.0' \
+    'ndk;27.0.12077973' 'cmake;3.22.1'
+
+echo '==> Installing the desktop Rust toolchain (1.90.0, minimal profile)'
+if ! command -v rustup >/dev/null; then
+    curl --fail --location --retry 3 --connect-timeout 20 \
+        https://sh.rustup.rs -o "$tmp/rustup-init.sh"
+    bash "$tmp/rustup-init.sh" -y --profile minimal --default-toolchain 1.90.0 --no-modify-path
+else
+    rustup toolchain install 1.90.0 --profile minimal
+fi
+
+echo '==> Installing locked desktop frontend dependencies'
+npm --prefix "$repo_root/desktop/gui" ci --no-audit --no-fund
+
+echo '==> Persisting the toolchain for new non-interactive login shells'
+mkdir -p "$HOME/.config/sstvaf"
+{
+    printf 'export JAVA_HOME=%q\n' "$JAVA_HOME"
+    printf 'export ANDROID_HOME=%q\n' "$ANDROID_HOME"
+    printf 'export ANDROID_SDK_ROOT=%q\n' "$ANDROID_HOME"
+    # Expand these variables in the future login shell, not during setup.
+    # shellcheck disable=SC2016
+    printf 'export PATH="$HOME/.cargo/bin:$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/12.0/bin:$ANDROID_HOME/platform-tools:$PATH"\n'
+} > "$HOME/.config/sstvaf/env.sh"
+# shellcheck disable=SC2016
+profile_line='[ ! -f "$HOME/.config/sstvaf/env.sh" ] || . "$HOME/.config/sstvaf/env.sh"'
+if ! grep -Fqx "$profile_line" "$HOME/.bash_profile" 2>/dev/null; then
+    printf '\n# SSTVAF orb toolchain\n%s\n' "$profile_line" >> "$HOME/.bash_profile"
+fi
+
+echo '==> Warming the pinned Gradle wrapper (no build, device, or secrets required)'
+"$repo_root/sstvaf/gradlew" --version
+echo '==> Ready; see AGENTS.md and docs/development.md for checks'

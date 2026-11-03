@@ -1,0 +1,69 @@
+name: Play internal read-back
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - '.github/scripts/play_internal_readback.py'
+      - '.github/scripts/test_play_internal_readback.py'
+      - '.github/workflows/play-internal-readback.yml'
+      - '.github/workflows/android.yml'
+  push:
+    branches: [dev]
+    paths:
+      - '.github/scripts/play_internal_readback.py'
+      - '.github/scripts/test_play_internal_readback.py'
+      - '.github/workflows/play-internal-readback.yml'
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: Existing SSTVAF internal version code to verify (no upload)
+        required: true
+        type: string
+      expected_status:
+        description: Expected committed release lifecycle (not device availability)
+        required: true
+        type: choice
+        options: [draft, notSentForReview, inReview, approvedNotPublished, notApproved, published]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --quiet google-auth requests
+      - run: python -m unittest discover -s .github/scripts -p 'test_play_internal_readback.py' -v
+
+  inspect:
+    if: github.event_name == 'workflow_dispatch'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --quiet google-auth requests
+      - name: Read existing committed internal release (GET only)
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          VERSION_CODE: ${{ inputs.version_code }}
+          EXPECTED_STATUS: ${{ inputs.expected_status }}
+        run: |
+          python .github/scripts/play_internal_readback.py \
+            --version-code "$VERSION_CODE" --expected-status "$EXPECTED_STATUS" \
+            --report "$RUNNER_TEMP/play-internal-readback.json"
+      - name: Upload read-back evidence even on validation failure
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: play-internal-readback
+          path: ${{ runner.temp }}/play-internal-readback.json
+          if-no-files-found: error
