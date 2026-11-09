@@ -45,6 +45,20 @@ class FavoriteFrequenciesTest {
     }
 
     @Test
+    fun input_decimalSeparatorAlwaysMeansMhz() {
+        // "1296.5" is 23cm, not 1.2965 MHz: the magnitude rule only applies to
+        // bare integers, where kHz is the far more common thing to type.
+        assertThat(parseFrequencyInputHz("1296.5")).isEqualTo(1_296_500_000L)
+        assertThat(parseFrequencyInputHz("1296.0")).isEqualTo(1_296_000_000L)
+        assertThat(parseFrequencyInputHz("1296,0")).isEqualTo(1_296_000_000L)
+        assertThat(parseFrequencyInputHz("2400.100")).isEqualTo(2_400_100_000L)
+        // and a bare "1296" is still read as kHz, with the dialog's band echo
+        // showing the operator what that resolves to.
+        assertThat(parseFrequencyInputHz("1296")).isEqualTo(1_296_000L)
+        assertThat(parseFrequencyInputHz("1296 MHz")).isEqualTo(1_296_000_000L)
+    }
+
+    @Test
     fun input_explicitUnitWins() {
         assertThat(parseFrequencyInputHz("27700 kHz")).isEqualTo(27_700_000L)
         assertThat(parseFrequencyInputHz("27.7MHz")).isEqualTo(27_700_000L)
@@ -91,6 +105,75 @@ class FavoriteFrequenciesTest {
     fun inputText_prefillsTheCurrentDialInMhz() {
         assertThat(favoriteInputText(27_700_000L)).isEqualTo("27.700")
         assertThat(parseFrequencyInputHz(favoriteInputText(14_233_000L))).isEqualTo(14_233_000L)
+    }
+
+    @Test
+    fun inputText_keepsSubKilohertzPrecision() {
+        // A VFO-tuned rig reports 7 171 250 Hz over CAT; pre-filling "7.171"
+        // would save (and later retune to) a dial 250 Hz away from where the
+        // operator is, and that row would never highlight.
+        assertThat(favoriteInputText(7_171_250L)).isEqualTo("7.17125")
+        assertThat(favoriteInputText(14_230_001L)).isEqualTo("14.230001")
+        for (hz in listOf(7_171_250L, 14_230_001L, 145_500_010L, 100_001L)) {
+            assertThat(parseFrequencyInputHz(favoriteInputText(hz))).isEqualTo(hz)
+        }
+    }
+
+    // ----- dialog state ---------------------------------------------------------
+
+    @Test
+    fun dialogState_blankFieldIsNotAnError() {
+        val st = favoriteInputState("", emptyList())
+        assertThat(st.freqHz).isNull()
+        assertThat(st.showError).isFalse()
+        assertThat(st.existing).isNull()
+    }
+
+    @Test
+    fun dialogState_garbageIsAnError() {
+        val st = favoriteInputState("abc", emptyList())
+        assertThat(st.freqHz).isNull()
+        assertThat(st.showError).isTrue()
+    }
+
+    @Test
+    fun dialogState_findsTheFavouriteAlreadyOnThatDial() {
+        val saved = FavoriteFrequency(27_555_000L, "11m group")
+        val st = favoriteInputState("27,555", listOf(saved))
+        assertThat(st.freqHz).isEqualTo(27_555_000L)
+        assertThat(st.showError).isFalse()
+        assertThat(st.existing).isEqualTo(saved)
+        assertThat(favoriteInputState("27.556", listOf(saved)).existing).isNull()
+    }
+
+    @Test
+    fun label_blankOnUpdateKeepsTheExistingName() {
+        val saved = FavoriteFrequency(27_555_000L, "11m group")
+        assertThat(resolveFavoriteLabel("", saved)).isEqualTo("11m group")
+        assertThat(resolveFavoriteLabel("   ", saved)).isEqualTo("11m group")
+        assertThat(resolveFavoriteLabel("new name", saved)).isEqualTo("new name")
+        assertThat(resolveFavoriteLabel("", null)).isEmpty()
+    }
+
+    // ----- band-list lookup for a tap ---------------------------------------------
+
+    @Test
+    fun bandIndex_usesTheExactEntryWithoutAppending() {
+        var appended = false
+        val idx = bandIndexForDial(27_700_000L, listOf(14_230_000L, 27_700_000L)) { appended = true; -1 }
+        assertThat(idx).isEqualTo(1)
+        assertThat(appended).isFalse()
+    }
+
+    @Test
+    fun bandIndex_appendsOnlyWhenNoEntryExists() {
+        var appendedHz: Long? = null
+        val idx = bandIndexForDial(27_555_000L, listOf(14_230_000L, 27_700_000L)) { hz ->
+            appendedHz = hz
+            2
+        }
+        assertThat(idx).isEqualTo(2)
+        assertThat(appendedHz).isEqualTo(27_555_000L)
     }
 
     // ----- labels -------------------------------------------------------------
@@ -149,13 +232,6 @@ class FavoriteFrequenciesTest {
         val list = listOf(FavoriteFrequency(3_730_000L), FavoriteFrequency(27_700_000L))
         assertThat(removeFavoriteFrequency(list, 27_700_000L)).containsExactly(FavoriteFrequency(3_730_000L))
         assertThat(removeFavoriteFrequency(list, 99L)).isEqualTo(list)
-    }
-
-    @Test
-    fun selection_matchesTheDialledFrequencyExactly() {
-        val fav = FavoriteFrequency(27_700_000L, "11m")
-        assertThat(isFavoriteSelected(fav, 27_700_000L)).isTrue()
-        assertThat(isFavoriteSelected(fav, 27_705_000L)).isFalse()
     }
 
     // ----- the config row -----------------------------------------------------

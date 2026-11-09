@@ -83,10 +83,13 @@ internal fun sanitizeFavoriteLabel(raw: String?): String {
  * - any of the above with a trailing `MHz`, `kHz` or `Hz`, which then wins
  *   over the magnitude guess.
  *
- * Without a unit the magnitude decides: under 1 000 is MHz, under 1 000 000 is
- * kHz, otherwise Hz. The result must land inside [FAVORITE_MIN_HZ]..
- * [FAVORITE_MAX_HZ]; a typo like `2770000000` is rejected rather than saved
- * as a dial no rig has.
+ * Without a unit, a decimal separator means MHz whatever the magnitude
+ * (`1296.5` is 23cm, not 1.2965 MHz); a bare integer is read by magnitude:
+ * under 1 000 is MHz, under 1 000 000 is kHz, otherwise Hz. A bare `1296` is
+ * therefore kHz; the dialog echoes the band the dial resolves to, and
+ * `1296 MHz` or `1296.0` says what was meant. The result must land inside
+ * [FAVORITE_MIN_HZ]..[FAVORITE_MAX_HZ]; a typo like `27700000000` is rejected
+ * rather than saved as a dial no rig has.
  */
 internal fun parseFrequencyInputHz(text: String?): Long? {
     if (text == null) return null
@@ -106,6 +109,7 @@ internal fun parseFrequencyInputHz(text: String?): Long? {
     if (value <= 0.0) return null
 
     val scale = unitScale ?: when {
+        s.contains('.') -> 1_000_000.0
         value < 1_000.0 -> 1_000_000.0
         value < 1_000_000.0 -> 1_000.0
         else -> 1.0
@@ -165,12 +169,68 @@ internal fun removeFavoriteFrequency(
     freqHz: Long,
 ): List<FavoriteFrequency> = favorites.filterNot { it.freqHz == freqHz }
 
-/** Whether a favourite row is the one currently dialled in. Same rule as the calling rows. */
-internal fun isFavoriteSelected(favorite: FavoriteFrequency, currentFreqHz: Long): Boolean =
-    favorite.freqHz == currentFreqHz
+/**
+ * The dial as the add dialog pre-fills it, in MHz, so an operator saving
+ * "where I am now" only has to type a name.
+ *
+ * Three decimals for a kHz-aligned dial (every calling frequency), but the
+ * full value for anything finer: a rig tuned by its VFO knob can report
+ * 7 171 250 Hz over CAT, and pre-filling "7.171" would save a favourite 250 Hz
+ * away from where the operator is. That row would then never highlight, and
+ * tapping it would move the rig. Round-trips through [parseFrequencyInputHz]
+ * to the exact Hz.
+ */
+internal fun favoriteInputText(freqHz: Long): String {
+    if (freqHz % 1_000L == 0L) return formatMhz(freqHz)
+    return java.math.BigDecimal(freqHz).movePointLeft(6).stripTrailingZeros().toPlainString()
+}
 
 /**
- * The dial as the add dialog pre-fills it: MHz with three decimals, so an
- * operator saving "where I am now" only has to type a name.
+ * The index into the band list to tune for [freqHz]: the exact entry when
+ * there is one, otherwise whatever [appendOnMiss] returns. Favourites and
+ * calling rows share this; the lookup is kept exact-first because
+ * [OperationBand.getIndexByFreq] appends a synthetic band on every miss and
+ * must only run when there really is no entry.
  */
-internal fun favoriteInputText(freqHz: Long): String = formatMhz(freqHz)
+internal fun bandIndexForDial(
+    freqHz: Long,
+    bandFreqsHz: List<Long>,
+    appendOnMiss: (Long) -> Int,
+): Int {
+    val exact = callingFrequencyBandIndex(freqHz, bandFreqsHz)
+    return if (exact >= 0) exact else appendOnMiss(freqHz)
+}
+
+/**
+ * What the add dialog shows for the frequency field as typed: the parsed dial,
+ * whether to mark the field invalid (only once something is typed), and the
+ * favourite already saved on that dial, if any, so the button can read
+ * "Update" and a blank name keeps the existing one instead of erasing it.
+ */
+internal data class FavoriteInputState(
+    val freqHz: Long?,
+    val showError: Boolean,
+    val existing: FavoriteFrequency?,
+)
+
+internal fun favoriteInputState(
+    freqText: String,
+    favorites: List<FavoriteFrequency>,
+): FavoriteInputState {
+    val hz = parseFrequencyInputHz(freqText)
+    return FavoriteInputState(
+        freqHz = hz,
+        showError = freqText.isNotBlank() && hz == null,
+        existing = hz?.let { dial -> favorites.firstOrNull { it.freqHz == dial } },
+    )
+}
+
+/**
+ * The label to save: what the operator typed, or, when they left it blank
+ * while updating a dial that already has a name, that existing name. Tapping
+ * Update to refresh a favourite must not silently strip its label.
+ */
+internal fun resolveFavoriteLabel(typed: String, existing: FavoriteFrequency?): String {
+    val cleaned = sanitizeFavoriteLabel(typed)
+    return if (cleaned.isEmpty() && existing != null) existing.label else cleaned
+}

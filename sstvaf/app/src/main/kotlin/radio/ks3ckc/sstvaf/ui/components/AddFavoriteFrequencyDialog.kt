@@ -49,28 +49,36 @@ import radio.ks3ckc.sstvaf.theme.TextPrimary
  * Centered modal for saving a favourite frequency: a dial and an optional
  * short name.
  *
- * The dial field is pre-filled with [initialFreqHz] (the current dial) so the
- * common case, "remember where I am", is a tap on Save. Typing another
- * frequency works too, in MHz, kHz or Hz, with a decimal point or comma (see
- * [parseFrequencyInputHz]); the band the typed dial falls in is echoed under
- * the field so a slipped decimal point shows up before it is saved.
+ * The dial field is pre-filled with [initialFreqHz] (the dial when the dialog
+ * opened) so the common case, "remember where I am", is a tap on Save. Typing
+ * another frequency works too, in MHz, kHz or Hz, with a decimal point or
+ * comma (see [parseFrequencyInputHz]); the band the typed dial falls in is
+ * echoed under the field so a slipped decimal point shows up before it is
+ * saved. When the dial is already a favourite the button reads Update and the
+ * name field starts with the saved name.
+ *
+ * The field state is deliberately *not* keyed on [initialFreqHz]: a rig
+ * polled over CAT can echo a slightly different dial while the dialog is open,
+ * and re-seeding the field on every echo would wipe what the operator has
+ * typed. The dialog leaves the composition when hidden, so each opening still
+ * starts from the then-current dial.
  */
 @Composable
 fun AddFavoriteFrequencyDialog(
     visible: Boolean,
     initialFreqHz: Long,
-    alreadySavedHz: Set<Long>,
+    favorites: List<FavoriteFrequency>,
     onDismiss: () -> Unit,
     onSave: (freqHz: Long, label: String) -> Unit,
 ) {
     if (!visible) return
 
-    var freqText by rememberSaveable(initialFreqHz) { mutableStateOf(favoriteInputText(initialFreqHz)) }
-    var labelText by rememberSaveable { mutableStateOf("") }
+    var freqText by rememberSaveable { mutableStateOf(favoriteInputText(initialFreqHz)) }
+    var labelText by rememberSaveable {
+        mutableStateOf(favorites.firstOrNull { it.freqHz == initialFreqHz }?.label.orEmpty())
+    }
 
-    val parsedHz = parseFrequencyInputHz(freqText)
-    val showError = freqText.isNotBlank() && parsedHz == null
-    val replacing = parsedHz != null && alreadySavedHz.contains(parsedHz)
+    val state = favoriteInputState(freqText, favorites)
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -109,23 +117,24 @@ fun AddFavoriteFrequencyDialog(
                 onValueChange = { freqText = it },
                 label = { Text(stringResource(R.string.freq_favorite_freq_label)) },
                 singleLine = true,
-                isError = showError,
+                isError = state.showError,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 colors = fieldColors,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(modifier = Modifier.height(4.dp))
+            val hz = state.freqHz
             Text(
-                text = when {
-                    showError -> stringResource(R.string.freq_favorite_invalid)
-                    parsedHz != null -> stringResource(
+                text = if (hz != null) {
+                    stringResource(
                         R.string.freq_favorite_resolves_to,
-                        BaseRigOperation.getMeterFromFreq(parsedHz),
-                        formatMhz(parsedHz),
+                        BaseRigOperation.getMeterFromFreq(hz),
+                        formatMhz(hz),
                     )
-                    else -> stringResource(R.string.freq_favorite_invalid)
+                } else {
+                    stringResource(R.string.freq_favorite_invalid)
                 },
-                color = if (showError) StatusBad else TextFaint,
+                color = if (state.showError) StatusBad else TextFaint,
                 fontSize = 11.sp,
                 lineHeight = 15.sp,
                 modifier = Modifier.padding(horizontal = 4.dp),
@@ -154,14 +163,13 @@ fun AddFavoriteFrequencyDialog(
                 )
                 FavoriteDialogButton(
                     label = stringResource(
-                        if (replacing) R.string.freq_favorite_update else R.string.action_save,
+                        if (state.existing != null) R.string.freq_favorite_update else R.string.action_save,
                     ),
-                    enabled = parsedHz != null,
+                    enabled = hz != null,
                     primary = true,
                     modifier = Modifier.weight(1f),
                     onClick = {
-                        val hz = parsedHz ?: return@FavoriteDialogButton
-                        onSave(hz, sanitizeFavoriteLabel(labelText))
+                        if (hz != null) onSave(hz, resolveFavoriteLabel(labelText, state.existing))
                     },
                 )
             }
@@ -177,11 +185,7 @@ private fun FavoriteDialogButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    val bg = when {
-        !enabled -> BgSurface3
-        primary -> Accent
-        else -> BgSurface3
-    }
+    val accent = enabled && primary
     val textColor = when {
         !enabled -> TextFaint
         primary -> BgApp
@@ -191,7 +195,7 @@ private fun FavoriteDialogButton(
         modifier = modifier
             .height(46.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(bg)
+            .background(if (accent) Accent else BgSurface3)
             .then(if (primary) Modifier else Modifier.border(1.dp, Border, RoundedCornerShape(12.dp)))
             .then(if (enabled) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,

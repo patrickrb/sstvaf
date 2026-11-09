@@ -310,12 +310,13 @@ fun FrequencyPickerSheet(
                 visibleCallingFrequencies(SSTV_CALLING_FREQUENCIES, GeneralVariables.excludedBands)
             }
             var addDialogVisible by rememberSaveable { mutableStateOf(false) }
+            // A dial missing from bands.txt (a hand-edited asset, or any
+            // favourite off the band plan) still has to be tunable, so
+            // bandIndexForDial falls back to the helper that appends an entry.
             val selectHz: (Long) -> Unit = { hz ->
-                val exact = callingFrequencyBandIndex(hz, OperationBand.bandList.map { it.band })
-                // A dial missing from bands.txt (a hand-edited asset, or any
-                // favourite off the band plan) still has to be tunable, so fall
-                // back to the helper that appends an entry for it.
-                onSelectBandIndex(if (exact >= 0) exact else OperationBand.getIndexByFreq(hz))
+                onSelectBandIndex(
+                    bandIndexForDial(hz, OperationBand.bandList.map { it.band }, OperationBand::getIndexByFreq),
+                )
             }
             // No scroll modifier of its own: SstvAfBottomSheet already wraps
             // its content in a verticalScroll, so a long favourites list (or a
@@ -347,7 +348,7 @@ fun FrequencyPickerSheet(
                 for (fav in favorites) {
                     FavoriteFrequencyRow(
                         favorite = fav,
-                        selected = isFavoriteSelected(fav, currentFreqHz),
+                        selected = fav.freqHz == currentFreqHz,
                         onClick = { selectHz(fav.freqHz) },
                         onRemove = { onRemoveFavorite(fav.freqHz) },
                     )
@@ -357,7 +358,7 @@ fun FrequencyPickerSheet(
             AddFavoriteFrequencyDialog(
                 visible = addDialogVisible,
                 initialFreqHz = currentFreqHz,
-                alreadySavedHz = favorites.map { it.freqHz }.toSet(),
+                favorites = favorites,
                 onDismiss = { addDialogVisible = false },
                 onSave = { hz, label ->
                     onAddFavorite(FavoriteFrequency(hz, label))
@@ -580,8 +581,11 @@ private fun FavoriteFrequencyRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
+            // widthIn, not width: calling rows are all three characters, but an
+            // off-plan favourite can land on "1.25m" or "2200m", which must
+            // grow the column rather than be clipped into the dial.
             text = BaseRigOperation.getMeterFromFreq(favorite.freqHz),
-            modifier = Modifier.width(38.dp),
+            modifier = Modifier.widthIn(min = 38.dp),
             color = TextMuted,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
