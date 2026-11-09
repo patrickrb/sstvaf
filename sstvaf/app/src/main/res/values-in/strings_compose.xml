@@ -75,6 +75,17 @@
     <string name="freq_note_when_open">saat terbuka</string>
     <string name="freq_tx_level">Level TX</string>
     <string name="freq_tune_explain">Memancarkan carrier tetap untuk tuning antena. Berhenti sendiri setelah %1$d d.</string>
+    <string name="freq_note_freeband">freeband · saat terbuka</string>
+    <string name="freq_favorites_title">Favorit</string>
+    <string name="freq_favorites_empty">Belum ada frekuensi tersimpan. Tambahkan frekuensi yang Anda pakai, misalnya frekuensi grup atau net.</string>
+    <string name="freq_favorite_add">Tambah</string>
+    <string name="freq_favorite_add_title">Simpan frekuensi favorit</string>
+    <string name="freq_favorite_freq_label">Frekuensi (MHz)</string>
+    <string name="freq_favorite_name_label">Nama (opsional)</string>
+    <string name="freq_favorite_invalid">Masukkan frekuensi antara 0,1 dan 3000 MHz, misalnya 27.700</string>
+    <string name="freq_favorite_resolves_to">%1$s · %2$s MHz</string>
+    <string name="freq_favorite_update">Perbarui</string>
+    <string name="freq_favorite_remove_description">Hapus %1$s MHz dari favorit</string>
     <string name="op_no_call">TANPA PANGGIL</string>
     <string name="op_no_grid">Grid belum diatur</string>
     <string name="op_tap_to_edit">Ketuk untuk ubah</string>

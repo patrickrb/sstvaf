@@ -75,6 +75,17 @@
     <string name="freq_note_when_open">когда открыт</string>
     <string name="freq_tx_level">Уровень TX</string>
     <string name="freq_tune_explain">Включает постоянную несущую для настройки антенны. Останавливается сам через %1$d с.</string>
+    <string name="freq_note_freeband">свободный диапазон · при прохождении</string>
+    <string name="freq_favorites_title">Избранное</string>
+    <string name="freq_favorites_empty">Сохранённых частот пока нет. Добавьте те, на которых работаете, например частоту группы или круглого стола.</string>
+    <string name="freq_favorite_add">Добавить</string>
+    <string name="freq_favorite_add_title">Сохранить избранную частоту</string>
+    <string name="freq_favorite_freq_label">Частота (МГц)</string>
+    <string name="freq_favorite_name_label">Название (необязательно)</string>
+    <string name="freq_favorite_invalid">Введите частоту от 0,1 до 3000 МГц, например 27.700</string>
+    <string name="freq_favorite_resolves_to">%1$s · %2$s MHz</string>
+    <string name="freq_favorite_update">Обновить</string>
+    <string name="freq_favorite_remove_description">Удалить %1$s MHz из избранного</string>
     <string name="op_no_call">НЕТ ПОЗЫВНОГО</string>
     <string name="op_no_grid">QTH не задан</string>
     <string name="op_tap_to_edit">Нажмите для изменения</string>

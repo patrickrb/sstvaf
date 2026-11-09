@@ -75,6 +75,17 @@
     <string name="freq_note_when_open">cuando esté abierta</string>
     <string name="freq_tx_level">Nivel de TX</string>
     <string name="freq_tune_explain">Emite una portadora estable para sintonizar la antena. Se detiene sola tras %1$d s.</string>
+    <string name="freq_note_freeband">banda libre · cuando esté abierta</string>
+    <string name="freq_favorites_title">Favoritos</string>
+    <string name="freq_favorites_empty">Aún no hay frecuencias guardadas. Añade las que uses, como la de un grupo o una red.</string>
+    <string name="freq_favorite_add">Añadir</string>
+    <string name="freq_favorite_add_title">Guardar una frecuencia favorita</string>
+    <string name="freq_favorite_freq_label">Frecuencia (MHz)</string>
+    <string name="freq_favorite_name_label">Nombre (opcional)</string>
+    <string name="freq_favorite_invalid">Introduce una frecuencia entre 0,1 y 3000 MHz, por ejemplo 27.700</string>
+    <string name="freq_favorite_resolves_to">%1$s · %2$s MHz</string>
+    <string name="freq_favorite_update">Actualizar</string>
+    <string name="freq_favorite_remove_description">Quitar %1$s MHz de favoritos</string>
     <string name="op_no_call">SIN INDICATIVO</string>
     <string name="op_no_grid">Sin grid definido</string>
     <string name="op_tap_to_edit">Toca para editar</string>

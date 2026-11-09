@@ -141,6 +141,7 @@ public class OperationBandTest {
             " :14233000:20m",
             " :14236000:20m",
             "*:21340000:15m",
+            "*:27700000:11m",
             "*:28680000:10m",
             " :28700000:10m",
             " :50680000:6m",
@@ -153,14 +154,14 @@ public class OperationBandTest {
     public void sstvBandPlan_allLinesParse() {
         java.util.ArrayList<OperationBand.Band> bands =
                 OperationBand.parseBandLines(SSTV_BAND_PLAN);
-        assertThat(bands).hasSize(15);
+        assertThat(bands).hasSize(16);
     }
 
     @Test
-    public void sstvBandPlan_coversNineDistinctBands() {
+    public void sstvBandPlan_coversTenDistinctBands() {
         OperationBand.bandList.addAll(OperationBand.parseBandLines(SSTV_BAND_PLAN));
         assertThat(OperationBand.getAllWaveLengths()).containsExactly(
-                "160m", "80m", "40m", "20m", "15m", "10m", "6m", "2m", "70cm")
+                "160m", "80m", "40m", "20m", "15m", "11m", "10m", "6m", "2m", "70cm")
                 .inOrder();
     }
 
@@ -181,6 +182,7 @@ public class OperationBandTest {
                 "40m", 7_171_000L,
                 "20m", 14_230_000L,
                 "15m", 21_340_000L,
+                "11m", 27_700_000L,
                 "10m", 28_680_000L,
                 "2m", 144_500_000L);
     }
@@ -191,7 +193,7 @@ public class OperationBandTest {
         assertThat(OperationBand.getIndexByFreq(OperationBand.getDefaultBand()))
                 .isEqualTo(5);// 14230000 is the 6th line of the plan
         // and no new entry was appended by the lookup:
-        assertThat(OperationBand.bandList).hasSize(15);
+        assertThat(OperationBand.bandList).hasSize(16);
     }
 
     // ---- isBandLine ---------------------------------------------------------
