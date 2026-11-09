@@ -12,7 +12,7 @@ import org.robolectric.RobolectricTestRunner
  * Unit tests for the Frequency sheet's calling-frequency table and its lookup
  * into the app's band list.
  *
- * The table is pinned to the five dials SSTV activity actually lives on. Each
+ * The table is pinned to the six dials SSTV activity actually lives on. Each
  * one must resolve to a real `bands.txt` entry, because a row that resolves to
  * nothing would silently tune the operator nowhere.
  */
@@ -37,9 +37,9 @@ class CallingFrequencyTest {
     // ----- the table ---------------------------------------------------------
 
     @Test
-    fun table_isTheFiveSstvCallingFrequencies() {
+    fun table_isTheSixSstvCallingFrequencies() {
         assertThat(SSTV_CALLING_FREQUENCIES.map { it.band })
-            .containsExactly("80m", "40m", "20m", "15m", "10m")
+            .containsExactly("80m", "40m", "20m", "15m", "11m", "10m")
             .inOrder()
     }
 
@@ -50,6 +50,8 @@ class CallingFrequencyTest {
         assertThat(byBand["40m"]).isEqualTo(7_171_000L)
         assertThat(byBand["20m"]).isEqualTo(14_230_000L)
         assertThat(byBand["15m"]).isEqualTo(21_340_000L)
+        // 11m: the 27.700 MHz SSTV meeting frequency, above the CB channels.
+        assertThat(byBand["11m"]).isEqualTo(27_700_000L)
         assertThat(byBand["10m"]).isEqualTo(28_680_000L)
     }
 
@@ -131,7 +133,15 @@ class CallingFrequencyTest {
     @Test
     fun visibleRows_dropTheOperatorsExcludedBands() {
         val visible = visibleCallingFrequencies(SSTV_CALLING_FREQUENCIES, setOf("80m", "10m"))
-        assertThat(visible.map { it.band }).containsExactly("40m", "20m", "15m").inOrder()
+        assertThat(visible.map { it.band }).containsExactly("40m", "20m", "15m", "11m").inOrder()
+    }
+
+    @Test
+    fun visibleRows_dropElevenMetresWhenTheOperatorHidesIt() {
+        // 11m is the one non-amateur row; an operator who cannot use it hides
+        // it from Radio & audio's Enabled bands like any other band.
+        val visible = visibleCallingFrequencies(SSTV_CALLING_FREQUENCIES, setOf("11m"))
+        assertThat(visible.map { it.band }).containsExactly("80m", "40m", "20m", "15m", "10m").inOrder()
     }
 
     @Test
@@ -143,7 +153,7 @@ class CallingFrequencyTest {
     @Test
     fun visibleRows_ignoreExclusionsForBandsNotInTheTable() {
         // 160m/6m/2m are in bands.txt but never in this sheet; excluding them
-        // must not disturb the five rows.
+        // must not disturb the six rows.
         assertThat(visibleCallingFrequencies(SSTV_CALLING_FREQUENCIES, setOf("160m", "6m", "2m")))
             .isEqualTo(SSTV_CALLING_FREQUENCIES)
     }

@@ -75,6 +75,17 @@
     <string name="freq_note_when_open">عند فتح الموجة</string>
     <string name="freq_tx_level">مستوى الإرسال</string>
     <string name="freq_tune_explain">يبثّ حاملاً ثابتاً لضبط الهوائي. يتوقف تلقائياً بعد %1$d ث.</string>
+    <string name="freq_note_freeband">النطاق الحر · عند الانفتاح</string>
+    <string name="freq_favorites_title">المفضلة</string>
+    <string name="freq_favorites_empty">لا توجد ترددات محفوظة بعد. أضف الترددات التي تعمل عليها، مثل تردد مجموعة أو شبكة.</string>
+    <string name="freq_favorite_add">إضافة</string>
+    <string name="freq_favorite_add_title">حفظ تردد مفضل</string>
+    <string name="freq_favorite_freq_label">التردد (ميغاهرتز)</string>
+    <string name="freq_favorite_name_label">الاسم (اختياري)</string>
+    <string name="freq_favorite_invalid">أدخل ترددًا بين 0.1 و3000 ميغاهرتز، مثل 27.700</string>
+    <string name="freq_favorite_resolves_to">%1$s · %2$s MHz</string>
+    <string name="freq_favorite_update">تحديث</string>
+    <string name="freq_favorite_remove_description">إزالة %1$s MHz من المفضلة</string>
     <string name="op_no_call">لا نداء</string>
     <string name="op_no_grid">لم يُضبط مربع</string>
     <string name="op_tap_to_edit">انقر للتحرير</string>

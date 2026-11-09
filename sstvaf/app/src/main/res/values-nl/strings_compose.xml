@@ -75,6 +75,17 @@
     <string name="freq_note_when_open">wanneer open</string>
     <string name="freq_tx_level">TX-niveau</string>
     <string name="freq_tune_explain">Zendt een stabiele draaggolf voor het afstemmen van de antenne. Stopt automatisch na %1$d s.</string>
+    <string name="freq_note_freeband">freeband · wanneer open</string>
+    <string name="freq_favorites_title">Favorieten</string>
+    <string name="freq_favorites_empty">Nog geen opgeslagen frequenties. Voeg de frequenties toe die je gebruikt, zoals die van een groep of net.</string>
+    <string name="freq_favorite_add">Toevoegen</string>
+    <string name="freq_favorite_add_title">Favoriete frequentie opslaan</string>
+    <string name="freq_favorite_freq_label">Frequentie (MHz)</string>
+    <string name="freq_favorite_name_label">Naam (optioneel)</string>
+    <string name="freq_favorite_invalid">Voer een frequentie in tussen 0,1 en 3000 MHz, bijvoorbeeld 27.700</string>
+    <string name="freq_favorite_resolves_to">%1$s · %2$s MHz</string>
+    <string name="freq_favorite_update">Bijwerken</string>
+    <string name="freq_favorite_remove_description">%1$s MHz uit favorieten verwijderen</string>
     <string name="op_no_call">GEEN ROEPNAAM</string>
     <string name="op_no_grid">Geen grid ingesteld</string>
     <string name="op_tap_to_edit">Tik om te bewerken</string>

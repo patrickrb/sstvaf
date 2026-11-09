@@ -60,6 +60,12 @@ public class BaseRigOperationTest {
         assertThat(BaseRigOperation.getMeterFromFreq(21_074_000L)).isEqualTo("15m");
         assertThat(BaseRigOperation.getMeterFromFreq(24_915_000L)).isEqualTo("12m");
         assertThat(BaseRigOperation.getMeterFromFreq(27_265_000L)).isEqualTo("11m");
+        // The 11m SSTV meeting frequency sits above the 40 CB channels; the
+        // whole freeband up to the 10m edge is 11m, and 28.000 is not.
+        assertThat(BaseRigOperation.getMeterFromFreq(27_700_000L)).isEqualTo("11m");
+        assertThat(BaseRigOperation.getMeterFromFreq(26_500_000L)).isEqualTo("11m");
+        assertThat(BaseRigOperation.getMeterFromFreq(27_999_999L)).isEqualTo("11m");
+        assertThat(BaseRigOperation.getMeterFromFreq(28_000_000L)).isEqualTo("10m");
         assertThat(BaseRigOperation.getMeterFromFreq(28_074_000L)).isEqualTo("10m");
         assertThat(BaseRigOperation.getMeterFromFreq(50_313_000L)).isEqualTo("6m");
         assertThat(BaseRigOperation.getMeterFromFreq(144_174_000L)).isEqualTo("2m");

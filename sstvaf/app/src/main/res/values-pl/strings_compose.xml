@@ -75,6 +75,17 @@
     <string name="freq_note_when_open">gdy otwarte</string>
     <string name="freq_tx_level">Poziom TX</string>
     <string name="freq_tune_explain">Kluczuje stałą nośną do strojenia anteny. Zatrzymuje się samo po %1$d s.</string>
+    <string name="freq_note_freeband">freeband · gdy otwarte</string>
+    <string name="freq_favorites_title">Ulubione</string>
+    <string name="freq_favorites_empty">Brak zapisanych częstotliwości. Dodaj te, na których pracujesz, np. częstotliwość grupy lub sieci.</string>
+    <string name="freq_favorite_add">Dodaj</string>
+    <string name="freq_favorite_add_title">Zapisz ulubioną częstotliwość</string>
+    <string name="freq_favorite_freq_label">Częstotliwość (MHz)</string>
+    <string name="freq_favorite_name_label">Nazwa (opcjonalnie)</string>
+    <string name="freq_favorite_invalid">Podaj częstotliwość od 0,1 do 3000 MHz, np. 27.700</string>
+    <string name="freq_favorite_resolves_to">%1$s · %2$s MHz</string>
+    <string name="freq_favorite_update">Aktualizuj</string>
+    <string name="freq_favorite_remove_description">Usuń %1$s MHz z ulubionych</string>
     <string name="op_no_call">BRAK ZNAKU</string>
     <string name="op_no_grid">Brak lokatora</string>
     <string name="op_tap_to_edit">Dotknij, aby edytować</string>

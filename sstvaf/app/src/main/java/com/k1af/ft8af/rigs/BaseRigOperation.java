@@ -80,9 +80,9 @@ public class BaseRigOperation {
         else if (freq >= 24890000 && freq <= 24990000) {
             return "12m";
         }  //  12m
-        else if (freq >= 26965000 && freq <= 27405000) {
+        else if (freq >= 26000000 && freq < 28000000) {
             return "11m";
-        }  //  11m (CB/freeband; emergent FT8 activity around 27.265 MHz)
+        }  //  11m: the CB channels (26.965-27.405) and the freeband around them up to the 10m edge; SSTV meets on 27.700
         else if (freq >= 28000000 && freq <= 29700000) {
             return "10m";
         }  //  10m

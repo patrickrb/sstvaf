@@ -121,6 +121,12 @@ public class GeneralVariables {
     //Serialized band=level CSV ("20m=60,40m=85"); parsed/updated in PerBandOutputLevel.kt.
     public static volatile String perBandOutputLevels = "";
 
+    //Operator-saved favourite frequencies for the Frequency sheet, serialized as
+    //"freqHz:label|freqHz:label" (parsed/updated in FavoriteFrequencies.kt).
+    //volatile for the same reason as perBandOutputLevels: written from the
+    //config-load thread and the sheet, read from the UI.
+    public static volatile String favoriteFrequencies = "";
+
     //Tune button (issue #408): hard cap on a single tune carrier in seconds
     //(clamped by TuneController), whether the tune level is independent of the
     //FT8 drive, the global independent level (0..100), and the per-band
