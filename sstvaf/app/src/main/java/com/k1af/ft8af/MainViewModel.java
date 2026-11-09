@@ -1307,6 +1307,22 @@ public class MainViewModel extends ViewModel {
     }
 
     /**
+     * RECORD_AUDIO was just granted: bring up the mic capture that could not
+     * open at startup without it (see {@link HamRecorder#restartMicAfterPermissionGrant}).
+     * On a plain daemon thread, not the caller's: the grant arrives on the main
+     * thread, and the reinit joins the old capture thread (up to a second) and
+     * can wait on another reinit holding the MicRecorder lock.
+     */
+    public void restartAudioAfterMicGrant() {
+        final HamRecorder recorder = hamRecorder;
+        if (recorder == null) return;
+        GeneralVariables.fileLog("RECORD_AUDIO granted: restarting mic capture");
+        Thread restart = new Thread(recorder::restartMicAfterPermissionGrant, "MicGrantRestart");
+        restart.setDaemon(true);
+        restart.start();
+    }
+
+    /**
      * Settling time before an RX channel change actually reopens the capture.
      * The selector is an A/B control — the operator flips it while watching the
      * waterfall — and each reopen costs up to a second of RX plus, on USB-direct,

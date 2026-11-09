@@ -75,6 +75,17 @@
     <string name="freq_note_when_open">開通時</string>
     <string name="freq_tx_level">TX 電平</string>
     <string name="freq_tune_explain">為天線調諧發出穩定載波。%1$d 秒後自動停止。</string>
+    <string name="freq_note_freeband">自由頻段 · 開放時</string>
+    <string name="freq_favorites_title">收藏</string>
+    <string name="freq_favorites_empty">尚未儲存任何頻率。新增您常用的頻率，例如小組或網路通聯頻率。</string>
+    <string name="freq_favorite_add">新增</string>
+    <string name="freq_favorite_add_title">儲存收藏頻率</string>
+    <string name="freq_favorite_freq_label">頻率 (MHz)</string>
+    <string name="freq_favorite_name_label">名稱（選填）</string>
+    <string name="freq_favorite_invalid">請輸入 0.1 到 3000 MHz 之間的頻率，例如 27.700</string>
+    <string name="freq_favorite_resolves_to">%1$s · %2$s MHz</string>
+    <string name="freq_favorite_update">更新</string>
+    <string name="freq_favorite_remove_description">從收藏中移除 %1$s MHz</string>
     <string name="op_no_call">無呼號</string>
     <string name="op_no_grid">未設定方格</string>
     <string name="op_tap_to_edit">點按以編輯</string>

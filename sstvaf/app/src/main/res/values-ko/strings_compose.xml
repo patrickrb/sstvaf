@@ -75,6 +75,17 @@
     <string name="freq_note_when_open">개방 시</string>
     <string name="freq_tx_level">TX 레벨</string>
     <string name="freq_tune_explain">안테나 튜닝을 위해 지속적인 캐리어를 송출합니다. %1$d초 후 자동으로 멈춥니다.</string>
+    <string name="freq_note_freeband">프리밴드 · 열릴 때</string>
+    <string name="freq_favorites_title">즐겨찾기</string>
+    <string name="freq_favorites_empty">저장된 주파수가 아직 없습니다. 그룹이나 네트 주파수처럼 자주 쓰는 주파수를 추가하세요.</string>
+    <string name="freq_favorite_add">추가</string>
+    <string name="freq_favorite_add_title">즐겨찾는 주파수 저장</string>
+    <string name="freq_favorite_freq_label">주파수 (MHz)</string>
+    <string name="freq_favorite_name_label">이름 (선택)</string>
+    <string name="freq_favorite_invalid">0.1~3000 MHz 사이의 주파수를 입력하세요 (예: 27.700)</string>
+    <string name="freq_favorite_resolves_to">%1$s · %2$s MHz</string>
+    <string name="freq_favorite_update">업데이트</string>
+    <string name="freq_favorite_remove_description">%1$s MHz를 즐겨찾기에서 제거</string>
     <string name="op_no_call">콜사인 없음</string>
     <string name="op_no_grid">그리드 미설정</string>
     <string name="op_tap_to_edit">탭하여 편집</string>

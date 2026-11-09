@@ -13,11 +13,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,6 +31,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.k1af.ft8af.GeneralVariables
@@ -121,14 +127,20 @@ internal data class SstvCallingFrequency(
 )
 
 /**
- * The five SSTV calling frequencies, low band to high.
+ * The six SSTV calling frequencies, low band to high.
  *
- * Five rows, not the whole band plan. The old sheet offered a tile grid of every
+ * Six rows, not the whole band plan. The old sheet offered a tile grid of every
  * entry in `bands.txt` plus an expandable alternates list — a general-purpose
  * band picker on a screen where the operator has exactly one question: "where is
- * SSTV right now?". These five are where the activity is, and each carries the
+ * SSTV right now?". These six are where the activity is, and each carries the
  * propagation note that answers "is it worth listening?". The full band list
- * still lives in Radio & audio for the operator who needs 30m or 6m.
+ * still lives in Radio & audio for the operator who needs 30m or 6m, and the
+ * operator's own dials go in the favourites list below the table (see
+ * [FavoriteFrequency]).
+ *
+ * 11m is the one non-amateur row: 27.700 MHz is the 11m SSTV meeting
+ * frequency (above the 40 CB channels, "freeband" to that community), added
+ * by request from operators who run the same gear and modes there.
  *
  * Every one of these dials is already a marked primary entry in `bands.txt`, so
  * [callingFrequencyBandIndex] resolves each to a real band index without
@@ -139,6 +151,7 @@ internal val SSTV_CALLING_FREQUENCIES: List<SstvCallingFrequency> = listOf(
     SstvCallingFrequency("40m", 7_171_000L, R.string.freq_note_evenings),
     SstvCallingFrequency("20m", 14_230_000L, R.string.freq_note_daytime_busiest),
     SstvCallingFrequency("15m", 21_340_000L, R.string.freq_note_daytime),
+    SstvCallingFrequency("11m", 27_700_000L, R.string.freq_note_freeband),
     SstvCallingFrequency("10m", 28_680_000L, R.string.freq_note_when_open),
 )
 
@@ -212,8 +225,15 @@ internal fun tuneChipLabel(label: String, isTuning: Boolean, remainingSec: Int):
 // ---------------------------------------------------------------------------
 
 /**
- * The Frequency sheet, opened from the header's dial chip: the five SSTV
- * calling frequencies, the TX level, and TUNE.
+ * The Frequency sheet, opened from the band bar: the six SSTV calling
+ * frequencies, the operator's favourite dials, the TX level, and TUNE.
+ *
+ * Favourites sit under the calling table as a second list of the same rows,
+ * with a remove control on each and an Add button that opens
+ * [AddFavoriteFrequencyDialog]. The dialog pre-fills the current dial, so
+ * "save where I am" is two taps. Tapping a favourite retunes exactly like a
+ * calling row; a dial that is not in `bands.txt` is appended to the band list
+ * on the way through, the same fallback a hand-edited asset already takes.
  *
  * TUNE lives here, two taps deep, on purpose. It used to be a chip on the TX
  * strip — permanently on screen on every tab, one stray thumb from keying a
@@ -233,8 +253,11 @@ fun FrequencyPickerSheet(
     isTuning: Boolean,
     tuneRemainingSec: Int,
     tuneMaxSeconds: Int,
+    favorites: List<FavoriteFrequency>,
     onDismiss: () -> Unit,
     onSelectBandIndex: (Int) -> Unit,
+    onAddFavorite: (FavoriteFrequency) -> Unit,
+    onRemoveFavorite: (Long) -> Unit,
     onTxLevelChange: (Int) -> Unit,
     onTxLevelChangeFinished: () -> Unit,
     onToggleTune: () -> Unit,
@@ -279,33 +302,69 @@ fun FrequencyPickerSheet(
                 }
             }
 
-            // ---- The five calling frequencies ----
+            // ---- Calling frequencies + favourites ----
             // Re-read on each open rather than observing: excludedBands is a
             // plain set written by the Settings screen, and the only way to
             // change it is to leave this sheet.
             val rows = remember(visible) {
                 visibleCallingFrequencies(SSTV_CALLING_FREQUENCIES, GeneralVariables.excludedBands)
             }
+            var addDialogVisible by rememberSaveable { mutableStateOf(false) }
+            // A dial missing from bands.txt (a hand-edited asset, or any
+            // favourite off the band plan) still has to be tunable, so
+            // bandIndexForDial falls back to the helper that appends an entry.
+            val selectHz: (Long) -> Unit = { hz ->
+                onSelectBandIndex(
+                    bandIndexForDial(hz, OperationBand.bandList.map { it.band }, OperationBand::getIndexByFreq),
+                )
+            }
+            // No scroll modifier of its own: SstvAfBottomSheet already wraps
+            // its content in a verticalScroll, so a long favourites list (or a
+            // short landscape screen) scrolls the whole sheet, TX level and
+            // TUNE included. A nested weighted scroll region here would be
+            // measured against that unbounded height and collapse to nothing.
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 for (row in rows) {
                     CallingFrequencyRow(
                         row = row,
                         selected = isCallingFrequencySelected(row, currentFreqHz),
-                        onClick = {
-                            val exact = callingFrequencyBandIndex(
-                                row.freqHz,
-                                OperationBand.bandList.map { it.band },
-                            )
-                            // A dial missing from bands.txt (a hand-edited asset)
-                            // still has to be tunable, so fall back to the helper
-                            // that appends an entry for it.
-                            onSelectBandIndex(
-                                if (exact >= 0) exact else OperationBand.getIndexByFreq(row.freqHz),
-                            )
-                        },
+                        onClick = { selectHz(row.freqHz) },
+                    )
+                }
+
+                FavoritesHeader(
+                    onAdd = { addDialogVisible = true },
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+                if (favorites.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.freq_favorites_empty),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        color = TextFaint,
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp,
+                    )
+                }
+                for (fav in favorites) {
+                    FavoriteFrequencyRow(
+                        favorite = fav,
+                        selected = fav.freqHz == currentFreqHz,
+                        onClick = { selectHz(fav.freqHz) },
+                        onRemove = { onRemoveFavorite(fav.freqHz) },
                     )
                 }
             }
+
+            AddFavoriteFrequencyDialog(
+                visible = addDialogVisible,
+                initialFreqHz = currentFreqHz,
+                favorites = favorites,
+                onDismiss = { addDialogVisible = false },
+                onSave = { hz, label ->
+                    onAddFavorite(FavoriteFrequency(hz, label))
+                    addDialogVisible = false
+                },
+            )
 
             Box(
                 modifier = Modifier
@@ -451,5 +510,126 @@ private fun CallingFrequencyRow(
             fontSize = 11.sp,
             maxLines = 1,
         )
+    }
+}
+
+/** "Favourites" caption with the Add button on its right. */
+@Composable
+private fun FavoritesHeader(
+    onAdd: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = stringResource(R.string.freq_favorites_title).uppercase(java.util.Locale.getDefault()),
+            color = TextMuted,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium,
+            letterSpacing = 0.8.sp,
+        )
+        val addLabel = stringResource(R.string.freq_favorite_add)
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(role = Role.Button, onClickLabel = addLabel, onClick = onAdd)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            SstvAfIcons.Plus(size = 14.dp, color = Accent, strokeWidth = 2.2f)
+            Text(
+                text = addLabel,
+                color = Accent,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
+}
+
+/**
+ * One favourite row: the band the dial falls in, the dial, the operator's
+ * label where a calling row shows its propagation note, and a remove control.
+ * Same selectable contract as [CallingFrequencyRow] so TalkBack reads the
+ * dialled-in state.
+ */
+@Composable
+private fun FavoriteFrequencyRow(
+    favorite: FavoriteFrequency,
+    selected: Boolean,
+    onClick: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (selected) Accent.copy(alpha = 0.10f) else Color.Transparent)
+            .selectable(
+                selected = selected,
+                role = Role.RadioButton,
+                onClick = onClick,
+            )
+            .padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            // widthIn, not width: calling rows are all three characters, but an
+            // off-plan favourite can land on "1.25m" or "2200m", which must
+            // grow the column rather than be clipped into the dial.
+            text = BaseRigOperation.getMeterFromFreq(favorite.freqHz),
+            modifier = Modifier.widthIn(min = 38.dp),
+            color = TextMuted,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+        )
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = formatMhz(favorite.freqHz),
+                color = TextPrimary,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = GeistMonoFamily,
+            )
+            Text(
+                text = stringResource(R.string.freq_unit_mhz),
+                color = TextFaint,
+                fontSize = 12.sp,
+            )
+        }
+        if (favorite.label.isNotEmpty()) {
+            Text(
+                text = favorite.label,
+                color = TextFaint,
+                fontSize = 11.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = 120.dp),
+            )
+        }
+        val removeDescription = stringResource(
+            R.string.freq_favorite_remove_description, formatMhz(favorite.freqHz),
+        )
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .clickable(role = Role.Button, onClickLabel = removeDescription, onClick = onRemove),
+            contentAlignment = Alignment.Center,
+        ) {
+            SstvAfIcons.Close(size = 14.dp, color = TextFaint, strokeWidth = 2f)
+        }
     }
 }

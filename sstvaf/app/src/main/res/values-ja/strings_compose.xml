@@ -75,6 +75,17 @@
     <string name="freq_note_when_open">開いているとき</string>
     <string name="freq_tx_level">TX レベル</string>
     <string name="freq_tune_explain">アンテナ調整用に安定したキャリアを送出します。%1$d 秒後に自動停止します。</string>
+    <string name="freq_note_freeband">フリーバンド · 開いているとき</string>
+    <string name="freq_favorites_title">お気に入り</string>
+    <string name="freq_favorites_empty">保存された周波数はまだありません。グループやネットの周波数など、よく使う周波数を追加してください。</string>
+    <string name="freq_favorite_add">追加</string>
+    <string name="freq_favorite_add_title">お気に入りの周波数を保存</string>
+    <string name="freq_favorite_freq_label">周波数 (MHz)</string>
+    <string name="freq_favorite_name_label">名前 (任意)</string>
+    <string name="freq_favorite_invalid">0.1〜3000 MHz の周波数を入力してください (例: 27.700)</string>
+    <string name="freq_favorite_resolves_to">%1$s · %2$s MHz</string>
+    <string name="freq_favorite_update">更新</string>
+    <string name="freq_favorite_remove_description">%1$s MHz をお気に入りから削除</string>
     <string name="op_no_call">コールなし</string>
     <string name="op_no_grid">グリッド未設定</string>
     <string name="op_tap_to_edit">タップして編集</string>

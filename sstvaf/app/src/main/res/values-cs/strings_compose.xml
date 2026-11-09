@@ -75,6 +75,17 @@
     <string name="freq_note_when_open">když je otevřeno</string>
     <string name="freq_tx_level">Úroveň TX</string>
     <string name="freq_tune_explain">Klíčuje stálou nosnou pro ladění antény. Sama se zastaví po %1$d s.</string>
+    <string name="freq_note_freeband">freeband · když je otevřeno</string>
+    <string name="freq_favorites_title">Oblíbené</string>
+    <string name="freq_favorites_empty">Zatím žádné uložené kmitočty. Přidejte kmitočty, na kterých pracujete, třeba kmitočet skupiny nebo kroužku.</string>
+    <string name="freq_favorite_add">Přidat</string>
+    <string name="freq_favorite_add_title">Uložit oblíbený kmitočet</string>
+    <string name="freq_favorite_freq_label">Kmitočet (MHz)</string>
+    <string name="freq_favorite_name_label">Název (volitelné)</string>
+    <string name="freq_favorite_invalid">Zadejte kmitočet mezi 0,1 a 3000 MHz, například 27.700</string>
+    <string name="freq_favorite_resolves_to">%1$s · %2$s MHz</string>
+    <string name="freq_favorite_update">Aktualizovat</string>
+    <string name="freq_favorite_remove_description">Odebrat %1$s MHz z oblíbených</string>
     <string name="op_no_call">BEZ ZNAČKY</string>
     <string name="op_no_grid">Lokátor nenastaven</string>
     <string name="op_tap_to_edit">Klepnutím upravit</string>

@@ -43,7 +43,13 @@ import radio.ks3ckc.sstvaf.theme.BgApp
 import radio.ks3ckc.sstvaf.ui.components.AdaptiveShell
 import radio.ks3ckc.sstvaf.ui.components.AppHeader
 import radio.ks3ckc.sstvaf.ui.components.BandBar
+import radio.ks3ckc.sstvaf.ui.components.FAVORITE_FREQUENCIES_KEY
+import radio.ks3ckc.sstvaf.ui.components.FavoriteFrequency
 import radio.ks3ckc.sstvaf.ui.components.FrequencyPickerSheet
+import radio.ks3ckc.sstvaf.ui.components.addFavoriteFrequency
+import radio.ks3ckc.sstvaf.ui.components.parseFavoriteFrequencies
+import radio.ks3ckc.sstvaf.ui.components.removeFavoriteFrequency
+import radio.ks3ckc.sstvaf.ui.components.serializeFavoriteFrequencies
 import radio.ks3ckc.sstvaf.ui.components.SstvTab
 import radio.ks3ckc.sstvaf.ui.components.TabBar
 import radio.ks3ckc.sstvaf.ui.components.TabRail
@@ -113,6 +119,23 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
         ?: BaseRigOperation.getMeterFromFreq(freqHz)
         ?: ""
     val catDotColor = headerCatDotColor(controlMode, catState)
+
+    // The operator's saved dials for the Frequency sheet. Re-read from
+    // GeneralVariables each time the sheet opens rather than once at first
+    // composition: DatabaseOpr restores the config row on a background thread,
+    // and on a cold start this shell composes before that load has finished, so
+    // a one-time read would show an empty list until the next process start
+    // (the same reason the sheet re-reads excludedBands on open). Every
+    // add/remove rewrites the row in full (excludedBands / perBandOutputLevels
+    // convention) and updates GeneralVariables, so the re-read is always current.
+    var favorites by remember(bandSheetVisible) {
+        mutableStateOf(parseFavoriteFrequencies(GeneralVariables.favoriteFrequencies))
+    }
+    val persistFavorites: (List<FavoriteFrequency>) -> Unit = { list ->
+        val serialized = serializeFavoriteFrequencies(list)
+        GeneralVariables.favoriteFrequencies = serialized
+        mainViewModel.databaseOpr.writeConfig(FAVORITE_FREQUENCIES_KEY, serialized, null)
+    }
     // The dot's text counterpart. Colour alone cannot answer "is the rig
     // actually talking to us" for a TalkBack user or anyone who cannot tell the
     // green from the amber, so the same state is carried as words into the
@@ -299,10 +322,19 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
             isTuning = isTuning,
             tuneRemainingSec = tuneRemainingSec,
             tuneMaxSeconds = GeneralVariables.tuneMaxOnSeconds,
+            favorites = favorites,
             onDismiss = { bandSheetVisible = false },
             onSelectBandIndex = { idx ->
                 selectBandIndex(mainViewModel, context, idx)
                 bandSheetVisible = false
+            },
+            onAddFavorite = { fav ->
+                favorites = addFavoriteFrequency(favorites, fav)
+                persistFavorites(favorites)
+            },
+            onRemoveFavorite = { hz ->
+                favorites = removeFavoriteFrequency(favorites, hz)
+                persistFavorites(favorites)
             },
             onTxLevelChange = { newLevel ->
                 txLevel = newLevel
