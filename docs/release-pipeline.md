@@ -93,7 +93,9 @@ and has a self-test (`--self-test`).
 
 **Secret:** `ANTHROPIC_API_KEY` (repository secret). Without it, or if the API
 call fails, the run annotates a warning, takes a **patch** bump, and uses the
-PR titles as the notes — a release is never blocked on the AI step.
+PR titles as the notes — a release is never blocked on the AI step. The first
+internal request uses only the primary model, without server-side paid failover;
+refusal also uses the local deterministic fallback, not another model call.
 
 ## One-time setup on GitHub (manual)
 

@@ -624,23 +624,16 @@ jobs:
           jq -n --rawfile prompt prompt.txt --argjson schema "$SCHEMA" '{
             model: "claude-opus-5",
             max_tokens: 4096,
-            fallbacks: "default",
             output_config: {format: {type: "json_schema", schema: $schema}},
             messages: [{role: "user", content: $prompt}]
           }' > request.json
-          # `fallbacks: "default"` + the `server-side-fallback-2026-07-01` beta is
-          # the documented way to survive a `stop_reason: "refusal"` on the
-          # Opus/Fable tier. Deliberately NOT run with curl's -f: on a non-2xx we
-          # want the response BODY in the step log, because that is what names the
-          # cause (a retired beta value, a bad model id, an expired key). The whole
-          # step is already wrapped in fallback(), so any failure - beta retirement
-          # included - degrades to a patch bump plus PR-title notes rather than
-          # blocking the release.
+          # One primary-model request only: no server-side paid failover.
+          # Keep non-2xx diagnostics; refusal/errors use the local deterministic
+          # patch/PR-title fallback rather than another paid model execution.
           HTTP_CODE=$(curl -sS --max-time 300 -o response.json -w '%{http_code}' \
               https://api.anthropic.com/v1/messages \
               -H "x-api-key: $ANTHROPIC_API_KEY" \
               -H "anthropic-version: 2023-06-01" \
-              -H "anthropic-beta: server-side-fallback-2026-07-01" \
               -H "content-type: application/json" \
               -d @request.json) || HTTP_CODE="000"
           if [[ "$HTTP_CODE" != 2* ]]; then

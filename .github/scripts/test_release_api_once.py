@@ -1,4 +1,5 @@
 """Exercise release workflow decisions offline; never call a paid API or Play."""
+import json
 import os
 from pathlib import Path
 import re
@@ -39,6 +40,7 @@ class ReleaseApiOnceTest(unittest.TestCase):
             for command, script in {
                 "gh": '#!/bin/bash\nprintf "%s\\n" "$*" > gh-call\nprintf "%s\\n" "$BODY"\n',
                 "git": '#!/bin/bash\nif [[ "$1" == rev-parse ]]; then exit 1; fi\nif [[ "$1" == tag ]]; then printf "%s" "$TAGS"; fi\n',
+                "curl": '#!/bin/bash\nprintf "%s\\n" "$*" >> curl-call\nprintf "%s" "$RESPONSE_JSON" > response.json\nprintf "%s" "$RESPONSE_HTTP"\n',
             }.items():
                 executable = path / command
                 executable.write_text(script)
@@ -63,6 +65,29 @@ class ReleaseApiOnceTest(unittest.TestCase):
         callers = [item for item in STEPS if "api.anthropic.com" in item.get("run", "")]
         self.assertEqual([item["id"] for item in callers], ["ai"])
         self.assertNotIn("--retry", callers[0]["run"])
+
+    def test_primary_request_without_paid_failover_and_local_failure_notes(self):
+        for http, stop in (("200", "end_turn"), ("200", "refusal"), ("503", "error")):
+            with self.subTest(http=http, stop=stop):
+                response = {"stop_reason": stop, "content": [{"type": "text", "text": json.dumps({
+                    "bump": "minor", "notes": "Improved microphone capture."})}]}
+                result = self.run_step(step("ai"), ANTHROPIC_API_KEY="offline-test-only",
+                                       PREV_VERSION="1.2.3", COMMIT_LOG="Fix capture",
+                                       PR_LIST="- #125 fix/mic: Restart microphone", CHANGE_SIZE="1 commit",
+                                       RESPONSE_HTTP=http, RESPONSE_JSON=json.dumps(response))
+                request = json.loads(result["request.json"])
+                self.assertEqual(request["model"], "claude-opus-5")
+                self.assertEqual(request["output_config"]["format"]["type"], "json_schema")
+                self.assertEqual(request["output_config"]["format"]["schema"]["required"], ["bump", "notes"])
+                self.assertNotIn("fallbacks", request)
+                self.assertNotIn("anthropic-beta", result["curl-call"])
+                self.assertEqual(len(result["curl-call"].splitlines()), 1)
+                if http == "200" and stop == "end_turn":
+                    self.assertIn("bump=minor\n", result["outputs"])
+                    self.assertEqual(result["notes.txt"].strip(), "Improved microphone capture.")
+                else:
+                    self.assertIn("bump=patch\n", result["outputs"])
+                    self.assertEqual(result["notes.txt"], "Restart microphone\n")
 
     def test_saved_notes_reused_for_retry_and_promotion(self):
         body = "<!-- sstvaf-version: 2.7.4 -->\n<!-- sstvaf-notes-start -->\nFix first-launch RX.\n<!-- sstvaf-notes-end -->"
