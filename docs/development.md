@@ -94,6 +94,36 @@ and Compose decision logic. Use tests under `src/test/java` or `src/test/kotlin`
 with JUnit4 + Truth; Android types need `RobolectricTestRunner`. JVM tests use
 fakes for native/device boundaries and do not prove the JNI or radio path.
 
+### Shared CAT framing core
+
+`ham-radio-core/` is the unchanged canonical FT8AF 0.2.0 payload from
+[FT8AF PR #994](https://github.com/patrickrb/FT8AF/pull/994), source commit
+`7806cd8e33096ced5d19c5509d06f1df95518ab9`. The transfer archive SHA256 is
+`3553fc43df7cf3c0b62381831fa4a31e7bc56abae2186a9e7834778a3f8afc36`;
+the `SHA256SUMS` file SHA256 is
+`f22d32ab5a230bf86857b43a42501d521080658555dc12fde511fa9b83c8bd07`.
+All 17 payload entries can be verified with `sha256sum -c SHA256SUMS` from
+that directory. Keep consumer-specific notes here, not in the canonical module.
+
+The eleven rig consumers import `radio.core.cat.CivFrameSplitter` or
+`CatLineSplitter` directly. The two local implementations and their 34 tests
+move to the core without changing the framing algorithms, rig callbacks,
+buffer ownership, character decoding, polling, or PTT behavior.
+
+Validate serially with a 1536 MiB Gradle heap, one worker, and in-process Kotlin:
+
+```bash
+bash sstvaf/gradlew -p ham-radio-core --no-daemon --max-workers=1 \
+  -Dorg.gradle.jvmargs=-Xmx1536m clean test jar javadoc
+bash sstvaf/gradlew -p sstvaf --no-daemon --max-workers=1 \
+  -Dorg.gradle.jvmargs=-Xmx1536m -Pkotlin.compiler.execution.strategy=in-process \
+  :ham-radio-core:test testDebugUnitTest assembleDebug
+```
+
+This consumer port must wait for FT8AF-first maintainer integration before
+merging. Validation and a feature PR to `dev` do not authorize promotion,
+release, or production. Physical-device USB/CAT/PTT/RF testing remains separate.
+
 Outputs:
 
 - APK: `sstvaf/app/build/outputs/apk/debug/app-debug.apk`

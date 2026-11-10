@@ -14,6 +14,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 import com.k1af.ft8af.wave.FT8Resample;
 
+import radio.core.cat.CivFrameSplitter;
+
 public class XieGuRig extends BaseRig {
     private static final String TAG = "XieGu6100Rig";
 
