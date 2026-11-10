@@ -17,6 +17,7 @@ import com.k1af.ft8af.ui.ToastMessage;
 import com.k1af.ft8af.wave.FT8Resample;
 
 import radio.core.cat.CatLiveness;
+import radio.core.cat.CivFrameSplitter;
 
 import java.util.Timer;
 import java.util.TimerTask;
