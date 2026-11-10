@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read committed SSTVAF internal releases without creating or committing edits."""
+"""Inspect SSTVAF internal releases; optionally open/read/delete an uncommitted edit."""
 import argparse
 from datetime import datetime, timezone
 import json
@@ -11,6 +11,8 @@ URL = (
     "https://androidpublisher.googleapis.com/androidpublisher/v3/"
     f"applications/{PACKAGE}/tracks/internal/releases"
 )
+EDITS_URL = URL.removesuffix("/tracks/internal/releases") + "/edits"
+TRACK_STATUSES = ("draft", "completed", "inProgress", "halted")
 STATES = {
     "draft": "RELEASE_LIFECYCLE_STATE_DRAFT",
     "notSentForReview": "RELEASE_LIFECYCLE_STATE_NOT_SENT_FOR_REVIEW",
@@ -55,20 +57,59 @@ def verify_internal(session, version_code, expected_status):
     }
 
 
+def inspect_edit_track(session, version_code, expected_status, report):
+    """Open an inspection edit, read INTERNAL only, and delete even on failure."""
+    edit = session.post(EDITS_URL, timeout=30)
+    edit.raise_for_status()
+    edit_url = f"{EDITS_URL}/{edit.json()['id']}"
+    report["editCleanup"] = {"attempted": False, "succeeded": False}
+    try:
+        response = session.get(f"{edit_url}/tracks/internal", timeout=30)
+        response.raise_for_status()
+        track = response.json()
+        if track.get("track") != "internal":
+            raise ValidationFailure("Response is not the internal track")
+        matches = [release for release in track.get("releases", [])
+                   if str(version_code) in release.get("versionCodes", [])]
+        if len(matches) != 1:
+            raise ValidationFailure("Expected version must occur in exactly one internal release")
+        release = matches[0]
+        status = release.get("status")
+        report["observed"] = {
+            "versionCode": version_code,
+            "releaseName": release.get("name", ""),
+            "trackStatus": status if status in TRACK_STATUSES else "unrecognized",
+            "userFraction": release.get("userFraction"),
+        }
+        if status != expected_status:
+            raise ValidationFailure("Observed track status does not match expected status")
+    finally:
+        report["editCleanup"]["attempted"] = True
+        try:
+            session.delete(edit_url, timeout=30).raise_for_status()
+            report["editCleanup"]["succeeded"] = True
+        except Exception as error:
+            report["editCleanup"]["errorType"] = type(error).__name__
+            raise
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version-code", type=int, required=True)
-    parser.add_argument("--expected-status", choices=STATES, required=True)
+    expected = parser.add_mutually_exclusive_group(required=True)
+    expected.add_argument("--expected-status", choices=STATES)
+    expected.add_argument("--expected-track-status", choices=TRACK_STATUSES)
     parser.add_argument("--report", type=Path, required=True)
     args = parser.parse_args(argv)
     report = {
         "packageName": PACKAGE,
         "track": "internal",
-        "requestUrl": URL,
+        "requestUrl": f"{EDITS_URL}/{{editId}}/tracks/internal" if args.expected_track_status else URL,
+        "inspectionMode": "edit-track" if args.expected_track_status else "release-summary",
         "checkedAt": datetime.now(timezone.utc).isoformat(),
         "workflowSourceCommit": os.environ.get("GITHUB_SHA", ""),
         "expectedVersionCode": args.version_code,
-        "expectedStatus": STATES[args.expected_status],
+        "expectedStatus": args.expected_track_status or STATES[args.expected_status],
         "verified": False,
         "stage": "credentials",
         "testerDeviceAvailability": "not verified",
@@ -87,7 +128,10 @@ def main(argv=None):
         )
         report["stage"] = "request/validation"
         with AuthorizedSession(credentials) as session:
-            report["observed"] = verify_internal(session, args.version_code, args.expected_status)
+            if args.expected_track_status:
+                inspect_edit_track(session, args.version_code, args.expected_track_status, report)
+            else:
+                report["observed"] = verify_internal(session, args.version_code, args.expected_status)
         report["verified"] = True
         report["stage"] = "verified"
     except Exception as error:
