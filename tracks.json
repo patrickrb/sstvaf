@@ -9,16 +9,9 @@
   "internal": [
     {
       "name": "android-dev.310",
-      "status": "draft",
-      "versionCodes": [
-        1310
-      ]
-    },
-    {
-      "name": "android-dev.300",
       "status": "completed",
       "versionCodes": [
-        1300
+        1310
       ]
     }
   ],
