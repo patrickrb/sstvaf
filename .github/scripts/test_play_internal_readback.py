@@ -1,8 +1,12 @@
 import json
+import os
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
+
+import yaml
 
 import play_internal_readback as readback
 
@@ -42,6 +46,32 @@ class Session:
 
     def __exit__(self, *args):
         pass
+
+
+class EditSession(Session):
+    """Only edit creation, internal GET and deletion are permitted; never commit."""
+    def __init__(self, payload, get_error=None, delete_error=None, post_error=None):
+        super().__init__(payload)
+        self.get_error = get_error
+        self.delete_error = delete_error
+        self.post_error = post_error
+        self.deleted = False
+
+    def post(self, url, timeout):
+        if url != readback.EDITS_URL or timeout != 30:
+            raise AssertionError("Only inspection-edit creation is allowed")
+        return Session({"id": "inspection-id"}, self.post_error)
+
+    def get(self, url, timeout):
+        if url != f"{readback.EDITS_URL}/inspection-id/tracks/internal" or timeout != 30:
+            raise AssertionError("Only the internal track may be read")
+        return Session(self.payload, self.get_error)
+
+    def delete(self, url, timeout):
+        if url != f"{readback.EDITS_URL}/inspection-id" or timeout != 30:
+            raise AssertionError("Only the inspection edit may be deleted")
+        self.deleted = True
+        return Session(error=self.delete_error)
 
 
 class ReadbackTest(unittest.TestCase):
@@ -113,6 +143,78 @@ class ReadbackTest(unittest.TestCase):
             self.assertNotIn("secret-not-json", path.read_text())
             self.assertNotIn("validationError", report)
             self.assertEqual(report["stage"], "credentials")
+
+    def edit_report(self, session, expected="completed"):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "report.json"
+            with patch.dict("os.environ", {"PLAY_SERVICE_ACCOUNT_JSON": "{}"}), \
+                 patch("google.oauth2.service_account.Credentials.from_service_account_info"), \
+                 patch("google.auth.transport.requests.AuthorizedSession", return_value=session):
+                status = readback.main(["--version-code", "1300", "--expected-track-status", expected,
+                                        "--report", str(path)])
+            return status, json.loads(path.read_text())
+
+    def test_edit_status_is_not_lifecycle_and_cleanup_is_required(self):
+        for actual in ("completed", "draft", "inProgress", "halted", "unknown"):
+            for expected in ("completed", "draft"):
+                with self.subTest(actual=actual, expected=expected):
+                    session = EditSession({"track": "internal", "releases": [
+                        {"name": "other", "versionCodes": ["1299"], "status": expected},
+                        {"name": "android-dev.300", "versionCodes": ["1300"],
+                         "status": actual, "userFraction": 0.25},
+                    ]})
+                    status, report = self.edit_report(session, expected)
+                    self.assertEqual(status, 0 if actual == expected else 1)
+                    self.assertEqual(report["verified"], actual == expected)
+                    self.assertEqual(report["inspectionMode"], "edit-track")
+                    self.assertEqual(report["observed"]["releaseName"], "android-dev.300")
+                    self.assertEqual(report["observed"]["trackStatus"],
+                                     actual if actual != "unknown" else "unrecognized")
+                    self.assertEqual(report["observed"]["userFraction"], 0.25)
+                    self.assertEqual(report["editCleanup"], {"attempted": True, "succeeded": True})
+                    self.assertTrue(session.deleted)
+                    self.assertEqual(report["testerDeviceAvailability"], "not verified")
+
+    def test_edit_get_and_delete_failures_fail_closed_without_secret_error_text(self):
+        release = {"name": "android-dev.300", "versionCodes": ["1300"], "status": "completed"}
+        for payload, errors, deleted, cleanup_ok in [
+            ({"track": "internal", "releases": [release]}, {"post_error": PermissionError("secret")}, False, False),
+            ({"track": "internal", "releases": [release]}, {"get_error": PermissionError("secret")}, True, True),
+            ({"track": "internal", "releases": [release]}, {"delete_error": PermissionError("secret")}, True, False),
+            ({"track": "production", "releases": [release]}, {}, True, True),
+            ({"track": "internal", "releases": []}, {}, True, True),
+            ({"track": "internal", "releases": [release, release]}, {}, True, True),
+        ]:
+            with self.subTest(payload=payload, errors=errors):
+                session = EditSession(payload, **errors)
+                status, report = self.edit_report(session)
+                self.assertEqual(status, 1)
+                self.assertFalse(report["verified"])
+                self.assertEqual(session.deleted, deleted)
+                if deleted:
+                    self.assertEqual(report["editCleanup"]["succeeded"], cleanup_ok)
+                if errors.get("delete_error"):
+                    self.assertEqual(report["editCleanup"]["errorType"], "PermissionError")
+                    self.assertEqual(report["observed"]["trackStatus"], "completed")
+                self.assertNotIn("secret", json.dumps(report))
+
+    def test_hosted_workflow_selects_only_one_inspection_mode(self):
+        workflow = yaml.safe_load((Path(__file__).parents[1] / "workflows/play-internal-readback.yml").read_text())
+        inspect = workflow["jobs"]["inspect"]
+        self.assertEqual(inspect["if"], "github.event_name == 'workflow_dispatch'")
+        script = next(step["run"] for step in inspect["steps"] if "env" in step)
+        for mode, flag, expected in [("release-summary", "--expected-status", "published"),
+                                     ("edit-track", "--expected-track-status", "completed")]:
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as temp:
+                stub = Path(temp) / "python"
+                stub.write_text('#!/bin/bash\nprintf "%s\\n" "$@"\n')
+                stub.chmod(0o755)
+                env = dict(os.environ, PATH=f"{temp}:{os.environ['PATH']}", INSPECTION_MODE=mode,
+                           VERSION_CODE="1300", EXPECTED_STATUS="published",
+                           EXPECTED_TRACK_STATUS="completed", RUNNER_TEMP=temp)
+                args = subprocess.check_output(["bash", "-c", script], env=env, text=True).splitlines()
+                self.assertEqual(args, [".github/scripts/play_internal_readback.py", "--version-code",
+                                        "1300", flag, expected, "--report", f"{temp}/play-internal-readback.json"])
 
 
 if __name__ == "__main__":

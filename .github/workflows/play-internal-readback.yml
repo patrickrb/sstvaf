@@ -22,11 +22,21 @@ on:
         description: Existing SSTVAF internal version code to verify (no upload)
         required: true
         type: string
+      inspection_mode:
+        description: GET-only lifecycle or open/read/delete an inspection edit (never commit)
+        type: choice
+        default: release-summary
+        options: [release-summary, edit-track]
       expected_status:
         description: Expected committed release lifecycle (not device availability)
         required: true
         type: choice
         options: [draft, notSentForReview, inReview, approvedNotPublished, notApproved, published]
+      expected_track_status:
+        description: Expected tracks/internal status (edit-track mode only)
+        type: choice
+        default: completed
+        options: [draft, completed, inProgress, halted]
 
 permissions:
   contents: read
@@ -53,14 +63,22 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m pip install --quiet google-auth requests
-      - name: Read existing committed internal release (GET only)
+      - name: Inspect internal release (no uploads, track changes or edit commit)
         env:
           PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           VERSION_CODE: ${{ inputs.version_code }}
+          INSPECTION_MODE: ${{ inputs.inspection_mode }}
           EXPECTED_STATUS: ${{ inputs.expected_status }}
+          EXPECTED_TRACK_STATUS: ${{ inputs.expected_track_status }}
         run: |
+          set -euo pipefail
+          if [[ "$INSPECTION_MODE" == "edit-track" ]]; then
+            status_args=(--expected-track-status "$EXPECTED_TRACK_STATUS")
+          else
+            status_args=(--expected-status "$EXPECTED_STATUS")
+          fi
           python .github/scripts/play_internal_readback.py \
-            --version-code "$VERSION_CODE" --expected-status "$EXPECTED_STATUS" \
+            --version-code "$VERSION_CODE" "${status_args[@]}" \
             --report "$RUNNER_TEMP/play-internal-readback.json"
       - name: Upload read-back evidence even on validation failure
         if: always()
