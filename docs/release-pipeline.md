@@ -60,7 +60,7 @@ Ported from Sorrel's `play-beta.yml`. On a push to `staging` the Android
    and size signals (commit count, `sstvaf/` diff stat, changed files by area).
 2. If nothing under `sstvaf/` changed (a desktop-only promotion) it
    builds but **cuts no release** — no empty versions.
-3. Otherwise asks Claude (`claude-opus-5`, structured output) for the semver
+3. On the first run attempt only, asks Claude (`claude-opus-5`, structured output) for the semver
    bump — `major` / `minor` / `patch`, judged from both content and size, with
    changes outside `sstvaf/` not counting — and for ≤400-character Play release
    notes aimed at ham operators.
@@ -73,10 +73,18 @@ Ported from Sorrel's `play-beta.yml`. On a push to `staging` the Android
 On the later push to `main` the job looks for the newest `android-dev.*` tag
 that is an ancestor of `HEAD` and not already shipped, reads the version and
 notes back out of those markers, and releases `android-v<x.y.z>` with the same
-notes on the production track — production ships exactly what the internal
-testers ran. If no such candidate exists (or it pre-dates the markers) Claude
-decides on `main` instead. An `android-v<x.y.z>` that already exists is stepped
+notes on the production track. If no such candidate exists (or it pre-dates the
+markers), a deterministic patch bump and PR-title notes are used, with no paid
+API call. An `android-v<x.y.z>` that already exists is stepped
 by a patch until free.
+
+Retries never call the paid API again: they reuse the same run's
+`android-dev.<run#>` version/notes markers if that release already exists;
+otherwise they use the deterministic patch/PR-title fallback. If the first
+attempt failed before saving release markers, its AI result is not recoverable
+and the fallback may choose a different bump. Tag/other lanes make no paid call.
+The existing internal draft/manual-rollout gate and production approval hold
+remain unchanged; this workflow policy does not authorize production delivery.
 
 `versionCode` is unchanged: still `GITHUB_RUN_NUMBER + 1000`.
 
@@ -85,7 +93,9 @@ and has a self-test (`--self-test`).
 
 **Secret:** `ANTHROPIC_API_KEY` (repository secret). Without it, or if the API
 call fails, the run annotates a warning, takes a **patch** bump, and uses the
-PR titles as the notes — a release is never blocked on the AI step.
+PR titles as the notes — a release is never blocked on the AI step. The first
+internal request uses only the primary model, without server-side paid failover;
+refusal also uses the local deterministic fallback, not another model call.
 
 ## One-time setup on GitHub (manual)
 

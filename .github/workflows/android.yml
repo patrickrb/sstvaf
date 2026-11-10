@@ -26,7 +26,10 @@ name: Android CI & Release
 # the Play release notes. The notes go into the GitHub Release body and the Play
 # "what's new"; the chosen version is stashed in the prerelease body as a hidden
 # marker so the later main push ships the SAME version production-side instead
-# of re-rolling the decision. A staging/main push whose diff since the last
+# of re-rolling the decision. Only the first staging run attempt may call the
+# API; retries reuse their saved release or deterministic fallback notes.
+# Promotion without saved notes also uses the fallback, never another API call.
+# A staging/main push whose diff since the last
 # production tag touches nothing under sstvaf/ (a desktop-only
 # promotion) builds but does not cut a release, so no empty versions are made.
 # Requires the ANTHROPIC_API_KEY repository secret; without it (or on an API
@@ -504,31 +507,35 @@ jobs:
         # wrote release notes. Reuse them so production ships the version the
         # internal testers ran rather than re-rolling Claude's decision. The
         # staging prerelease body carries both inside hidden HTML-comment markers
-        # (see "Write release notes"). Falls through (found=false) for staging
-        # builds that predate the markers, so Claude decides on main instead.
-        if: steps.lane.outputs.lane == 'production' && steps.changes.outputs.android_changed == 'true'
+        # (see "Write release notes"). A staging retry reuses its own release.
+        # Missing markers fall through to deterministic notes, never a paid retry.
+        if: (steps.lane.outputs.lane == 'production' || (steps.lane.outputs.lane == 'dev' && github.run_attempt != '1')) && steps.changes.outputs.android_changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PREV_TAG: ${{ steps.changes.outputs.prev_tag }}
+          LANE: ${{ steps.lane.outputs.lane }}
         run: |
           set -euo pipefail
           cand=""
-          for tag in $(git tag --list 'android-dev.*' --sort=-v:refname); do
-            # Newest staging build that is part of this main HEAD and was not
-            # already shipped by the previous production release.
-            if git merge-base --is-ancestor "$tag" HEAD 2>/dev/null \
-               && { [[ -z "$PREV_TAG" ]] || ! git merge-base --is-ancestor "$tag" "$PREV_TAG" 2>/dev/null; }; then
-              cand="$tag"; break
-            fi
-          done
+          if [[ "$LANE" == "dev" ]]; then
+            cand="android-dev.${GITHUB_RUN_NUMBER}"
+          else
+            for tag in $(git tag --list 'android-dev.*' --sort=-v:refname); do
+              # Newest staging build reachable from main and not already shipped.
+              if git merge-base --is-ancestor "$tag" HEAD 2>/dev/null \
+                 && { [[ -z "$PREV_TAG" ]] || ! git merge-base --is-ancestor "$tag" "$PREV_TAG" 2>/dev/null; }; then
+                cand="$tag"; break
+              fi
+            done
+          fi
           if [[ -z "$cand" ]]; then
-            echo "No unshipped android-dev.* build reachable from HEAD — Claude will version this release."
+            echo "No unshipped android-dev.* build reachable from HEAD — using deterministic fallback."
             echo "found=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
           BODY=$(gh release view "$cand" --json body -q .body 2>/dev/null | tr -d '\r' || true)
           VERSION=$(sed -nE 's#.*<!-- sstvaf-version: ([0-9]+\.[0-9]+\.[0-9]+) -->.*#\1#p' <<< "$BODY" | head -n1)
           if [[ -z "$VERSION" ]]; then
-            echo "Candidate $cand has no version marker (pre-dates AI versioning) — Claude will version this release."
+            echo "Candidate $cand has no version marker — using deterministic fallback."
             echo "found=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
           awk '/<!-- sstvaf-notes-start -->/{f=1; next} /<!-- sstvaf-notes-end -->/{f=0} f' <<< "$BODY" > notes.txt
@@ -541,7 +548,8 @@ jobs:
       - name: Generate release notes and semver bump with Claude
         id: ai
         if: >-
-          (steps.lane.outputs.lane == 'production' || steps.lane.outputs.lane == 'dev')
+          steps.lane.outputs.lane == 'dev'
+          && github.run_attempt == '1'
           && steps.changes.outputs.android_changed == 'true'
           && steps.candidate.outputs.found != 'true'
         env:
@@ -616,23 +624,16 @@ jobs:
           jq -n --rawfile prompt prompt.txt --argjson schema "$SCHEMA" '{
             model: "claude-opus-5",
             max_tokens: 4096,
-            fallbacks: "default",
             output_config: {format: {type: "json_schema", schema: $schema}},
             messages: [{role: "user", content: $prompt}]
           }' > request.json
-          # `fallbacks: "default"` + the `server-side-fallback-2026-07-01` beta is
-          # the documented way to survive a `stop_reason: "refusal"` on the
-          # Opus/Fable tier. Deliberately NOT run with curl's -f: on a non-2xx we
-          # want the response BODY in the step log, because that is what names the
-          # cause (a retired beta value, a bad model id, an expired key). The whole
-          # step is already wrapped in fallback(), so any failure - beta retirement
-          # included - degrades to a patch bump plus PR-title notes rather than
-          # blocking the release.
+          # One primary-model request only: no server-side paid failover.
+          # Keep non-2xx diagnostics; refusal/errors use the local deterministic
+          # patch/PR-title fallback rather than another paid model execution.
           HTTP_CODE=$(curl -sS --max-time 300 -o response.json -w '%{http_code}' \
               https://api.anthropic.com/v1/messages \
               -H "x-api-key: $ANTHROPIC_API_KEY" \
               -H "anthropic-version: 2023-06-01" \
-              -H "anthropic-beta: server-side-fallback-2026-07-01" \
               -H "content-type: application/json" \
               -d @request.json) || HTTP_CODE="000"
           if [[ "$HTTP_CODE" != 2* ]]; then
@@ -657,6 +658,16 @@ jobs:
           echo "Claude chose bump: $BUMP"
           echo "Notes:"; cat notes.txt
 
+      - name: Use deterministic notes without another API call
+        if: (steps.lane.outputs.lane == 'production' || steps.lane.outputs.lane == 'dev') && steps.changes.outputs.android_changed == 'true' && steps.candidate.outputs.found != 'true' && steps.ai.outputs.bump == ''
+        env:
+          PR_LIST: ${{ steps.changes.outputs.prs }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$PR_LIST" | sed -E 's/^- #[0-9]+ [^:]*: ?//; s/^- #[0-9]+ //' \
+            | awk 'NF { if (n + length($0) + 1 > 500) exit; print; n += length($0) + 1 }' > notes.txt
+          [[ -s notes.txt ]] || echo "Bug fixes and improvements." > notes.txt
+
       - name: Compute version and release tag
         id: tag
         env:
@@ -667,8 +678,8 @@ jobs:
           CAND_FOUND: ${{ steps.candidate.outputs.found }}
           CAND_TAG: ${{ steps.candidate.outputs.tag }}
           CAND_VERSION: ${{ steps.candidate.outputs.version }}
-          BUMP: ${{ steps.ai.outputs.bump }}
-          BUMP_SOURCE: ${{ steps.ai.outputs.source }}
+          BUMP: ${{ steps.ai.outputs.bump || 'patch' }}
+          BUMP_SOURCE: ${{ steps.ai.outputs.source || 'deterministic fallback' }}
         run: |
           set -euo pipefail
           release_tag=""; version_name=""; should_release=false; is_prerelease=false; play_track=""; play_status=""; version_source=""
