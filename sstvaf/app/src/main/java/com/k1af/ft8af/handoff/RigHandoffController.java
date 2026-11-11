@@ -76,6 +76,7 @@ public final class RigHandoffController {
     private final Scheduler scheduler;
     private final Listener listener;
 
+    private long lastForegroundedAtMs;
     private Runnable pendingRelease;
     private Runnable pendingReclaim;
 
@@ -88,8 +89,14 @@ public final class RigHandoffController {
         this.listener = listener;
     }
 
-    /** This app's UI just became visible to the operator. */
-    public void onForegrounded() {
+    /**
+     * This app's UI just became visible to the operator.
+     *
+     * @param nowMs current wall clock; remembered so an older takeover delivered late
+     *              cannot undo this claim
+     */
+    public void onForegrounded(long nowMs) {
+        lastForegroundedAtMs = nowMs;
         boolean wasYielded = RigHandoffGate.isYielded();
         // A release still waiting out its unkey grace must not fire after we are back.
         cancelPendingRelease();
@@ -114,6 +121,9 @@ public final class RigHandoffController {
                                        long sentAtMs, long nowMs) {
         if (!RigHandoffProtocol.shouldHonor(
                 selfPackage, fromPackage, verifiedSender, sentAtMs, nowMs)) {
+            return false;
+        }
+        if (RigHandoffProtocol.predatesOwnClaim(sentAtMs, lastForegroundedAtMs)) {
             return false;
         }
         // We are not coming back for the rig after all.

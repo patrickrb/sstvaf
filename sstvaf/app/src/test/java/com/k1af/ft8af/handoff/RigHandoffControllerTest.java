@@ -220,7 +220,7 @@ public class RigHandoffControllerTest {
 
     @Test
     public void foregrounded_neverYielded_asksSiblingsButDoesNotReconnect() {
-        controller.onForegrounded();
+        controller.onForegrounded(NOW - 1);
 
         // Nothing was lent out, so the app's normal connect paths are left alone.
         assertThat(events).containsExactly("sendTakeover");
@@ -232,7 +232,7 @@ public class RigHandoffControllerTest {
         controller.onTakeoverRequested(FT8AF, null, NOW, NOW);
         events.clear();
 
-        controller.onForegrounded();
+        controller.onForegrounded(NOW - 1);
 
         assertThat(RigHandoffGate.isYielded()).isFalse();
         assertThat(events).containsExactly("sendTakeover", "regained:null").inOrder();
@@ -248,7 +248,7 @@ public class RigHandoffControllerTest {
     @Test
     public void released_reclaimsImmediatelyAndCancelsTheDelayedReclaim() {
         controller.onTakeoverRequested(FT8AF, null, NOW, NOW);
-        controller.onForegrounded();
+        controller.onForegrounded(NOW - 1);
         events.clear();
 
         assertThat(controller.onReleased(FT8AF, null, NOW, NOW)).isTrue();
@@ -261,7 +261,7 @@ public class RigHandoffControllerTest {
     @Test
     public void released_withoutPriorYield_stillReclaims() {
         // Fresh start while a sibling held the rig: its RELEASED is our cue to connect.
-        controller.onForegrounded();
+        controller.onForegrounded(NOW - 1);
         events.clear();
 
         controller.onReleased(FT8AF, null, NOW, NOW);
@@ -297,7 +297,7 @@ public class RigHandoffControllerTest {
         events.clear();
 
         // Operator flips straight back before the grace timer fires.
-        controller.onForegrounded();
+        controller.onForegrounded(NOW - 1);
         scheduler.runAll();
 
         // The pending release was cancelled: no release, no RELEASED sent.
@@ -309,7 +309,7 @@ public class RigHandoffControllerTest {
     @Test
     public void takeoverDuringReclaimDelay_cancelsTheReclaim() {
         controller.onTakeoverRequested(FT8AF, null, NOW, NOW);
-        controller.onForegrounded(); // reclaim now pending
+        controller.onForegrounded(NOW - 1); // reclaim now pending
         events.clear();
 
         // The sibling comes back in front before our delayed reclaim ran.
@@ -317,6 +317,28 @@ public class RigHandoffControllerTest {
         scheduler.runAll();
 
         assertThat(events).doesNotContain("reclaim");
+        assertThat(RigHandoffGate.isYielded()).isTrue();
+    }
+
+    @Test
+    public void takeoverSentBeforeOurOwnForegrounding_isIgnored() {
+        // Sibling claimed at T, then the operator opened us at T+10. Its request,
+        // delivered late (frozen process, busy main thread), has been superseded.
+        controller.onForegrounded(NOW + 10);
+        events.clear();
+
+        assertThat(controller.onTakeoverRequested(FT8AF, null, NOW, NOW + 20)).isFalse();
+
+        assertThat(events).isEmpty();
+        assertThat(RigHandoffGate.isYielded()).isFalse();
+    }
+
+    @Test
+    public void takeoverSentAfterOurForegrounding_isHonoured() {
+        controller.onForegrounded(NOW);
+        events.clear();
+
+        assertThat(controller.onTakeoverRequested(FT8AF, null, NOW + 10, NOW + 20)).isTrue();
         assertThat(RigHandoffGate.isYielded()).isTrue();
     }
 

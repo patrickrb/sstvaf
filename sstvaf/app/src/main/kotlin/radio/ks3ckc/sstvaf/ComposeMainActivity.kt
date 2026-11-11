@@ -561,7 +561,7 @@ class ComposeMainActivity : AppCompatActivity() {
         super.onStart()
         // We are in front of the operator: ask any sibling app to let go of the rig,
         // and take it back if we had lent it out.
-        RigHandoff.get()?.onForegrounded()
+        RigHandoff.get()?.onForegrounded(System.currentTimeMillis())
     }
 
     /**

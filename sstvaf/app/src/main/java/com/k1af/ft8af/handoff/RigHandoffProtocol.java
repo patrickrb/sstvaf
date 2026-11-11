@@ -44,9 +44,23 @@ public final class RigHandoffProtocol {
      * A message older than this is ignored. Android can hold a broadcast for a frozen
      * background process and deliver it when that app is next opened — by which time the
      * sender is no longer in front, and obeying it would make the app the operator just
-     * opened hand the rig straight back.
+     * opened hand the rig straight back. Generous on purpose: a cold-starting app's
+     * main thread can sit on a message for several seconds (4.7 s measured on an
+     * emulator), and {@link #predatesOwnClaim} catches the stale case exactly.
      */
-    public static final long MAX_MESSAGE_AGE_MS = 5_000;
+    public static final long MAX_MESSAGE_AGE_MS = 15_000;
+
+    /**
+     * Whether a takeover was sent before this app last came to the foreground. The last
+     * app to be put in front of the operator wins, so a request older than our own claim
+     * has already been superseded by it — however late it happens to be delivered.
+     *
+     * @param sentAtMs             when the takeover was sent
+     * @param lastForegroundedAtMs when this app last came to the foreground, 0 if never
+     */
+    public static boolean predatesOwnClaim(long sentAtMs, long lastForegroundedAtMs) {
+        return lastForegroundedAtMs > 0 && sentAtMs < lastForegroundedAtMs;
+    }
 
     /**
      * Every app that speaks this protocol. An app not on this list is never obeyed, so a

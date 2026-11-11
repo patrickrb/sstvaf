@@ -76,6 +76,15 @@ public class RigHandoffProtocolTest {
     }
 
     @Test
+    public void predatesOwnClaim_onlyWhenSentBeforeWeLastForegrounded() {
+        assertThat(RigHandoffProtocol.predatesOwnClaim(NOW - 1, NOW)).isTrue();
+        assertThat(RigHandoffProtocol.predatesOwnClaim(NOW, NOW)).isFalse();
+        assertThat(RigHandoffProtocol.predatesOwnClaim(NOW + 1, NOW)).isFalse();
+        // Never foregrounded this process (0): there is no claim to predate.
+        assertThat(RigHandoffProtocol.predatesOwnClaim(NOW, 0L)).isFalse();
+    }
+
+    @Test
     public void displayName_isShortUppercaseForFamily_packageOtherwise() {
         assertThat(RigHandoffProtocol.displayName(FT8AF)).isEqualTo("FT8AF");
         assertThat(RigHandoffProtocol.displayName(SELF)).isEqualTo("SSTVAF");
