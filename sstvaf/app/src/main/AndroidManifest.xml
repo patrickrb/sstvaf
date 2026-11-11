@@ -29,6 +29,15 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
+    <!-- Rig handoff: the sibling ks3ckc radio apps this app asks to release the rig
+         (and answers when they ask). Android 11+ hides other packages, and drops
+         broadcasts addressed to them, unless they are declared here. -->
+    <queries>
+        <package android:name="radio.ks3ckc.ft8af" />
+        <package android:name="radio.ks3ckc.rttyaf" />
+        <package android:name="radio.ks3ckc.jttyaf" />
+    </queries>
+
     <application
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"

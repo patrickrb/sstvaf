@@ -1520,6 +1520,69 @@ public class MainViewModel extends ViewModel {
         baseRig.getConnector().connect();
     }
 
+    /** A transmission or tune carrier is on the air (rig-handoff view). */
+    public boolean isTransmittingForHandoff() {
+        return isTransmittingNow();
+    }
+
+    /**
+     * Stop whatever is on the air because a sibling app is taking the rig over. No CW
+     * ID follows: the rig is about to belong to another app.
+     */
+    public void stopTransmitForHandoff() {
+        tuneOperator.stopTune();
+        sstvTransmitter.cancel(false);
+        transmitAudioSink.cancel();
+    }
+
+    /**
+     * Let go of the rig for a sibling app: close the CAT link (which also ends its
+     * auto-reconnect loop) and rebuild the audio input, which — with
+     * {@code RigHandoffGate} already set — comes back up on the phone's own input
+     * instead of the rig's USB audio. The rebuild runs off the main thread because it
+     * joins the old capture thread.
+     */
+    public void releaseRigForHandoff() {
+        fileLog("RigHandoff: releasing rig (connected=" + isRigConnected() + ")");
+        // A PTT-off that never reached the rig must be settled while the port is still
+        // open; after disconnect() there is nothing left to send it through.
+        retryPendingUnkey();
+        if (baseRig != null && baseRig.getConnector() != null) {
+            baseRig.getConnector().disconnect();
+        }
+        Thread t = new Thread(this::reinitializeAudioInput, "RigHandoffRelease");
+        t.setDaemon(true);
+        t.start();
+    }
+
+    /**
+     * Take the rig back after a handoff (or after a sibling confirmed it let go).
+     * Deliberately gentle: a healthy link and a live USB audio stream are left alone, so
+     * a redundant call never punches a capture gap into a decode in progress.
+     */
+    public void reclaimRigAfterHandoff() {
+        boolean connected = isRigConnected();
+        boolean usbAudioWanted = com.k1af.ft8af.handoff.RigHandoffGate.mayOpenUsbAudioInput(
+                GeneralVariables.audioInputDeviceId, GeneralVariables.usbAudioInputVendorId);
+        boolean usbAudioLive = hamRecorder != null
+                && hamRecorder.getMicRecorder().isUsingUsbDirect();
+        fileLog("RigHandoff: reclaiming rig (connected=" + connected
+                + " usbAudioWanted=" + usbAudioWanted + " usbAudioLive=" + usbAudioLive + ")");
+        if (!connected) {
+            if (baseRig != null && baseRig.getConnector() != null) {
+                reconnectRig();
+            } else {
+                // Never connected this process: let the port scan drive auto-connect.
+                getUsbDevice();
+            }
+        }
+        if (usbAudioWanted && !usbAudioLive) {
+            Thread t = new Thread(this::reinitializeAudioInput, "RigHandoffReclaim");
+            t.setDaemon(true);
+            t.start();
+        }
+    }
+
     /**
      * Get the serial port device list
      */

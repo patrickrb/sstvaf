@@ -562,6 +562,8 @@
     <string name="rx_service_channel_desc">Keeps SSTV decoding running while the app is in the background or the screen is off</string>
     <string name="rx_service_title">SSTVAF is listening for SSTV images</string>
     <string name="rx_service_text">Decoding SSTV in the background</string>
+    <string name="rig_handoff_yielded">Radio handed to %1$s — open SSTVAF to take it back</string>
+    <string name="rig_handoff_took_over">Took the radio over from %1$s</string>
 
     <!-- ===== Settings: logging &amp; awards ===== -->
     <string name="settings_save_swl_decodes">Save SWL Decodes</string>
