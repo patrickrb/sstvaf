@@ -831,4 +831,26 @@
     <string name="radio_level_advice_good">W zdrowym zakresie.</string>
     <string name="radio_level_advice_high">Blisko przesterowania. Nieco zmniejsz wzmocnienie.</string>
     <string name="radio_level_advice_clipping">Przesterowanie. Zmniejszaj wzmocnienie, aż szczyty pozostaną poniżej znacznika.</string>
+
+    <!-- ===== TX composer: inset (a received picture pinned to a reply) ===== -->
+    <string name="tx_tool_inset">Wstawka</string>
+    <string name="tx_inset_hint_empty">Przypnij odebrany obraz w rogu swojego, aby druga stacja zobaczyła, co do Ciebie dotarło.</string>
+    <string name="tx_inset_received_label">ODEBRANE</string>
+    <string name="tx_inset_tap_to_pin">Dotknij, aby przypiąć. Najnowsze na początku.</string>
+    <string name="tx_inset_none_received">Nic jeszcze nie odebrano. Odebrane obrazy pojawią się tutaj.</string>
+    <string name="tx_inset_title">Odebrany obraz</string>
+    <string name="tx_inset_corner">RÓG</string>
+    <string name="tx_inset_size">ROZMIAR</string>
+    <string name="tx_inset_remove">Usuń wstawkę</string>
+    <string name="tx_inset_hint_drag">Przeciągnij ją w dowolne miejsce obrazu. Jest częścią tego, co nadajesz.</string>
+    <string name="tx_inset_corner_top_left">Lewy górny róg</string>
+    <string name="tx_inset_corner_top_right">Prawy górny róg</string>
+    <string name="tx_inset_corner_bottom_left">Lewy dolny róg</string>
+    <string name="tx_inset_corner_bottom_right">Prawy dolny róg</string>
+    <!-- %1$s is the short mode and UTC time, e.g. "S1 · 14:32". -->
+    <string name="tx_inset_pick_description">Przypnij obraz odebrany %1$s</string>
+    <string name="tx_reply_banner_title">Odpowiedź na odebrany obraz</string>
+    <string name="tx_reply_banner_sub">Trafi do rogu tego, co wyślesz</string>
+    <string name="tx_reply_banner_dismiss">Nie dołączaj ich obrazu</string>
+    <string name="gallery_reply_caption">Ich obraz zostaje przypięty w rogu Twojego, aby zobaczyli, co do Ciebie dotarło.</string>
 </resources>

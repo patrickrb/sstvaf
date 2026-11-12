@@ -225,4 +225,131 @@ class TxComposerStateTest {
         state.requestReopen(entry(5))
         assertThat(state.consumeReopenRequest()?.id).isEqualTo(5L)
     }
+
+    // ----- inset --------------------------------------------------------------
+
+    private fun inset(uri: String = "file:///x/rx_1.png") =
+        ImageInset(uri, 1.25f, 80.5f, 67.5f, INSET_SIZE_MEDIUM, "Scottie 1 · 14:32 UTC")
+
+    @Test
+    fun setInsetPinsThePictureAndItsDescription() {
+        val state = TxComposerState()
+        state.refreshDefaults { default() }
+        val bmp = bitmap()
+        state.setInset(bmp, inset())
+        assertThat(state.insetBitmap).isSameInstanceAs(bmp)
+        assertThat(state.composition!!.inset).isEqualTo(inset())
+    }
+
+    @Test
+    fun setInsetRecyclesThePictureItReplaces() {
+        val state = TxComposerState()
+        state.refreshDefaults { default() }
+        val first = bitmap()
+        val second = bitmap()
+        state.setInset(first, inset("file:///x/a.png"))
+        state.setInset(second, inset("file:///x/b.png"))
+        assertThat(first.isRecycled).isTrue()
+        assertThat(second.isRecycled).isFalse()
+        assertThat(state.composition!!.inset!!.sourceUri).isEqualTo("file:///x/b.png")
+    }
+
+    @Test
+    fun setInsetWithTheSameBitmapDoesNotRecycleIt() {
+        // Moving the inset re-pins the same picture; it must stay drawable.
+        val state = TxComposerState()
+        state.refreshDefaults { default() }
+        val bmp = bitmap()
+        state.setInset(bmp, inset())
+        state.setInset(bmp, inset().copy(xPercent = 20f))
+        assertThat(bmp.isRecycled).isFalse()
+    }
+
+    @Test
+    fun clearInsetDropsAndRecyclesIt() {
+        val state = TxComposerState()
+        state.refreshDefaults { default() }
+        val bmp = bitmap()
+        state.setInset(bmp, inset())
+        state.clearInset()
+        assertThat(state.insetBitmap).isNull()
+        assertThat(state.composition!!.inset).isNull()
+        assertThat(bmp.isRecycled).isTrue()
+    }
+
+    @Test
+    fun clearInsetWithNothingPinnedIsHarmless() {
+        val state = TxComposerState()
+        state.refreshDefaults { default() }
+        val before = state.composition
+        state.clearInset()
+        assertThat(state.composition).isSameInstanceAs(before)
+    }
+
+    @Test
+    fun clearingThePhotoKeepsAPendingReply() {
+        // "New" on the canvas goes back to the four ways to start - the reply
+        // banner must still be there, with its picture.
+        val state = TxComposerState()
+        state.refreshDefaults { default() }
+        val insetBmp = bitmap()
+        state.setInset(insetBmp, inset())
+        state.setImage(bitmap(), "content://photo/1")
+        state.clearImage()
+        assertThat(state.sourceBitmap).isNull()
+        assertThat(state.composition!!.inset).isEqualTo(inset())
+        assertThat(state.insetBitmap).isSameInstanceAs(insetBmp)
+        assertThat(insetBmp.isRecycled).isFalse()
+    }
+
+    @Test
+    fun pickingAPhotoKeepsTheInset() {
+        val state = TxComposerState()
+        state.refreshDefaults { default() }
+        state.setInset(bitmap(), inset())
+        state.setImage(bitmap(), "content://photo/1")
+        assertThat(state.composition!!.inset).isEqualTo(inset())
+    }
+
+    @Test
+    fun aPendingReplyIsNotReSeededAway() {
+        // No photo yet, but an inset is pinned: that is operator intent, and a
+        // tab switch must not reset the composition to defaults over it.
+        val state = TxComposerState()
+        state.refreshDefaults { default() }
+        state.setInset(bitmap(), inset())
+        val kept = state.refreshDefaults { default(callsign = "W9XYZ") }
+        assertThat(kept.inset).isEqualTo(inset())
+        assertThat(kept.overlays).isEqualTo(default().overlays)
+    }
+
+    @Test
+    fun restoreInsetBitmapLeavesThePlacementAlone() {
+        // A reopened edit list already says where the inset goes.
+        val state = TxComposerState()
+        state.refreshDefaults { default() }
+        val placed = inset().copy(xPercent = 19.5f, yPercent = 34.5f)
+        state.composition = state.composition!!.withInset(placed)
+        val old = bitmap()
+        val fresh = bitmap()
+        state.restoreInsetBitmap(old)
+        state.restoreInsetBitmap(fresh)
+        assertThat(state.insetBitmap).isSameInstanceAs(fresh)
+        assertThat(old.isRecycled).isTrue()
+        assertThat(state.composition!!.inset).isEqualTo(placed)
+    }
+
+    @Test
+    fun aReplyRequestIsHeldUntilConsumed() {
+        val state = TxComposerState()
+        val entry = SavedImage(
+            7, "rx_7.png", ImageDirection.RX, "Scottie 1", 14_230_000L, 0L, 320, 256, true, 1f, "",
+        )
+        assertThat(state.pendingReply).isNull()
+        state.requestReply(entry)
+        assertThat(state.pendingReply).isEqualTo(entry)
+        assertThat(state.consumeReplyRequest()).isEqualTo(entry)
+        assertThat(state.pendingReply).isNull()
+        assertThat(state.consumeReplyRequest()).isNull()
+    }
 }

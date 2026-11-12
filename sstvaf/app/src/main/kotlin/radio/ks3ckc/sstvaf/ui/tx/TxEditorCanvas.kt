@@ -114,6 +114,8 @@ internal fun TxEditorCanvas(
     onChangePhoto: () -> Unit,
     onClearImage: () -> Unit,
     modifier: Modifier = Modifier,
+    onInsetTouched: () -> Unit = {},
+    onInsetMovedTo: (xPercent: Float, yPercent: Float) -> Unit = { _, _ -> },
 ) {
     val aspect = composition.mode.width.toFloat() / composition.mode.height
 
@@ -149,6 +151,11 @@ internal fun TxEditorCanvas(
     // The overlay list has to be read live inside the gesture loop rather than
     // captured: see the note on [canvasGestures].
     val overlaysNow by rememberUpdatedState(composition.overlays)
+    val insetNow by rememberUpdatedState(composition.inset)
+    // The tool too: touching an overlay or the inset switches tool from inside
+    // the gesture, and a loop keyed on the tool would be restarted - and the
+    // drag cancelled - by the very touch that started it.
+    val toolNow by rememberUpdatedState(tool)
 
     BoxWithConstraints(
         modifier = modifier
@@ -194,14 +201,20 @@ internal fun TxEditorCanvas(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    // Keyed on the tool and the frame size only. Keying it on
-                    // the overlay list restarted the gesture coroutine on the
-                    // first move of an overlay drag, cancelling the drag the
-                    // operator was halfway through.
-                    .pointerInput(tool, widthPx, heightPx) {
+                    // Keyed on the frame size only. Keying it on the overlay
+                    // list restarted the gesture coroutine on the first move of
+                    // an overlay drag, cancelling the drag the operator was
+                    // halfway through; keying it on the tool did the same to
+                    // any drag that began by grabbing something belonging to a
+                    // different tool.
+                    .pointerInput(widthPx, heightPx) {
                         canvasGestures(
-                            tool = tool,
+                            tool = { toolNow },
                             overlays = { overlaysNow },
+                            inset = { insetNow },
+                            frameAspect = aspect,
+                            onInsetTouched = onInsetTouched,
+                            onInsetMovedTo = onInsetMovedTo,
                             widthPx = widthPx,
                             heightPx = heightPx,
                             onPanBy = onPanBy,
@@ -219,13 +232,21 @@ internal fun TxEditorCanvas(
         // Selection outline for the chosen overlay, drawn over the composite so
         // it is never mistaken for part of the picture.
         val selected = composition.overlays.firstOrNull { it.id == selectedOverlayId }
-        if (selected != null && editable) {
-            SelectionOutline(
-                overlay = selected,
-                widthPx = widthPx,
-                heightPx = heightPx,
-            )
+        // A selected text overlay holds the outline; otherwise the inset does
+        // while its tool is open (see [insetIsSelected]).
+        val inset = composition.inset
+        val selectionBox = when {
+            selected != null -> overlaySelectionBox(selected, widthPx, heightPx)
+            inset != null && insetIsSelected(tool, hasInset = true, overlaySelected = false) ->
+                insetSelectionBox(inset, aspect, widthPx, heightPx)
+            else -> null
+        }
+        if (selectionBox != null && editable) {
+            SelectionOutline(box = selectionBox)
             DeleteButton(
+                description = stringResource(
+                    deleteTargetDescriptionRes(overlaySelected = selected != null),
+                ),
                 onClick = onDeleteSelected,
                 modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
             )
@@ -433,7 +454,8 @@ private fun animateBreathingRing(active: Boolean): State<Float> {
  * relies on ([overlayHitTest], [toFramePercent]) can be unit-tested; the gesture
  * loop itself is thin.
  *
- * [overlays] is a provider rather than a list because this coroutine outlives
+ * [overlays] (and likewise [inset] and [tool]) is a provider rather than a
+ * value because this coroutine outlives
  * the composition that started it. The gesture loop must hit-test against the
  * overlays as they are *now*, and the callbacks it invokes must likewise read
  * the live composition: a callback closing over a stale one turns every
@@ -441,8 +463,12 @@ private fun animateBreathingRing(active: Boolean): State<Float> {
  * starting value and overwrites the previous step rather than building on it.
  */
 private suspend fun PointerInputScope.canvasGestures(
-    tool: TxTool,
+    tool: () -> TxTool,
     overlays: () -> List<TextOverlay>,
+    inset: () -> ImageInset?,
+    frameAspect: Float,
+    onInsetTouched: () -> Unit,
+    onInsetMovedTo: (Float, Float) -> Unit,
     widthPx: Float,
     heightPx: Float,
     onPanBy: (Float, Float) -> Unit,
@@ -455,15 +481,32 @@ private suspend fun PointerInputScope.canvasGestures(
 ) {
     awaitEachGesture {
         val down = awaitFirstDown()
+        // The tool as it is when the finger lands governs the whole gesture.
+        val tool = tool()
         val startPercent = toFramePercent(down.position.x, down.position.y, widthPx, heightPx)
 
         // An overlay under the finger always wins, whatever the tool: the
         // operator is reaching for the thing they can see.
         val hit = overlayHitTest(overlays(), startPercent.first, startPercent.second)
         var dragging: String? = null
+        // The inset is tested after the text because the text is drawn over
+        // it: where a bar crosses the inset, the bar is what the operator sees
+        // on top and so what they are reaching for.
+        var draggingInset = false
+        var grabX = 0f
+        var grabY = 0f
+        val insetAtDown = inset()
         if (hit != null) {
             dragging = hit.id
             onOverlayTouched(hit.id)
+        } else if (insetAtDown != null &&
+            insetHitTest(insetAtDown, frameAspect, startPercent.first, startPercent.second)
+        ) {
+            draggingInset = true
+            val box = insetBoxPercent(insetAtDown, frameAspect)
+            grabX = startPercent.first - (box.left + box.width / 2f)
+            grabY = startPercent.second - (box.top + box.height / 2f)
+            onInsetTouched()
         } else {
             when (tool) {
                 TxTool.DRAW -> onStrokeStart(startPercent.first, startPercent.second)
@@ -482,7 +525,7 @@ private suspend fun PointerInputScope.canvasGestures(
             // through detectTransformGestures because the same surface also has
             // to serve overlay drags and freehand strokes, which that detector
             // would swallow.
-            if (tool == TxTool.CROP && dragging == null && pressed.size >= 2) {
+            if (tool == TxTool.CROP && dragging == null && !draggingInset && pressed.size >= 2) {
                 val span = pinchSpan(
                     pressed[0].position.x, pressed[0].position.y,
                     pressed[1].position.x, pressed[1].position.y,
@@ -502,6 +545,10 @@ private suspend fun PointerInputScope.canvasGestures(
             val percent = toFramePercent(change.position.x, change.position.y, widthPx, heightPx)
             when {
                 dragging != null -> onOverlayMovedTo(dragging, percent.first, percent.second)
+                draggingInset -> {
+                    val centre = insetDragCentre(percent.first, percent.second, grabX, grabY)
+                    onInsetMovedTo(centre.first, centre.second)
+                }
                 tool == TxTool.DRAW -> onStrokeExtend(percent.first, percent.second)
                 tool == TxTool.CROP -> {
                     val dx = change.position.x - previous.position.x
@@ -517,16 +564,11 @@ private suspend fun PointerInputScope.canvasGestures(
     }
 }
 
-/** A dashed accent outline around the selected overlay. */
+/** A dashed accent outline around the selected overlay or inset. */
 @Composable
-private fun SelectionOutline(
-    overlay: TextOverlay,
-    widthPx: Float,
-    heightPx: Float,
-) {
+private fun SelectionOutline(box: CanvasBox) {
     val density = LocalDensity.current
     Canvas(modifier = Modifier.fillMaxSize()) {
-        val box = overlaySelectionBox(overlay, widthPx, heightPx)
         val dash = with(density) { 4.dp.toPx() }
         drawRoundRect(
             color = Accent,
@@ -542,10 +584,9 @@ private fun SelectionOutline(
     }
 }
 
-/** The ✕ that removes the selected overlay. */
+/** The ✕ that removes the selected overlay or inset. */
 @Composable
-private fun DeleteButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val description = stringResource(R.string.tx_overlay_delete_description)
+private fun DeleteButton(description: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             // 48dp of touch target around a 28dp visual: this is a destructive

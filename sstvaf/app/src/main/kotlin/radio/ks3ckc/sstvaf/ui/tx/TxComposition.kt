@@ -174,7 +174,265 @@ data class TxComposition(
     val paths: List<DrawPath> = emptyList(),
     val adjustments: ImageAdjustments = ImageAdjustments(),
     val frame: ImageFrame = ImageFrame.NONE,
+    /** A received picture pinned over this one, or null for none. */
+    val inset: ImageInset? = null,
 )
+
+/** The frame's width over its height, which is what inset geometry scales by. */
+fun TxComposition.frameAspect(): Float = mode.width.toFloat() / mode.height
+
+// Inset -----------------------------------------------------------------------
+
+/**
+ * A received picture pinned to the operator's own, the SSTV "reply" convention:
+ * the other station sees what reached this one, on the air, inside the answer.
+ *
+ * Positioned by its centre in frame percentages, like a text overlay, and for
+ * the same reason - the frame's shape changes with the SSTV mode and a
+ * percentage survives that.
+ *
+ * The inset keeps the *received picture's* shape rather than the frame's. Its
+ * width is a fraction of the frame; its height follows from [aspect]. Cropping
+ * it to the frame's shape would cut the edges off the very picture it exists to
+ * show, and those edges are where the other station's callsign bars are.
+ *
+ * @param sourceUri where the received PNG lives (a `file:` URI into the
+ *   gallery's own storage), so a reopened composition can load it again.
+ * @param aspect the received picture's width over its height.
+ * @param widthFraction inset width as a fraction of the frame width (see
+ *   [INSET_SIZE_SMALL]/[INSET_SIZE_MEDIUM]/[INSET_SIZE_LARGE]).
+ * @param caption a one-line description of the received picture ("Scottie 1 ·
+ *   14:32 UTC · 14.230 MHz"), shown wherever the editor names the inset.
+ */
+data class ImageInset(
+    val sourceUri: String,
+    val aspect: Float,
+    val xPercent: Float,
+    val yPercent: Float,
+    val widthFraction: Float = INSET_SIZE_MEDIUM,
+    val caption: String = "",
+)
+
+/** The four places the Inset tool's presets pin the picture. */
+enum class InsetCorner(val left: Boolean, val top: Boolean) {
+    TOP_LEFT(left = true, top = true),
+    TOP_RIGHT(left = false, top = true),
+    BOTTOM_LEFT(left = true, top = false),
+    BOTTOM_RIGHT(left = false, top = false),
+}
+
+/** S / M / L inset widths, as fractions of the frame width. */
+const val INSET_SIZE_SMALL = 0.25f
+const val INSET_SIZE_MEDIUM = 0.33f
+const val INSET_SIZE_LARGE = 0.40f
+
+/** The three inset widths, smallest first. */
+val INSET_SIZES: List<Float> = listOf(INSET_SIZE_SMALL, INSET_SIZE_MEDIUM, INSET_SIZE_LARGE)
+
+/** Gap between a corner-pinned inset and the frame's side edge, in percent. */
+const val INSET_SIDE_MARGIN_PERCENT = 3f
+
+/**
+ * The vertical band a corner preset keeps the inset inside, in frame percent.
+ *
+ * Not the frame's edges: the conventional callsign bar sits across the top and
+ * the CQ bar across the bottom (see [TOP_BAR_Y_PERCENT]/[BOTTOM_BAR_Y_PERCENT]),
+ * and a preset that parked the received picture on top of the operator's own
+ * callsign would be hiding the one thing the transmission must carry. Dragging
+ * is unrestricted - the operator can put it over a bar on purpose.
+ */
+const val INSET_SAFE_TOP_PERCENT = 18f
+const val INSET_SAFE_BOTTOM_PERCENT = 84f
+
+/** Aspect bounds for an inset; outside them the picture is a sliver nobody can read. */
+const val INSET_MIN_ASPECT = 0.25f
+const val INSET_MAX_ASPECT = 4f
+
+/** Where a new inset lands: bottom right, clear of both bars. */
+val DEFAULT_INSET_CORNER = InsetCorner.BOTTOM_RIGHT
+
+/**
+ * An inset aspect made safe to divide by.
+ *
+ * A stored row with a zero or negative dimension (or a corrupt edit list) must
+ * not turn into an infinite or NaN height that poisons the whole flatten; it
+ * degrades to SSTV's classic 4:3 instead.
+ */
+fun clampInsetAspect(aspect: Float): Float =
+    if (aspect.isNaN() || aspect.isInfinite() || aspect <= 0f) {
+        4f / 3f
+    } else {
+        aspect.coerceIn(INSET_MIN_ASPECT, INSET_MAX_ASPECT)
+    }
+
+/** An inset width clamped into the range the tool offers; NaN degrades to medium. */
+fun clampInsetSize(fraction: Float): Float =
+    if (fraction.isNaN() || fraction.isInfinite()) {
+        INSET_SIZE_MEDIUM
+    } else {
+        fraction.coerceIn(INSET_SIZE_SMALL, INSET_SIZE_LARGE)
+    }
+
+/** The same, for a value read back from JSON (see [clampOverlaySize]). */
+internal fun clampInsetSize(raw: Double): Float =
+    if (raw.isNaN() || raw.isInfinite()) INSET_SIZE_MEDIUM else clampInsetSize(raw.toFloat())
+
+/** Inset width in frame percent. */
+fun insetWidthPercent(widthFraction: Float): Float = clampInsetSize(widthFraction) * 100f
+
+/**
+ * Inset height in frame percent.
+ *
+ * Width and height percentages are of *different* lengths - the frame's width
+ * and its height - so converting one to the other needs the frame's own shape
+ * as well as the picture's. Capped at the full frame height: a tall received
+ * picture on a wide frame (a 320x256 picture on Martin 4's 320x128) would
+ * otherwise be taller than the picture it is pinned to.
+ */
+fun insetHeightPercent(widthFraction: Float, insetAspect: Float, frameAspect: Float): Float {
+    val frame = if (frameAspect.isNaN() || frameAspect <= 0f) 4f / 3f else frameAspect
+    return (insetWidthPercent(widthFraction) * frame / clampInsetAspect(insetAspect))
+        .coerceAtMost(100f)
+}
+
+/**
+ * An inset centre clamped so the whole inset stays inside the frame.
+ *
+ * Clamped by half the inset's size rather than to 0..100 like a text overlay:
+ * a centre on the frame's edge would leave half the received picture off the
+ * bitmap, where it is silently not transmitted.
+ */
+fun clampInsetCentre(centrePercent: Float, sizePercent: Float): Float {
+    val half = sizePercent.coerceIn(0f, 100f) / 2f
+    return if (centrePercent.isNaN()) 50f else centrePercent.coerceIn(half, 100f - half)
+}
+
+/**
+ * The centre a corner preset gives an inset of this size and shape.
+ *
+ * Horizontally it sits [INSET_SIDE_MARGIN_PERCENT] in from the side; vertically
+ * it butts against the edge of the safe band. An inset taller than the band is
+ * centred on it, which is the least-bad place for something that cannot fit.
+ */
+fun insetCornerCentre(
+    corner: InsetCorner,
+    widthFraction: Float,
+    insetAspect: Float,
+    frameAspect: Float,
+): Pair<Float, Float> {
+    val w = insetWidthPercent(widthFraction)
+    val h = insetHeightPercent(widthFraction, insetAspect, frameAspect)
+    val x = if (corner.left) INSET_SIDE_MARGIN_PERCENT + w / 2f else 100f - INSET_SIDE_MARGIN_PERCENT - w / 2f
+    val band = INSET_SAFE_BOTTOM_PERCENT - INSET_SAFE_TOP_PERCENT
+    val y = when {
+        h >= band -> (INSET_SAFE_TOP_PERCENT + INSET_SAFE_BOTTOM_PERCENT) / 2f
+        corner.top -> INSET_SAFE_TOP_PERCENT + h / 2f
+        else -> INSET_SAFE_BOTTOM_PERCENT - h / 2f
+    }
+    return clampInsetCentre(x, w) to clampInsetCentre(y, h)
+}
+
+/**
+ * The corner preset an inset currently sits on, or null once it has been
+ * dragged somewhere of its own. Same tolerance, and same reasoning, as
+ * [matchingCallsignPreset].
+ */
+fun matchingInsetCorner(inset: ImageInset, frameAspect: Float): InsetCorner? =
+    InsetCorner.entries.firstOrNull { corner ->
+        val (x, y) = insetCornerCentre(corner, inset.widthFraction, inset.aspect, frameAspect)
+        kotlin.math.abs(x - inset.xPercent) < PRESET_MATCH_TOLERANCE &&
+            kotlin.math.abs(y - inset.yPercent) < PRESET_MATCH_TOLERANCE
+    }
+
+/**
+ * A new inset for a received picture of [aspect], pinned to
+ * [DEFAULT_INSET_CORNER] of a frame shaped [frameAspect].
+ */
+fun newImageInset(
+    sourceUri: String,
+    aspect: Float,
+    caption: String,
+    frameAspect: Float,
+    widthFraction: Float = INSET_SIZE_MEDIUM,
+): ImageInset {
+    val safeAspect = clampInsetAspect(aspect)
+    val size = clampInsetSize(widthFraction)
+    val (x, y) = insetCornerCentre(DEFAULT_INSET_CORNER, size, safeAspect, frameAspect)
+    return ImageInset(
+        sourceUri = sourceUri,
+        aspect = safeAspect,
+        xPercent = x,
+        yPercent = y,
+        widthFraction = size,
+        caption = caption,
+    )
+}
+
+/** Copy with [inset] pinned, replacing any inset already there: one per picture. */
+fun TxComposition.withInset(inset: ImageInset): TxComposition = copy(inset = inset)
+
+/** Copy with the inset dropped; no inset is a no-op. */
+fun TxComposition.withInsetRemoved(): TxComposition =
+    if (inset == null) this else copy(inset = null)
+
+/** Copy with the inset's centre moved, kept wholly inside the frame. */
+fun TxComposition.withInsetMoved(xPercent: Float, yPercent: Float): TxComposition {
+    val current = inset ?: return this
+    val w = insetWidthPercent(current.widthFraction)
+    val h = insetHeightPercent(current.widthFraction, current.aspect, frameAspect())
+    return copy(
+        inset = current.copy(
+            xPercent = clampInsetCentre(xPercent, w),
+            yPercent = clampInsetCentre(yPercent, h),
+        ),
+    )
+}
+
+/** Copy with the inset pinned to [corner] at its current size. */
+fun TxComposition.withInsetCorner(corner: InsetCorner): TxComposition {
+    val current = inset ?: return this
+    val (x, y) = insetCornerCentre(corner, current.widthFraction, current.aspect, frameAspect())
+    return copy(inset = current.copy(xPercent = x, yPercent = y))
+}
+
+/**
+ * Copy with the inset resized.
+ *
+ * An inset sitting on a corner preset stays pinned to that corner, so it grows
+ * away from the edge instead of off it or over a bar. One the operator dragged
+ * somewhere of their own keeps its centre and is only nudged as far as it takes
+ * to stay inside the frame.
+ */
+fun TxComposition.withInsetSized(widthFraction: Float): TxComposition {
+    val current = inset ?: return this
+    val size = clampInsetSize(widthFraction)
+    val corner = matchingInsetCorner(current, frameAspect())
+    val resized = copy(inset = current.copy(widthFraction = size))
+    return if (corner != null) {
+        resized.withInsetCorner(corner)
+    } else {
+        resized.withInsetMoved(current.xPercent, current.yPercent)
+    }
+}
+
+/**
+ * Copy with the SSTV mode changed and the inset re-fitted to the new frame.
+ *
+ * Text overlays survive a mode change untouched because they have no height to
+ * speak of. The inset does: its height in percent depends on the frame's
+ * shape, so the same centre can leave it hanging off a wider frame, and a
+ * corner-pinned one would drift away from its corner.
+ */
+fun TxComposition.withModeChanged(newMode: SstvMode): TxComposition {
+    val current = inset ?: return copy(mode = newMode)
+    val corner = matchingInsetCorner(current, frameAspect())
+    val changed = copy(mode = newMode)
+    return if (corner != null) {
+        changed.withInsetCorner(corner)
+    } else {
+        changed.withInsetMoved(current.xPercent, current.yPercent)
+    }
+}
 
 // Zoom/pan bounds ------------------------------------------------------------
 

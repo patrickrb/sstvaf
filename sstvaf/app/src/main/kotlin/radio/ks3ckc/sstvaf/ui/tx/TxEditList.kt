@@ -50,6 +50,9 @@ object TxEditList {
     private const val KEY_STYLE = "style"
     private const val KEY_WIDTH = "w"
     private const val KEY_POINTS = "pts"
+    private const val KEY_INSET = "inset"
+    private const val KEY_ASPECT = "aspect"
+    private const val KEY_CAPTION = "caption"
 
     /**
      * Serialize [composition] to a JSON string.
@@ -108,6 +111,22 @@ object TxEditList {
             )
         }
         root.put(KEY_PATHS, paths)
+
+        // Absent when there is no inset, so a composition without one writes
+        // exactly the blob it always did.
+        composition.inset?.let { inset ->
+            root.put(
+                KEY_INSET,
+                JSONObject().apply {
+                    put(KEY_SOURCE, inset.sourceUri)
+                    put(KEY_ASPECT, inset.aspect.toDouble())
+                    put(KEY_X, inset.xPercent.toDouble())
+                    put(KEY_Y, inset.yPercent.toDouble())
+                    put(KEY_SIZE, inset.widthFraction.toDouble())
+                    put(KEY_CAPTION, inset.caption)
+                },
+            )
+        }
         return root.toString()
     }
 
@@ -205,6 +224,34 @@ object TxEditList {
                 }
             }
 
+            // All-or-fallback again: an inset that is present but unusable
+            // rejects the blob. Dropping it would hand back a composition
+            // that re-sends without the received picture the flattened image
+            // in the gallery plainly has.
+            var inset: ImageInset? = null
+            if (root.has(KEY_INSET)) {
+                val item = root.optJSONObject(KEY_INSET) ?: return null
+                val source = item.optString(KEY_SOURCE)
+                if (source.isEmpty()) return null
+                val aspect = clampInsetAspect(item.optDouble(KEY_ASPECT, Double.NaN).toFloat())
+                val size = clampInsetSize(item.optDouble(KEY_SIZE, INSET_SIZE_MEDIUM.toDouble()))
+                val frameAspect = mode.width.toFloat() / mode.height
+                inset = ImageInset(
+                    sourceUri = source,
+                    aspect = aspect,
+                    xPercent = clampInsetCentre(
+                        item.optDouble(KEY_X, 50.0).toFloat(),
+                        insetWidthPercent(size),
+                    ),
+                    yPercent = clampInsetCentre(
+                        item.optDouble(KEY_Y, 50.0).toFloat(),
+                        insetHeightPercent(size, aspect, frameAspect),
+                    ),
+                    widthFraction = size,
+                    caption = item.optString(KEY_CAPTION),
+                )
+            }
+
             TxComposition(
                 sourceUri = root.optString(KEY_SOURCE).ifEmpty { null },
                 mode = mode,
@@ -221,6 +268,7 @@ object TxEditList {
                 ),
                 frame = ImageFrame.entries.firstOrNull { it.name == root.optString(KEY_FRAME) }
                     ?: ImageFrame.NONE,
+                inset = inset,
             )
         } catch (t: Throwable) {
             null

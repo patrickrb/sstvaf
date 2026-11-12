@@ -314,4 +314,82 @@ class TxEditListTest {
         assertThat(analog).isNotNull()
         assertThat(analog?.digitalMode).isNull()
     }
+
+    // ----- inset --------------------------------------------------------------
+
+    private fun withInset() = TxComposition(
+        sourceUri = "content://media/external/images/1234",
+        mode = SstvMode.SCOTTIE_1,
+        inset = ImageInset(
+            sourceUri = "file:///data/user/0/app/files/sstv_images/rx_1.png",
+            aspect = 320f / 240f,
+            // A legal centre for a Large inset (half-width 20%): parse clamps.
+            xPercent = 77f,
+            yPercent = 67.5f,
+            widthFraction = INSET_SIZE_LARGE,
+            caption = "Robot 36 · 14:32 UTC · 14.230 MHz",
+        ),
+    )
+
+    @Test
+    fun `an inset survives a round trip`() {
+        val original = withInset()
+        assertThat(TxEditList.parse(TxEditList.serialize(original))).isEqualTo(original)
+    }
+
+    @Test
+    fun `a composition without an inset writes no inset key and reads back none`() {
+        val json = TxEditList.serialize(TxComposition(mode = SstvMode.SCOTTIE_1))
+        assertThat(json).doesNotContain("inset")
+        assertThat(TxEditList.parse(json)!!.inset).isNull()
+    }
+
+    @Test
+    fun `an inset that is not an object rejects the whole blob`() {
+        // Dropping it would resend the picture without the received image the
+        // flattened file in the gallery plainly has.
+        val json = TxEditList.serialize(TxComposition(mode = SstvMode.SCOTTIE_1))
+            .replaceFirst("{", """{"inset":"oops",""")
+        assertThat(TxEditList.parse(json)).isNull()
+    }
+
+    @Test
+    fun `an inset with no source rejects the whole blob`() {
+        val json = TxEditList.serialize(TxComposition(mode = SstvMode.SCOTTIE_1))
+            .replaceFirst("{", """{"inset":{"x":50,"y":50},""")
+        assertThat(TxEditList.parse(json)).isNull()
+    }
+
+    @Test
+    fun `corrupt inset numbers are clamped rather than trusted`() {
+        val json = TxEditList.serialize(TxComposition(mode = SstvMode.SCOTTIE_1))
+            .replaceFirst(
+                "{",
+                """{"inset":{"src":"file:///a.png","aspect":-3,"x":900,"y":-900,"size":77},""",
+            )
+        val inset = TxEditList.parse(json)!!.inset!!
+        assertThat(inset.aspect).isWithin(1e-4f).of(4f / 3f)
+        assertThat(inset.widthFraction).isEqualTo(INSET_SIZE_LARGE)
+        // Parked against the right and top edges, wholly inside the frame.
+        assertThat(inset.xPercent).isWithin(1e-3f).of(80f)
+        val half = insetHeightPercent(inset.widthFraction, inset.aspect, 320f / 256f) / 2f
+        assertThat(inset.yPercent).isWithin(1e-3f).of(half)
+    }
+
+    @Test
+    fun `an inset with only a source gets safe defaults`() {
+        val json = TxEditList.serialize(TxComposition(mode = SstvMode.SCOTTIE_1))
+            .replaceFirst("{", """{"inset":{"src":"file:///a.png"},""")
+        val inset = TxEditList.parse(json)!!.inset!!
+        assertThat(inset.sourceUri).isEqualTo("file:///a.png")
+        assertThat(inset.widthFraction).isEqualTo(INSET_SIZE_MEDIUM)
+        assertThat(inset.xPercent).isEqualTo(50f)
+        assertThat(inset.yPercent).isEqualTo(50f)
+        assertThat(inset.caption).isEmpty()
+    }
+
+    @Test
+    fun `a picture with an inset still counts as restorable`() {
+        assertThat(hasRestorableEdits(TxEditList.serialize(withInset()))).isTrue()
+    }
 }

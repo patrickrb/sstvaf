@@ -831,4 +831,26 @@
     <string name="radio_level_advice_good">Sağlıklı aralıkta.</string>
     <string name="radio_level_advice_high">Kırpılmaya yakın. Kazancı biraz düşürün.</string>
     <string name="radio_level_advice_clipping">Kırpılıyor. Tepe noktaları işaretin altında kalana kadar kazancı düşürün.</string>
+
+    <!-- ===== TX composer: inset (a received picture pinned to a reply) ===== -->
+    <string name="tx_tool_inset">Ek resim</string>
+    <string name="tx_inset_hint_empty">Aldığınız bir resmi kendi resminizin bir köşesine sabitleyin; karşı istasyon size neyin ulaştığını görsün.</string>
+    <string name="tx_inset_received_label">ALINANLAR</string>
+    <string name="tx_inset_tap_to_pin">Sabitlemek için birine dokunun. En yeniler önce.</string>
+    <string name="tx_inset_none_received">Henüz bir şey alınmadı. Aldığınız resimler burada görünür.</string>
+    <string name="tx_inset_title">Alınan resim</string>
+    <string name="tx_inset_corner">KÖŞE</string>
+    <string name="tx_inset_size">BOYUT</string>
+    <string name="tx_inset_remove">Ek resmi kaldır</string>
+    <string name="tx_inset_hint_drag">Resmin üzerinde istediğiniz yere sürükleyin. Gönderdiğiniz resme işlenir.</string>
+    <string name="tx_inset_corner_top_left">Sol üst köşe</string>
+    <string name="tx_inset_corner_top_right">Sağ üst köşe</string>
+    <string name="tx_inset_corner_bottom_left">Sol alt köşe</string>
+    <string name="tx_inset_corner_bottom_right">Sağ alt köşe</string>
+    <!-- %1$s is the short mode and UTC time, e.g. "S1 · 14:32". -->
+    <string name="tx_inset_pick_description">Alınan resmi sabitle: %1$s</string>
+    <string name="tx_reply_banner_title">Alınan bir resme yanıt</string>
+    <string name="tx_reply_banner_sub">Gönderdiğiniz resmin bir köşesine yerleşir</string>
+    <string name="tx_reply_banner_dismiss">Onların resmini ekleme</string>
+    <string name="gallery_reply_caption">Onların resmi sizinkinin bir köşesine sabitlenir; size neyin ulaştığını görürler.</string>
 </resources>

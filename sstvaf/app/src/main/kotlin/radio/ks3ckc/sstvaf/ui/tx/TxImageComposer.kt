@@ -93,7 +93,8 @@ internal const val BAR_BAND_COLOR = 0xB3000000.toInt() // 70 % black
  *
  * Everything the operator did is flattened here, in the order the editor
  * stacks it: the cover-cropped photo with its adjustments baked in, then the
- * freehand strokes, then the text overlays, then the burned-in frame. This is
+ * freehand strokes, then the inset (a received picture, when [insetBitmap] is
+ * supplied), then the text overlays, then the burned-in frame. This is
  * the *only* image the transmitter ever sees, so anything not flattened here
  * simply does not go on the air - the receiving station gets pixels, not a
  * layer list.
@@ -102,7 +103,13 @@ internal const val BAR_BAND_COLOR = 0xB3000000.toInt() // 70 % black
  * out the callsign bar would be fighting the operator: they adjusted the
  * picture, not the text they put on top of it.
  */
-internal fun renderComposite(src: Bitmap, comp: TxComposition, dstW: Int, dstH: Int): Bitmap {
+internal fun renderComposite(
+    src: Bitmap,
+    comp: TxComposition,
+    dstW: Int,
+    dstH: Int,
+    insetBitmap: Bitmap? = null,
+): Bitmap {
     require(dstW > 0 && dstH > 0) { "bad composite size " + dstW + "x" + dstH }
     val out = Bitmap.createBitmap(dstW, dstH, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(out)
@@ -121,12 +128,99 @@ internal fun renderComposite(src: Bitmap, comp: TxComposition, dstW: Int, dstH: 
     for (path in comp.paths) {
         drawStroke(canvas, path, dstW, dstH)
     }
+    // The inset goes over the photo and the strokes but under the text: the
+    // operator's callsign must stay readable wherever they drag the received
+    // picture, and a bar that crosses the inset is the lesser harm.
+    val inset = comp.inset
+    if (inset != null && insetBitmap != null) {
+        drawInset(canvas, inset, insetBitmap, dstW, dstH)
+    }
     for (overlay in comp.overlays) {
         drawOverlay(canvas, overlay, dstW, dstH)
     }
     drawFrame(canvas, comp.frame, dstW, dstH)
     return out
 }
+
+// ---------------------------------------------------------------------------
+// Inset (a received picture pinned over the operator's own)
+// ---------------------------------------------------------------------------
+
+/** Inset border width, as a fraction of the frame's shorter side. */
+internal const val INSET_BORDER_FRACTION = 0.008f
+
+/** The inset's border: white, so it separates from any photo behind it. */
+internal const val INSET_BORDER_COLOR = OVERLAY_COLOR_WHITE
+
+/**
+ * The inset's rectangle in composite pixels.
+ *
+ * Derived from the same percentages the editor's hit-testing uses, so the
+ * thing the operator drags and the thing that is transmitted cannot disagree.
+ * Always at least one pixel each way and always inside the bitmap.
+ */
+internal fun insetRectPx(inset: ImageInset, dstW: Int, dstH: Int): Rect {
+    if (dstW <= 0 || dstH <= 0) return Rect(0, 0, 0, 0)
+    val frameAspect = dstW.toFloat() / dstH
+    val wPercent = insetWidthPercent(inset.widthFraction)
+    val hPercent = insetHeightPercent(inset.widthFraction, inset.aspect, frameAspect)
+    val w = (wPercent / 100f * dstW).roundToInt().coerceIn(1, dstW)
+    val h = (hPercent / 100f * dstH).roundToInt().coerceIn(1, dstH)
+    val centreX = clampInsetCentre(inset.xPercent, wPercent) / 100f * dstW
+    val centreY = clampInsetCentre(inset.yPercent, hPercent) / 100f * dstH
+    val left = (centreX - w / 2f).roundToInt().coerceIn(0, dstW - w)
+    val top = (centreY - h / 2f).roundToInt().coerceIn(0, dstH - h)
+    return Rect(left, top, left + w, top + h)
+}
+
+/** Inset border width in pixels: never thinner than one. */
+internal fun insetBorderPx(dstW: Int, dstH: Int): Int =
+    (INSET_BORDER_FRACTION * minOf(dstW, dstH)).roundToInt().coerceAtLeast(1)
+
+/**
+ * Draw the received picture into its rectangle, whole, with a border.
+ *
+ * The whole bitmap is scaled into the rect, never cropped - see [ImageInset].
+ * The border is four filled edges inside the rect, like [drawFrame], so the
+ * inset's outer size is exactly the rect the operator positioned.
+ */
+private fun drawInset(canvas: Canvas, inset: ImageInset, bitmap: Bitmap, dstW: Int, dstH: Int) {
+    if (bitmap.isRecycled || bitmap.width <= 0 || bitmap.height <= 0) return
+    val rect = insetRectPx(inset, dstW, dstH)
+    if (rect.isEmpty) return
+    canvas.drawBitmap(bitmap, null, rect, Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
+
+    val b = insetBorderPx(dstW, dstH).coerceAtMost(minOf(rect.width(), rect.height()) / 2)
+    if (b <= 0) return
+    val paint = Paint().apply { color = INSET_BORDER_COLOR }
+    canvas.drawRect(Rect(rect.left, rect.top, rect.right, rect.top + b), paint)
+    canvas.drawRect(Rect(rect.left, rect.bottom - b, rect.right, rect.bottom), paint)
+    canvas.drawRect(Rect(rect.left, rect.top + b, rect.left + b, rect.bottom - b), paint)
+    canvas.drawRect(Rect(rect.right - b, rect.top + b, rect.right, rect.bottom - b), paint)
+}
+
+/**
+ * The file an inset's [sourceUri] points at, or null when it is not a `file:`
+ * URI with a path.
+ *
+ * Only `file:` on purpose. An inset always comes out of the gallery's own
+ * storage, so anything else in a stored edit list is corrupt or hostile, and
+ * handing an arbitrary URI to a decoder is not a favour to anyone.
+ */
+internal fun insetSourceFile(sourceUri: String): java.io.File? {
+    val uri = try {
+        Uri.parse(sourceUri)
+    } catch (t: Throwable) {
+        return null
+    }
+    if (uri.scheme != "file") return null
+    val path = uri.path
+    return if (path.isNullOrEmpty()) null else java.io.File(path)
+}
+
+/** Decode an inset's picture; null when it is gone or unreadable. */
+internal fun loadInsetBitmap(sourceUri: String): Bitmap? =
+    insetSourceFile(sourceUri)?.let { loadSavedBitmap(it) }
 
 // ---------------------------------------------------------------------------
 // Adjustments

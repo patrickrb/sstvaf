@@ -831,4 +831,26 @@
     <string name="radio_level_advice_good">健全な範囲内です。</string>
     <string name="radio_level_advice_high">クリッピング寸前です。ゲインを少し下げてください。</string>
     <string name="radio_level_advice_clipping">クリッピングしています。ピークがマークを下回るまでゲインを下げてください。</string>
+
+    <!-- ===== TX composer: inset (a received picture pinned to a reply) ===== -->
+    <string name="tx_tool_inset">子画面</string>
+    <string name="tx_inset_hint_empty">受信した画像を自分の画像の隅に貼り付けて、相手局に何が届いたかを見せられます。</string>
+    <string name="tx_inset_received_label">受信</string>
+    <string name="tx_inset_tap_to_pin">タップして貼り付けます。新しい順。</string>
+    <string name="tx_inset_none_received">まだ受信がありません。受信した画像はここに表示されます。</string>
+    <string name="tx_inset_title">受信画像</string>
+    <string name="tx_inset_corner">隅</string>
+    <string name="tx_inset_size">サイズ</string>
+    <string name="tx_inset_remove">子画面を削除</string>
+    <string name="tx_inset_hint_drag">画像上の好きな位置にドラッグできます。送信する画像に焼き込まれます。</string>
+    <string name="tx_inset_corner_top_left">左上の隅</string>
+    <string name="tx_inset_corner_top_right">右上の隅</string>
+    <string name="tx_inset_corner_bottom_left">左下の隅</string>
+    <string name="tx_inset_corner_bottom_right">右下の隅</string>
+    <!-- %1$s is the short mode and UTC time, e.g. "S1 · 14:32". -->
+    <string name="tx_inset_pick_description">受信画像 %1$s を貼り付け</string>
+    <string name="tx_reply_banner_title">受信画像への返信</string>
+    <string name="tx_reply_banner_sub">送信する画像の隅に入ります</string>
+    <string name="tx_reply_banner_dismiss">相手の画像を含めない</string>
+    <string name="gallery_reply_caption">相手の画像が自分の画像の隅に貼り付けられ、何が届いたかを相手が確認できます。</string>
 </resources>

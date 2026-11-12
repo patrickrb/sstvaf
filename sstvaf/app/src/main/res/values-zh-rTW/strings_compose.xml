@@ -831,4 +831,26 @@
     <string name="radio_level_advice_good">在健康範圍內。</string>
     <string name="radio_level_advice_high">接近削波。請稍微調低增益。</string>
     <string name="radio_level_advice_clipping">已削波。請調低增益，直到峰值維持在標記以下。</string>
+
+    <!-- ===== TX composer: inset (a received picture pinned to a reply) ===== -->
+    <string name="tx_tool_inset">畫中畫</string>
+    <string name="tx_inset_hint_empty">把收到的圖片固定在你的圖片一角，讓對方電台看到你收到了什麼。</string>
+    <string name="tx_inset_received_label">已接收</string>
+    <string name="tx_inset_tap_to_pin">點一下即可固定。最新的在前。</string>
+    <string name="tx_inset_none_received">尚未收到任何圖片。收到的圖片會顯示在這裡。</string>
+    <string name="tx_inset_title">收到的圖片</string>
+    <string name="tx_inset_corner">角落</string>
+    <string name="tx_inset_size">大小</string>
+    <string name="tx_inset_remove">移除畫中畫</string>
+    <string name="tx_inset_hint_drag">可拖曳到圖片上的任意位置。它會燒錄進你發射的圖片。</string>
+    <string name="tx_inset_corner_top_left">左上角</string>
+    <string name="tx_inset_corner_top_right">右上角</string>
+    <string name="tx_inset_corner_bottom_left">左下角</string>
+    <string name="tx_inset_corner_bottom_right">右下角</string>
+    <!-- %1$s is the short mode and UTC time, e.g. "S1 · 14:32". -->
+    <string name="tx_inset_pick_description">固定收到的圖片 %1$s</string>
+    <string name="tx_reply_banner_title">正在回覆收到的圖片</string>
+    <string name="tx_reply_banner_sub">放在你傳送圖片的一角</string>
+    <string name="tx_reply_banner_dismiss">不包含對方的圖片</string>
+    <string name="gallery_reply_caption">對方的圖片會固定在你的圖片一角，讓對方看到你收到了什麼。</string>
 </resources>

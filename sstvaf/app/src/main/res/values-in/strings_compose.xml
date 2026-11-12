@@ -831,4 +831,26 @@
     <string name="radio_level_advice_good">Dalam rentang sehat.</string>
     <string name="radio_level_advice_high">Mendekati clipping. Turunkan gain sedikit.</string>
     <string name="radio_level_advice_clipping">Clipping. Turunkan gain hingga puncak tetap di bawah tanda.</string>
+
+    <!-- ===== TX composer: inset (a received picture pinned to a reply) ===== -->
+    <string name="tx_tool_inset">Sisipan</string>
+    <string name="tx_inset_hint_empty">Sematkan gambar yang Anda terima di sudut gambar Anda, agar stasiun lawan melihat apa yang sampai ke Anda.</string>
+    <string name="tx_inset_received_label">DITERIMA</string>
+    <string name="tx_inset_tap_to_pin">Ketuk satu untuk menyematkannya. Terbaru lebih dulu.</string>
+    <string name="tx_inset_none_received">Belum ada yang diterima. Gambar yang Anda terima muncul di sini.</string>
+    <string name="tx_inset_title">Gambar diterima</string>
+    <string name="tx_inset_corner">SUDUT</string>
+    <string name="tx_inset_size">UKURAN</string>
+    <string name="tx_inset_remove">Hapus sisipan</string>
+    <string name="tx_inset_hint_drag">Seret ke mana saja pada gambar. Sisipan menyatu dengan yang Anda pancarkan.</string>
+    <string name="tx_inset_corner_top_left">Sudut kiri atas</string>
+    <string name="tx_inset_corner_top_right">Sudut kanan atas</string>
+    <string name="tx_inset_corner_bottom_left">Sudut kiri bawah</string>
+    <string name="tx_inset_corner_bottom_right">Sudut kanan bawah</string>
+    <!-- %1$s is the short mode and UTC time, e.g. "S1 · 14:32". -->
+    <string name="tx_inset_pick_description">Sematkan gambar yang diterima %1$s</string>
+    <string name="tx_reply_banner_title">Membalas gambar yang diterima</string>
+    <string name="tx_reply_banner_sub">Ditempatkan di sudut gambar yang Anda kirim</string>
+    <string name="tx_reply_banner_dismiss">Jangan sertakan gambar mereka</string>
+    <string name="gallery_reply_caption">Gambar mereka disematkan di sudut gambar Anda, agar mereka melihat apa yang sampai ke Anda.</string>
 </resources>

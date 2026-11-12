@@ -831,4 +831,26 @@
     <string name="radio_level_advice_good">In het gezonde bereik.</string>
     <string name="radio_level_advice_high">Dicht bij vervorming. Verlaag de versterking iets.</string>
     <string name="radio_level_advice_clipping">Vervorming. Verlaag de versterking tot de pieken onder de markering blijven.</string>
+
+    <!-- ===== TX composer: inset (a received picture pinned to a reply) ===== -->
+    <string name="tx_tool_inset">Inzet</string>
+    <string name="tx_inset_hint_empty">Zet een ontvangen afbeelding vast in een hoek van de jouwe, zodat het tegenstation ziet wat bij jou aankwam.</string>
+    <string name="tx_inset_received_label">ONTVANGEN</string>
+    <string name="tx_inset_tap_to_pin">Tik er een aan om hem vast te zetten. Nieuwste eerst.</string>
+    <string name="tx_inset_none_received">Nog niets ontvangen. Ontvangen afbeeldingen verschijnen hier.</string>
+    <string name="tx_inset_title">Ontvangen afbeelding</string>
+    <string name="tx_inset_corner">HOEK</string>
+    <string name="tx_inset_size">GROOTTE</string>
+    <string name="tx_inset_remove">Inzet verwijderen</string>
+    <string name="tx_inset_hint_drag">Sleep hem naar een plek op de afbeelding. Hij wordt meegezonden in wat je uitzendt.</string>
+    <string name="tx_inset_corner_top_left">Hoek linksboven</string>
+    <string name="tx_inset_corner_top_right">Hoek rechtsboven</string>
+    <string name="tx_inset_corner_bottom_left">Hoek linksonder</string>
+    <string name="tx_inset_corner_bottom_right">Hoek rechtsonder</string>
+    <!-- %1$s is the short mode and UTC time, e.g. "S1 · 14:32". -->
+    <string name="tx_inset_pick_description">Ontvangen afbeelding %1$s vastzetten</string>
+    <string name="tx_reply_banner_title">Antwoord op een ontvangen afbeelding</string>
+    <string name="tx_reply_banner_sub">Komt in een hoek van wat je verzendt</string>
+    <string name="tx_reply_banner_dismiss">Hun afbeelding niet meesturen</string>
+    <string name="gallery_reply_caption">Hun afbeelding wordt vastgezet in een hoek van de jouwe, zodat zij zien wat bij jou aankwam.</string>
 </resources>

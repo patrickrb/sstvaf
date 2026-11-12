@@ -831,4 +831,26 @@
     <string name="radio_level_advice_good">Nel range ottimale.</string>
     <string name="radio_level_advice_high">Vicino alla distorsione. Abbassa un po\' il guadagno.</string>
     <string name="radio_level_advice_clipping">Distorsione. Abbassa il guadagno finché i picchi restano sotto il segno.</string>
+
+    <!-- ===== TX composer: inset (a received picture pinned to a reply) ===== -->
+    <string name="tx_tool_inset">Riquadro</string>
+    <string name="tx_inset_hint_empty">Fissa un\'immagine ricevuta in un angolo della tua, così l\'altra stazione vede cosa ti è arrivato.</string>
+    <string name="tx_inset_received_label">RICEVUTE</string>
+    <string name="tx_inset_tap_to_pin">Tocca una per fissarla. Prima le più recenti.</string>
+    <string name="tx_inset_none_received">Ancora nulla di ricevuto. Le immagini che ricevi compaiono qui.</string>
+    <string name="tx_inset_title">Immagine ricevuta</string>
+    <string name="tx_inset_corner">ANGOLO</string>
+    <string name="tx_inset_size">DIMENSIONE</string>
+    <string name="tx_inset_remove">Rimuovi riquadro</string>
+    <string name="tx_inset_hint_drag">Trascinalo dove vuoi sull\'immagine. Viene impresso in ciò che trasmetti.</string>
+    <string name="tx_inset_corner_top_left">Angolo in alto a sinistra</string>
+    <string name="tx_inset_corner_top_right">Angolo in alto a destra</string>
+    <string name="tx_inset_corner_bottom_left">Angolo in basso a sinistra</string>
+    <string name="tx_inset_corner_bottom_right">Angolo in basso a destra</string>
+    <!-- %1$s is the short mode and UTC time, e.g. "S1 · 14:32". -->
+    <string name="tx_inset_pick_description">Fissa l\'immagine ricevuta %1$s</string>
+    <string name="tx_reply_banner_title">Risposta a un\'immagine ricevuta</string>
+    <string name="tx_reply_banner_sub">Va in un angolo di ciò che invii</string>
+    <string name="tx_reply_banner_dismiss">Non includere la loro immagine</string>
+    <string name="gallery_reply_caption">La loro immagine viene fissata in un angolo della tua, così vedono cosa ti è arrivato.</string>
 </resources>
