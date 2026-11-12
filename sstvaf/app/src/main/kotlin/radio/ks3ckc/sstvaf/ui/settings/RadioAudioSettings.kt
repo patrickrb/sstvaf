@@ -579,6 +579,9 @@ fun RadioAudioSettings(
             )
         }
 
+        // Manual hard reset of the rig connection (and the cross-app takeover).
+        TakeControlCard(mainViewModel)
+
         // =====================================================================
         // CONNECTION
         // =====================================================================
