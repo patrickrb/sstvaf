@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -34,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.k1af.ft8af.R
+import radio.ks3ckc.sstvaf.gallery.SavedImage
 import radio.ks3ckc.sstvaf.theme.Accent
 import radio.ks3ckc.sstvaf.theme.BgApp
 import radio.ks3ckc.sstvaf.theme.BgSurface
@@ -85,6 +88,11 @@ internal fun TxToolPanel(
     onClearStrokes: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    insetPicker: InsetPickerState = InsetPickerState(),
+    onInsetPick: (SavedImage) -> Unit = {},
+    onInsetCorner: (InsetCorner) -> Unit = {},
+    onInsetSize: (Float) -> Unit = {},
+    onInsetRemove: () -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -111,6 +119,12 @@ internal fun TxToolPanel(
                         }
                 },
             )
+            // Scrolls when the controls are taller than the space the canvas
+            // leaves. On a short phone that space is a few dozen dp, and a
+            // panel that merely clipped would put half a tool's controls -
+            // the Inset tool's Remove, the Text tool's style row - out of
+            // reach with nothing to say they were there.
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -139,6 +153,17 @@ internal fun TxToolPanel(
                 onStamp = onStampCallsign,
                 onColorPick = onColorPick,
                 onSizePick = onSizePick,
+            )
+            TxTool.INSET -> InsetPanel(
+                inset = composition.inset,
+                activeCorner = composition.inset?.let {
+                    matchingInsetCorner(it, composition.frameAspect())
+                },
+                picker = insetPicker,
+                onPick = onInsetPick,
+                onCorner = onInsetCorner,
+                onSize = onInsetSize,
+                onRemove = onInsetRemove,
             )
             TxTool.FRAME -> FramePanel(
                 selected = composition.frame,
@@ -683,7 +708,7 @@ private fun StyleRow(selected: OverlayStyle, onPick: (OverlayStyle) -> Unit) {
 
 /** A rounded pill action (Reset, Fill frame, Undo, Clear). */
 @Composable
-private fun Pill(label: String, enabled: Boolean = true, onClick: () -> Unit) {
+internal fun Pill(label: String, enabled: Boolean = true, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
@@ -781,7 +806,7 @@ private fun MonoField(
 
 /** A muted hint line. */
 @Composable
-private fun Hint(text: String) {
+internal fun Hint(text: String) {
     Text(text = text, color = TextMuted, fontSize = 12.sp, lineHeight = 16.sp)
 }
 

@@ -1051,4 +1051,27 @@
     <string name="radio_level_advice_good">In the healthy range.</string>
     <string name="radio_level_advice_high">Close to clipping. Lower the gain a little.</string>
     <string name="radio_level_advice_clipping">Clipping. Lower the gain until peaks stay below the mark.</string>
+
+    <!-- ===== TX composer: inset (a received picture pinned to a reply) ===== -->
+    <string name="tx_tool_inset">Inset</string>
+    <string name="tx_inset_hint_empty">Pin a picture you received to a corner of yours, so the other station can see what reached you.</string>
+    <string name="tx_inset_received_label">RECEIVED</string>
+    <string name="tx_inset_tap_to_pin">Tap one to pin it. Newest first.</string>
+    <string name="tx_inset_none_received">Nothing received yet. Pictures you receive show up here.</string>
+    <string name="tx_inset_title">Received picture</string>
+    <string name="tx_inset_corner">CORNER</string>
+    <string name="tx_inset_size">SIZE</string>
+    <string name="tx_inset_remove">Remove inset</string>
+    <string name="tx_inset_hint_drag">Drag it anywhere on the picture. It is burned into what you transmit.</string>
+    <string name="tx_inset_corner_top_left">Top left corner</string>
+    <string name="tx_inset_corner_top_right">Top right corner</string>
+    <string name="tx_inset_corner_bottom_left">Bottom left corner</string>
+    <string name="tx_inset_corner_bottom_right">Bottom right corner</string>
+    <!-- %1$s is the short mode and UTC time, e.g. "S1 · 14:32". -->
+    <string name="tx_inset_pick_description">Pin the picture received %1$s</string>
+    <string name="tx_inset_load_failed">Couldn\'t load that picture. It may have been deleted.</string>
+    <string name="tx_reply_banner_title">Replying to a received picture</string>
+    <string name="tx_reply_banner_sub">Goes in a corner of what you send</string>
+    <string name="tx_reply_banner_dismiss">Do not include their picture</string>
+    <string name="gallery_reply_caption">Their picture is pinned to a corner of yours, so they can see what reached you.</string>
 </resources>

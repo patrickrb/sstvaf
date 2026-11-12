@@ -831,4 +831,27 @@
     <string name="radio_level_advice_good">Ve zdravém rozsahu.</string>
     <string name="radio_level_advice_high">Blízko oříznutí. Trochu snižte zisk.</string>
     <string name="radio_level_advice_clipping">Oříznutí. Snižujte zisk, dokud špičky nezůstanou pod značkou.</string>
+
+    <!-- ===== TX composer: inset (a received picture pinned to a reply) ===== -->
+    <string name="tx_tool_inset">Výřez</string>
+    <string name="tx_inset_hint_empty">Připněte přijatý obrázek do rohu svého, aby protistanice viděla, co k vám dorazilo.</string>
+    <string name="tx_inset_received_label">PŘIJATÉ</string>
+    <string name="tx_inset_tap_to_pin">Klepnutím obrázek připnete. Nejnovější první.</string>
+    <string name="tx_inset_none_received">Zatím nic nepřijato. Přijaté obrázky se zobrazí zde.</string>
+    <string name="tx_inset_title">Přijatý obrázek</string>
+    <string name="tx_inset_corner">ROH</string>
+    <string name="tx_inset_size">VELIKOST</string>
+    <string name="tx_inset_remove">Odebrat výřez</string>
+    <string name="tx_inset_hint_drag">Přetáhněte jej kamkoli na obrázku. Je součástí toho, co vysíláte.</string>
+    <string name="tx_inset_corner_top_left">Levý horní roh</string>
+    <string name="tx_inset_corner_top_right">Pravý horní roh</string>
+    <string name="tx_inset_corner_bottom_left">Levý dolní roh</string>
+    <string name="tx_inset_corner_bottom_right">Pravý dolní roh</string>
+    <!-- %1$s is the short mode and UTC time, e.g. "S1 · 14:32". -->
+    <string name="tx_inset_pick_description">Připnout obrázek přijatý %1$s</string>
+    <string name="tx_inset_load_failed">Obrázek se nepodařilo načíst. Možná byl smazán.</string>
+    <string name="tx_reply_banner_title">Odpověď na přijatý obrázek</string>
+    <string name="tx_reply_banner_sub">Umístí se do rohu toho, co odešlete</string>
+    <string name="tx_reply_banner_dismiss">Nezahrnovat jejich obrázek</string>
+    <string name="gallery_reply_caption">Jejich obrázek se připne do rohu vašeho, aby viděli, co k vám dorazilo.</string>
 </resources>

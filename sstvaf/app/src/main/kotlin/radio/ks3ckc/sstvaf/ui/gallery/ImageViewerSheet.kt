@@ -160,6 +160,20 @@ fun ImageViewerSheet(
                     textColor = BgApp,
                     onClick = { onSendAgain(entry) },
                 )
+                // Says what the reply will do before the operator commits to
+                // it: their picture is about to go back on the air inside
+                // yours, which is not what the button did before.
+                primaryActionCaptionRes(entry.direction)?.let { captionRes ->
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = stringResource(captionRes),
+                        modifier = Modifier.fillMaxWidth(),
+                        color = TextMuted,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(10.dp))
 

@@ -493,3 +493,16 @@ internal fun sendAgainLabelRes(direction: ImageDirection): Int = when (direction
     ImageDirection.RX -> R.string.gallery_reply_with_picture
     ImageDirection.TX -> R.string.gallery_send_again
 }
+
+/**
+ * The line under the viewer's primary action, or null for none.
+ *
+ * Only a reply needs one. "Send again" does what it says; "Reply with a
+ * picture" pins the received picture to a corner of the reply, and an operator
+ * should know that their contact's image is going back on the air before they
+ * tap, not discover it in the composer.
+ */
+internal fun primaryActionCaptionRes(direction: ImageDirection): Int? = when (direction) {
+    ImageDirection.RX -> R.string.gallery_reply_caption
+    ImageDirection.TX -> null
+}

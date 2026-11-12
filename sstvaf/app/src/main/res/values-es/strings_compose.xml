@@ -831,4 +831,27 @@
     <string name="radio_level_advice_good">En el rango saludable.</string>
     <string name="radio_level_advice_high">Cerca de la saturación. Baja un poco la ganancia.</string>
     <string name="radio_level_advice_clipping">Saturando. Baja la ganancia hasta que los picos queden por debajo de la marca.</string>
+
+    <!-- ===== TX composer: inset (a received picture pinned to a reply) ===== -->
+    <string name="tx_tool_inset">Recuadro</string>
+    <string name="tx_inset_hint_empty">Fija una imagen recibida en una esquina de la tuya, para que la otra estación vea lo que te llegó.</string>
+    <string name="tx_inset_received_label">RECIBIDAS</string>
+    <string name="tx_inset_tap_to_pin">Toca una para fijarla. Las más recientes primero.</string>
+    <string name="tx_inset_none_received">Aún no se ha recibido nada. Las imágenes que recibas aparecerán aquí.</string>
+    <string name="tx_inset_title">Imagen recibida</string>
+    <string name="tx_inset_corner">ESQUINA</string>
+    <string name="tx_inset_size">TAMAÑO</string>
+    <string name="tx_inset_remove">Quitar recuadro</string>
+    <string name="tx_inset_hint_drag">Arrástralo a cualquier parte de la imagen. Queda grabado en lo que transmites.</string>
+    <string name="tx_inset_corner_top_left">Esquina superior izquierda</string>
+    <string name="tx_inset_corner_top_right">Esquina superior derecha</string>
+    <string name="tx_inset_corner_bottom_left">Esquina inferior izquierda</string>
+    <string name="tx_inset_corner_bottom_right">Esquina inferior derecha</string>
+    <!-- %1$s is the short mode and UTC time, e.g. "S1 · 14:32". -->
+    <string name="tx_inset_pick_description">Fijar la imagen recibida %1$s</string>
+    <string name="tx_inset_load_failed">No se pudo cargar esa imagen. Puede que se haya eliminado.</string>
+    <string name="tx_reply_banner_title">Respondiendo a una imagen recibida</string>
+    <string name="tx_reply_banner_sub">Va en una esquina de lo que envíes</string>
+    <string name="tx_reply_banner_dismiss">No incluir su imagen</string>
+    <string name="gallery_reply_caption">Su imagen se fija en una esquina de la tuya, para que vean lo que te llegó.</string>
 </resources>

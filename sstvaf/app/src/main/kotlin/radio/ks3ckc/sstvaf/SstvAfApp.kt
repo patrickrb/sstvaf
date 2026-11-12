@@ -202,14 +202,18 @@ fun SstvAfApp(mainViewModel: MainViewModel) {
                         // A received picture and a sent one want opposite
                         // things. "Send again" reopens the composition that
                         // produced it. "Reply with a picture" means send
-                        // something of your own back, so loading the other
-                        // station's image into the composer is the one thing it
-                        // must not do - an RX row has no edit list anyway, so
-                        // the reopen path would land on its flattened PNG.
+                        // something of your own back, so the other station's
+                        // image must never become the picture being sent - an
+                        // RX row has no edit list anyway, so the reopen path
+                        // would land on its flattened PNG. It rides along as
+                        // an inset instead: the composer starts fresh, with
+                        // their picture pinned to a corner of whatever the
+                        // operator sends.
                         if (entry.direction == ImageDirection.TX) {
                             mainViewModel.txComposerState.requestReopen(entry)
                         } else {
                             mainViewModel.txComposerState.clearImage()
+                            mainViewModel.txComposerState.requestReply(entry)
                         }
                         activeTab = SstvTab.TX
                     },
