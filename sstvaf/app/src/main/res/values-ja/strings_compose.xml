@@ -849,6 +849,7 @@
     <string name="tx_inset_corner_bottom_right">右下の隅</string>
     <!-- %1$s is the short mode and UTC time, e.g. "S1 · 14:32". -->
     <string name="tx_inset_pick_description">受信画像 %1$s を貼り付け</string>
+    <string name="tx_inset_load_failed">その画像を読み込めませんでした。削除された可能性があります。</string>
     <string name="tx_reply_banner_title">受信画像への返信</string>
     <string name="tx_reply_banner_sub">送信する画像の隅に入ります</string>
     <string name="tx_reply_banner_dismiss">相手の画像を含めない</string>

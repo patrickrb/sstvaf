@@ -849,6 +849,7 @@
     <string name="tx_inset_corner_bottom_right">Hoek rechtsonder</string>
     <!-- %1$s is the short mode and UTC time, e.g. "S1 · 14:32". -->
     <string name="tx_inset_pick_description">Ontvangen afbeelding %1$s vastzetten</string>
+    <string name="tx_inset_load_failed">Die afbeelding kon niet worden geladen. Mogelijk is ze verwijderd.</string>
     <string name="tx_reply_banner_title">Antwoord op een ontvangen afbeelding</string>
     <string name="tx_reply_banner_sub">Komt in een hoek van wat je verzendt</string>
     <string name="tx_reply_banner_dismiss">Hun afbeelding niet meesturen</string>

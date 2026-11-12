@@ -2,6 +2,7 @@ package radio.ks3ckc.sstvaf.ui.tx
 
 import android.graphics.Bitmap
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -259,30 +260,44 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
         }
     }
 
-    // The received pictures the Inset tool offers. Loaded when the tool opens
-    // rather than up front: it is a database read, and most visits to this
-    // screen never touch the tool.
+    // The received pictures the Inset tool offers. Read each time its picker
+    // strip comes on screen (see refreshReceivedForInset below) rather than up
+    // front: it is a database read, and most visits to this screen never touch
+    // the tool.
     var receivedForInset by remember { mutableStateOf<List<SavedImage>>(emptyList()) }
-    LaunchedEffect(tool == TxTool.INSET) {
-        if (tool == TxTool.INSET) {
-            receivedForInset = withContext(Dispatchers.IO) { recentReceived(store.list()) }
-        }
-    }
 
     // Pin a received picture as the inset. The decode is off the UI thread;
     // the composition is read again afterwards, because the operator may have
     // changed mode (and so the frame's shape) while it ran.
     val scope = rememberCoroutineScope()
+    val refreshReceivedForInset: () -> Unit = {
+        scope.launch {
+            receivedForInset = withContext(Dispatchers.IO) { recentReceived(store.list()) }
+        }
+    }
+    // A received picture that will not load must not fail silently: the
+    // operator would go on to transmit believing it was pinned.
+    val reportInsetLoadFailed: (SavedImage) -> Unit = { entry ->
+        GeneralVariables.fileLog("TX inset: could not load " + entry.fileName)
+        Toast.makeText(context, R.string.tx_inset_load_failed, Toast.LENGTH_SHORT).show()
+    }
     val pinReceived: (SavedImage) -> Unit = { entry ->
         scope.launch {
             val file = store.imageFile(entry)
-            val bitmap = withContext(Dispatchers.IO) { loadSavedBitmap(file) }
+            val bitmap = withContext(Dispatchers.IO) {
+                loadInsetFile(file, composition.mode.width, composition.mode.height)
+            }
             val live = composerState.composition
             if (bitmap != null && live != null) {
                 composerState.setInset(
                     bitmap,
                     insetForReceived(entry, file, live.frameAspect(), keepPlacementOf = live.inset),
                 )
+            } else {
+                bitmap?.recycle()
+                reportInsetLoadFailed(entry)
+                // It is probably gone from the gallery: stop offering it.
+                refreshReceivedForInset()
             }
         }
     }
@@ -295,14 +310,21 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
     LaunchedEffect(replyRequest?.id) {
         val entry = replyRequest ?: return@LaunchedEffect
         val file = store.imageFile(entry)
-        val bitmap = withContext(Dispatchers.IO) { loadSavedBitmap(file) }
+        val bitmap = withContext(Dispatchers.IO) {
+            loadInsetFile(file, composition.mode.width, composition.mode.height)
+        }
         val live = composerState.composition
         if (bitmap != null && live != null) {
             composerState.setInset(bitmap, insetForReceived(entry, file, live.frameAspect()))
-            // So the editor opens on the inset's own controls once a picture
-            // is chosen: it is the thing this visit to the composer is about.
+            // Where a photo is picked or taken next, the editor opens on the
+            // inset's own controls. The card and Last sent paths choose their
+            // own tool (Text) and override this - a card is text, and the
+            // reply's report is the next thing typed onto it.
             tool = TxTool.INSET
             selectedOverlayId = null
+        } else {
+            bitmap?.recycle()
+            reportInsetLoadFailed(entry)
         }
         outcome = null
         composerState.consumeReplyRequest()
@@ -356,12 +378,17 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
         // plainly has, so that case takes the flattened path too.
         val restoredInset = restored?.inset
         val restoredInsetBitmap = if (fromSource != null && restoredInset != null) {
-            withContext(Dispatchers.IO) { loadInsetBitmap(restoredInset.sourceUri) }
+            withContext(Dispatchers.IO) {
+                loadInsetBitmap(restoredInset.sourceUri, restored.mode.width, restored.mode.height)
+            }
         } else {
             null
         }
-        val replayable = fromSource != null && restored != null &&
-            (restoredInset == null || restoredInsetBitmap != null)
+        val replayable = editListIsReplayable(
+            sourceLoaded = fromSource != null && restored != null,
+            insetWanted = restoredInset != null,
+            insetLoaded = restoredInsetBitmap != null,
+        )
         if (!replayable) fromSource?.recycle()
 
         if (replayable && fromSource != null && restored != null) {
@@ -588,13 +615,19 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                 },
                 onDeleteSelected = {
                     val id = selectedOverlayId
-                    if (id != null) {
-                        composerState.composition =
-                            composerState.composition?.withOverlayRemoved(id)
-                    } else if (tool == TxTool.INSET) {
-                        // No text selected and the Inset tool open: the
-                        // outline, and so the delete button, is the inset's.
-                        composerState.clearInset()
+                    when (
+                        deleteTarget(
+                            overlaySelected = id != null,
+                            tool = tool,
+                            hasInset = composerState.composition?.inset != null,
+                        )
+                    ) {
+                        DeleteTarget.OVERLAY -> if (id != null) {
+                            composerState.composition =
+                                composerState.composition?.withOverlayRemoved(id)
+                        }
+                        DeleteTarget.INSET -> composerState.clearInset()
+                        DeleteTarget.NONE -> Unit
                     }
                     selectedOverlayId = null
                 },
@@ -721,6 +754,7 @@ var pendingCaptureUri by androidx.compose.runtime.saveable.rememberSaveable { mu
                 insetPicker = InsetPickerState(
                     received = receivedForInset,
                     fileOf = { store.imageFile(it) },
+                    refresh = refreshReceivedForInset,
                 ),
                 onInsetPick = pinReceived,
                 onInsetCorner = { composerState.composition = composition.withInsetCorner(it) },

@@ -338,6 +338,21 @@ class TxEditListTest {
     }
 
     @Test
+    fun `a pinned corner survives a round trip, and an unpinned inset stays unpinned`() {
+        val pinned = withInset().let { it.copy(inset = it.inset!!.copy(corner = InsetCorner.TOP_LEFT)) }
+        assertThat(TxEditList.parse(TxEditList.serialize(pinned))!!.inset!!.corner)
+            .isEqualTo(InsetCorner.TOP_LEFT)
+        assertThat(TxEditList.parse(TxEditList.serialize(withInset()))!!.inset!!.corner).isNull()
+    }
+
+    @Test
+    fun `an unknown corner name reads as unpinned rather than rejecting the picture`() {
+        val json = TxEditList.serialize(TxComposition(mode = SstvMode.SCOTTIE_1))
+            .replaceFirst("{", """{"inset":{"src":"file:///a.png","corner":"MIDDLE"},""")
+        assertThat(TxEditList.parse(json)!!.inset!!.corner).isNull()
+    }
+
+    @Test
     fun `a composition without an inset writes no inset key and reads back none`() {
         val json = TxEditList.serialize(TxComposition(mode = SstvMode.SCOTTIE_1))
         assertThat(json).doesNotContain("inset")

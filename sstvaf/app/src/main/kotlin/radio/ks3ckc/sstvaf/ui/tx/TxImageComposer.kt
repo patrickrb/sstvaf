@@ -162,8 +162,7 @@ internal const val INSET_BORDER_COLOR = OVERLAY_COLOR_WHITE
 internal fun insetRectPx(inset: ImageInset, dstW: Int, dstH: Int): Rect {
     if (dstW <= 0 || dstH <= 0) return Rect(0, 0, 0, 0)
     val frameAspect = dstW.toFloat() / dstH
-    val wPercent = insetWidthPercent(inset.widthFraction)
-    val hPercent = insetHeightPercent(inset.widthFraction, inset.aspect, frameAspect)
+    val (wPercent, hPercent) = insetSizePercent(inset.widthFraction, inset.aspect, frameAspect)
     val w = (wPercent / 100f * dstW).roundToInt().coerceIn(1, dstW)
     val h = (hPercent / 100f * dstH).roundToInt().coerceIn(1, dstH)
     val centreX = clampInsetCentre(inset.xPercent, wPercent) / 100f * dstW
@@ -171,6 +170,33 @@ internal fun insetRectPx(inset: ImageInset, dstW: Int, dstH: Int): Rect {
     val left = (centreX - w / 2f).roundToInt().coerceIn(0, dstW - w)
     val top = (centreY - h / 2f).roundToInt().coerceIn(0, dstH - h)
     return Rect(left, top, left + w, top + h)
+}
+
+/** How far a box's shape may differ from the picture's before it is re-fitted. */
+internal const val INSET_FIT_TOLERANCE = 0.03f
+
+/**
+ * The largest rectangle of shape `srcW:srcH` centred inside [rect].
+ *
+ * Within [INSET_FIT_TOLERANCE] the box is used as it is: rounding to whole
+ * pixels alone moves a 106x84 box a percent off 5:4, and shaving a pixel row
+ * to correct that would only open a gap between the drawn inset and the
+ * outline the operator is dragging.
+ */
+internal fun fitRectToAspect(rect: Rect, srcW: Int, srcH: Int): Rect {
+    if (srcW <= 0 || srcH <= 0 || rect.isEmpty) return Rect(rect)
+    val src = srcW.toFloat() / srcH
+    val box = rect.width().toFloat() / rect.height()
+    if (kotlin.math.abs(src / box - 1f) <= INSET_FIT_TOLERANCE) return Rect(rect)
+    return if (src > box) {
+        val h = (rect.width() / src).roundToInt().coerceIn(1, rect.height())
+        val top = rect.top + (rect.height() - h) / 2
+        Rect(rect.left, top, rect.right, top + h)
+    } else {
+        val w = (rect.height() * src).roundToInt().coerceIn(1, rect.width())
+        val left = rect.left + (rect.width() - w) / 2
+        Rect(left, rect.top, left + w, rect.bottom)
+    }
 }
 
 /** Inset border width in pixels: never thinner than one. */
@@ -186,7 +212,11 @@ internal fun insetBorderPx(dstW: Int, dstH: Int): Int =
  */
 private fun drawInset(canvas: Canvas, inset: ImageInset, bitmap: Bitmap, dstW: Int, dstH: Int) {
     if (bitmap.isRecycled || bitmap.width <= 0 || bitmap.height <= 0) return
-    val rect = insetRectPx(inset, dstW, dstH)
+    // Fitted to the bitmap's real shape. The box comes from the aspect stored
+    // with the inset, which is clamped and can be wrong (a hand-edited row, a
+    // very long radiofax strip); the pixels are the truth, and they must not
+    // be stretched to agree with the box.
+    val rect = fitRectToAspect(insetRectPx(inset, dstW, dstH), bitmap.width, bitmap.height)
     if (rect.isEmpty) return
     canvas.drawBitmap(bitmap, null, rect, Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
 
@@ -218,9 +248,40 @@ internal fun insetSourceFile(sourceUri: String): java.io.File? {
     return if (path.isNullOrEmpty()) null else java.io.File(path)
 }
 
-/** Decode an inset's picture; null when it is gone or unreadable. */
-internal fun loadInsetBitmap(sourceUri: String): Bitmap? =
-    insetSourceFile(sourceUri)?.let { loadSavedBitmap(it) }
+/**
+ * Decode a received picture for use as an inset on a `frameW x frameH` frame;
+ * null when it is gone or unreadable.
+ *
+ * Downsampled to no less than the frame's own size. An inset is at most two
+ * fifths of the frame wide, so that is already more pixels than it can show -
+ * while a PD 290 picture or a radiofax strip decoded whole would be megabytes
+ * held for the session and re-scaled on every event of a drag.
+ */
+internal fun loadInsetFile(file: java.io.File, frameW: Int, frameH: Int): Bitmap? =
+    try {
+        if (!file.exists()) {
+            null
+        } else {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(file.absolutePath, bounds)
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+                null
+            } else {
+                val options = BitmapFactory.Options().apply {
+                    inSampleSize = computeInSampleSize(
+                        bounds.outWidth, bounds.outHeight, frameW, frameH,
+                    )
+                }
+                BitmapFactory.decodeFile(file.absolutePath, options)
+            }
+        }
+    } catch (t: Throwable) {
+        null
+    }
+
+/** [loadInsetFile] for an inset's stored `file:` URI. */
+internal fun loadInsetBitmap(sourceUri: String, frameW: Int, frameH: Int): Bitmap? =
+    insetSourceFile(sourceUri)?.let { loadInsetFile(it, frameW, frameH) }
 
 // ---------------------------------------------------------------------------
 // Adjustments

@@ -849,6 +849,7 @@
     <string name="tx_inset_corner_bottom_right">Sağ alt köşe</string>
     <!-- %1$s is the short mode and UTC time, e.g. "S1 · 14:32". -->
     <string name="tx_inset_pick_description">Alınan resmi sabitle: %1$s</string>
+    <string name="tx_inset_load_failed">Bu resim yüklenemedi. Silinmiş olabilir.</string>
     <string name="tx_reply_banner_title">Alınan bir resme yanıt</string>
     <string name="tx_reply_banner_sub">Gönderdiğiniz resmin bir köşesine yerleşir</string>
     <string name="tx_reply_banner_dismiss">Onların resmini ekleme</string>

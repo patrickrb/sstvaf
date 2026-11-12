@@ -1069,6 +1069,7 @@
     <string name="tx_inset_corner_bottom_right">Bottom right corner</string>
     <!-- %1$s is the short mode and UTC time, e.g. "S1 · 14:32". -->
     <string name="tx_inset_pick_description">Pin the picture received %1$s</string>
+    <string name="tx_inset_load_failed">Couldn\'t load that picture. It may have been deleted.</string>
     <string name="tx_reply_banner_title">Replying to a received picture</string>
     <string name="tx_reply_banner_sub">Goes in a corner of what you send</string>
     <string name="tx_reply_banner_dismiss">Do not include their picture</string>

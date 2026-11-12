@@ -19,6 +19,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -64,11 +64,9 @@ import java.io.File
 internal data class InsetPickerState(
     val received: List<SavedImage> = emptyList(),
     val fileOf: (SavedImage) -> File? = { null },
+    /** Re-read [received]; called each time the strip comes on screen. */
+    val refresh: () -> Unit = {},
 )
-
-/** Test tags for the Inset panel's two states. */
-internal const val INSET_PICKER_TAG = "insetPicker"
-internal const val INSET_PLACEMENT_TAG = "insetPlacement"
 
 /**
  * The Inset tool's panel: pick a received picture to pin, then place it.
@@ -87,16 +85,21 @@ internal fun InsetPanel(
     onSize: (Float) -> Unit,
     onRemove: () -> Unit,
 ) {
-    // Keyed on the pinned picture: picking a new one ends the change, and so
-    // does the inset being removed from the canvas.
-    var changing by remember(inset?.sourceUri) { mutableStateOf(false) }
+    // Reset when the inset comes or goes, so removing it from the canvas ends
+    // a change in progress. A pick ends it explicitly below - keying on the
+    // pinned picture alone missed the operator tapping the one already
+    // pinned, which left the picker open as if the tap had done nothing.
+    var changing by remember(inset != null) { mutableStateOf(false) }
 
     if (insetPanelShowsPicker(hasInset = inset != null, changeRequested = changing)) {
         InsetPicker(
             picker = picker,
             cancellable = inset != null,
             onCancel = { changing = false },
-            onPick = onPick,
+            onPick = { entry ->
+                changing = false
+                onPick(entry)
+            },
         )
     } else if (inset != null) {
         InsetPlacement(
@@ -118,7 +121,12 @@ private fun InsetPicker(
     onCancel: () -> Unit,
     onPick: (SavedImage) -> Unit,
 ) {
-    PanelHint(stringResource(R.string.tx_inset_hint_empty), Modifier.testTag(INSET_PICKER_TAG))
+    // The strip is read when it appears, not when the tool was first opened:
+    // a picture received since then, or deleted from the gallery, would
+    // otherwise be missing from - or dead in - a list the operator is about to
+    // pick from.
+    LaunchedEffect(Unit) { picker.refresh() }
+    Hint(stringResource(R.string.tx_inset_hint_empty))
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -126,11 +134,11 @@ private fun InsetPicker(
     ) {
         SectionLabel(stringResource(R.string.tx_inset_received_label))
         if (cancellable) {
-            PanelPill(stringResource(R.string.action_cancel), onClick = onCancel)
+            Pill(stringResource(R.string.action_cancel), onClick = onCancel)
         }
     }
     if (picker.received.isEmpty()) {
-        PanelHint(stringResource(R.string.tx_inset_none_received))
+        Hint(stringResource(R.string.tx_inset_none_received))
         return
     }
     Row(
@@ -171,7 +179,7 @@ private fun InsetPicker(
             }
         }
     }
-    PanelHint(stringResource(R.string.tx_inset_tap_to_pin))
+    Hint(stringResource(R.string.tx_inset_tap_to_pin))
 }
 
 /** The controls for an inset that is already on the picture. */
@@ -185,7 +193,7 @@ private fun InsetPlacement(
     onRemove: () -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().testTag(INSET_PLACEMENT_TAG),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -209,7 +217,7 @@ private fun InsetPlacement(
                 )
             }
         }
-        PanelPill(stringResource(R.string.tx_change_photo_pill), onClick = onChange)
+        Pill(stringResource(R.string.tx_change_photo_pill), onClick = onChange)
     }
 
     Row(
@@ -284,7 +292,7 @@ private fun InsetPlacement(
             }
         }
     }
-    PanelHint(stringResource(R.string.tx_inset_hint_drag))
+    Hint(stringResource(R.string.tx_inset_hint_drag))
 }
 
 /**
@@ -407,12 +415,6 @@ internal fun ReplyBanner(inset: ImageInset, onDismiss: () -> Unit, modifier: Mod
     }
 }
 
-/** A muted hint line (the tool panel's own is private to its file). */
-@Composable
-private fun PanelHint(text: String, modifier: Modifier = Modifier) {
-    Text(text = text, modifier = modifier, color = TextMuted, fontSize = 12.sp, lineHeight = 16.sp)
-}
-
 /** An uppercase section label. */
 @Composable
 private fun SectionLabel(text: String) {
@@ -423,23 +425,4 @@ private fun SectionLabel(text: String) {
         fontWeight = FontWeight.SemiBold,
         letterSpacing = 0.6.sp,
     )
-}
-
-/** A rounded pill action, matching the tool panel's. */
-@Composable
-private fun PanelPill(label: String, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(BgSurface3)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 7.dp),
-    ) {
-        Text(
-            text = label,
-            color = TextPrimary,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
-    }
 }

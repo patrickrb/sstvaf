@@ -849,6 +849,7 @@
     <string name="tx_inset_corner_bottom_right">右下角</string>
     <!-- %1$s is the short mode and UTC time, e.g. "S1 · 14:32". -->
     <string name="tx_inset_pick_description">固定收到的圖片 %1$s</string>
+    <string name="tx_inset_load_failed">無法載入該圖片。它可能已被刪除。</string>
     <string name="tx_reply_banner_title">正在回覆收到的圖片</string>
     <string name="tx_reply_banner_sub">放在你傳送圖片的一角</string>
     <string name="tx_reply_banner_dismiss">不包含對方的圖片</string>

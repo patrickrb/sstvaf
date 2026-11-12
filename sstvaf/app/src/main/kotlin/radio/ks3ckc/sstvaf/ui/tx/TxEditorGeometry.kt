@@ -124,12 +124,24 @@ internal fun overlaySelectionBox(
  * shared by hit-testing and the selection outline so the two cannot drift.
  */
 internal fun insetBoxPercent(inset: ImageInset, frameAspect: Float): CanvasBox {
-    val w = insetWidthPercent(inset.widthFraction)
-    val h = insetHeightPercent(inset.widthFraction, inset.aspect, frameAspect)
+    val (w, h) = insetSizePercent(inset.widthFraction, inset.aspect, frameAspect)
     val centreX = clampInsetCentre(inset.xPercent, w)
     val centreY = clampInsetCentre(inset.yPercent, h)
     return CanvasBox(left = centreX - w / 2f, top = centreY - h / 2f, width = w, height = h)
 }
+
+/**
+ * Whether a touch that lands on the inset grabs it, given the open tool.
+ *
+ * Not in Crop or Draw. A text overlay wins under any tool because it is a line
+ * high and hard to hit by accident; the inset can be two fifths of the frame,
+ * and letting it take every touch that starts on it would leave Crop unable to
+ * pan or pinch from that part of the picture and Draw unable to start a stroke
+ * there. Those two tools own the whole canvas; every other tool has no use for
+ * a touch on the picture, so there the inset can have it.
+ */
+internal fun insetTakesTouch(tool: TxTool, touchIsOnInset: Boolean): Boolean =
+    touchIsOnInset && tool != TxTool.CROP && tool != TxTool.DRAW
 
 /** Whether a touch (in frame percent) lands on the inset. */
 internal fun insetHitTest(

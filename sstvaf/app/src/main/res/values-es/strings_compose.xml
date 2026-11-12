@@ -849,6 +849,7 @@
     <string name="tx_inset_corner_bottom_right">Esquina inferior derecha</string>
     <!-- %1$s is the short mode and UTC time, e.g. "S1 · 14:32". -->
     <string name="tx_inset_pick_description">Fijar la imagen recibida %1$s</string>
+    <string name="tx_inset_load_failed">No se pudo cargar esa imagen. Puede que se haya eliminado.</string>
     <string name="tx_reply_banner_title">Respondiendo a una imagen recibida</string>
     <string name="tx_reply_banner_sub">Va en una esquina de lo que envíes</string>
     <string name="tx_reply_banner_dismiss">No incluir su imagen</string>

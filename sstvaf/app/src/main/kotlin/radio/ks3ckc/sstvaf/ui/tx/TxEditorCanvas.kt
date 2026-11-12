@@ -117,7 +117,7 @@ internal fun TxEditorCanvas(
     onInsetTouched: () -> Unit = {},
     onInsetMovedTo: (xPercent: Float, yPercent: Float) -> Unit = { _, _ -> },
 ) {
-    val aspect = composition.mode.width.toFloat() / composition.mode.height
+    val aspect = composition.frameAspect()
 
     // The ring breathes for the whole transmission. The rig being keyed is the
     // one state an operator must never be unsure about, and a static border is
@@ -491,7 +491,8 @@ private suspend fun PointerInputScope.canvasGestures(
         var dragging: String? = null
         // The inset is tested after the text because the text is drawn over
         // it: where a bar crosses the inset, the bar is what the operator sees
-        // on top and so what they are reaching for.
+        // on top and so what they are reaching for. Crop and Draw keep their
+        // touches even on the inset - see [insetTakesTouch].
         var draggingInset = false
         var grabX = 0f
         var grabY = 0f
@@ -500,7 +501,10 @@ private suspend fun PointerInputScope.canvasGestures(
             dragging = hit.id
             onOverlayTouched(hit.id)
         } else if (insetAtDown != null &&
-            insetHitTest(insetAtDown, frameAspect, startPercent.first, startPercent.second)
+            insetTakesTouch(
+                tool,
+                insetHitTest(insetAtDown, frameAspect, startPercent.first, startPercent.second),
+            )
         ) {
             draggingInset = true
             val box = insetBoxPercent(insetAtDown, frameAspect)

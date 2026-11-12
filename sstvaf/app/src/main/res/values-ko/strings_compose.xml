@@ -849,6 +849,7 @@
     <string name="tx_inset_corner_bottom_right">오른쪽 아래 모서리</string>
     <!-- %1$s is the short mode and UTC time, e.g. "S1 · 14:32". -->
     <string name="tx_inset_pick_description">수신한 사진 %1$s 고정</string>
+    <string name="tx_inset_load_failed">사진을 불러올 수 없습니다. 삭제되었을 수 있습니다.</string>
     <string name="tx_reply_banner_title">수신한 사진에 답신</string>
     <string name="tx_reply_banner_sub">보내는 사진의 모서리에 들어갑니다</string>
     <string name="tx_reply_banner_dismiss">상대 사진 포함 안 함</string>

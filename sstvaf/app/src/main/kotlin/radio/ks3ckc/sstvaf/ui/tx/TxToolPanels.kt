@@ -708,7 +708,7 @@ private fun StyleRow(selected: OverlayStyle, onPick: (OverlayStyle) -> Unit) {
 
 /** A rounded pill action (Reset, Fill frame, Undo, Clear). */
 @Composable
-private fun Pill(label: String, enabled: Boolean = true, onClick: () -> Unit) {
+internal fun Pill(label: String, enabled: Boolean = true, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
@@ -806,7 +806,7 @@ private fun MonoField(
 
 /** A muted hint line. */
 @Composable
-private fun Hint(text: String) {
+internal fun Hint(text: String) {
     Text(text = text, color = TextMuted, fontSize = 12.sp, lineHeight = 16.sp)
 }
 

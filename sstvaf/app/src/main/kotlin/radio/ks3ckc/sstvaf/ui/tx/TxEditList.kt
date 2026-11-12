@@ -53,6 +53,7 @@ object TxEditList {
     private const val KEY_INSET = "inset"
     private const val KEY_ASPECT = "aspect"
     private const val KEY_CAPTION = "caption"
+    private const val KEY_CORNER = "corner"
 
     /**
      * Serialize [composition] to a JSON string.
@@ -124,6 +125,7 @@ object TxEditList {
                     put(KEY_Y, inset.yPercent.toDouble())
                     put(KEY_SIZE, inset.widthFraction.toDouble())
                     put(KEY_CAPTION, inset.caption)
+                    inset.corner?.let { put(KEY_CORNER, it.name) }
                 },
             )
         }
@@ -241,7 +243,7 @@ object TxEditList {
                     aspect = aspect,
                     xPercent = clampInsetCentre(
                         item.optDouble(KEY_X, 50.0).toFloat(),
-                        insetWidthPercent(size),
+                        insetWidthPercent(size, aspect, frameAspect),
                     ),
                     yPercent = clampInsetCentre(
                         item.optDouble(KEY_Y, 50.0).toFloat(),
@@ -249,6 +251,10 @@ object TxEditList {
                     ),
                     widthFraction = size,
                     caption = item.optString(KEY_CAPTION),
+                    // Absent or unknown reads as "dragged": the position is
+                    // kept either way, only the panel's highlight is lost.
+                    corner = InsetCorner.entries
+                        .firstOrNull { it.name == item.optString(KEY_CORNER) },
                 )
             }
 

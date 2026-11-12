@@ -412,7 +412,7 @@ class TxEditorGestureTest {
         var tool: TxTool? = null
         rule.setContent {
             Harness(
-                tool = TxTool.CROP,
+                tool = TxTool.TEXT,
                 initial = TxComposition(mode = mode, zoom = 2f, inset = corneredInset()),
                 onComposition = { latest = it },
                 onTool = { tool = it },
@@ -513,5 +513,58 @@ class TxEditorGestureTest {
         rule.waitForIdle()
 
         assertThat(latest!!.inset).isEqualTo(inset)
+    }
+
+    @Test
+    fun `a crop pan that starts on the inset pans the picture, not the inset`() {
+        // The inset can cover two fifths of the frame. If it took every touch
+        // that began on it, Crop could not pan from that part of the picture.
+        val inset = corneredInset()
+        var latest: TxComposition? = null
+        var tool: TxTool? = null
+        rule.setContent {
+            Harness(
+                tool = TxTool.CROP,
+                initial = TxComposition(mode = mode, zoom = 2f, inset = inset),
+                onComposition = { latest = it },
+                onTool = { tool = it },
+            )
+        }
+
+        rule.onNodeWithTag(CANVAS_TAG).performTouchInput {
+            down(Offset(width * 0.80f, height * 0.67f))
+            moveBy(Offset(-width * 0.10f, 0f))
+            moveBy(Offset(-width * 0.10f, 0f))
+            up()
+        }
+        rule.waitForIdle()
+
+        assertThat(tool).isEqualTo(TxTool.CROP)
+        assertThat(latest!!.inset).isEqualTo(inset)
+        assertThat(latest!!.panX).isNotEqualTo(0f)
+    }
+
+    @Test
+    fun `a stroke can start on the inset while drawing`() {
+        val inset = corneredInset()
+        var latest: TxComposition? = null
+        rule.setContent {
+            Harness(
+                tool = TxTool.DRAW,
+                initial = TxComposition(mode = mode, inset = inset),
+                onComposition = { latest = it },
+            )
+        }
+
+        rule.onNodeWithTag(CANVAS_TAG).performTouchInput {
+            down(Offset(width * 0.80f, height * 0.67f))
+            moveBy(Offset(-width * 0.10f, 0f))
+            moveBy(Offset(-width * 0.10f, 0f))
+            up()
+        }
+        rule.waitForIdle()
+
+        assertThat(latest!!.inset).isEqualTo(inset)
+        assertThat(latest!!.paths.single().points.size).isAtLeast(3)
     }
 }

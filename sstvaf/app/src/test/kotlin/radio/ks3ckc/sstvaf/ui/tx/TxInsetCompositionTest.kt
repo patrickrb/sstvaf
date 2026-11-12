@@ -25,6 +25,7 @@ class TxInsetCompositionTest {
         y: Float = 50f,
         size: Float = INSET_SIZE_MEDIUM,
         aspect: Float = 320f / 256f,
+        corner: InsetCorner? = null,
     ) = ImageInset(
         sourceUri = "file:///data/sstv_images/a.png",
         aspect = aspect,
@@ -32,6 +33,7 @@ class TxInsetCompositionTest {
         yPercent = y,
         widthFraction = size,
         caption = "Scottie 1 · 14:32 UTC · 14.230 MHz",
+        corner = corner,
     )
 
     // ----- clamps -------------------------------------------------------------
@@ -64,7 +66,8 @@ class TxInsetCompositionTest {
 
     @Test
     fun `an inset shaped like its frame takes the same share of both sides`() {
-        assertThat(insetWidthPercent(INSET_SIZE_MEDIUM)).isWithin(1e-3f).of(33f)
+        assertThat(insetWidthPercent(INSET_SIZE_MEDIUM, scottieAspect, scottieAspect))
+            .isWithin(1e-3f).of(33f)
         assertThat(insetHeightPercent(INSET_SIZE_MEDIUM, scottieAspect, scottieAspect))
             .isWithin(1e-3f).of(33f)
     }
@@ -156,28 +159,118 @@ class TxInsetCompositionTest {
     }
 
     @Test
-    fun `an inset too tall for the safe band is centred on it`() {
-        // Large, on Martin 4: 80% tall against a 66% band.
+    fun `an inset too tall for the frame is scaled down whole, not squashed`() {
+        // Large, a 3:4 portrait picture, on Martin 4: uncapped it would be
+        // 133% of the frame's height. Capping the height alone kept the 40%
+        // width and transmitted the picture a quarter too short.
+        val (w, h) = insetSizePercent(INSET_SIZE_LARGE, 0.75f, martin4Aspect)
+        assertThat(h).isEqualTo(100f)
+        assertThat(w).isWithin(1e-3f).of(30f)
+        // Its shape in real pixels is still the picture's: (w% of 320) / (h% of 128).
+        assertThat((w * 320f) / (h * 128f)).isWithin(1e-3f).of(0.75f)
+    }
+
+    @Test
+    fun `an inset that fits is not touched by the scaling`() {
+        val (w, h) = insetSizePercent(INSET_SIZE_LARGE, scottieAspect, scottieAspect)
+        assertThat(w).isWithin(1e-3f).of(40f)
+        assertThat(h).isWithin(1e-3f).of(40f)
+    }
+
+    @Test
+    fun `a top preset is never below a bottom preset, whatever the size`() {
+        for (frame in listOf(scottieAspect, 320f / 240f, martin4Aspect, 800f / 616f)) {
+            for (aspect in listOf(scottieAspect, 0.75f, 2f)) {
+                for (size in INSET_SIZES) {
+                    val (_, top) = insetCornerCentre(InsetCorner.TOP_LEFT, size, aspect, frame)
+                    val (_, bottom) = insetCornerCentre(InsetCorner.BOTTOM_LEFT, size, aspect, frame)
+                    assertThat(top).isAtMost(bottom)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `an inset taller than the safe band clears the bar on the far side`() {
+        // Large, a Scottie picture, on Martin 4: 80% tall against a 66% band.
+        // The top preset stops with its bottom edge on the bottom bar's edge,
+        // the bottom preset with its top edge on the top bar's.
         val (_, top) = insetCornerCentre(
             InsetCorner.TOP_LEFT, INSET_SIZE_LARGE, scottieAspect, martin4Aspect,
         )
         val (_, bottom) = insetCornerCentre(
             InsetCorner.BOTTOM_LEFT, INSET_SIZE_LARGE, scottieAspect, martin4Aspect,
         )
-        assertThat(top).isWithin(1e-3f).of(51f)
-        assertThat(bottom).isWithin(1e-3f).of(51f)
+        assertThat(top).isWithin(1e-3f).of(INSET_SAFE_BOTTOM_PERCENT - 40f)
+        assertThat(bottom).isWithin(1e-3f).of(INSET_SAFE_TOP_PERCENT + 40f)
     }
 
     @Test
-    fun `an inset on a preset reports that preset, and a dragged one reports none`() {
-        for (corner in InsetCorner.entries) {
-            val (x, y) = insetCornerCentre(corner, INSET_SIZE_MEDIUM, scottieAspect, scottieAspect)
-            assertThat(matchingInsetCorner(inset(x, y), scottieAspect)).isEqualTo(corner)
-            // A pixel's worth of nudge still counts.
-            assertThat(matchingInsetCorner(inset(x + 0.5f, y - 0.5f), scottieAspect))
-                .isEqualTo(corner)
+    fun `presets that land on the same spot are still told apart`() {
+        // Medium, a Scottie picture, on Martin 4: exactly 66% tall, the height
+        // of the band, so top right and bottom right are one position. Read
+        // from the position alone, a bottom-pinned inset came back top-pinned.
+        val (_, top) = insetCornerCentre(
+            InsetCorner.TOP_RIGHT, INSET_SIZE_MEDIUM, scottieAspect, martin4Aspect,
+        )
+        val (_, bottom) = insetCornerCentre(
+            InsetCorner.BOTTOM_RIGHT, INSET_SIZE_MEDIUM, scottieAspect, martin4Aspect,
+        )
+        assertThat(top).isWithin(1e-3f).of(bottom)
+
+        for (corner in listOf(InsetCorner.TOP_RIGHT, InsetCorner.BOTTOM_RIGHT)) {
+            val pinned = TxComposition(mode = martin4).withInset(inset()).withInsetCorner(corner)
+            assertThat(matchingInsetCorner(pinned.inset!!, martin4Aspect)).isEqualTo(corner)
+            // ...and shrinking it sends it back to the corner it was pinned to.
+            val small = pinned.withInsetSized(INSET_SIZE_SMALL)
+            assertThat(matchingInsetCorner(small.inset!!, martin4Aspect)).isEqualTo(corner)
+            assertThat(small.inset!!.yPercent < 50f).isEqualTo(corner.top)
         }
-        assertThat(matchingInsetCorner(inset(50f, 50f), scottieAspect)).isNull()
+    }
+
+    @Test
+    fun `a round trip through a wide mode leaves a pinned inset where it was`() {
+        // Scottie 1 -> Martin 4 -> Scottie 1 at the default size used to bring
+        // a bottom-right inset back top-right, over the callsign side.
+        for (corner in InsetCorner.entries) {
+            val start = TxComposition(mode = scottie).withInset(inset()).withInsetCorner(corner)
+            val back = start.withModeChanged(martin4).withModeChanged(scottie)
+            assertThat(back.inset).isEqualTo(start.inset)
+            assertThat(matchingInsetCorner(back.inset!!, scottieAspect)).isEqualTo(corner)
+        }
+    }
+
+    @Test
+    fun `a pinned inset reports its corner, and a dragged one reports none`() {
+        for (corner in InsetCorner.entries) {
+            val pinned = TxComposition(mode = scottie).withInset(inset()).withInsetCorner(corner)
+            assertThat(matchingInsetCorner(pinned.inset!!, scottieAspect)).isEqualTo(corner)
+
+            // A pixel's worth of jitter still counts as pinned...
+            val (x, y) = pinned.inset!!.let { it.xPercent to it.yPercent }
+            val nudged = pinned.withInsetMoved(x + 0.5f, y - 0.5f)
+            assertThat(matchingInsetCorner(nudged.inset!!, scottieAspect)).isEqualTo(corner)
+
+            // ...a real drag does not, and the record is cleared with it.
+            val dragged = pinned.withInsetMoved(50f, 50f)
+            assertThat(dragged.inset!!.corner).isNull()
+            assertThat(matchingInsetCorner(dragged.inset!!, scottieAspect)).isNull()
+        }
+    }
+
+    @Test
+    fun `an inset never pinned reports no corner even on a preset's spot`() {
+        val (x, y) = insetCornerCentre(
+            InsetCorner.TOP_LEFT, INSET_SIZE_MEDIUM, scottieAspect, scottieAspect,
+        )
+        assertThat(matchingInsetCorner(inset(x, y), scottieAspect)).isNull()
+    }
+
+    @Test
+    fun `a recorded corner the inset is not on is not believed`() {
+        // A stale or hand-edited record: says top left, sits in the middle.
+        val lying = inset(50f, 50f, corner = InsetCorner.TOP_LEFT)
+        assertThat(matchingInsetCorner(lying, scottieAspect)).isNull()
     }
 
     // ----- factory ------------------------------------------------------------

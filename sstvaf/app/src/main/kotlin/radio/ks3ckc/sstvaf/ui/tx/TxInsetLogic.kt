@@ -6,6 +6,7 @@ import com.k1af.ft8af.R
 import radio.ks3ckc.sstvaf.gallery.ImageDirection
 import radio.ks3ckc.sstvaf.gallery.SavedImage
 import radio.ks3ckc.sstvaf.sstv.SstvMode
+import radio.ks3ckc.sstvaf.ui.gallery.formatViewerFrequency
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -56,7 +57,7 @@ internal fun insetCaption(mode: String, utcMillis: Long, freqHz: Long): String {
     val parts = mutableListOf<String>()
     if (mode.isNotBlank()) parts.add(mode.trim())
     parts.add(utcHourMinute(utcMillis) + " UTC")
-    if (freqHz > 0L) parts.add(String.format(Locale.US, "%.3f MHz", freqHz / 1_000_000.0))
+    if (freqHz > 0L) parts.add(formatViewerFrequency(freqHz))
     return parts.joinToString(" · ")
 }
 
@@ -108,13 +109,16 @@ internal fun insetForReceived(
     val (x, y) = if (corner != null) {
         insetCornerCentre(corner, fresh.widthFraction, fresh.aspect, frameAspect)
     } else {
-        clampInsetCentre(keepPlacementOf.xPercent, insetWidthPercent(fresh.widthFraction)) to
+        clampInsetCentre(
+            keepPlacementOf.xPercent,
+            insetWidthPercent(fresh.widthFraction, fresh.aspect, frameAspect),
+        ) to
             clampInsetCentre(
                 keepPlacementOf.yPercent,
                 insetHeightPercent(fresh.widthFraction, fresh.aspect, frameAspect),
             )
     }
-    return fresh.copy(xPercent = x, yPercent = y)
+    return fresh.copy(xPercent = x, yPercent = y, corner = corner)
 }
 
 /**
@@ -160,3 +164,33 @@ internal fun deleteTargetDescriptionRes(overlaySelected: Boolean): Int =
  */
 internal fun insetIsSelected(tool: TxTool, hasInset: Boolean, overlaySelected: Boolean): Boolean =
     tool == TxTool.INSET && hasInset && !overlaySelected
+
+/**
+ * Whether a stored edit list can be replayed onto its original source, or the
+ * reopen has to fall back to the flattened picture.
+ *
+ * It needs the source, and - if the list has an inset - the received picture
+ * the inset points at. Replaying without that picture would quietly resend
+ * something the flattened file in the gallery shows was never what went out.
+ */
+internal fun editListIsReplayable(
+    sourceLoaded: Boolean,
+    insetWanted: Boolean,
+    insetLoaded: Boolean,
+): Boolean = sourceLoaded && (!insetWanted || insetLoaded)
+
+/** What the canvas's delete button removes. */
+internal enum class DeleteTarget { OVERLAY, INSET, NONE }
+
+/**
+ * What the delete button acts on: the selected text if there is one, otherwise
+ * the inset while its tool is open - the same rule that decides which of them
+ * wears the selection outline (see [insetIsSelected]), so the button always
+ * removes the thing that looks selected.
+ */
+internal fun deleteTarget(overlaySelected: Boolean, tool: TxTool, hasInset: Boolean): DeleteTarget =
+    when {
+        overlaySelected -> DeleteTarget.OVERLAY
+        insetIsSelected(tool, hasInset, overlaySelected = false) -> DeleteTarget.INSET
+        else -> DeleteTarget.NONE
+    }

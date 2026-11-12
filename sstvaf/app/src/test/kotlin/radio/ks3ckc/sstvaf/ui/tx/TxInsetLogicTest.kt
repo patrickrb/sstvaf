@@ -124,7 +124,7 @@ class TxInsetLogicTest {
             val (x, y) = insetCornerCentre(
                 InsetCorner.TOP_LEFT, it.widthFraction, it.aspect, scottieAspect,
             )
-            it.copy(xPercent = x, yPercent = y)
+            it.copy(xPercent = x, yPercent = y, corner = InsetCorner.TOP_LEFT)
         }
 
         // A differently shaped picture: same corner, same size, new geometry.
@@ -154,6 +154,8 @@ class TxInsetLogicTest {
         assertThat(tall.xPercent).isEqualTo(50f)
         val half = insetHeightPercent(tall.widthFraction, tall.aspect, scottieAspect) / 2f
         assertThat(tall.yPercent).isWithin(1e-3f).of(half)
+        // Still unpinned: a fresh inset's default corner must not leak in.
+        assertThat(tall.corner).isNull()
     }
 
     // ----- panel state --------------------------------------------------------
@@ -207,5 +209,47 @@ class TxInsetLogicTest {
         assertThat(tools.indexOf(TxTool.INSET)).isEqualTo(tools.indexOf(TxTool.CALLSIGN) + 1)
         assertThat(tools.indexOf(TxTool.FRAME)).isEqualTo(tools.indexOf(TxTool.INSET) + 1)
         assertThat(TxTool.INSET.labelRes).isEqualTo(R.string.tx_tool_inset)
+    }
+
+    // ----- reopen and delete decisions ----------------------------------------
+
+    @Test
+    fun `an edit list without an inset replays whenever its source loads`() {
+        assertThat(editListIsReplayable(sourceLoaded = true, insetWanted = false, insetLoaded = false))
+            .isTrue()
+        assertThat(editListIsReplayable(sourceLoaded = false, insetWanted = false, insetLoaded = false))
+            .isFalse()
+    }
+
+    @Test
+    fun `an edit list with an inset replays only if the received picture is still there`() {
+        assertThat(editListIsReplayable(sourceLoaded = true, insetWanted = true, insetLoaded = true))
+            .isTrue()
+        // Deleted from the gallery since: fall back to the flattened picture
+        // rather than resend without the inset it plainly had.
+        assertThat(editListIsReplayable(sourceLoaded = true, insetWanted = true, insetLoaded = false))
+            .isFalse()
+        assertThat(editListIsReplayable(sourceLoaded = false, insetWanted = true, insetLoaded = true))
+            .isFalse()
+    }
+
+    @Test
+    fun `delete removes the selected text before anything else`() {
+        for (tool in TxTool.entries) {
+            assertThat(deleteTarget(overlaySelected = true, tool = tool, hasInset = true))
+                .isEqualTo(DeleteTarget.OVERLAY)
+        }
+    }
+
+    @Test
+    fun `delete removes the inset only while its tool is open`() {
+        assertThat(deleteTarget(overlaySelected = false, tool = TxTool.INSET, hasInset = true))
+            .isEqualTo(DeleteTarget.INSET)
+        assertThat(deleteTarget(overlaySelected = false, tool = TxTool.INSET, hasInset = false))
+            .isEqualTo(DeleteTarget.NONE)
+        for (tool in TxTool.entries.filter { it != TxTool.INSET }) {
+            assertThat(deleteTarget(overlaySelected = false, tool = tool, hasInset = true))
+                .isEqualTo(DeleteTarget.NONE)
+        }
     }
 }

@@ -262,7 +262,97 @@ class TxInsetRenderTest {
 
     @Test
     fun `a missing inset file loads as null rather than throwing`() {
-        assertThat(loadInsetBitmap("file:///definitely/not/here.png")).isNull()
-        assertThat(loadInsetBitmap("content://nope")).isNull()
+        assertThat(loadInsetBitmap("file:///definitely/not/here.png", 320, 256)).isNull()
+        assertThat(loadInsetBitmap("content://nope", 320, 256)).isNull()
+        assertThat(loadInsetFile(File("/definitely/not/here.png"), 320, 256)).isNull()
+    }
+
+    @Test
+    fun `a large received picture is decoded no bigger than the inset can use`() {
+        // Four times the frame each way. Whole, it is megabytes re-scaled on
+        // every drag event; sampled, it still has more pixels than a 40%
+        // inset can show.
+        val big = Bitmap.createBitmap(1280, 1024, Bitmap.Config.ARGB_8888).apply { eraseColor(red) }
+        val file = File.createTempFile("rx_big", ".png")
+        try {
+            file.outputStream().use { big.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            val loaded = loadInsetFile(file, mode.width, mode.height)!!
+            assertThat(loaded.width).isEqualTo(320)
+            assertThat(loaded.height).isEqualTo(256)
+            // ...and a picture already at frame size is left alone.
+            val same = Bitmap.createBitmap(320, 256, Bitmap.Config.ARGB_8888)
+            file.outputStream().use { same.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            assertThat(loadInsetFile(file, mode.width, mode.height)!!.width).isEqualTo(320)
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
+    fun `a file that is not a picture loads as null`() {
+        val file = File.createTempFile("rx_bad", ".png")
+        try {
+            file.writeText("not a png")
+            assertThat(loadInsetFile(file, 320, 256)).isNull()
+        } finally {
+            file.delete()
+        }
+    }
+
+    // ----- never stretched ----------------------------------------------------
+
+    @Test
+    fun `a box that matches the picture's shape is used as it is`() {
+        val box = android.graphics.Rect(205, 131, 311, 215) // 106 x 84, a pixel off 5:4
+        assertThat(fitRectToAspect(box, 320, 256)).isEqualTo(box)
+    }
+
+    @Test
+    fun `a wider picture is fitted to the box's width and centred`() {
+        val fitted = fitRectToAspect(android.graphics.Rect(0, 0, 100, 100), 400, 100)
+        assertThat(fitted).isEqualTo(android.graphics.Rect(0, 37, 100, 62))
+    }
+
+    @Test
+    fun `a taller picture is fitted to the box's height and centred`() {
+        val fitted = fitRectToAspect(android.graphics.Rect(10, 10, 110, 110), 100, 200)
+        assertThat(fitted).isEqualTo(android.graphics.Rect(35, 10, 85, 110))
+    }
+
+    @Test
+    fun `fitting tolerates degenerate input`() {
+        val box = android.graphics.Rect(0, 0, 50, 40)
+        assertThat(fitRectToAspect(box, 0, 10)).isEqualTo(box)
+        assertThat(fitRectToAspect(android.graphics.Rect(0, 0, 0, 0), 10, 10).isEmpty).isTrue()
+    }
+
+    @Test
+    fun `a picture whose stored aspect is wrong is not stretched to the box`() {
+        // The row said 5:4; the file is a 12:1 radiofax strip. Stretched to
+        // the box it would fill it top to bottom. Fitted, the box's top and
+        // bottom are left as the photo behind.
+        val strip = Bitmap.createBitmap(1200, 100, Bitmap.Config.ARGB_8888).apply { eraseColor(red) }
+        val inset = cornered()
+        val out = render(TxComposition(mode = mode, inset = inset), strip)
+        val r = insetRectPx(inset, mode.width, mode.height)
+        assertThat(out.getPixel(r.centerX(), r.centerY())).isEqualTo(red)
+        assertThat(out.getPixel(r.centerX(), r.top + 4)).isEqualTo(grey)
+        assertThat(out.getPixel(r.centerX(), r.bottom - 5)).isEqualTo(grey)
+    }
+
+    // ----- which tools let the inset take a touch -----------------------------
+
+    @Test
+    fun `crop and draw keep their touches even on the inset`() {
+        assertThat(insetTakesTouch(TxTool.CROP, touchIsOnInset = true)).isFalse()
+        assertThat(insetTakesTouch(TxTool.DRAW, touchIsOnInset = true)).isFalse()
+    }
+
+    @Test
+    fun `every other tool lets a touch on the inset grab it`() {
+        for (tool in TxTool.entries.filter { it != TxTool.CROP && it != TxTool.DRAW }) {
+            assertThat(insetTakesTouch(tool, touchIsOnInset = true)).isTrue()
+            assertThat(insetTakesTouch(tool, touchIsOnInset = false)).isFalse()
+        }
     }
 }

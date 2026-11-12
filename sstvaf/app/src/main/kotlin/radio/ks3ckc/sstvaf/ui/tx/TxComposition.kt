@@ -211,6 +211,19 @@ data class ImageInset(
     val yPercent: Float,
     val widthFraction: Float = INSET_SIZE_MEDIUM,
     val caption: String = "",
+    /**
+     * The corner preset this inset is pinned to, or null once the operator has
+     * dragged it somewhere of its own.
+     *
+     * Stored, not worked out from the position. Two presets can put an inset
+     * in the very same place - a Medium Scottie picture on Martin 4 is exactly
+     * as tall as the band the presets keep it in, so "top right" and "bottom
+     * right" coincide - and from the position alone a bottom-pinned inset then
+     * reads as top-pinned, and jumps to the top on the next resize or mode
+     * change. Read it through [matchingInsetCorner], which also checks the
+     * inset is still where that preset puts it.
+     */
+    val corner: InsetCorner? = null,
 )
 
 /** The four places the Inset tool's presets pin the picture. */
@@ -244,9 +257,14 @@ const val INSET_SIDE_MARGIN_PERCENT = 3f
 const val INSET_SAFE_TOP_PERCENT = 18f
 const val INSET_SAFE_BOTTOM_PERCENT = 84f
 
-/** Aspect bounds for an inset; outside them the picture is a sliver nobody can read. */
-const val INSET_MIN_ASPECT = 0.25f
-const val INSET_MAX_ASPECT = 4f
+/**
+ * Aspect bounds for an inset's *box*; outside them it is a sliver nobody can
+ * read. The picture inside is never stretched to the box - it is fitted to its
+ * own shape when drawn (see `fitRectToAspect`) - so these only bound the
+ * layout maths, not what the other station sees.
+ */
+const val INSET_MIN_ASPECT = 0.125f
+const val INSET_MAX_ASPECT = 8f
 
 /** Where a new inset lands: bottom right, clear of both bars. */
 val DEFAULT_INSET_CORNER = InsetCorner.BOTTOM_RIGHT
@@ -277,23 +295,41 @@ fun clampInsetSize(fraction: Float): Float =
 internal fun clampInsetSize(raw: Double): Float =
     if (raw.isNaN() || raw.isInfinite()) INSET_SIZE_MEDIUM else clampInsetSize(raw.toFloat())
 
-/** Inset width in frame percent. */
-fun insetWidthPercent(widthFraction: Float): Float = clampInsetSize(widthFraction) * 100f
-
 /**
- * Inset height in frame percent.
+ * Inset width and height in frame percent.
  *
- * Width and height percentages are of *different* lengths - the frame's width
- * and its height - so converting one to the other needs the frame's own shape
- * as well as the picture's. Capped at the full frame height: a tall received
- * picture on a wide frame (a 320x256 picture on Martin 4's 320x128) would
- * otherwise be taller than the picture it is pinned to.
+ * The two are percentages of *different* lengths - the frame's width and its
+ * height - so getting one from the other needs the frame's own shape as well
+ * as the picture's.
+ *
+ * When the height would exceed the frame (a tall received picture on a wide
+ * frame: a 320x256 picture, Large, on Martin 4's 320x128), the whole inset is
+ * scaled down until it fits. Capping the height alone would keep the width and
+ * so squash the picture - and a received picture transmitted back distorted is
+ * not evidence of what was received.
  */
-fun insetHeightPercent(widthFraction: Float, insetAspect: Float, frameAspect: Float): Float {
-    val frame = if (frameAspect.isNaN() || frameAspect <= 0f) 4f / 3f else frameAspect
-    return (insetWidthPercent(widthFraction) * frame / clampInsetAspect(insetAspect))
-        .coerceAtMost(100f)
+fun insetSizePercent(
+    widthFraction: Float,
+    insetAspect: Float,
+    frameAspect: Float,
+): Pair<Float, Float> {
+    val frame = if (frameAspect.isNaN() || frameAspect.isInfinite() || frameAspect <= 0f) {
+        4f / 3f
+    } else {
+        frameAspect
+    }
+    val width = clampInsetSize(widthFraction) * 100f
+    val height = width * frame / clampInsetAspect(insetAspect)
+    return if (height > 100f) (width * 100f / height) to 100f else width to height
 }
+
+/** Inset width in frame percent (see [insetSizePercent]). */
+fun insetWidthPercent(widthFraction: Float, insetAspect: Float, frameAspect: Float): Float =
+    insetSizePercent(widthFraction, insetAspect, frameAspect).first
+
+/** Inset height in frame percent (see [insetSizePercent]). */
+fun insetHeightPercent(widthFraction: Float, insetAspect: Float, frameAspect: Float): Float =
+    insetSizePercent(widthFraction, insetAspect, frameAspect).second
 
 /**
  * An inset centre clamped so the whole inset stays inside the frame.
@@ -311,8 +347,15 @@ fun clampInsetCentre(centrePercent: Float, sizePercent: Float): Float {
  * The centre a corner preset gives an inset of this size and shape.
  *
  * Horizontally it sits [INSET_SIDE_MARGIN_PERCENT] in from the side; vertically
- * it butts against the edge of the safe band. An inset taller than the band is
- * centred on it, which is the least-bad place for something that cannot fit.
+ * it butts against its own edge of the safe band - the top presets against the
+ * top, the bottom presets against the bottom.
+ *
+ * An inset taller than the band cannot clear both bars. A top preset is then
+ * moved up only as far as it takes to clear the *bottom* bar, and a bottom
+ * preset down only as far as it takes to clear the top one, each held inside
+ * the frame. That keeps "top" above "bottom" at every size (centring both on
+ * the band made them one place), and changes continuously as the inset grows,
+ * so nothing jumps at the size where it stops fitting.
  */
 fun insetCornerCentre(
     corner: InsetCorner,
@@ -320,29 +363,32 @@ fun insetCornerCentre(
     insetAspect: Float,
     frameAspect: Float,
 ): Pair<Float, Float> {
-    val w = insetWidthPercent(widthFraction)
-    val h = insetHeightPercent(widthFraction, insetAspect, frameAspect)
+    val (w, h) = insetSizePercent(widthFraction, insetAspect, frameAspect)
     val x = if (corner.left) INSET_SIDE_MARGIN_PERCENT + w / 2f else 100f - INSET_SIDE_MARGIN_PERCENT - w / 2f
-    val band = INSET_SAFE_BOTTOM_PERCENT - INSET_SAFE_TOP_PERCENT
-    val y = when {
-        h >= band -> (INSET_SAFE_TOP_PERCENT + INSET_SAFE_BOTTOM_PERCENT) / 2f
-        corner.top -> INSET_SAFE_TOP_PERCENT + h / 2f
-        else -> INSET_SAFE_BOTTOM_PERCENT - h / 2f
-    }
+    val againstTop = INSET_SAFE_TOP_PERCENT + h / 2f
+    val againstBottom = INSET_SAFE_BOTTOM_PERCENT - h / 2f
+    // againstTop <= againstBottom exactly when the inset fits the band.
+    val y = if (corner.top) minOf(againstTop, againstBottom) else maxOf(againstTop, againstBottom)
     return clampInsetCentre(x, w) to clampInsetCentre(y, h)
 }
 
 /**
- * The corner preset an inset currently sits on, or null once it has been
- * dragged somewhere of its own. Same tolerance, and same reasoning, as
- * [matchingCallsignPreset].
+ * The corner preset an inset is pinned to, or null once it has been dragged
+ * somewhere of its own.
+ *
+ * The pinned corner is the one recorded on the inset ([ImageInset.corner]),
+ * confirmed against where that preset actually puts it - with the same
+ * tolerance, and the same reasoning, as [matchingCallsignPreset]. The check
+ * means a stale or hand-edited record cannot claim a corner the inset is not
+ * on; the record means two presets that coincide cannot be confused.
  */
-fun matchingInsetCorner(inset: ImageInset, frameAspect: Float): InsetCorner? =
-    InsetCorner.entries.firstOrNull { corner ->
-        val (x, y) = insetCornerCentre(corner, inset.widthFraction, inset.aspect, frameAspect)
-        kotlin.math.abs(x - inset.xPercent) < PRESET_MATCH_TOLERANCE &&
-            kotlin.math.abs(y - inset.yPercent) < PRESET_MATCH_TOLERANCE
-    }
+fun matchingInsetCorner(inset: ImageInset, frameAspect: Float): InsetCorner? {
+    val corner = inset.corner ?: return null
+    val (x, y) = insetCornerCentre(corner, inset.widthFraction, inset.aspect, frameAspect)
+    val onIt = kotlin.math.abs(x - inset.xPercent) < PRESET_MATCH_TOLERANCE &&
+        kotlin.math.abs(y - inset.yPercent) < PRESET_MATCH_TOLERANCE
+    return if (onIt) corner else null
+}
 
 /**
  * A new inset for a received picture of [aspect], pinned to
@@ -365,6 +411,7 @@ fun newImageInset(
         yPercent = y,
         widthFraction = size,
         caption = caption,
+        corner = DEFAULT_INSET_CORNER,
     )
 }
 
@@ -375,24 +422,27 @@ fun TxComposition.withInset(inset: ImageInset): TxComposition = copy(inset = ins
 fun TxComposition.withInsetRemoved(): TxComposition =
     if (inset == null) this else copy(inset = null)
 
-/** Copy with the inset's centre moved, kept wholly inside the frame. */
+/**
+ * Copy with the inset's centre moved, kept wholly inside the frame.
+ *
+ * A move that leaves it on its preset (a tap that jittered a pixel) keeps it
+ * pinned; one that takes it anywhere else unpins it.
+ */
 fun TxComposition.withInsetMoved(xPercent: Float, yPercent: Float): TxComposition {
     val current = inset ?: return this
-    val w = insetWidthPercent(current.widthFraction)
-    val h = insetHeightPercent(current.widthFraction, current.aspect, frameAspect())
-    return copy(
-        inset = current.copy(
-            xPercent = clampInsetCentre(xPercent, w),
-            yPercent = clampInsetCentre(yPercent, h),
-        ),
+    val (w, h) = insetSizePercent(current.widthFraction, current.aspect, frameAspect())
+    val moved = current.copy(
+        xPercent = clampInsetCentre(xPercent, w),
+        yPercent = clampInsetCentre(yPercent, h),
     )
+    return copy(inset = moved.copy(corner = matchingInsetCorner(moved, frameAspect())))
 }
 
 /** Copy with the inset pinned to [corner] at its current size. */
 fun TxComposition.withInsetCorner(corner: InsetCorner): TxComposition {
     val current = inset ?: return this
     val (x, y) = insetCornerCentre(corner, current.widthFraction, current.aspect, frameAspect())
-    return copy(inset = current.copy(xPercent = x, yPercent = y))
+    return copy(inset = current.copy(xPercent = x, yPercent = y, corner = corner))
 }
 
 /**
