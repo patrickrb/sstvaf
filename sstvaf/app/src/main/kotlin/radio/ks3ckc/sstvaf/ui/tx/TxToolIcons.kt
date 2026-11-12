@@ -65,6 +65,22 @@ internal fun TxToolIcon(tool: TxTool, color: Color, size: androidx.compose.ui.un
                 drawLine(color, Offset(7f * s, 11f * s), Offset(17f * s, 11f * s), stroke.width, StrokeCap.Round)
                 drawLine(color, Offset(7f * s, 15f * s), Offset(13f * s, 15f * s), stroke.width, StrokeCap.Round)
             }
+            // A picture with a smaller, filled picture in its corner.
+            TxTool.INSET -> {
+                drawRoundRect(
+                    color,
+                    topLeft = Offset(3f * s, 4f * s),
+                    size = Size(18f * s, 16f * s),
+                    cornerRadius = CornerRadius(2f * s, 2f * s),
+                    style = stroke,
+                )
+                drawRoundRect(
+                    color,
+                    topLeft = Offset(12f * s, 11f * s),
+                    size = Size(6f * s, 6f * s),
+                    cornerRadius = CornerRadius(1f * s, 1f * s),
+                )
+            }
             // A square inside a square.
             TxTool.FRAME -> {
                 drawRect(color, topLeft = Offset(3f * s, 3f * s), size = Size(18f * s, 18f * s), style = stroke)

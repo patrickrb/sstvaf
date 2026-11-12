@@ -743,4 +743,13 @@ class GalleryLogicTest {
         assertThat(sendAgainLabelRes(ImageDirection.RX))
             .isNotEqualTo(sendAgainLabelRes(ImageDirection.TX))
     }
+
+    @Test
+    fun `a reply says what it will do, a resend needs no explaining`() {
+        // Replying puts the other station's picture back on the air inside the
+        // operator's own; they should read that before tapping.
+        assertThat(primaryActionCaptionRes(ImageDirection.RX))
+            .isEqualTo(R.string.gallery_reply_caption)
+        assertThat(primaryActionCaptionRes(ImageDirection.TX)).isNull()
+    }
 }

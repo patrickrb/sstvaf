@@ -831,4 +831,27 @@
     <string name="radio_level_advice_good">정상 범위입니다.</string>
     <string name="radio_level_advice_high">클리핑에 가깝습니다. 게인을 조금 낮추세요.</string>
     <string name="radio_level_advice_clipping">클리핑입니다. 피크가 표시 아래로 내려갈 때까지 게인을 낮추세요.</string>
+
+    <!-- ===== TX composer: inset (a received picture pinned to a reply) ===== -->
+    <string name="tx_tool_inset">삽입</string>
+    <string name="tx_inset_hint_empty">수신한 사진을 내 사진 모서리에 고정하여 상대 국이 무엇이 수신되었는지 볼 수 있게 합니다.</string>
+    <string name="tx_inset_received_label">수신</string>
+    <string name="tx_inset_tap_to_pin">탭하여 고정합니다. 최신 순.</string>
+    <string name="tx_inset_none_received">아직 수신한 것이 없습니다. 수신한 사진이 여기에 표시됩니다.</string>
+    <string name="tx_inset_title">수신한 사진</string>
+    <string name="tx_inset_corner">모서리</string>
+    <string name="tx_inset_size">크기</string>
+    <string name="tx_inset_remove">삽입 사진 제거</string>
+    <string name="tx_inset_hint_drag">사진 위 원하는 곳으로 드래그하세요. 송신하는 사진에 그대로 포함됩니다.</string>
+    <string name="tx_inset_corner_top_left">왼쪽 위 모서리</string>
+    <string name="tx_inset_corner_top_right">오른쪽 위 모서리</string>
+    <string name="tx_inset_corner_bottom_left">왼쪽 아래 모서리</string>
+    <string name="tx_inset_corner_bottom_right">오른쪽 아래 모서리</string>
+    <!-- %1$s is the short mode and UTC time, e.g. "S1 · 14:32". -->
+    <string name="tx_inset_pick_description">수신한 사진 %1$s 고정</string>
+    <string name="tx_inset_load_failed">사진을 불러올 수 없습니다. 삭제되었을 수 있습니다.</string>
+    <string name="tx_reply_banner_title">수신한 사진에 답신</string>
+    <string name="tx_reply_banner_sub">보내는 사진의 모서리에 들어갑니다</string>
+    <string name="tx_reply_banner_dismiss">상대 사진 포함 안 함</string>
+    <string name="gallery_reply_caption">상대의 사진이 내 사진 모서리에 고정되어, 무엇이 수신되었는지 상대가 볼 수 있습니다.</string>
 </resources>

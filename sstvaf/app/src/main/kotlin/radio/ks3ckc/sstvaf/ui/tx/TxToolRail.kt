@@ -26,9 +26,9 @@ import radio.ks3ckc.sstvaf.theme.TextMuted
 import androidx.compose.foundation.selection.selectable
 
 /**
- * The composer's six tools.
+ * The composer's tools.
  *
- * Six inline tools with their controls right under the canvas, rather than the
+ * Inline tools with their controls right under the canvas, rather than the
  * form-and-sub-sheet arrangement this replaces. The old composer put text
  * editing behind a modal sheet, which meant the operator could not see the
  * picture while typing the text that was going onto it. Every tool here keeps
@@ -44,6 +44,9 @@ enum class TxTool(@StringRes val labelRes: Int) {
     /** Stamp the operator's callsign at one of six positions. */
     CALLSIGN(R.string.tx_tool_callsign),
 
+    /** Pin a received picture over this one - the SSTV reply. */
+    INSET(R.string.tx_tool_inset),
+
     /** Pick the border burned into the picture. */
     FRAME(R.string.tx_tool_frame),
 
@@ -55,12 +58,12 @@ enum class TxTool(@StringRes val labelRes: Int) {
 }
 
 /**
- * The tool rail: six equal columns under the canvas, the active one filled with
+ * The tool rail: equal columns under the canvas, the active one filled with
  * a soft accent.
  *
- * Equal columns and always all six visible. A scroller or an overflow menu
- * would hide tools the operator has not learned about yet, and six is few
- * enough to fit across a compact phone at this size.
+ * Equal columns and always every tool visible. A scroller or an overflow menu
+ * would hide tools the operator has not learned about yet, and seven still
+ * fit across a compact phone at this size.
  */
 @Composable
 internal fun TxToolRail(
@@ -109,6 +112,7 @@ internal fun TxToolRail(
                     fontSize = 10.5.sp,
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,
+                    softWrap = false,
                 )
             }
         }

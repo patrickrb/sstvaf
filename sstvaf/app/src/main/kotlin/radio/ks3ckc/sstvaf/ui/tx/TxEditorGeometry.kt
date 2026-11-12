@@ -118,6 +118,77 @@ internal fun overlaySelectionBox(
 }
 
 /**
+ * The inset's box in frame percent: left, top, width, height.
+ *
+ * The one place the inset's on-canvas rectangle is worked out for the editor,
+ * shared by hit-testing and the selection outline so the two cannot drift.
+ */
+internal fun insetBoxPercent(inset: ImageInset, frameAspect: Float): CanvasBox {
+    val (w, h) = insetSizePercent(inset.widthFraction, inset.aspect, frameAspect)
+    val centreX = clampInsetCentre(inset.xPercent, w)
+    val centreY = clampInsetCentre(inset.yPercent, h)
+    return CanvasBox(left = centreX - w / 2f, top = centreY - h / 2f, width = w, height = h)
+}
+
+/**
+ * Whether a touch that lands on the inset grabs it, given the open tool.
+ *
+ * Not in Crop or Draw. A text overlay wins under any tool because it is a line
+ * high and hard to hit by accident; the inset can be two fifths of the frame,
+ * and letting it take every touch that starts on it would leave Crop unable to
+ * pan or pinch from that part of the picture and Draw unable to start a stroke
+ * there. Those two tools own the whole canvas; every other tool has no use for
+ * a touch on the picture, so there the inset can have it.
+ */
+internal fun insetTakesTouch(tool: TxTool, touchIsOnInset: Boolean): Boolean =
+    touchIsOnInset && tool != TxTool.CROP && tool != TxTool.DRAW
+
+/** Whether a touch (in frame percent) lands on the inset. */
+internal fun insetHitTest(
+    inset: ImageInset?,
+    frameAspect: Float,
+    xPercent: Float,
+    yPercent: Float,
+): Boolean {
+    if (inset == null) return false
+    val box = insetBoxPercent(inset, frameAspect)
+    return xPercent >= box.left && xPercent <= box.left + box.width &&
+        yPercent >= box.top && yPercent <= box.top + box.height
+}
+
+/** The inset's selection outline in canvas pixels. */
+internal fun insetSelectionBox(
+    inset: ImageInset,
+    frameAspect: Float,
+    widthPx: Float,
+    heightPx: Float,
+): CanvasBox {
+    val box = insetBoxPercent(inset, frameAspect)
+    return CanvasBox(
+        left = box.left / 100f * widthPx,
+        top = box.top / 100f * heightPx,
+        width = box.width / 100f * widthPx,
+        height = box.height / 100f * heightPx,
+    )
+}
+
+/**
+ * Where the inset's centre goes for a finger at ([xPercent], [yPercent]),
+ * given where on the inset the drag started.
+ *
+ * A text overlay snaps its centre to the finger, which is fine for something a
+ * line high. The inset is a third of the frame: snapping would make it jump
+ * the moment it was touched anywhere but dead centre, so the grab offset is
+ * carried through the drag instead.
+ */
+internal fun insetDragCentre(
+    xPercent: Float,
+    yPercent: Float,
+    grabOffsetX: Float,
+    grabOffsetY: Float,
+): Pair<Float, Float> = (xPercent - grabOffsetX) to (yPercent - grabOffsetY)
+
+/**
  * One drag step applied to the crop pan.
  *
  * The picture follows the finger, so a drag right reveals more of the left of

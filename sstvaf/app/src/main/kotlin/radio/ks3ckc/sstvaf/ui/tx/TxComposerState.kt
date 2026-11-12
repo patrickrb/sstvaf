@@ -75,6 +75,67 @@ class TxComposerState {
     }
 
     /**
+     * The decoded picture behind [TxComposition.inset]; null when there is no
+     * inset or its file could not be read.
+     *
+     * Held here for the same reason as [sourceBitmap]: it has to outlive the
+     * tab, and it is recycled deterministically when replaced or removed.
+     */
+    var insetBitmap: Bitmap? by mutableStateOf(null)
+        private set
+
+    /**
+     * A received picture the operator asked to reply to, waiting for the
+     * composer to pin it as an inset. A request rather than a direct load for
+     * the same reasons as [pendingReopen].
+     */
+    var pendingReply: SavedImage? by mutableStateOf(null)
+        private set
+
+    /** Ask the composer to pin [entry] as an inset the next time it composes. */
+    fun requestReply(entry: SavedImage) {
+        pendingReply = entry
+    }
+
+    /** Take the pending reply request, if any, and clear it. */
+    fun consumeReplyRequest(): SavedImage? {
+        val entry = pendingReply
+        pendingReply = null
+        return entry
+    }
+
+    /**
+     * Pin [bitmap] as the inset described by [inset], recycling the picture it
+     * replaces. Must be called after [refreshDefaults] has seeded the
+     * composition.
+     */
+    fun setInset(bitmap: Bitmap, inset: ImageInset) {
+        val previous = insetBitmap
+        insetBitmap = bitmap
+        composition = checkNotNull(composition) { "refreshDefaults() must seed first" }
+            .withInset(inset)
+        if (previous !== bitmap) previous?.recycle()
+    }
+
+    /**
+     * Install the decoded picture for an inset the composition *already*
+     * carries - a reopened edit list - without touching its position.
+     */
+    fun restoreInsetBitmap(bitmap: Bitmap) {
+        val previous = insetBitmap
+        insetBitmap = bitmap
+        if (previous !== bitmap) previous?.recycle()
+    }
+
+    /** Drop the inset and recycle its picture. No-op when there is none. */
+    fun clearInset() {
+        val previous = insetBitmap
+        insetBitmap = null
+        composition = composition?.withInsetRemoved()
+        previous?.recycle()
+    }
+
+    /**
      * What the composition looked like when defaults last seeded it — the
      * "untouched" marker for [refreshDefaults].
      */
@@ -121,7 +182,9 @@ class TxComposerState {
 
     /**
      * The user's explicit clear: drop (and recycle) the photo and its crop,
-     * keeping the selected mode and overlay setup. No-op when no photo is set.
+     * keeping the selected mode, overlay setup and any inset - a pending reply
+     * outlives the choice of which picture to send it on. No-op when no photo
+     * is set.
      */
     fun clearImage() {
         val previous = sourceBitmap ?: return
