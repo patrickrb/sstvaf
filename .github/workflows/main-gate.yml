@@ -1,22 +1,32 @@
+# Promotion path: feature -> dev -> main (the staging branch is retired).
+#
+# PRs into `main` must come from `dev` in this repo. Merging dev -> main is the
+# release: android.yml publishes the build to the Play internal track and
+# desktop-gui.yml cuts a desktop prerelease. Production stays a separate,
+# deliberate step that only Patrick takes (Play Console promotion, or an
+# android-v* / desktop-v* tag he pushes).
+#
+# main's branch protection requires `enforce-source-is-dev`.
+
 name: Main branch source gate
 
-# Enforces release discipline: PRs targeting main must come from `staging`.
-# The promotion path is feature -> dev -> staging -> main; only staging -> main
-# is allowed as the "promote to production" step, gated by branch protection
-# requiring this status check.
-#
-# To enforce it: GitHub → Settings → Branches → Branch protection rule for
-# `main` → Require status checks to pass → add "Main branch source gate /
-# enforce-source-is-staging" to the required list. (If you previously required
-# the old "enforce-source-is-dev" check, swap it for this one.)
-
+# pull_request_target (not pull_request) on purpose: the workflow then comes
+# from the base branch, so a PR can't edit this file to make its own check
+# pass. Safe here because the job never checks out or runs PR code - it only
+# reads event metadata. Bootstrap (2026-11-13): the first dev -> main release
+# ran main's old staging-era copy, which rejects a dev head, so for that one
+# merge the source-gate requirement was lifted, then set to
+# enforce-source-is-dev once this copy was on main.
 on:
-  pull_request:
+  pull_request_target:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
-  enforce-source-is-staging:
-    name: enforce-source-is-staging
+  enforce-source-is-dev:
+    name: enforce-source-is-dev
     runs-on: ubuntu-latest
     steps:
       - name: Check PR head branch
@@ -26,17 +36,15 @@ jobs:
           BASE_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          # Require the promotion PR to come from the staging branch IN THIS
-          # repo. Checking the branch name alone is insufficient: a fork could
-          # open a PR from its own branch literally named "staging" and pass, so
-          # also pin the head repo to the base repo.
-          if [[ "${HEAD_REPO}" != "${BASE_REPO}" ]]; then
-            echo "::error title=PR source must be this repo::PRs to main must originate from staging in ${BASE_REPO}, not a fork (${HEAD_REPO})."
+          # The branch name alone isn't enough: a fork could open a PR from a
+          # branch literally named "dev". Pin the head repo too.
+          if [[ "$HEAD_REPO" != "$BASE_REPO" ]]; then
+            echo "::error title=PR source must be this repo::PRs to main must come from dev in $BASE_REPO, not a fork ($HEAD_REPO)."
             exit 1
           fi
-          if [[ "${HEAD_REF}" != "staging" ]]; then
-            echo "::error title=PR source must be staging::PRs to main are only allowed from the staging branch. Source branch: ${HEAD_REF}"
-            echo "Promote through staging first (feature → dev → staging), then open staging → main."
+          if [[ "$HEAD_REF" != "dev" ]]; then
+            echo "::error title=PR source must be dev::PRs to main are only allowed from dev (got '$HEAD_REF')."
+            echo "Land the change on dev first (PR feature -> dev), then open dev -> main to release."
             exit 1
           fi
-          echo "OK — PR source is staging in ${BASE_REPO}."
+          echo "OK — PR source is dev in $BASE_REPO."

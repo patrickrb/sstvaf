@@ -1,0 +1,532 @@
+package radio.ks3ckc.sstvaf.ui.settings
+
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.core.os.LocaleListCompat
+import com.k1af.ft8af.GeneralVariables
+import com.k1af.ft8af.MainViewModel
+import com.k1af.ft8af.R
+import com.k1af.ft8af.database.OnAfterQueryConfig
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import radio.ks3ckc.sstvaf.theme.Accent
+import radio.ks3ckc.sstvaf.theme.BgSurface2
+import radio.ks3ckc.sstvaf.theme.TextMuted
+import radio.ks3ckc.sstvaf.theme.TextPrimary
+import radio.ks3ckc.sstvaf.theme.ThemeOption
+import radio.ks3ckc.sstvaf.theme.applyTheme
+import radio.ks3ckc.sstvaf.theme.currentThemeNameRes
+import radio.ks3ckc.sstvaf.theme.loadTheme
+import radio.ks3ckc.sstvaf.theme.saveTheme
+import radio.ks3ckc.sstvaf.sstv.VoxPreTone
+import radio.ks3ckc.sstvaf.ui.components.GlassCard
+import radio.ks3ckc.sstvaf.ui.components.SettingsRow
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+/**
+ * One selectable app language: its BCP-47 tag (as handed to
+ * [AppCompatDelegate.setApplicationLocales]) and the display-name resource shown
+ * in its own script.
+ */
+internal data class AppLanguage(val tag: String, @StringRes val nameRes: Int)
+
+/**
+ * Selectable CW-ID keying speeds (words-per-minute) for the picker, in display
+ * order. Capped at 20 WPM per issue #14 ("maximum and default of 20WPM").
+ */
+internal val CW_ID_WPM_OPTIONS: List<Int> = listOf(5, 8, 10, 12, 15, 18, 20)
+
+/**
+ * Selectable VOX pre-tone lengths (milliseconds) for the picker: off, then
+ * 100 ms steps up to [VoxPreTone.MAX_MS]. 0 disables the pre-tone entirely.
+ */
+internal val VOX_PRE_TONE_MS_OPTIONS: List<Int> =
+    (0..VoxPreTone.MAX_MS step 100).toList()
+
+/**
+ * The picker index for the stored pre-tone length: the exact option when the
+ * value is one (the normal case — the picker only writes list values), else
+ * the [VoxPreTone.DEFAULT_MS] entry so an out-of-list value from a settings
+ * import still highlights something sensible. Pure logic, unit-tested.
+ */
+internal fun voxPreToneIndex(storedMs: Int): Int =
+    VOX_PRE_TONE_MS_OPTIONS.indexOf(storedMs)
+        .let { if (it >= 0) it else VOX_PRE_TONE_MS_OPTIONS.indexOf(VoxPreTone.DEFAULT_MS) }
+
+/**
+ * Single source of truth for the in-app Language picker, in display order. Adding
+ * a language is one entry here — the tag list, picker labels, and current-language
+ * label all derive from it. Keep in sync with res/xml/locales_config.xml and the
+ * values-<locale>/ translation dirs (English lives in the default values/ dir, so
+ * "en" has no dedicated folder; Indonesian "id" compiles to the legacy values-in).
+ */
+internal val SUPPORTED_LANGUAGES: List<AppLanguage> = listOf(
+    AppLanguage("en", R.string.language_name_en),
+    AppLanguage("zh-CN", R.string.language_name_zh_cn),
+    AppLanguage("zh-TW", R.string.language_name_zh_tw),
+    AppLanguage("ru", R.string.language_name_ru),
+    AppLanguage("es", R.string.language_name_es),
+    AppLanguage("fr", R.string.language_name_fr),
+    AppLanguage("ja", R.string.language_name_ja),
+    AppLanguage("it", R.string.language_name_it),
+    AppLanguage("pl", R.string.language_name_pl),
+    AppLanguage("ko", R.string.language_name_ko),
+    AppLanguage("nl", R.string.language_name_nl),
+    AppLanguage("cs", R.string.language_name_cs),
+    AppLanguage("tr", R.string.language_name_tr),
+    AppLanguage("id", R.string.language_name_id),
+    AppLanguage("uk", R.string.language_name_uk),
+    AppLanguage("ar", R.string.language_name_ar),
+)
+
+/**
+ * BCP-47 language tags for the picker, parallel to the label list built in the
+ * dialog. Index 0 ("") means "System default" (empty locale list).
+ */
+internal val LANGUAGE_TAGS: List<String> = listOf("") + SUPPORTED_LANGUAGES.map { it.tag }
+
+/**
+ * The display-name resource for the currently-applied app locale tags (as returned
+ * by `getApplicationLocales().toLanguageTags()`), or the "system default" label
+ * when nothing matches. The first supported language whose tag prefixes the current
+ * tags wins (e.g. "en-US" → English). Pure logic, unit-tested.
+ */
+@StringRes
+internal fun currentLanguageNameRes(currentTags: String): Int =
+    SUPPORTED_LANGUAGES.firstOrNull { currentTags.startsWith(it.tag) }?.nameRes
+        ?: R.string.settings_language_system
+
+/**
+ * Advanced settings: PTT/TX timing delays, late-start tolerance, and the
+ * in-app language picker.
+ */
+@Composable
+fun AdvancedSettings(
+    mainViewModel: MainViewModel,
+    onBack: () -> Unit,
+) {
+    val context = LocalContext.current
+
+    var voxPreToneMs by remember { mutableIntStateOf(GeneralVariables.voxPreToneMs) }
+    var cwIdEnabled by remember { mutableStateOf(GeneralVariables.cwIdEnabled) }
+    var cwIdWpm by remember { mutableIntStateOf(GeneralVariables.cwIdWpm) }
+
+    var showVoxPreTone by remember { mutableStateOf(false) }
+    var showCwIdWpm by remember { mutableStateOf(false) }
+
+    // -- Backup & restore (issue #357) --
+    val scope = rememberCoroutineScope()
+    val databaseOpr = mainViewModel.databaseOpr
+    var showExportDialog by remember { mutableStateOf(false) }
+    // Captured at launch time so the SAF result callback knows whether to include
+    // sensitive keys in the file it writes.
+    var exportIncludeSensitive by remember { mutableStateOf(false) }
+    // Non-null while the import confirmation dialog is showing the parsed backup.
+    var pendingImport by remember { mutableStateOf<SettingsBackup.ParsedBackup?>(null) }
+
+    // Storage Access Framework: user picks where to write the export. On result we
+    // read the whole config table off the main thread, serialize it, and stream it
+    // to the chosen document.
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val config = databaseOpr.getAllConfigSync()
+                    val json = SettingsBackup.buildBackupJson(
+                        config = config,
+                        includeSensitive = exportIncludeSensitive,
+                        appVersion = GeneralVariables.VERSION,
+                        createdAt = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(Date()),
+                    )
+                    context.contentResolver.openOutputStream(uri)?.use {
+                        it.write(json.toByteArray(Charsets.UTF_8))
+                    } ?: error("Could not open the selected file for writing")
+                }
+            }
+            result.fold(
+                onSuccess = {
+                    Toast.makeText(context, R.string.settings_export_success, Toast.LENGTH_LONG).show()
+                },
+                onFailure = {
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.settings_export_failed, it.message ?: ""),
+                        Toast.LENGTH_LONG,
+                    ).show()
+                },
+            )
+        }
+    }
+
+    // SAF: user picks a backup file. On result we read + validate it off the main
+    // thread; a valid parse opens the confirmation dialog, a bad file just toasts.
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val text = context.contentResolver.openInputStream(uri)?.use {
+                        it.readBytes().toString(Charsets.UTF_8)
+                    } ?: error("Could not open the selected file")
+                    SettingsBackup.parseBackupJson(text)
+                }
+            }
+            result.fold(
+                onSuccess = { pendingImport = it },
+                onFailure = {
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.settings_import_failed, it.message ?: ""),
+                        Toast.LENGTH_LONG,
+                    ).show()
+                },
+            )
+        }
+    }
+
+    // -- Export options dialog (choose whether to include secrets) --
+    if (showExportDialog) {
+        ExportSettingsDialog(
+            includeSensitive = exportIncludeSensitive,
+            onToggleSensitive = { exportIncludeSensitive = it },
+            onDismiss = { showExportDialog = false },
+            onExport = {
+                showExportDialog = false
+                val fileName = SettingsBackup.defaultFileName(
+                    date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()),
+                    appVersion = GeneralVariables.VERSION,
+                )
+                exportLauncher.launch(fileName)
+            },
+        )
+    }
+
+    // -- Import confirmation dialog (preview count, confirm overwrite) --
+    pendingImport?.let { backup ->
+        ConfirmImportDialog(
+            keyCount = backup.config.size,
+            createdAt = backup.createdAt.ifBlank { "?" },
+            onDismiss = { pendingImport = null },
+            onConfirm = {
+                pendingImport = null
+                val toApply = backup.config
+                scope.launch {
+                    val result = withContext(Dispatchers.IO) {
+                        runCatching { databaseOpr.writeConfigSync(toApply) }
+                    }
+                    result.fold(
+                        onSuccess = {
+                            // Re-hydrate GeneralVariables from the freshly written config so
+                            // most settings take effect without waiting for an app restart.
+                            databaseOpr.getAllConfigParameter(object : OnAfterQueryConfig {
+                                override fun doOnBeforeQueryConfig(keyName: String?) {}
+                                override fun doOnAfterQueryConfig(keyName: String?, value: String?) {}
+                            })
+                            Toast.makeText(
+                                context, R.string.settings_import_success, Toast.LENGTH_LONG,
+                            ).show()
+                        },
+                        onFailure = {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.settings_import_failed, it.message ?: ""),
+                                Toast.LENGTH_LONG,
+                            ).show()
+                        },
+                    )
+                }
+            },
+        )
+    }
+
+    // -- VOX Pre-tone Picker --
+    // Extra 1900 Hz leader prepended in VOX mode so a radio's VOX or an
+    // auto-PTT audio cable (HTs on an APRS-K1-style interface) keys up on
+    // sacrificial tone instead of eating the SSTV calibration header.
+    if (showVoxPreTone) {
+        val voxPreToneOptions = VOX_PRE_TONE_MS_OPTIONS.map {
+            stringResource(R.string.settings_milliseconds_format, it)
+        }
+        ListPickerDialog(
+            title = stringResource(R.string.settings_vox_pre_tone),
+            items = voxPreToneOptions,
+            selectedIndex = voxPreToneIndex(voxPreToneMs),
+            onDismiss = { showVoxPreTone = false },
+            onSelect = { index ->
+                showVoxPreTone = false
+                val ms = VOX_PRE_TONE_MS_OPTIONS[index]
+                GeneralVariables.voxPreToneMs = ms
+                voxPreToneMs = ms
+                mainViewModel.databaseOpr.writeConfig("voxPreToneMs", ms.toString(), null)
+            },
+        )
+    }
+
+    // -- CW ID Speed Picker (issue #14) --
+    if (showCwIdWpm) {
+        val wpmLabels = CW_ID_WPM_OPTIONS.map {
+            stringResource(R.string.settings_cw_id_wpm_format, it)
+        }
+        val currentWpmIndex =
+            CW_ID_WPM_OPTIONS.indexOf(cwIdWpm).let { if (it >= 0) it else CW_ID_WPM_OPTIONS.lastIndex }
+        ListPickerDialog(
+            title = stringResource(R.string.settings_cw_id_speed),
+            items = wpmLabels,
+            selectedIndex = currentWpmIndex,
+            onDismiss = { showCwIdWpm = false },
+            onSelect = { index ->
+                showCwIdWpm = false
+                val wpm = CW_ID_WPM_OPTIONS[index]
+                GeneralVariables.cwIdWpm = wpm
+                cwIdWpm = wpm
+                mainViewModel.databaseOpr.writeConfig("cwIdWpm", wpm.toString(), null)
+            },
+        )
+    }
+
+    // -- Language Picker --
+    // Index 0 = "System default" (empty locale list → follow system). Selecting a
+    // language calls AppCompatDelegate.setApplicationLocales, which persists the
+    // choice (framework LocaleManager on API 33+, AppCompat autoStore backport on
+    // older) and recreates the activity so the new locale takes effect immediately.
+    SettingsDetailScaffold(
+        title = stringResource(R.string.settings_cat_advanced),
+        onBack = onBack,
+    ) {
+        // =====================================================================
+        // ADVANCED
+        // =====================================================================
+        // PTT delay lives on Radio & audio, next to the connection and PTT
+        // controls it belongs with. It used to be here as well, and the two
+        // editors enforced different domains over the same value (tens up to
+        // 190 here, fifties up to 500 there) with independent remembered
+        // state, so moving between them could silently round an operator's
+        // setting.
+        SettingsSection(title = stringResource(R.string.settings_section_advanced)) {
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    SettingsRow(
+                        label = stringResource(R.string.settings_vox_pre_tone),
+                        description = stringResource(R.string.settings_vox_pre_tone_desc),
+                        value = stringResource(
+                            R.string.settings_milliseconds_format, voxPreToneMs,
+                        ),
+                        showChevron = true,
+                        onClick = { showVoxPreTone = true },
+                    )
+                    SectionDivider()
+                    // CW station-ID tail (issue #14)
+                    SettingsRow(
+                        label = stringResource(R.string.settings_cw_id),
+                        description = stringResource(R.string.settings_cw_id_desc),
+                        toggle = cwIdEnabled,
+                        onToggleChange = { enabled ->
+                            GeneralVariables.cwIdEnabled = enabled
+                            cwIdEnabled = enabled
+                            mainViewModel.databaseOpr.writeConfig(
+                                "cwIdEnabled", if (enabled) "1" else "0", null,
+                            )
+                        },
+                    )
+                    if (cwIdEnabled) {
+                        SectionDivider()
+                        SettingsRow(
+                            label = stringResource(R.string.settings_cw_id_speed),
+                            description = stringResource(R.string.settings_cw_id_speed_desc),
+                            value = stringResource(R.string.settings_cw_id_wpm_format, cwIdWpm),
+                            showChevron = true,
+                            onClick = { showCwIdWpm = true },
+                        )
+                    }
+                }
+            }
+        }
+
+        // =====================================================================
+        // BACKUP & RESTORE (issue #357)
+        // =====================================================================
+        SettingsSection(title = stringResource(R.string.settings_section_backup)) {
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    SettingsRow(
+                        label = stringResource(R.string.settings_export),
+                        description = stringResource(R.string.settings_export_desc),
+                        showChevron = true,
+                        onClick = { showExportDialog = true },
+                    )
+                    SectionDivider()
+                    SettingsRow(
+                        label = stringResource(R.string.settings_import),
+                        description = stringResource(R.string.settings_import_desc),
+                        showChevron = true,
+                        onClick = { importLauncher.launch(arrayOf("application/json", "*/*")) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Export options dialog: a single toggle for whether to include sensitive
+ * credentials in the backup, then Export/Cancel. Styled like [EditOperatorDialog]
+ * to match the app's dialog look.
+ */
+@Composable
+private fun ExportSettingsDialog(
+    includeSensitive: Boolean,
+    onToggleSensitive: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+    onExport: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(BgSurface2)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.settings_export_dialog_title),
+                color = TextPrimary,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 18.sp,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.settings_backup_include_sensitive),
+                        color = TextPrimary,
+                        fontSize = 15.sp,
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_backup_include_sensitive_desc),
+                        color = TextMuted,
+                        fontSize = 12.sp,
+                    )
+                }
+                val sensitiveLabel = stringResource(R.string.settings_backup_include_sensitive)
+                Switch(
+                    checked = includeSensitive,
+                    onCheckedChange = onToggleSensitive,
+                    colors = SwitchDefaults.colors(checkedTrackColor = Accent),
+                    // The label Column is a sibling node, so name the switch or
+                    // TalkBack announces a bare "switch, on".
+                    modifier = Modifier.semantics { contentDescription = sensitiveLabel },
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.action_cancel), color = TextMuted)
+                }
+                TextButton(onClick = onExport) {
+                    Text(
+                        stringResource(R.string.action_export),
+                        color = Accent,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Import confirmation dialog: previews how many keys will be overwritten and when
+ * the backup was created, then requires an explicit confirm before applying.
+ */
+@Composable
+private fun ConfirmImportDialog(
+    keyCount: Int,
+    createdAt: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(BgSurface2)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.settings_import_confirm_title),
+                color = TextPrimary,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 18.sp,
+            )
+            Text(
+                text = stringResource(R.string.settings_import_confirm_msg, keyCount, createdAt),
+                color = TextMuted,
+                fontSize = 14.sp,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.action_cancel), color = TextMuted)
+                }
+                TextButton(onClick = onConfirm) {
+                    Text(
+                        stringResource(R.string.action_import),
+                        color = Accent,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
+    }
+}

@@ -4,7 +4,7 @@ name: Native SSTV tests
 # cpp/sstvaf_glue/test_sstv_*.c): mode-table/golden-waveform vectors, VIS
 # detection, encode->decode round trips, slant correction, and the Robot 36
 # chroma-parity suite. The build is host-only C11 (seconds), so it runs on
-# every PR to dev/staging/main without a path filter — keeping it a reliable
+# every PR to dev/main without a path filter — keeping it a reliable
 # required status check (a path-filtered check that doesn't run would leave
 # branch protection stuck "pending").
 #
@@ -17,9 +17,9 @@ name: Native SSTV tests
 
 on:
   pull_request:
-    branches: [main, staging, dev]
+    branches: [main, dev]
   push:
-    branches: [main, staging, dev]
+    branches: [main, dev]
 
 # A new push to the same PR/branch cancels the prior in-flight run.
 concurrency:
@@ -38,4 +38,7 @@ jobs:
         run: clang --version
 
       - name: Build & run SSTV host test suites
-        run: bash ft8af/app/src/main/cpp/sstvaf_glue/run_sstv_host_tests.sh
+        run: bash sstvaf/app/src/main/cpp/sstvaf_glue/run_sstv_host_tests.sh
+
+      - name: Build & run desktop CLI host tests
+        run: bash desktop/run_cli_host_tests.sh

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  sstvaf.wxs — WiX source for the 32-bit Windows MSI installer.
+
+  Built on Linux with wixl (msitools):
+
+    wixl -a x86 -D Version=1.2.3 -D SourceExe=path/to/sstvaf.exe \
+         sstvaf.wxs -o sstvaf-1.2.3-win32.msi
+
+  Installs sstvaf.exe into "Program Files\SSTVAF" and prepends that directory
+  to the system PATH so `sstvaf` works from any Command Prompt. Package="x86"
+  and ProgramFilesFolder together make this a genuine 32-bit installer that
+  targets 32-bit (and 64-bit) Windows.
+
+  The UpgradeCode is stable across releases so a newer MSI cleanly replaces an
+  older one; the Product Id="*" is regenerated per build by wixl.
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*"
+           Name="SSTVAF Desktop CLI"
+           Language="1033"
+           Version="$(var.Version)"
+           Manufacturer="SSTVAF"
+           UpgradeCode="7f4c2e6a-3d51-4b0e-9a2c-1e8f6b0d4a11">
+
+    <!-- The 32-bit target platform is set on the wixl command line (-a x86);
+         it is intentionally not duplicated here. -->
+    <Package Description="SSTVAF SSTV encode/decode command-line tool"
+             Comments="32-bit Windows build of the SSTVAF codec CLI"
+             Manufacturer="SSTVAF"
+             InstallerVersion="200"
+             Compressed="yes"
+             InstallScope="perMachine" />
+
+    <MajorUpgrade
+        DowngradeErrorMessage="A newer version of SSTVAF is already installed." />
+
+    <Media Id="1" Cabinet="sstvaf.cab" EmbedCab="yes" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLDIR" Name="SSTVAF">
+
+          <Component Id="SstvafExe"
+                     Guid="b1d9c3f2-7a64-4c2b-8e10-2f5a9c7d6e30">
+            <File Id="sstvaf.exe"
+                  Name="sstvaf.exe"
+                  Source="$(var.SourceExe)"
+                  KeyPath="yes" />
+            <!-- Make `sstvaf` runnable from any Command Prompt. -->
+            <Environment Id="UpdatePath"
+                         Name="PATH"
+                         Value="[INSTALLDIR]"
+                         Permanent="no"
+                         Part="first"
+                         Action="set"
+                         System="yes" />
+          </Component>
+
+        </Directory>
+      </Directory>
+    </Directory>
+
+    <Feature Id="MainFeature" Title="SSTVAF Desktop CLI" Level="1">
+      <ComponentRef Id="SstvafExe" />
+    </Feature>
+
+  </Product>
+</Wix>

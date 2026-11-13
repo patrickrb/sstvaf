@@ -1,0 +1,526 @@
+package radio.ks3ckc.sstvaf.ui.gallery
+
+import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.k1af.ft8af.MainViewModel
+import com.k1af.ft8af.R
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import radio.ks3ckc.sstvaf.gallery.ImageDirection
+import radio.ks3ckc.sstvaf.gallery.SavedImage
+import radio.ks3ckc.sstvaf.theme.Accent
+import radio.ks3ckc.sstvaf.theme.AccentSoft
+import radio.ks3ckc.sstvaf.theme.BgApp
+import radio.ks3ckc.sstvaf.theme.BgSurface
+import radio.ks3ckc.sstvaf.theme.BorderStrong
+import radio.ks3ckc.sstvaf.theme.GeistMonoFamily
+import radio.ks3ckc.sstvaf.theme.Signal
+import radio.ks3ckc.sstvaf.theme.SignalSoft
+import radio.ks3ckc.sstvaf.theme.StatusWarn
+import radio.ks3ckc.sstvaf.theme.TextFaint
+import radio.ks3ckc.sstvaf.theme.TextMuted
+import radio.ks3ckc.sstvaf.theme.TextPrimary
+import radio.ks3ckc.sstvaf.ui.components.EmptyStateWaves
+import radio.ks3ckc.sstvaf.ui.tx.txSourcesDir
+import radio.ks3ckc.sstvaf.ui.tx.parseEditList
+import radio.ks3ckc.sstvaf.ui.tx.orphanedSourceNames
+import java.io.File
+
+/**
+ * The Gallery tab: a grid of saved SSTV images (received today; transmitted
+ * ones join in PR 8) with a direction filter row and a tap-to-open viewer
+ * sheet (share / save to Photos / delete). All decision/formatting logic
+ * lives in GalleryLogic.kt (unit tested); this file is the thin Compose
+ * wrapper over [radio.ks3ckc.sstvaf.gallery.ReceivedImageStore].
+ */
+@Composable
+fun GalleryScreen(
+    mainViewModel: MainViewModel,
+    onSendAgain: (SavedImage) -> Unit = {},
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val store = mainViewModel.receivedImageStore
+
+    // Bumped after a delete; also fresh on every tab visit (the tab switch in
+    // SstvAfApp is a plain swap, so entering the tab recomposes from scratch
+    // and reloads the list).
+    var refreshKey by remember { mutableIntStateOf(0) }
+    var images by remember { mutableStateOf<List<SavedImage>>(emptyList()) }
+    LaunchedEffect(refreshKey) {
+        images = withContext(Dispatchers.IO) { sortGalleryImages(store.list()) }
+    }
+
+    // Sweep durable TX sources no edit list refers to any more. Done here, off
+    // the list we have just loaded, rather than hooked to each row delete: a
+    // row's file name is generated inside the store, so there is nothing to
+    // derive a source path from at delete time, and a sweep also collects
+    // sources orphaned by a crash between the copy and the save.
+    LaunchedEffect(images) {
+        if (images.isEmpty()) return@LaunchedEffect
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val dir = txSourcesDir(context.filesDir)
+                val present = dir.listFiles()?.map { it.name }.orEmpty()
+                val referenced = images.mapNotNull { parseEditList(it.edits)?.sourceUri }
+                orphanedSourceNames(present, referenced).forEach { name ->
+                    File(dir, name).delete()
+                }
+            }
+        }
+    }
+
+    var filter by rememberSaveable { mutableStateOf(GalleryFilter.ALL) }
+    var query by rememberSaveable { mutableStateOf("") }
+    // Direction filter first, then the free-text query narrows what remains.
+    val filtered = filterGalleryImages(images, filter)
+    val shown = remember(filtered, query) { searchGalleryImages(filtered, query) }
+
+    // Clock for the cells' relative ages ("2 h ago"): ticks once a minute so
+    // labels don't go stale while the screen stays open.
+    var nowMs by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(60_000)
+            nowMs = System.currentTimeMillis()
+        }
+    }
+
+    // Newest-day-first sections for the grid's date headers; recomputed when the
+    // list/filter changes, and when the UTC day rolls over (not every minute tick).
+    val todayIdx = Math.floorDiv(nowMs, 86_400_000L)
+    val sections = remember(shown, todayIdx) { buildGallerySections(shown, nowMs) }
+    // Viewer sheet: entry outlives visibility so the slide-out animation still
+    // has content to draw after dismiss.
+    var viewerVisible by remember { mutableStateOf(false) }
+    var viewerEntry by remember { mutableStateOf<SavedImage?>(null) }
+
+    // Chip labels carry a count badge ("Received 9"); counts come from the full
+    // unfiltered list so every chip shows its own total, not the shown subset.
+    // Memoized on `images` so the per-item count pass and label build only rerun
+    // when the list actually changes, not on every minute-tick recomposition.
+    val filterCounts = remember(images) { galleryFilterCounts(images) }
+    val chipPattern = stringResource(R.string.gallery_filter_chip_label)
+    val baseLabels = GalleryFilter.entries.associateWith { stringResource(it.labelRes()) }
+    val filterLabels = remember(filterCounts, baseLabels, chipPattern) {
+        baseLabels.mapValues { (f, base) ->
+            galleryFilterChipLabel(chipPattern, base, filterCounts[f] ?: 0)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BgApp),
+    ) {
+        // Title comes from the app shell's header ([AppHeader]).
+
+        GallerySegmentedControl(
+            options = GalleryFilter.entries.toList(),
+            selected = filter,
+            label = { filterLabels.getValue(it) },
+            onSelected = { filter = it },
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+
+        // Search only makes sense once there is history to search; while the
+        // gallery is bare the field would just sit above the empty-state art.
+        if (images.isNotEmpty()) {
+            GallerySearchField(
+                query = query,
+                onQueryChange = { query = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        if (shown.isEmpty()) {
+            // A blank query means the direction filter emptied the grid (or the
+            // gallery is bare); a live query that matched nothing is a search miss.
+            val reason = if (images.isEmpty()) {
+                GalleryEmptyReason.NoImages(galleryEmptyStateRes(filter))
+            } else {
+                galleryEmptyReason(filter, query)
+            }
+            GalleryEmptyState(
+                reason = reason,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            )
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 110.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                sections.forEach { section ->
+                    item(
+                        key = "hdr:${gallerySectionKey(section.header)}",
+                        span = { GridItemSpan(maxLineSpan) },
+                    ) {
+                        GallerySectionTitle(section.header, section.images.size)
+                    }
+                    items(section.images, key = { it.id }) { entry ->
+                        GalleryCell(
+                            entry = entry,
+                            imageFile = store.imageFile(entry),
+                            nowMs = nowMs,
+                            onClick = {
+                                viewerEntry = entry
+                                viewerVisible = true
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    ImageViewerSheet(
+        visible = viewerVisible,
+        entry = viewerEntry,
+        imageFile = viewerEntry?.let { store.imageFile(it) },
+        onDismiss = { viewerVisible = false },
+        onSendAgain = { entry ->
+            // The sheet closes on the way out: the composer is a different tab,
+            // and a sheet left open behind the navigation would still be there
+            // when the operator came back.
+            viewerVisible = false
+            onSendAgain(entry)
+        },
+        onShare = { entry ->
+            shareImage(
+                context,
+                store.imageFile(entry),
+                context.getString(R.string.gallery_share_chooser_title),
+                buildImageShareCaption(entry),
+            )
+        },
+        onSaveToPhotos = { entry ->
+            scope.launch {
+                val ok = withContext(Dispatchers.IO) { store.exportToPhotos(entry) }
+                Toast.makeText(
+                    context,
+                    if (ok) R.string.gallery_saved_to_photos else R.string.gallery_save_photos_failed,
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        },
+        onDelete = { entry ->
+            scope.launch {
+                withContext(Dispatchers.IO) { store.delete(entry.id) }
+                viewerVisible = false
+                refreshKey++
+            }
+        },
+        onSaveNote = { entry, note ->
+            scope.launch {
+                val updated = withContext(Dispatchers.IO) {
+                    store.updateNotes(entry.id, note)
+                }
+                // Keep the open sheet showing the saved note, and reload the
+                // list so the change survives a re-open. A null result means the
+                // row vanished (deleted elsewhere) — dismiss the now-stale sheet
+                // so Share/Save/Delete can't act on a missing entry.
+                if (updated != null) viewerEntry = updated else viewerVisible = false
+                refreshKey++
+            }
+        },
+    )
+}
+
+/** Chip-row label for each filter value. */
+internal fun GalleryFilter.labelRes(): Int = when (this) {
+    GalleryFilter.ALL -> R.string.gallery_filter_all
+    GalleryFilter.RX -> R.string.gallery_filter_rx
+    GalleryFilter.TX -> R.string.gallery_filter_tx
+}
+
+/**
+ * The gallery search box: a compact single-line field with a leading search
+ * glyph and, once text is entered, a trailing clear button — mirroring the
+ * Logbook's Recent-tab search so the two histories search the same way.
+ */
+@Composable
+private fun GallerySearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        singleLine = true,
+        placeholder = {
+            Text(
+                text = stringResource(R.string.gallery_search_placeholder),
+                color = TextFaint,
+                fontSize = 14.sp,
+            )
+        },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Filled.Search,
+                contentDescription = stringResource(R.string.gallery_cd_search),
+                tint = TextMuted,
+            )
+        },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(
+                        imageVector = Icons.Filled.Clear,
+                        contentDescription = stringResource(R.string.gallery_cd_clear_search),
+                        tint = TextMuted,
+                    )
+                }
+            }
+        },
+        textStyle = TextStyle(
+            fontFamily = GeistMonoFamily,
+            fontSize = 15.sp,
+        ),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = TextPrimary,
+            unfocusedTextColor = TextPrimary,
+            cursorColor = Accent,
+            focusedBorderColor = Accent,
+            unfocusedBorderColor = BorderStrong,
+        ),
+        shape = RoundedCornerShape(12.dp),
+        modifier = modifier,
+    )
+}
+
+/**
+ * The centered message shown when the grid has no cells. A bare history (or a
+ * direction filter with no images) gets the illustrated empty state; a search
+ * that matched nothing gets a plain "no matches" note so the operator can see
+ * the query came up empty and clear it. See [GalleryEmptyReason].
+ */
+@Composable
+private fun GalleryEmptyState(reason: GalleryEmptyReason, modifier: Modifier = Modifier) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        when (reason) {
+            is GalleryEmptyReason.NoImages ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    EmptyStateWaves()
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(reason.messageRes),
+                        color = TextMuted,
+                        fontSize = 13.sp,
+                    )
+                }
+
+            is GalleryEmptyReason.NoSearchMatch ->
+                Text(
+                    text = stringResource(R.string.gallery_search_no_matches, reason.query),
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    color = TextMuted,
+                    fontSize = 13.sp,
+                )
+        }
+    }
+}
+
+/**
+ * Full-width date header above a run of same-day cells, with the day's image
+ * count (Today / Yesterday / date, each suffixed "· N").
+ */
+@Composable
+private fun GallerySectionTitle(header: GallerySectionHeader, count: Int) {
+    val baseLabel = when (header) {
+        GallerySectionHeader.Today -> stringResource(R.string.gallery_section_today)
+        GallerySectionHeader.Yesterday -> stringResource(R.string.gallery_section_yesterday)
+        is GallerySectionHeader.Earlier -> header.dateLabel
+    }
+    val text = gallerySectionCountLabel(
+        stringResource(R.string.gallery_section_count_label),
+        baseLabel,
+        count,
+    )
+    Text(
+        text = text,
+        // The grid's contentPadding already insets 16dp horizontally, so the
+        // header only needs vertical breathing room to align with the cells.
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp, bottom = 2.dp),
+        color = TextMuted,
+        fontFamily = GeistMonoFamily,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.06.sp,
+    )
+}
+
+/** One grid cell: cropped thumbnail + RX/TX chip overlay + mode/date line. */
+@Composable
+private fun GalleryCell(
+    entry: SavedImage,
+    imageFile: java.io.File,
+    nowMs: Long,
+    onClick: () -> Unit,
+) {
+    Column(modifier = Modifier.clickable(role = Role.Button, onClick = onClick)) {
+        Box {
+            AsyncImage(
+                model = imageFile,
+                contentDescription = entry.fileName,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(4f / 3f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(BgSurface),
+                contentScale = ContentScale.Crop,
+            )
+            DirectionChip(
+                direction = entry.direction,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(5.dp),
+            )
+            if (galleryShowPartialBadge(entry)) {
+                PartialChip(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(5.dp),
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = galleryCellMeta(entry, nowMs),
+            color = TextMuted,
+            fontFamily = GeistMonoFamily,
+            fontSize = 10.sp,
+            maxLines = 1,
+        )
+    }
+}
+
+/** Small RX/TX badge (cyan for received, amber for sent). */
+@Composable
+internal fun DirectionChip(direction: ImageDirection, modifier: Modifier = Modifier) {
+    val (bg, fg) = when (direction) {
+        ImageDirection.RX -> AccentSoft to Accent
+        ImageDirection.TX -> SignalSoft to Signal
+    }
+    Text(
+        text = direction.name,
+        modifier = modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(BgApp.copy(alpha = 0.72f))
+            .background(bg)
+            .padding(horizontal = 5.dp, vertical = 1.dp),
+        color = fg,
+        fontSize = 9.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.08.sp,
+    )
+}
+
+/**
+ * Small "Partial" badge for an incomplete decode, mirroring [DirectionChip] but
+ * in the warning palette. The label doubles as its accessibility text, so a
+ * screen reader announces the partial state that colour alone would convey.
+ */
+@Composable
+internal fun PartialChip(modifier: Modifier = Modifier) {
+    Text(
+        text = stringResource(R.string.gallery_meta_partial),
+        modifier = modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(BgApp.copy(alpha = 0.72f))
+            .background(StatusWarn.copy(alpha = 0.2f))
+            .padding(horizontal = 5.dp, vertical = 1.dp),
+        color = StatusWarn,
+        fontSize = 9.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.08.sp,
+        // Localized label: keep it to one line so a longer translation clips
+        // rather than wrapping and shoving the overlay out of the cell corner.
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+
+/** Metadata label/value row used by the viewer sheet. */
+@Composable
+internal fun MetaRow(label: String, value: String) {
+    androidx.compose.foundation.layout.Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp),
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.fillMaxWidth(0.4f),
+            color = TextMuted,
+            fontSize = 12.sp,
+        )
+        Text(
+            text = value,
+            color = TextPrimary,
+            fontFamily = GeistMonoFamily,
+            fontSize = 12.sp,
+        )
+    }
+}

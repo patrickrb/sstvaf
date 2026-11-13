@@ -1,0 +1,89 @@
+name: Play internal read-back
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - '.github/scripts/play_internal_readback.py'
+      - '.github/scripts/test_play_internal_readback.py'
+      - '.github/scripts/test_release_api_once.py'
+      - '.github/workflows/play-internal-readback.yml'
+      - '.github/workflows/android.yml'
+  push:
+    branches: [dev]
+    paths:
+      - '.github/scripts/play_internal_readback.py'
+      - '.github/scripts/test_play_internal_readback.py'
+      - '.github/scripts/test_release_api_once.py'
+      - '.github/workflows/play-internal-readback.yml'
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: Existing SSTVAF internal version code to verify (no upload)
+        required: true
+        type: string
+      inspection_mode:
+        description: GET-only lifecycle or open/read/delete an inspection edit (never commit)
+        type: choice
+        default: release-summary
+        options: [release-summary, edit-track]
+      expected_status:
+        description: Expected committed release lifecycle (not device availability)
+        required: true
+        type: choice
+        options: [draft, notSentForReview, inReview, approvedNotPublished, notApproved, published]
+      expected_track_status:
+        description: Expected tracks/internal status (edit-track mode only)
+        type: choice
+        default: completed
+        options: [draft, completed, inProgress, halted]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --quiet google-auth requests pyyaml
+      - run: python -m unittest discover -s .github/scripts -p 'test_*.py' -v
+
+  inspect:
+    if: github.event_name == 'workflow_dispatch'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --quiet google-auth requests
+      - name: Inspect internal release (no uploads, track changes or edit commit)
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          VERSION_CODE: ${{ inputs.version_code }}
+          INSPECTION_MODE: ${{ inputs.inspection_mode }}
+          EXPECTED_STATUS: ${{ inputs.expected_status }}
+          EXPECTED_TRACK_STATUS: ${{ inputs.expected_track_status }}
+        run: |
+          set -euo pipefail
+          if [[ "$INSPECTION_MODE" == "edit-track" ]]; then
+            status_args=(--expected-track-status "$EXPECTED_TRACK_STATUS")
+          else
+            status_args=(--expected-status "$EXPECTED_STATUS")
+          fi
+          python .github/scripts/play_internal_readback.py \
+            --version-code "$VERSION_CODE" "${status_args[@]}" \
+            --report "$RUNNER_TEMP/play-internal-readback.json"
+      - name: Upload read-back evidence even on validation failure
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: play-internal-readback
+          path: ${{ runner.temp }}/play-internal-readback.json
+          if-no-files-found: error

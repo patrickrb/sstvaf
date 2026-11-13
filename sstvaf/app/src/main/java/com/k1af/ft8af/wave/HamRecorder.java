@@ -1,0 +1,544 @@
+package com.k1af.ft8af.wave;
+
+import android.annotation.SuppressLint;
+import android.media.AudioFormat;
+import android.util.Log;
+
+import com.k1af.ft8af.GeneralVariables;
+
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+/**
+ * Recording class. Implements audio recording via the AudioRecord object.
+ * HamRecorder retrieves recording data through the listener class GetVoiceData. The HamRecorder instance has a listener list onGetVoiceList.
+ * When recording data is available, HamRecorder triggers the OnReceiveData callback for each listener in the list.
+ * The purpose of this class is to prevent FT8 recording timing issues caused by recording startup delays,
+ * which could lead to overlapping AudioRecord instances or recordings shorter than a full cycle (15 seconds).
+ * <p>
+ * @author BG7YOZ
+ * @date 2022-05-31
+ */
+
+public class HamRecorder {
+    private static final String TAG = "HamRecorder";
+    //private int bufferSize = 0;//minimum buffer size
+    private static final int sampleRateInHz = 12000;//sampling rate
+    private static final int channelConfig = AudioFormat.CHANNEL_IN_MONO; //mono
+    //private static final int audioFormat = AudioFormat.ENCODING_PCM_16BIT; //quantization bit depth
+    private static final int audioFormat = AudioFormat.ENCODING_PCM_FLOAT; //quantization bit depth
+
+    //private AudioRecord audioRecord = null;//AudioRecord object
+    private volatile boolean isRunning = false;//whether currently in recording state
+
+    //listener callback list, data is retrieved in listener callbacks.
+    //CopyOnWriteArrayList: the list is iterated on the capture thread
+    //(doOnWaveDataReceived) while monitors are added from the cycle-timer
+    //thread (getVoiceData), removed from the capture thread (one-shot
+    //completion), and removed from the stall-watchdog thread
+    //(forceCompleteAfterStall) — a plain ArrayList races. Mutations are rare
+    //(a few per 15 s slot); iteration is the hot path, which COW makes
+    //lock-free over an immutable snapshot.
+    private final java.util.concurrent.CopyOnWriteArrayList<VoiceDataMonitor> voiceDataMonitorList =
+            new java.util.concurrent.CopyOnWriteArrayList<>();
+    private OnVoiceMonitorChanged onVoiceMonitorChanged=null;
+
+    //Watchdog for stalled one-shot monitors (see VoiceDataMonitor.forceCompleteAfterStall):
+    //grace period past the requested duration before a partial buffer is force-delivered.
+    static final long STALL_GRACE_MS = 2000;
+    private final java.util.concurrent.ScheduledExecutorService stallWatchdog =
+            java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "VoiceMonitorStallWatchdog");
+                t.setDaemon(true);
+                return t;
+            });
+
+    private boolean isMicRecord=true;
+    private MicRecorder micRecorder=new MicRecorder();
+
+    //RX input-level meter (issue #356). Fed post-gain samples in
+    //doOnWaveDataReceived; emits one Levels snapshot per 250ms window which we
+    //publish for the Compose input-level indicator. Only touched on the audio
+    //dispatch path, so no synchronization needed.
+    private final InputAudioLevel inputLevelMeter = new InputAudioLevel();
+
+
+    public HamRecorder(OnVoiceMonitorChanged onVoiceMonitorChanged){
+        this.onVoiceMonitorChanged=onVoiceMonitorChanged;
+    }
+
+
+    public void setDataFromMic(){
+        isMicRecord=true;
+        startRecord();
+    }
+    public void setDataFromLan(){
+        isMicRecord=false;
+        micRecorder.stopRecord();
+    }
+
+    /**
+     * Actions to perform when audio data is received
+     * @param bufferLen length of the data
+     * @param buffer data buffer
+     */
+    public void doOnWaveDataReceived(int bufferLen,float[] buffer){
+        if (!isRunning) return;
+
+        //RX input gain (issue #356): every audio source funnels through here
+        //(mic AudioRecord, direct-USB capture, network connectors), so this is
+        //the single point where the user's input volume is applied before the
+        //samples reach the decoders and the waterfall. Buffers arrive freshly
+        //read/decoded and are copied by each monitor downstream, so the
+        //in-place multiply is safe. Unity gain is a no-op.
+        InputAudioLevel.applyGain(buffer, bufferLen, GeneralVariables.inputGainPercent);
+
+        //Meter the post-gain samples; one snapshot per ~250ms window keeps
+        //the LiveData/main-thread traffic bounded.
+        InputAudioLevel.Levels levels = inputLevelMeter.process(buffer, bufferLen);
+        if (levels != null) {
+            GeneralVariables.mutableInputLevel.postValue(levels);
+        }
+
+        //for-each over the CopyOnWriteArrayList iterates one consistent
+        //snapshot even if a monitor is added/removed concurrently
+        for (VoiceDataMonitor monitor : voiceDataMonitorList) {
+            //invoke each listener's callback, providing data to the callback function
+            if (monitor != null) {
+                monitor.onHamRecord.OnReceiveData(buffer, bufferLen);
+            }
+        }
+
+        //doDataMonitorChanged();
+    }
+
+
+    /**
+     * Whether currently in recording state
+     *
+     * @return boolean, whether currently in recording state
+     */
+    public boolean isRunning() {
+        return isRunning;
+    }
+
+    /**
+     * Pure decision: is FT8 RX holding an Android audio-capture session (an
+     * AudioRecord) right now? True blocks the voice-command SpeechRecognizer —
+     * two capture clients fight under Android's concurrency rules and the
+     * loser (usually our decode chain) goes silent.
+     *
+     * @param running   the recorder is running at all
+     * @param micSource audio comes from MicRecorder (not a LAN connector)
+     * @param usbDirect MicRecorder captures via direct libusb (no AudioRecord)
+     */
+    static boolean phoneMicCaptureInUse(boolean running, boolean micSource, boolean usbDirect) {
+        return running && micSource && !usbDirect;
+    }
+
+    /**
+     * Runtime "phone mic in use by FT8 RX" signal for the voice-command UI:
+     * true whenever this recorder holds an AudioRecord session (system mic or
+     * Android-routed USB input); false for direct-libusb USB capture and for
+     * LAN audio sources (ICOM WiFi / Flex), where the capture stack is free.
+     */
+    /**
+     * Whether RX audio comes from {@link MicRecorder} (the phone mic, an
+     * Android-routed device, or a USB-direct capture) rather than a network rig
+     * (Icom WLAN, Flex, X6100, tr-uSDX over CAT) that feeds
+     * {@link #doOnWaveDataReceived} directly. The RX channel selector only
+     * applies to the former — network rigs hand us mono already — so the
+     * settings screen greys it out when this is false.
+     */
+    public boolean isMicSource() {
+        return isMicRecord;
+    }
+
+    /**
+     * Whether a settings change from {@code from} to {@code to} on the RX
+     * channel selector needs the capture reopened. See
+     * {@link MicRecorder#reopenRequiredForChannelChange}.
+     */
+    public boolean rxChannelChangeNeedsReopen(int from, int to) {
+        return MicRecorder.reopenRequiredForChannelChange(from, to, micRecorder.isUsingUsbDirect());
+    }
+
+    public boolean isPhoneMicInUse() {
+        return phoneMicCaptureInUse(isRunning, isMicRecord, micRecorder.isUsingUsbDirect());
+    }
+
+    /**
+     * Start recording. This method keeps the device in a continuous recording state.
+     * Recording data is retrieved through the listener class GetVoiceData.
+     * After the recording object reads data (audioRecord.read), it invokes the OnReceiveData callback for all listeners in the list.
+     * The recording state is tracked in isRecording.
+     */
+    @SuppressLint("MissingPermission")
+    public void startRecord() {
+        if (isMicRecord){//if using MIC for audio capture
+            micRecorder.start();
+            micRecorder.setOnDataListener(new MicRecorder.OnDataListener() {
+                @Override
+                public void onDataReceived(float[] data, int len) {
+                    doOnWaveDataReceived(len,data);
+                }
+            });
+        }
+            isRunning=true;
+
+    }
+
+    private void doDataMonitorChanged(){
+        if (onVoiceMonitorChanged!=null){
+            onVoiceMonitorChanged.onMonitorChanged(voiceDataMonitorList.size());
+        }
+    }
+    /**
+     * Delete a data monitor
+     * @param monitor the data monitor
+     */
+    public void deleteVoiceDataMonitor(VoiceDataMonitor monitor) {
+        voiceDataMonitorList.remove(monitor);
+        doDataMonitorChanged();
+    }
+
+    /**
+     * Get the number of monitors
+     * @return the count
+     */
+    public int getVoiceMonitorCount(){
+        return voiceDataMonitorList.size();
+    }
+
+    /**
+     * Get the list of monitors
+     * @return monitor list
+     */
+    public java.util.List<VoiceDataMonitor> getVoiceDataMonitors(){
+        return this.voiceDataMonitorList;
+    }
+
+    /**
+     * Stop recording. When recording stops, all monitors in the listener list are removed.
+     */
+    public void stopRecord() {
+        micRecorder.stopRecord();
+        isRunning = false;
+    }
+
+    /** The underlying mic capture, for routing introspection (issue #759). */
+    public MicRecorder getMicRecorder() {
+        return micRecorder;
+    }
+
+    /**
+     * Reinitialize the mic recorder to pick up newly connected USB audio devices.
+     * The data listener is wired first, so the capture the reinit restarts
+     * delivers to it from its first buffer.
+     */
+    public void reinitializeMicRecorder() {
+        if (isMicRecord) {
+            micRecorder.setOnDataListener(new MicRecorder.OnDataListener() {
+                @Override
+                public void onDataReceived(float[] data, int len) {
+                    doOnWaveDataReceived(len, data);
+                }
+            });
+        }
+        micRecorder.reinitialize();
+    }
+
+    /**
+     * RECORD_AUDIO was just granted (first launch). The capture started in the
+     * constructor ran before the prompt was answered, so its AudioRecord failed
+     * and stopped; rebuild it now instead of leaving RX deaf until the next app
+     * launch. The reinit restarts it because start() recorded the intent before
+     * failing (MicRecorder.shouldBeRunning).
+     */
+    public void restartMicAfterPermissionGrant() {
+        if (!restartMicOnGrant(isRunning, isMicRecord, micRecorder.isUsingUsbDirect())) return;
+        reinitializeMicRecorder();
+    }
+
+    /**
+     * Whether a RECORD_AUDIO grant should rebuild the capture: only an
+     * AudioRecord capture on the mic source needed the permission. Network
+     * audio and a working direct-libusb USB capture are left alone -- tearing
+     * the latter down would drop RX and churn the libusb session for nothing.
+     *
+     * <p>Package-visible for testing.
+     */
+    static boolean restartMicOnGrant(boolean running, boolean micSource, boolean usbDirect) {
+        return phoneMicCaptureInUse(running, micSource, usbDirect);
+    }
+
+    /**
+     * Method to retrieve recording data, implemented by adding a data monitor (VoiceDataMonitor).
+     * Recording data is provided in the OnGetVoiceDataDone callback, triggered when the recording reaches the specified duration (milliseconds).
+     * To get recording data, a monitor object is added to the recorder. Data is collected in the monitor's OnReceiveData callback.
+     * When the expected amount of data is reached, the OnGetVoiceDataDone callback is triggered. This callback runs in a separate thread, so be careful with UI handling.
+     * There are two monitoring modes: one-shot and looping.
+     * One-shot: after data is obtained, the monitor is automatically removed and will not trigger again.
+     * Looping: the monitor persists; after data is obtained, the data is reset and enters the next monitoring state. The monitor is only removed when recording stops.
+     * duration in milliseconds
+     *
+     * @param duration         recording data duration (milliseconds)
+     * @param afterDoneRemove  whether to remove the monitor after obtaining data; false: loop to continuously obtain recording data
+     * @param getVoiceDataDone callback triggered when recording data reaches the specified duration
+     */
+    public VoiceDataMonitor getVoiceData(int duration, boolean afterDoneRemove, OnGetVoiceDataDone getVoiceDataDone) {
+        if (isRunning) {
+            VoiceDataMonitor dataMonitor = new VoiceDataMonitor(duration, this
+                    , afterDoneRemove, getVoiceDataDone);
+            dataMonitor.voiceDataMonitor = dataMonitor;//used for the monitor to remove itself
+            voiceDataMonitorList.add(dataMonitor);
+            doDataMonitorChanged();
+            if (afterDoneRemove) {
+                //A one-shot monitor whose buffer never fills (capture stall, USB drop
+                //mid-slot) would otherwise never fire and never unregister — a silently
+                //lost decode cycle. Force-deliver the partial (zero-padded) buffer.
+                stallWatchdog.schedule(() -> {
+                    if (dataMonitor.forceCompleteAfterStall(HamRecorder.this)) {
+                        Log.w(TAG, String.format(
+                                "one-shot voice monitor stalled: delivered %d of %d samples after timeout",
+                                dataMonitor.collectedSamples(), duration * sampleRateInHz / 1000));
+                    }
+                }, duration + STALL_GRACE_MS, java.util.concurrent.TimeUnit.MILLISECONDS);
+            }
+            return dataMonitor;
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Monitor class for retrieving recording data.
+     * This monitor requires setting the recording duration (milliseconds). When the specified duration is reached,
+     * an OnGetVoiceDataDone callback is produced, from which the recording data for that duration can be obtained.
+     * The monitor can be set as one-shot (afterDoneRemove=true) or looping (afterDoneRemove=false).
+     * One-shot: the monitor stops listening after reaching the specified duration, and the recorder removes it.
+     * Looping: after reaching the specified duration, it resets and continues monitoring. This mode is convenient for generating waveform table data.
+     */
+    //public: Kotlin callers (SstvSignalListener) invoke getVoiceData, whose
+    //return type this is — a package-private type in a public signature makes
+    //the call site emit an inaccessible-type warning from Kotlin.
+    public static class VoiceDataMonitor {
+        private final String TAG = "GetVoiceData";
+        private final float[] voiceData;//recording data. Size is determined by duration, sampling rate, and bit depth.
+        private int dataCount;//counter, current amount of data acquired
+        private final boolean oneShot;//afterDoneRemove: one-shot (decode) vs looping (waterfall)
+        private final OnGetVoiceDataDone doneCallback;
+        //Completion guard for one-shot monitors: exactly one of {buffer filled,
+        //stall watchdog} may fire the done callback. Without it, a capture stall
+        //mid-slot left the monitor registered forever and the cycle silently
+        //produced no decode.
+        private final java.util.concurrent.atomic.AtomicBoolean completed =
+                new java.util.concurrent.atomic.AtomicBoolean(false);
+        //Orders the capture thread's voiceData writes / dataCount increments against
+        //the watchdog thread's reads (issue #404). The capture thread copies each
+        //chunk under this lock; the watchdog takes it before inspecting dataCount and
+        //claiming delivery, so it (a) waits out an in-flight chunk copy rather than
+        //snapshotting a half-written buffer and (b) gets a happens-before on all
+        //samples written so far — an unlocked read could see a stale count and
+        //deliver a short/zero-tailed buffer while the final samples were landing.
+        private final Object bufferLock = new Object();
+
+        //onHamRecord is the callback triggered when the recorder has data; it fills the voiceData buffer, and when the buffer is full, triggers the OnGetVoiceDataDone callback.
+        public OnHamRecord onHamRecord;
+        //getVoiceData is the address of this monitor, used to remove this monitor from the recorder's listener list.
+        // After constructing GetVoiceData, IMPORTANT!!! this variable must be assigned! Otherwise this monitor cannot be removed.
+        public VoiceDataMonitor voiceDataMonitor = null;
+
+        /** Samples collected so far (test/diagnostic visibility). */
+        int collectedSamples() {
+            synchronized (bufferLock) {
+                return dataCount;
+            }
+        }
+
+        /**
+         * Stall watchdog path for a one-shot monitor whose buffer never filled
+         * (capture stalled mid-slot). Delivers the buffer as-is — the remainder is
+         * zero-initialized, so the decoder sees partial audio instead of the slot
+         * silently vanishing — and unregisters the monitor. No-op for looping
+         * monitors or when the buffer already completed normally.
+         *
+         * @return true if this call delivered the stalled buffer
+         */
+        boolean forceCompleteAfterStall(HamRecorder recorder) {
+            if (!oneShot) {
+                return false;
+            }
+            synchronized (bufferLock) {
+                //Decide the winner under the lock, BEFORE the buffer is handed out:
+                //this waits for any in-flight chunk copy to finish and reads the
+                //capture thread's true progress, so a fill that completed (or is one
+                //chunk from completing) isn't clobbered by a stale-count delivery.
+                if (dataCount >= voiceData.length) {
+                    return false; // filled; normal path delivered (or is delivering) it
+                }
+                if (!completed.compareAndSet(false, true)) {
+                    return false;
+                }
+            }
+            //completed is now set, and every subsequent chunk checks it under
+            //bufferLock before writing — the buffer can no longer change, so it is
+            //safe to deliver outside the lock (the decode handoff shouldn't stall
+            //the capture thread's next chunk).
+            doneCallback.onGetDone(voiceData);
+            if (recorder != null) {
+                recorder.deleteVoiceDataMonitor(voiceDataMonitor);
+            }
+            return true;
+        }
+
+        /**
+         * Monitor class for retrieving recording data.
+         * Constructor for GetVoiceData class. This class is added to the HamRecorder's onGetVoiceList to produce callbacks when recording data is available.
+         * The purpose of this class is to allow multiple objects to retrieve data from the recording without conflict.
+         *
+         * @param duration           duration of recording data to acquire (milliseconds)
+         * @param hamRecorder        instance of the recorder class, for operations like removing this monitor
+         * @param afterDoneRemove    whether to remove this monitor instance after reaching the recording duration; true: remove, false: do not remove, loop monitoring
+         * @param onGetVoiceDataDone callback triggered after reaching the recording duration. To avoid taking too much recording time, this callback runs in a separate thread.
+         */
+        public VoiceDataMonitor(int duration, HamRecorder hamRecorder, boolean afterDoneRemove
+                , OnGetVoiceDataDone onGetVoiceDataDone) {
+            //duration in milliseconds
+            //host object, for conveniently calling operations to remove this instance from the data acquisition action list
+
+            dataCount = 0;//current amount of data acquired
+            //generate data buffer of expected size
+            //because it is 16-bit sampling, so byte*2
+            //voiceData = new byte[duration * HamRecorder.sampleRateInHz * 2 / 1000];
+            voiceData = new float[duration * HamRecorder.sampleRateInHz  / 1000];
+            oneShot = afterDoneRemove;
+            doneCallback = onGetVoiceDataDone;
+
+            //callback function triggered when recording data is available
+            onHamRecord = new OnHamRecord() {
+                @Override
+                public void OnReceiveData(float[] data, int size) {
+                    int remainingSize;
+                    boolean filled;
+                    synchronized (bufferLock) {
+                        //Once a one-shot buffer has been delivered (normally or by the
+                        //stall watchdog), late-arriving audio must not keep mutating it
+                        //behind the consumer's back. Checked under the lock, so a
+                        //watchdog that just claimed delivery can't interleave with this
+                        //chunk's copy (issue #404).
+                        if (afterDoneRemove && completed.get()) {
+                            return;
+                        }
+                        remainingSize = size+dataCount-voiceData.length;//if greater than 0, this is the remaining data amount
+
+                        for (int i = 0; (i < size) && (dataCount < voiceData.length); i++) {
+                                voiceData[dataCount] = data[i];//copy data from recording buffer to this monitor
+                                dataCount++;
+                        }
+                        filled = dataCount >= voiceData.length;
+                    }
+
+                    if (filled) {//when data amount reaches the required amount, trigger callback
+                        if (afterDoneRemove) {//if this is a one-shot data acquisition, remove this monitor callback from the recorder's listener list
+                            //guard against the stall watchdog racing a late normal fill
+                            if (completed.compareAndSet(false, true)) {
+                                onGetVoiceDataDone.onGetDone(voiceData);
+                                if (hamRecorder != null) {
+                                    hamRecorder.deleteVoiceDataMonitor(voiceDataMonitor);
+                                }
+                            }
+                        } else {
+                            onGetVoiceDataDone.onGetDone(voiceData);
+                            synchronized (bufferLock) {
+                                dataCount = 0;//if looping recording, reset the counter
+                            }
+                            if (remainingSize>0) {//forward remaining data to subsequent events
+                                float[] remainingData = new float[remainingSize];
+                                System.arraycopy(data, size - remainingSize, remainingData, 0, remainingSize);
+                                OnReceiveData(remainingData,remainingSize);
+                            }
+                        }
+                    }
+                }
+            };
+
+        }
+
+    }
+
+    /**
+     * Class method to save data to a file with a temporary filename.
+     * @param data the data
+     * @return the generated temporary filename
+     */
+    public static String saveDataToFile(byte[] data) {
+        String audioFileName = null;
+        File recordingFile;
+        try {
+            //generate temporary filename
+            recordingFile = File.createTempFile("Audio", ".wav", null);
+            audioFileName = recordingFile.getPath();
+
+            //data stream file
+            DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(audioFileName)));
+            //write WAV file header
+            new WriteWavHeader(data.length, sampleRateInHz, channelConfig, audioFormat).writeHeader(dos);
+            for (int i = 0; i < data.length; i++) {
+                dos.write(data[i]);
+            }
+            Log.d(TAG, String.format("File generation complete (%d bytes, %.2f seconds), file: %s", data.length + 44
+                    , ((float) data.length / 2 / sampleRateInHz), audioFileName));
+            dos.close();//close file stream
+
+
+        } catch (IOException e) {
+            Log.e(TAG, String.format("Error generating temporary file! %s", e.getMessage()));
+        }
+
+        return audioFileName;
+    }
+
+    /**
+     * Convert raw audio data to 16-bit array data.
+     * @param buffer raw audio data (8-bit)
+     * @return 16-bit int format array
+     */
+    public static int[] byteDataTo16BitData(byte[] buffer){
+        int[] data=new int[buffer.length /2];
+        for (int i = 0; i < buffer.length/2; i++) {
+            int  res = (buffer[i*2] & 0x000000FF) | (((int) buffer[i*2+1]) << 8);
+            data[i]=res;
+        }
+        return data;
+    }
+
+    /**
+     * Convert raw audio data to float array data
+     * @param bytes raw audio data (float)
+     * @return converted float array
+     */
+    public static float[] getFloatFromBytes(byte[] bytes) {
+        float[] floats = new float[bytes.length / 4];
+        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(bytes));
+        for (int i = 0; i < floats.length; i++) {
+            try {
+                floats[i] = dis.readFloat();
+            } catch (IOException e) {
+                e.printStackTrace();
+                break;
+            }
+        }
+        try {
+            dis.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return floats;
+    }
+}

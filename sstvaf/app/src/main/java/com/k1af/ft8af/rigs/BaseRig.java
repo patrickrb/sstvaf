@@ -1,0 +1,217 @@
+package com.k1af.ft8af.rigs;
+
+import androidx.lifecycle.MutableLiveData;
+
+import com.k1af.ft8af.connector.BaseRigConnector;
+
+/**
+ * Abstract class for radios.
+ * @author BGY70Z
+ * @date 2023-03-20
+ */
+public abstract class BaseRig {
+    private long freq;//current frequency value
+    public MutableLiveData<Long> mutableFrequency = new MutableLiveData<>();
+    private int controlMode;//control mode
+    private OnRigStateChanged onRigStateChanged;//callback when rig state changes
+    private int civAddress;//CIV address
+    private int baudRate;//baud rate
+    //Whether PTT is on. Volatile: setPTT() writes it on the TX path, and the
+    //rigs' poll timers read it on their Timer threads to stay quiet during TX
+    //(ReadTaskAction.decide) — a stale false there means a CAT read mid-over.
+    private volatile boolean isPttOn=false;
+    //Rig connector object. Volatile: IcomRig starts its poll timers in its
+    //constructor and MainViewModel calls setConnector() afterwards from another
+    //thread, so without it the Timer thread could keep reading null and never
+    //poll (nor see a later reconnect's connector).
+    private volatile BaseRigConnector connector = null;
+
+    public abstract boolean isConnected();//check if rig is connected
+
+    public abstract void setUsbModeToRig();//set rig to upper sideband (USB) mode
+
+    public abstract void setFreqToRig();//set rig frequency
+
+    public abstract void onReceiveData(byte[] data);//action when rig sends data back
+
+    public abstract void readFreqFromRig();//read frequency from rig
+
+    public abstract String getName();//get rig name
+
+    private final OnConnectReceiveData onConnectReceiveData = new OnConnectReceiveData() {
+        @Override
+        public void onData(byte[] data) {
+            onReceiveData(data);
+        }
+    };
+
+    public void setPTT(boolean on) {//set PTT on or off
+        isPttOn=on;
+        if (onRigStateChanged != null) {
+            onRigStateChanged.onPttChanged(on);
+        }
+    }
+
+    /**
+     * Send a TX waveform through the rig's own audio transport (network rigs,
+     * truSDX audio-over-CAT). Implementations resample from {@code sampleRate}
+     * to their transport's native rate. Base implementation is a no-op.
+     *
+     * @param wave       mono float waveform (full scale)
+     * @param sampleRate waveform sample rate in Hz
+     */
+    public void sendWaveData(float[] wave, int sampleRate) {
+        //reserved for network / audio-over-CAT rigs
+    }
+
+    public long getFreq() {
+        return freq;
+    }
+
+    /**
+     * A frequency the RIG reported (parsed from its CAT reply). This is the only entry
+     * point that counts as a liveness signal; rig subclasses call it from their
+     * {@link #onReceiveData(byte[])} parsers.
+     */
+    public void setFreq(long freq) {
+        applyFreq(freq, true);
+    }
+
+    /**
+     * A frequency the APP is about to command (the dial we are pushing to the rig via
+     * {@link #setFreqToRig()}). Same bookkeeping as {@link #setFreq(long)} — stores the
+     * value, publishes it, fires {@code onFreqChanged} on a change — but it is NOT a
+     * liveness signal: nothing has been heard from the rig. Routing our own write through
+     * {@link #setFreq(long)} armed the CAT watchdog on a rig that never answered a
+     * frequency read, which then went "dead" 8 s later while CAT kept working (#781).
+     */
+    public void setCommandedFreq(long freq) {
+        applyFreq(freq, false);
+    }
+
+    private void applyFreq(long freq, boolean reportedByRig) {
+        if (freq == 0) return;
+        if (freq == -1) return;
+        // The rig answered with a valid frequency — proof the link is alive even if the dial
+        // didn't move. Fire this BEFORE the unchanged-frequency early return below so the CAT
+        // liveness watchdog (which keys off onRigResponded, not onFreqChanged) sees every
+        // reply and doesn't falsely trip on a stable dial.
+        if (reportedByRig && onRigStateChanged != null) {
+            onRigStateChanged.onRigResponded();
+        }
+        if (freq == this.freq) return;
+        mutableFrequency.postValue(freq);
+        this.freq = freq;
+        if (onRigStateChanged != null) {
+            onRigStateChanged.onFreqChanged(freq);
+        }
+    }
+
+    public void setConnector(BaseRigConnector connector) {
+        this.connector = connector;
+
+        this.connector.setOnRigStateChanged(onRigStateChanged);
+        this.connector.setOnConnectReceiveData(new OnConnectReceiveData() {
+            @Override
+            public void onData(byte[] data) {
+                onReceiveData(data);
+            }
+        });
+    }
+
+    public void setControlMode(int mode) {
+        controlMode = mode;
+        if (connector != null) {
+            connector.setControlMode(mode);
+        }
+    }
+
+    public int getControlMode() {
+        return controlMode;
+    }
+
+    public static String byteToStr(byte[] data) {
+        // Null-safe: this is a logging/diagnostic helper and a null array (e.g. an aborted
+        // A91 payload) must not NPE the caller mid-transmit.
+        if (data == null) {
+            return "null";
+        }
+        StringBuilder s = new StringBuilder();
+        for (int i = 0; i < data.length; i++) {
+            s.append(String.format("%02x ", data[i] & 0xff));
+        }
+        return s.toString();
+    }
+
+    public BaseRigConnector getConnector() {
+        return connector;
+    }
+
+    public OnRigStateChanged getOnRigStateChanged() {
+        return onRigStateChanged;
+    }
+
+    public void setOnRigStateChanged(OnRigStateChanged onRigStateChanged) {
+        this.onRigStateChanged = onRigStateChanged;
+    }
+
+    public int getCivAddress() {
+        return civAddress;
+    }
+
+    public void setCivAddress(int civAddress) {
+        this.civAddress = civAddress;
+    }
+
+    public int getBaudRate() {
+        return baudRate;
+    }
+
+    public void setBaudRate(int baudRate) {
+        this.baudRate = baudRate;
+    }
+
+    public boolean isPttOn() {
+        return isPttOn;
+    }
+
+
+    /**
+     * 2023-08-16 Modification submitted by DS1UFX (based on v0.9), adding (tr)uSDX audio over CAT support.
+     */
+    public boolean supportWaveOverCAT() {
+        return false;
+    }
+
+    public void onDisconnecting() {
+    }
+
+    /**
+     * Whether this rig's protocol has a CAT command to start the internal
+     * antenna tuner (ATU). Capability can't be queried over CAT, so "true"
+     * means the protocol family defines the command — rigs without an ATU
+     * ignore it harmlessly (CI-V NG / ASCII "?;").
+     */
+    public boolean supportsAtuTune() {
+        return false;
+    }
+
+    /**
+     * Fire-and-forget start of the rig's internal ATU tune cycle. The rig
+     * keys its own low-power carrier and stops by itself; no PTT or audio
+     * from the app is involved.
+     */
+    public void startAtuTune() {
+    }
+
+    // Meter data callback for MeterProtectionController (ALC auto-volume, SWR halt)
+    public interface OnMeterData {
+        void onMeterUpdate(int normalizedAlc, int normalizedSwr);
+    }
+    private OnMeterData onMeterData;
+    public void setOnMeterData(OnMeterData listener) { this.onMeterData = listener; }
+    protected void notifyMeterData(int alc, int swr) {
+        if (onMeterData != null) onMeterData.onMeterUpdate(alc, swr);
+    }
+
+}

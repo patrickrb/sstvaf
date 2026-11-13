@@ -1,0 +1,520 @@
+package radio.ks3ckc.sstvaf.sstv
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import com.k1af.ft8af.GeneralVariables
+import com.k1af.ft8af.wave.HamRecorder
+import radio.ks3ckc.sstvaf.sstv.digital.DigitalRxImage
+import radio.ks3ckc.sstvaf.sstv.digital.DigitalSstvRxEngine
+import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
+
+/**
+ * The continuous SSTV receive engine.
+ *
+ * Audio path: [attachToRecorder] registers a persistent (looping) tap on the
+ * [HamRecorder] fan-out — the same mechanism SpectrumListener uses for the
+ * waterfall — which delivers 12 kHz mono float buffers on the capture thread.
+ * [onAudioBuffer] copies each buffer (the recorder reuses its array) into a
+ * bounded queue; ONE decode thread drains the queue into a native
+ * [DecoderSession] and publishes [rxState]. On overflow the OLDEST buffer is
+ * dropped (hunting cares about fresh audio) and the drop is logged.
+ *
+ * On DONE/ABORTED the finished (or partial) frame is snapshotted into
+ * [LastDecodedImage] BEFORE the decoder is reset back to hunting, and the
+ * terminal [SstvRxState.Complete]/[SstvRxState.Aborted] stays published until
+ * the next transmission starts (the post-reset IDLE is deliberately not
+ * republished over it).
+ */
+class SstvSignalListener @JvmOverloads constructor(
+    private val codec: SstvCodec,
+    private val sampleRate: Int = SAMPLE_RATE_HZ,
+    queueCapacity: Int = QUEUE_CAPACITY,
+    private val log: (String) -> Unit = { GeneralVariables.fileLog(it) },
+    private val clock: () -> Long = { System.currentTimeMillis() },
+    private val dialFrequency: () -> Long = { GeneralVariables.band },
+) {
+
+    private val mutableRxState = MutableLiveData<SstvRxState>(SstvRxState.Idle)
+
+    /** Live receive state for the (future, PR 6) RX UI. */
+    val rxState: LiveData<SstvRxState> get() = mutableRxState
+
+    private val mutableDigitalResult = MutableLiveData<DigitalRxImage?>(null)
+
+    /**
+     * The last completed digital-SSTV image, decoded by the parallel COFDM
+     * detector that rides the same audio tap (see [DigitalSstvRxEngine]).
+     * Digital frames are all-or-nothing (no per-row progress), so they get
+     * their own durable holder instead of a [SstvRxState] variant; the save
+     * controller renders the payload and files it with the RX images.
+     */
+    val digitalResult: LiveData<DigitalRxImage?> get() = mutableDigitalResult
+
+    /** The digital detector; driven from the decode thread only. */
+    private val digitalEngine = DigitalSstvRxEngine(log)
+
+    /**
+     * Invoked on the decode thread for EVERY completed digital frame — the
+     * durable per-frame handoff (LiveData postValue coalesces under a busy
+     * main looper, which could silently drop a frame between dispatches).
+     * The callback must be fast or offload its own work.
+     */
+    @Volatile
+    var onDigitalImage: ((DigitalRxImage) -> Unit)? = null
+
+    @Volatile
+    private var currentState: SstvRxState = SstvRxState.Idle
+
+    private val queue = ArrayBlockingQueue<FloatArray>(queueCapacity)
+    private val enabled = AtomicBoolean(true)
+    private val running = AtomicBoolean(false)
+    private val dropped = AtomicLong(0)
+
+    /** Serializes every DecoderSession call (decode thread vs [readNewRows]). */
+    private val sessionLock = Any()
+    private var session: DecoderSession? = null
+
+    private var decodeThread: Thread? = null
+
+    /** The registered recorder tap; kept so [detachFromRecorder] can remove it. */
+    private var tapRecorder: HamRecorder? = null
+    private var tapMonitor: HamRecorder.VoiceDataMonitor? = null
+
+    /** Set after a DONE/ABORTED so the post-reset IDLE doesn't clobber it. */
+    private var holdTerminalState = false
+    private var visLockLogged = false
+
+    /** Tuning offset reported with the header that produced the current lock. */
+    private var lockOffsetHz: Int? = null
+
+    /** Leader-timeout log rate limit (audio time of the last line, timeouts since). */
+    private var lastLeaderNoteMs = Long.MIN_VALUE
+    private var leaderTimeoutsSinceNote = 0
+
+    /** What the decoder is actually being fed; one line per 30 s of audio. */
+    private val inputLevel = InputLevelSummary(sampleRate)
+
+    /** Operator mode lock (null = automatic VIS selection). */
+    @Volatile
+    private var modeLock: SstvMode? = null
+
+    /** Start the decode thread; safe to call once at app start. */
+    fun start() {
+        if (!running.compareAndSet(false, true)) return
+        decodeThread = Thread({ decodeLoop() }, "SstvDecode").apply {
+            isDaemon = true
+            start()
+        }
+    }
+
+    /** Stop the decode thread; the thread closes the session on its way out. */
+    fun stop() {
+        if (!running.compareAndSet(true, false)) return
+        detachFromRecorder()
+        val thread = decodeThread
+        decodeThread = null
+        queue.clear()
+        var joined = true
+        if (thread != null) {
+            thread.interrupt()
+            // Bounded join before touching the digital engine: the interrupt
+            // only wakes queue.poll — an in-flight COFDM decode attempt runs
+            // to completion, and the engine is not thread-safe.
+            try {
+                thread.join(STOP_JOIN_MS)
+            } catch (ie: InterruptedException) {
+                Thread.currentThread().interrupt()
+            }
+            joined = !thread.isAlive
+        }
+        if (joined) {
+            // Thread is gone; safe to reset the digital detector so a later
+            // start() hunts from a clean slate.
+            digitalEngine.reset()
+        } else {
+            // Pathological: a decode attempt outlived the join budget. The
+            // stepOnce running-gate stops it from pushing further; leave the
+            // engine untouched rather than race it.
+            log("SSTV RX: decode thread still busy at stop; digital reset skipped")
+        }
+        // Direct-driven (test) mode has no thread to do the teardown.
+        synchronized(sessionLock) {
+            if (decodeThreadless) {
+                session?.close()
+                session = null
+                decodeThreadless = false
+            }
+        }
+    }
+
+    /**
+     * Register the persistent audio tap: a looping voice-data monitor that
+     * forwards every [MONITOR_BUFFER_MS] chunk into the decode queue.
+     * Idempotent — re-attaching first removes the previous tap, so two
+     * monitors can never double-feed the queue.
+     */
+    fun attachToRecorder(recorder: HamRecorder) {
+        if (!recorder.isRunning) {
+            log("SSTV RX: recorder not running; audio tap NOT attached")
+            return
+        }
+        detachFromRecorder()
+        val monitor = recorder.getVoiceData(MONITOR_BUFFER_MS, false) { data ->
+            onAudioBuffer(data, data.size)
+        }
+        if (monitor == null) {
+            // Recorder stopped between the check above and registration.
+            log("SSTV RX: recorder stopped during attach; audio tap NOT attached")
+            return
+        }
+        tapRecorder = recorder
+        tapMonitor = monitor
+    }
+
+    /** Remove the audio tap from the recorder fan-out; no-op when detached. */
+    fun detachFromRecorder() {
+        val monitor = tapMonitor ?: return
+        tapRecorder?.deleteVoiceDataMonitor(monitor)
+        tapMonitor = null
+        tapRecorder = null
+    }
+
+    /**
+     * Feed one capture buffer (called on the recorder thread). Copies the
+     * data (the recorder reuses its buffer) and enqueues it; on overflow the
+     * oldest queued buffer is dropped and the drop is (rate-limited) logged.
+     */
+    fun onAudioBuffer(data: FloatArray, length: Int) {
+        if (!enabled.get() || !running.get()) return
+        val len = length.coerceAtMost(data.size)
+        if (len <= 0) return
+        val copy = data.copyOf(len)
+        if (!queue.offer(copy)) {
+            queue.poll() // drop-oldest: fresh audio wins while hunting
+            val total = dropped.incrementAndGet()
+            if (total == 1L || total % DROP_LOG_EVERY == 0L) {
+                log("SSTV RX: audio queue overflow, dropped=$total buffers (decode thread lagging)")
+            }
+            queue.offer(copy)
+        }
+    }
+
+    /** Enable/disable RX processing (default ON). Disabling clears the queue. */
+    fun setEnabled(on: Boolean) {
+        if (enabled.getAndSet(on) != on) {
+            log("SSTV RX: listener ${if (on) "enabled" else "disabled"}")
+        }
+        if (!on) queue.clear()
+    }
+
+    fun isEnabled(): Boolean = enabled.get()
+
+    /**
+     * Operator mode lock: with a non-null [mode] the decoder ignores the VIS
+     * payload and decodes every detected calibration header as [mode]; null
+     * restores automatic VIS selection. Applied to the live session at once
+     * and to any session created later; the codec keeps it across the
+     * between-frames reset.
+     */
+    fun setModeLock(mode: SstvMode?) {
+        if (modeLock == mode) return
+        modeLock = mode
+        log("SSTV RX: mode lock ${mode?.displayName ?: "off (auto VIS)"}")
+        synchronized(sessionLock) { session?.setForcedMode(mode) }
+    }
+
+    fun modeLock(): SstvMode? = modeLock
+
+    /**
+     * Read decoded rows straight from the live session (for the future RX
+     * screen's incremental image paint). Returns rows copied, 0 when no
+     * session/mode is active.
+     */
+    fun readNewRows(firstRow: Int, nRows: Int, out: IntArray): Int =
+        synchronized(sessionLock) { session?.readRows(firstRow, nRows, out) ?: 0 }
+
+    // ------------------------------------------------------------------
+    // Decode thread
+    // ------------------------------------------------------------------
+
+    private fun decodeLoop() {
+        val s = try {
+            codec.newDecoderSession(sampleRate)
+        } catch (t: Throwable) {
+            // No native lib (JVM tests / unsupported ABI): shut down cleanly
+            // rather than crash-looping — the app runs fine without RX.
+            log(
+                "SSTV RX: decoder unavailable" +
+                    " (${t.javaClass.simpleName}: ${t.message}); listener stopped",
+            )
+            running.set(false)
+            return
+        }
+        synchronized(sessionLock) {
+            session = s
+            modeLock?.let { s.setForcedMode(it) }
+        }
+        log("SSTV RX: hunting (rate=$sampleRate Hz)")
+        try {
+            while (running.get()) {
+                try {
+                    stepOnce(POLL_WAIT_MS)
+                } catch (ie: InterruptedException) {
+                    // stop() interrupts; the loop condition decides.
+                } catch (t: Throwable) {
+                    log("SSTV RX: decode step failed: $t")
+                }
+            }
+        } finally {
+            synchronized(sessionLock) {
+                session = null
+            }
+            s.close()
+        }
+    }
+
+    /**
+     * One decode-loop iteration: wait up to [waitMs] for audio, drain
+     * everything queued into the session, then poll and publish status.
+     * Package-internal so tests can drive the loop synchronously.
+     */
+    internal fun stepOnce(waitMs: Long) {
+        val first =
+            if (waitMs > 0) queue.poll(waitMs, TimeUnit.MILLISECONDS) else queue.poll()
+        // Drain to a local list first: the analog session push happens under
+        // sessionLock, but the digital detector (which can spend hundreds of
+        // milliseconds on a decode attempt) must run OUTSIDE it so the UI's
+        // readNewRows never waits on a COFDM demod.
+        val drained = ArrayList<FloatArray>(4)
+        if (first != null) drained.add(first)
+        while (true) {
+            drained.add(queue.poll() ?: break)
+        }
+        for (buf in drained) inputLevel.add(buf, buf.size)
+        inputLevel.summaryIfDue()?.let { log("SSTV RX: input level — $it") }
+        synchronized(sessionLock) {
+            val s = session ?: return
+            for (buf in drained) {
+                s.push(buf, buf.size)
+            }
+            for (event in s.drainEvents()) onDecodeEvent(event)
+            publishFromSession(s)
+        }
+        for (buf in drained) {
+            // The running gate pairs with stop()'s bounded join: once stop()
+            // begins, this thread must not keep driving the shared engine.
+            if (!running.get()) return
+            digitalEngine.push(buf, buf.size)?.let { result ->
+                // Direct handoff first: postValue coalesces when the main
+                // looper is busy, so the durable per-frame delivery for the
+                // save controller is this callback (invoked on the decode
+                // thread); the LiveData stays for UI observation.
+                onDigitalImage?.invoke(result)
+                mutableDigitalResult.postValue(result)
+            }
+        }
+    }
+
+    /**
+     * Log what the header hunt decided. Every verdict that is not a lock
+     * gets a line — this is the information that was missing from a field
+     * log where an audible transmission left no trace at all. Leader
+     * timeouts are the one verdict noise can produce on its own, so they
+     * are collapsed to one line per [LEADER_NOTE_INTERVAL_MS] of audio.
+     */
+    private fun onDecodeEvent(event: DecodeEvent) {
+        val offset = formatOffset(event.tuningOffsetHz)
+        when (event.type) {
+            DecodeEventType.LEADER_TIMEOUT -> {
+                leaderTimeoutsSinceNote++
+                val due = lastLeaderNoteMs == Long.MIN_VALUE ||
+                    event.audioTimeMs - lastLeaderNoteMs >= LEADER_NOTE_INTERVAL_MS
+                if (due) {
+                    val extra =
+                        if (leaderTimeoutsSinceNote > 1) " (x$leaderTimeoutsSinceNote)" else ""
+                    log(
+                        "SSTV RX: header: 1900 Hz leader heard ($offset)" +
+                            " but no VIS start bit followed$extra",
+                    )
+                    lastLeaderNoteMs = event.audioTimeMs
+                    leaderTimeoutsSinceNote = 0
+                }
+            }
+
+            DecodeEventType.VIS_REJECTED -> {
+                val reason = event.rejectReason
+                val code = if (event.visCode >= 0) event.visCode.toString() else "?"
+                if (reason == VisRejectReason.UNKNOWN_MODE) {
+                    log(
+                        "SSTV RX: unsupported mode — clean VIS code ${event.visCode}" +
+                            " heard ($offset) but no decoder for it",
+                    )
+                    setState(SstvRxState.UnsupportedMode(event.visCode))
+                    holdTerminalState = true
+                } else {
+                    log(
+                        "SSTV RX: header rejected — ${reason?.label ?: "reason ${event.arg}"}" +
+                            " (vis=$code, $offset)",
+                    )
+                }
+            }
+
+            DecodeEventType.VIS_ACCEPTED, DecodeEventType.SYNC_LOCK ->
+                lockOffsetHz = event.tuningOffsetHz
+        }
+    }
+
+    private fun publishFromSession(s: DecoderSession) {
+        when (s.status()) {
+            DecodeStatus.IDLE ->
+                if (!holdTerminalState) setState(SstvRxState.Idle)
+
+            DecodeStatus.LEADER, DecodeStatus.VIS -> {
+                // An unsupported-mode verdict outlives leader candidates: the
+                // hunt resumes through the rest of that very transmission,
+                // whose mid-gray picture content satisfies the leader gate
+                // again and again. Publishing "signal detected" for each of
+                // those (and Idle when they time out) would erase the one
+                // thing the operator needs to read. Only a lock (IMAGE) or a
+                // terminal state replaces it; a genuinely new transmission
+                // locks within a second of its header anyway.
+                if (currentState !is SstvRxState.UnsupportedMode) {
+                    holdTerminalState = false
+                    setState(SstvRxState.Leader)
+                }
+            }
+
+            DecodeStatus.IMAGE -> {
+                holdTerminalState = false
+                val mode = s.mode() ?: return
+                if (!visLockLogged) {
+                    visLockLogged = true
+                    // A sync lock means no readable VIS: the transmission was
+                    // joined mid-image or its header was garbled, so rows
+                    // start at the top of the frame wherever the image was.
+                    val how = if (s.visLocked()) "VIS lock" else "sync lock (no VIS heard)"
+                    val offset = lockOffsetHz?.let { ", ${formatOffset(it)}" } ?: ""
+                    log(
+                        "SSTV RX: $how — mode=${mode.displayName}" +
+                            " (vis=${mode.visCode}, ${mode.width}x${mode.height}$offset)",
+                    )
+                }
+                setState(
+                    SstvRxState.Decoding(
+                        mode, s.rowsReady(), mode.totalRows, s.quality(), s.slantPpm(),
+                    ),
+                )
+            }
+
+            DecodeStatus.DONE -> finishDecode(s, complete = true)
+            DecodeStatus.ABORTED -> finishDecode(s, complete = false)
+        }
+    }
+
+    /**
+     * Terminal handling: snapshot the frame into [LastDecodedImage], publish
+     * Complete/Aborted, THEN reset the decoder back to hunting. Reset last —
+     * every read (rows, quality, slant, mode) must happen before it.
+     */
+    private fun finishDecode(s: DecoderSession, complete: Boolean) {
+        val mode = s.mode()
+        val rows = s.rowsReady()
+        val quality = s.quality()
+        val slant = s.slantPpm()
+
+        var frameCaptured = false
+        if (mode != null && rows > 0) {
+            val pixels = IntArray(mode.width * mode.height)
+            val copied = s.readRows(0, rows, pixels)
+            if (copied > 0) {
+                LastDecodedImage.frame = LastDecodedImage.Frame(
+                    pixels = pixels,
+                    width = mode.width,
+                    height = mode.height,
+                    mode = mode,
+                    rowsDecoded = copied,
+                    quality = quality,
+                    slantPpm = slant,
+                    utcMillis = clock(),
+                    dialFrequencyHz = dialFrequency(),
+                    complete = complete,
+                )
+                frameCaptured = true
+            }
+        }
+
+        if (complete && mode != null) {
+            log(
+                "SSTV RX: image complete — mode=${mode.displayName}" +
+                    " rows=$rows quality=$quality slant=${slant}ppm",
+            )
+            setState(SstvRxState.Complete(mode, quality, frameCaptured))
+        } else {
+            log("SSTV RX: decode aborted — mode=${mode?.displayName} partialRows=$rows")
+            setState(SstvRxState.Aborted(rows, mode))
+        }
+
+        s.reset()
+        holdTerminalState = true
+        visLockLogged = false
+        lockOffsetHz = null
+    }
+
+    private fun setState(next: SstvRxState) {
+        if (next == currentState) return
+        currentState = next
+        mutableRxState.postValue(next)
+    }
+
+    // ------------------------------------------------------------------
+    // Test hooks (JVM tests drive the loop synchronously — no decode thread)
+    // ------------------------------------------------------------------
+
+    private var decodeThreadless = false
+
+    /** Test-only start: create the session on the caller thread, no thread. */
+    internal fun startDirect() {
+        check(running.compareAndSet(false, true)) { "already running" }
+        decodeThreadless = true
+        synchronized(sessionLock) {
+            session = codec.newDecoderSession(sampleRate).also { s ->
+                modeLock?.let { s.setForcedMode(it) }
+            }
+        }
+    }
+
+    internal fun stateNow(): SstvRxState = currentState
+
+    internal fun droppedBufferCount(): Long = dropped.get()
+
+    internal fun queuedBufferCount(): Int = queue.size
+
+    companion object {
+        /** The recorder chain is fixed 12 kHz mono float (HamRecorder). */
+        const val SAMPLE_RATE_HZ = 12000
+
+        /** Looping voice-monitor chunk size, ms (~2400 samples at 12 kHz). */
+        internal const val MONITOR_BUFFER_MS = 200
+
+        /** ~13 s of audio headroom before drops start. */
+        internal const val QUEUE_CAPACITY = 64
+
+        /** Decode-thread wait per iteration → status polled ~4-5x/sec. */
+        internal const val POLL_WAIT_MS = 250L
+
+        /** Rate limit for the overflow log line. */
+        internal const val DROP_LOG_EVERY = 50L
+
+        /** Bound on waiting for the decode thread during stop(). */
+        internal const val STOP_JOIN_MS = 2000L
+
+        /** Leader-without-start-bit notes are collapsed to one per this much audio. */
+        internal const val LEADER_NOTE_INTERVAL_MS = 10_000L
+
+        /** `offset +12 Hz` — how far the leader sat from 1900 Hz. */
+        internal fun formatOffset(hz: Int): String = "offset ${if (hz >= 0) "+" else ""}$hz Hz"
+    }
+}

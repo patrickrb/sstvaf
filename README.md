@@ -27,8 +27,9 @@ Android phone or tablet.
 - **Pre-transmit confirmation** with mode and duration, plus a live progress
   bar while the image is on the air
 
-### Nine SSTV modes
-Scottie 1 / 2 · Martin 1 / 2 · Robot 36 / 72 · PD 50 / 90 / 120
+### Sixteen SSTV modes
+Scottie 1 / 2 / DX · Martin 1 / 2 / 3 / 4 · Robot 36 / 72 ·
+PD 50 / 90 / 120 / 160 / 180 / 240 / 290
 
 ### Radio control
 - USB CAT control for the same rig set as FT8AF (Icom, Yaesu, Kenwood,
@@ -46,31 +47,53 @@ Scottie 1 / 2 · Martin 1 / 2 · Robot 36 / 72 · PD 50 / 90 / 120
 ## Install
 
 Grab the latest APK from the Releases page, or build it yourself (the Android
-module still lives in the `ft8af/` directory — the heritage name is kept so
-history and tooling stay intact):
+Gradle project lives in the `sstvaf/` directory):
 
 ```bash
-cd ft8af
+cd sstvaf
 ./gradlew installDebug
 ```
 
-Windows: `cd ft8af && gradlew.bat installDebug`. Builds need JDK 17
+Windows: `cd sstvaf && gradlew.bat installDebug`. Builds need JDK 17
 (AGP 8.7.3 / Gradle 8.9).
+
+## Development and automated tests
+
+For a fresh Amp orb (Linux x86_64), run `./.agents/setup` from the repository
+root. It installs the JDK, Android SDK/NDK/CMake, desktop prerequisites, and
+host-test tools without requiring a phone or credentials. Then use a new
+Bash login shell:
+
+```bash
+bash -lc 'bash sstvaf/app/src/main/cpp/sstvaf_glue/run_sstv_host_tests.sh'
+bash -lc 'sstvaf/gradlew -p sstvaf --no-daemon --max-workers=2 testDebugUnitTest'
+bash -lc 'sstvaf/gradlew -p sstvaf --no-daemon --max-workers=2 assembleDebug'
+```
+
+See [the development guide](docs/development.md) for prerequisites on other
+hosts, targeted tests, reports, and troubleshooting. [AGENTS.md](AGENTS.md)
+is the canonical coding-agent guidance. Android device/UI and radio testing
+require a connected device or an emulator-capable host, not an Amp orb.
 
 ---
 
 ## Native code
 
-The SSTV codec in `ft8af/app/src/main/cpp/sstv_lib/` is a **clean-room
+The SSTV codec in `sstvaf/app/src/main/cpp/sstv_lib/` is a **clean-room
 implementation** written for this project from published mode specifications
 (timing tables, tone frequencies, VIS codes) — no GPL SSTV source was
 consulted. See
-[`ft8af/app/src/main/cpp/sstv_lib/SOURCES.md`](ft8af/app/src/main/cpp/sstv_lib/SOURCES.md)
+[`sstvaf/app/src/main/cpp/sstv_lib/SOURCES.md`](sstvaf/app/src/main/cpp/sstv_lib/SOURCES.md)
 for the exact specification sources. The codec and its JNI glue
 (`cpp/sstvaf_glue/`) are built from source by the NDK/CMake toolchain into
 `libsstvaf.so`, so a fresh clone builds with no manual steps. Host-side C
 tests (golden waveform vectors, VIS detection, encode→decode round trips,
 slant correction) run in CI on every PR.
+
+Because the codec is plain, Android-free C11, it also builds as a small desktop
+command-line tool. See [`desktop/`](desktop/README.md) for `sstvaf encode` /
+`sstvaf decode` and a **cross-compiled 32-bit Windows MSI** (built from Linux
+with the i686 MinGW toolchain + `wixl`).
 
 ---
 
