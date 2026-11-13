@@ -98,16 +98,29 @@ a PR.
 open a pull request against `dev` (do the work on a feature branch, then
 `gh pr create --base dev`). Don't merge straight to `main`.
 
-**Promotion path: feature → `dev` → `staging` → `main`** (details in
-`docs/release-pipeline.md`). Merging `dev → staging` cuts an `android-dev.<run#>`
-prerelease on the Play **internal** track; Claude picks the semver bump from the
-PRs, commits and diff size since the last `android-v*` tag and writes the Play
-release notes (`android.yml`, needs the `ANTHROPIC_API_KEY` secret — without it
-the run falls back to a patch bump and PR titles). Merging `staging → main`
-ships that same version + notes as `android-v<x.y.z>` on the **production**
-track. A promotion that touches nothing under `sstvaf/` builds but cuts no
-release. The source gates (`staging-gate.yml`, `main-gate.yml`) reject PRs into
-`staging`/`main` from anywhere else.
+**Promotion path: feature → `dev` → `main`** (details in
+`docs/release-pipeline.md`; the `staging` branch is retired). Merging
+`dev → main` is the release: it cuts an `android-dev.<run#>` prerelease and
+publishes it to the Play **internal** track, rolled out to internal testers;
+Claude picks the semver bump from the PRs, commits and diff size since the last
+`android-v*` tag and writes the Play release notes (`android.yml`, needs the
+`ANTHROPIC_API_KEY` secret — without it the run falls back to a patch bump and
+PR titles). A release that touches nothing under `sstvaf/` builds but cuts no
+Android release. `main-gate.yml` rejects PRs into `main` from anywhere but
+`dev`. **No branch push reaches production:** Patrick tests the internal build
+on his phone and promotes it in Play Console (or pushes an `android-v*` /
+`desktop-v*` tag). Agents never do either.
+
+**The software factory.** Specs go in as GitHub issues labelled
+`factory:ready`; the loop in `.claude/skills/sstvaf-factory/SKILL.md` builds
+each one in its own worktree, proves it with tests and emulator evidence, gets
+one Copilot review, merges it into `dev` once `pr-gate` is green, and releases
+dev → main to the Play internal track (`.claude/skills/sstvaf-release/`).
+Patrick has given that loop standing authority (2026-11-13) for those merges;
+an interactive agent still opens its PR against `dev` and stops. Each
+user-facing feature that reaches production is announced on the sstvaf.app
+blog and SSTVAF's social accounts (`.claude/skills/feature-announce/`).
+How to run the loop: `scripts/factory/README.md`.
 
 **Use a git worktree for every separate line of work.** Don't switch branches in
 your primary checkout — branch-switching there collides with anything else in
