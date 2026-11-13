@@ -73,11 +73,10 @@ new Java module; core test execution is verified but core coverage is not
 reported. The canonical module is unchanged.
 
 Delivery is **internal testing only**. Feature PRs and `dev` are build-only;
-`staging` creates signed prereleases and Play internal drafts using repository
-signing and Play service-account secrets. `main` and `android-v*` tags publish
-to production and must not be used until the user has tested all five apps
-and subsequently explicitly approved production. No production automation or
-safeguards are changed here.
+`main` (since staging was retired, 2026-11-13) creates signed prereleases on
+the Play internal track using repository signing and Play service-account
+secrets. Only an `android-v*` tag, or Patrick's promotion in Play Console,
+reaches production. No production automation or safeguards are changed here.
 
 Without authorized signing/Play credentials, distribute a debug-signed APK
 instead. Its package is `radio.ks3ckc.sstvaf`, the same as the Play app: a

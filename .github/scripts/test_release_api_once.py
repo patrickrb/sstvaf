@@ -22,7 +22,7 @@ def step(name):
 def enabled(expression, **values):
     # These guards use only string contexts, comparisons, parentheses and AND/OR.
     contexts = {
-        "steps.lane.outputs.lane": values.get("lane", "dev"),
+        "steps.lane.outputs.lane": values.get("lane", "internal"),
         "github.run_attempt": values.get("attempt", "1"),
         "steps.changes.outputs.android_changed": values.get("changed", "true"),
         "steps.candidate.outputs.found": values.get("found", ""),
@@ -56,7 +56,8 @@ class ReleaseApiOnceTest(unittest.TestCase):
     def test_paid_call_only_first_internal_attempt(self):
         guard = step("ai")["if"]
         self.assertTrue(enabled(guard))
-        for values in ({"lane": "production"}, {"lane": "tag"}, {"lane": "none"},
+        # "production" and "dev" are the retired staging-era lane names.
+        for values in ({"lane": "production"}, {"lane": "dev"}, {"lane": "tag"}, {"lane": "none"},
                        {"attempt": "2"}, {"attempt": "10"}, {"changed": "false"},
                        {"found": "true"}):
             with self.subTest(values=values):
@@ -89,30 +90,28 @@ class ReleaseApiOnceTest(unittest.TestCase):
                     self.assertIn("bump=patch\n", result["outputs"])
                     self.assertEqual(result["notes.txt"], "Restart microphone\n")
 
-    def test_saved_notes_reused_for_retry_and_promotion(self):
+    def test_saved_notes_reused_only_for_this_runs_retry(self):
         body = "<!-- sstvaf-version: 2.7.4 -->\n<!-- sstvaf-notes-start -->\nFix first-launch RX.\n<!-- sstvaf-notes-end -->"
-        for lane, attempt, tags, expected in (
-            ("dev", "2", "android-dev.999\n", "android-dev.300"),
-            ("production", "1", "android-dev.299\n", "android-dev.299"),
-        ):
-            with self.subTest(lane=lane):
-                self.assertTrue(enabled(step("candidate")["if"], lane=lane, attempt=attempt))
-                result = self.run_step(step("candidate"), LANE=lane, BODY=body, TAGS=tags)
-                self.assertIn(f"tag={expected}\n", result["outputs"])
-                self.assertIn("version=2.7.4\n", result["outputs"])
-                self.assertEqual(result["notes.txt"], "Fix first-launch RX.\n")
-                self.assertIn(f"release view {expected} ", result["gh-call"])
+        guard = step("candidate")["if"]
+        self.assertTrue(enabled(guard, lane="internal", attempt="2"))
+        for values in ({"attempt": "1"}, {"lane": "tag"}, {"lane": "none"},
+                       {"lane": "production"}, {"changed": "false"}):
+            with self.subTest(values=values):
+                self.assertFalse(enabled(guard, **dict({"attempt": "2"}, **values)))
+        # An older unrelated internal release is never borrowed: only this run's.
+        result = self.run_step(step("candidate"), LANE="internal", BODY=body, TAGS="android-dev.299\n")
+        self.assertIn("tag=android-dev.300\n", result["outputs"])
+        self.assertIn("version=2.7.4\n", result["outputs"])
+        self.assertEqual(result["notes.txt"], "Fix first-launch RX.\n")
+        self.assertIn("release view android-dev.300 ", result["gh-call"])
 
     def test_missing_saved_release_uses_deterministic_notes(self):
         fallback = step("Use deterministic notes without another API call")
-        for lane, tags in (("dev", ""), ("production", ""),
-                           ("production", "android-dev.299\n")):
-            with self.subTest(lane=lane, tags=tags):
-                result = self.run_step(step("candidate"), LANE=lane, TAGS=tags)
-                self.assertIn("found=false\n", result["outputs"])
-                self.assertTrue(enabled(fallback["if"], lane=lane, attempt="2", found="false"))
+        result = self.run_step(step("candidate"), LANE="internal", TAGS="")
+        self.assertIn("found=false\n", result["outputs"])
+        self.assertTrue(enabled(fallback["if"], lane="internal", attempt="2", found="false"))
         for values in ({"found": "true"}, {"bump": "minor"}, {"lane": "tag"},
-                       {"lane": "none"}, {"changed": "false"}):
+                       {"lane": "none"}, {"lane": "production"}, {"changed": "false"}):
             self.assertFalse(enabled(fallback["if"], **values))
         result = self.run_step(fallback, PR_LIST="- #125 fix/mic: Restart microphone\n- #132 feat/favorites: Save frequencies")
         self.assertEqual(result["notes.txt"], "Restart microphone\nSave frequencies\n")
@@ -121,18 +120,39 @@ class ReleaseApiOnceTest(unittest.TestCase):
     def test_fallback_version_and_release_lane_remain_deterministic(self):
         selected = step("tag")
         self.assertEqual(selected["env"]["BUMP"], "${{ steps.ai.outputs.bump || 'patch' }}")
-        for lane, version, track, status in (
-            ("dev", "1.2.4-dev.300", "internal", "draft"),
-            ("production", "1.2.4", "production", "completed"),
-        ):
+        common = dict(ANDROID_CHANGED="true", PREV_VERSION="1.2.3", CAND_FOUND="false",
+                      CAND_TAG="", CAND_VERSION="", BUMP="patch", BUMP_SOURCE="deterministic fallback")
+        # main's internal lane: a run-numbered prerelease rolled out to testers.
+        result = self.run_step(selected, LANE="internal", **common)
+        self.assertIn("release_tag=android-dev.300\n", result["outputs"])
+        self.assertIn("version_name=1.2.4-dev.300\n", result["outputs"])
+        self.assertIn("is_prerelease=true\n", result["outputs"])
+        self.assertIn("play_track=internal\n", result["outputs"])
+        self.assertIn("play_status=completed\n", result["outputs"])
+        # The retired staging-era lanes cut nothing, and nothing but a pushed
+        # android-v* tag selects production.
+        for lane in ("production", "dev", "none"):
             with self.subTest(lane=lane):
-                result = self.run_step(selected, LANE=lane, ANDROID_CHANGED="true",
-                                       PREV_VERSION="1.2.3", CAND_FOUND="false",
-                                       CAND_TAG="", CAND_VERSION="", BUMP="patch",
-                                       BUMP_SOURCE="deterministic fallback")
-                self.assertIn(f"version_name={version}\n", result["outputs"])
-                self.assertIn(f"play_track={track}\n", result["outputs"])
-                self.assertIn(f"play_status={status}\n", result["outputs"])
+                result = self.run_step(selected, LANE=lane, **common)
+                self.assertIn("should_release=false\n", result["outputs"])
+                self.assertIn("play_track=\n", result["outputs"])
+
+    def test_branch_pushes_never_select_production(self):
+        lane_step = step("lane")
+        for event, ref, expected in (
+            ("push", "refs/heads/main", "internal"),
+            ("push", "refs/heads/staging", "none"),
+            ("push", "refs/heads/dev", "none"),
+            ("pull_request", "refs/pull/12/merge", "none"),
+            ("pull_request", "refs/heads/main", "none"),
+            ("push", "refs/tags/android-v2.7.1", "tag"),
+        ):
+            with self.subTest(event=event, ref=ref):
+                result = self.run_step(lane_step, GITHUB_EVENT_NAME=event, GITHUB_REF=ref)
+                self.assertIn(f"lane={expected}\n", result["outputs"])
+        readback = step("internal_readback")
+        self.assertIn("refs/heads/main", readback["if"])
+        self.assertIn("--expected-track-status completed", readback["run"])
 
 
 if __name__ == "__main__":
