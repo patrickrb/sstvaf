@@ -442,8 +442,15 @@ jobs:
           # native core under sstvaf/app/src/main/cpp) and ham-radio-core/.
           # Desktop, docs and CI don't count as Android release changes.
           ANDROID_FILES=$(printf '%s\n' "$ALL" | grep -E '^(sstvaf|ham-radio-core)/' || true)
-          if [[ -z "$ANDROID_FILES" ]]; then
-            echo "::notice::Nothing under sstvaf/ or ham-radio-core/ changed since ${PREV_TAG:-the baseline} — building only, not cutting a release."
+          # Whether a NEW build is needed is judged against the last internal
+          # release main already shipped (production is promoted in Console,
+          # so the production tag stops advancing); the semver range and notes
+          # above still start at the production tag.
+          BUILD_BASE=$(bash .github/scripts/android-build-base.sh "${PREV_TAG:-${BASE:-HEAD}}" "$GITHUB_RUN_NUMBER")
+          NEW_ANDROID_FILES=$(git diff --name-only "$BUILD_BASE..HEAD" | grep -E '^(sstvaf|ham-radio-core)/' || true)
+          echo "Android build base: $BUILD_BASE"
+          if [[ -z "$NEW_ANDROID_FILES" ]]; then
+            echo "::notice::Nothing under sstvaf/ or ham-radio-core/ changed since $BUILD_BASE — building only, not cutting a release."
             android_changed=false
           else
             android_changed=true
