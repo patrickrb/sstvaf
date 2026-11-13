@@ -116,8 +116,12 @@ before any social post links to it:
 
 ```bash
 gh pr merge <n> -R patrickrb/sstvaf-site --merge
-curl -s -o /dev/null -w "%{http_code}\n" https://sstvaf.app/blog/<slug>
+curl -s -o /dev/null -w "%{http_code}\n" https://www.sstvaf.app/blog/<slug>
 ```
+
+Link social posts to **`https://www.sstvaf.app/blog/<slug>`**: the bare
+`sstvaf.app` answers with a 308 redirect to `www`, and some link-preview
+crawlers don't follow it (no card, or a card for the wrong page).
 
 ## 3. Social posts, one set per post
 
