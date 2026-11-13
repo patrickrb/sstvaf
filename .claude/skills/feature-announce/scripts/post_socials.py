@@ -1,4 +1,4 @@
-"""Publish one SSTVAF announcement to SSTVAF's accounts through each network's HTTP API.
+"""Publish one SSTVAF announcement to the shared AF-family (FT8AF) accounts through each network's HTTP API.
 
 Ported from the Sorrel skill's post_socials.py (~/.claude/skills/release-social-posts),
 with one hard difference: credentials come ONLY from SSTVAF's own env file, never from the
@@ -362,7 +362,7 @@ def x(post, dry, warn):
     tid = (res.get("data") or {}).get("id")
     if not tid:
         raise PostError("no tweet id: %s" % res)
-    return "https://x.com/SSTVAF/status/%s" % tid
+    return "https://x.com/FT8AF/status/%s" % tid
 
 
 # --------------------------------------------------------------------------- bluesky

@@ -116,7 +116,7 @@ class PosterTest(unittest.TestCase):
              FakeResponse(200, {"id": "5"})])
         self.assertEqual(code, 0, out)
         self.assertIn("https://www.facebook.com/42_7", out)
-        self.assertIn("https://x.com/SSTVAF/status/99", out)
+        self.assertIn("https://x.com/FT8AF/status/99", out)
         self.assertEqual([c[0] for c in calls], ["POST"] * 3)
         self.assertTrue(calls[1][2]["headers"]["Authorization"].startswith("OAuth "))
         self.assertIn("wait=true", calls[2][1])

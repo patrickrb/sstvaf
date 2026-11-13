@@ -116,14 +116,18 @@ curl -s -o /dev/null -w "%{http_code}\n" https://sstvaf.app/blog/<slug>
 
 ## 3. Social posts, one set per post
 
-SSTVAF's accounts (from the site footer):
+SSTVAF has no social accounts of its own: the sstvaf.app footer links the
+**shared AF-family accounts**, which are FT8AF's. So every post goes out from
+those accounts and must name SSTVAF in its first line ("New in SSTVAF …"),
+since followers mostly know the account as FT8AF. Shared accounts (2026-11-13):
 
 | Network | Account | Notes |
 |---|---|---|
 | Facebook | https://www.facebook.com/profile.php?id=61590478809227 | link post; the card comes from the post's og:image |
-| X | https://x.com/SSTVAF | 280 (a link counts 23); `#FT8 #hamradio` at most |
+| X | https://x.com/FT8AF | 280 (a link counts 23); `#SSTV #hamradio` at most |
 | Discord | https://discord.gg/tz4spm5nWB | announcements channel via webhook; plain text + link |
-| Bluesky / Threads | only if credentials exist | same text as X, room for one more detail |
+| LinkedIn | https://www.linkedin.com/company/ft8af | no API poster; skip unless Patrick asks |
+| Bluesky / Threads | none exist yet | skip |
 
 Copy shapes (same two or three facts everywhere; count before posting):
 - **Facebook:** a one-line lead with what's new, two or three sentences on
