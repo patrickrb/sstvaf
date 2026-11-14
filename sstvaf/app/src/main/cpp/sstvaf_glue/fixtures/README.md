@@ -20,6 +20,8 @@ clip below guards something that was first seen to break on a recording.
 | `robot36_hot_yt.wav` | Robot 36 | Peaks at 96 % through a limiter (near clipping). |
 | `robot36_glitch_14230_yt.wav` | Robot 36 | Sender dropped ~15 ms of audio 0.4 s into the image; every later sync is off-grid. Needs sync re-acquisition — without it the image shears and the chroma pairing inverts while the decoder still reports "complete". |
 | `scottie2_midimage_20m_yt.wav` | Scottie 2 | Weak, fading 20 m signal recorded from mid-image: no VIS in the clip. Needs the header-less sync-train lock (and noise-gap bridging in the pulse detector). |
+| `martin1_noisy_20m_yt.wav` | Martin 1 | Noisy 20 m signal, VIS readable. Noise chops Martin's 4.9 ms sync, so line by line a noise run in the picture often looks more sync-like than the real pulse; the few the young fit accepted bent it to a 5131 ppm "slant" and sheared the picture. Needs the multi-line comb seed. Clip ends mid-image (~71 rows). |
+| `martin1_weak_vis_20m_yt.wav` | Martin 1 | Weak 20 m signal under QRM. The VIS data cells are readable but the start bit reads ~130 Hz high, so the leader-to-start-bit scale failed and the header was rejected; the decoder only found the picture from the sync train ~28 s later. Needs the VIS data-cell calibration. Clip ends mid-image (~71 rows). |
 
 ## Provenance
 
@@ -33,6 +35,8 @@ are included solely as engineering test data for this decoder:
 - `robot36_hot_yt.wav` — "Portal 2 SSTV Image" (`Oano8dIeksk`), 0.5–40 s
 - `robot36_glitch_14230_yt.wav` — "Transmitting analog SSTV image on 14.230 MHz" (`uuJ25HmXiL8`), 1–40.5 s
 - `scottie2_midimage_20m_yt.wav` — "Amateur radio Slow Scan TV received on 20 meters." (`MH44mv_QkG4`), 12–40 s
+- `martin1_noisy_20m_yt.wav` — "SSTV Image Received on 14.230 MHz USB by G4KJS in Whitstable UK on 2026-07-03 11:10Z. Martin 1" (`LPjotkydz4E`), 38–72 s, added 2026-11-13
+- `martin1_weak_vis_20m_yt.wav` — "SSTV Image Received on 14.23 MHz USB by AG5RT in Austin Texas USA on 2026-10-24 15:25Z. Martin 1" (`wVz9yGRNzKg`), 36.5–70 s, added 2026-11-13
 
 If a rights holder objects to a clip being here, replace it with an own
 recording of the same failure class and update the table.

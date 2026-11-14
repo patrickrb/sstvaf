@@ -125,6 +125,12 @@ float  sstv_decoder_quality(const sstv_decoder_t* d);
 // the frame). 0 before any lock.
 int    sstv_decoder_vis_locked(const sstv_decoder_t* d);
 
+// Lowest image row the decoder has rewritten since the last call (a better
+// sync fit re-decoded frames whose rows were already readable — the young-fit
+// refinement, a phase re-anchor, the comb seed), or -1 if none; the call
+// clears it. A caller that copies rows incrementally re-reads from there.
+int    sstv_decoder_take_rewritten_row(sstv_decoder_t* d);
+
 // Manual mode lock. With a forced mode set (SSTV_MODE_*), the decoder still
 // hunts for the calibration header (leader + VIS start bit) — that anchors
 // line timing and frequency calibration — but ignores the VIS data, parity

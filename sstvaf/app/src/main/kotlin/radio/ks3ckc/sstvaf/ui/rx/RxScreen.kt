@@ -124,6 +124,9 @@ fun RxScreen(
                     liveAspect = s.mode.width.toFloat() / s.mode.height
                     liveImage = assembler.snapshotBitmap()?.asImageBitmap()
                 }
+                // Rows the decoder re-decoded under a better sync fit are
+                // read again rather than left as first painted.
+                appliedRows = rxRowsResumeFrom(appliedRows, listener.takeRewrittenRow())
                 if (s.rowsReady > appliedRows) {
                     val n = s.rowsReady - appliedRows
                     val buf = IntArray(n * s.mode.width)

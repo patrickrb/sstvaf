@@ -146,6 +146,53 @@ class SstvRealRecordingTest {
     }
 
     @Test
+    fun noisy20mMartin1KeepsTheSenderTimingAfterVis() {
+        // G4KJS on 14.230 MHz: the VIS decodes, but noise chops Martin's
+        // short sync. Before the comb seed (issue #145), noise runs taken as
+        // the first syncs bent the line fit to ~5100 ppm and the picture
+        // sheared into diagonal stripes.
+        val audio = loadFixture("martin1_noisy_20m_yt.wav")
+        val listener = newListener()
+        listener.startDirect()
+        try {
+            val end = stream(listener, audio)
+            assertThat(end).isInstanceOf(SstvRxState.Decoding::class.java)
+            end as SstvRxState.Decoding
+            assertThat(end.mode).isEqualTo(SstvMode.MARTIN_1)
+            assertThat(end.rowsReady).isAtLeast(64)
+            assertThat(Math.abs(end.slantPpm)).isLessThan(500f)
+            assertThat(end.quality).isGreaterThan(0.8f)
+            assertThat(logs.any { it.contains("VIS lock") && it.contains("Martin 1") }).isTrue()
+            // The comb re-decoded rows already readable; the RX canvas is
+            // told to re-read them (PR #147 review), through the real JNI.
+            assertThat(listener.takeRewrittenRow()).isEqualTo(0)
+            assertThat(listener.takeRewrittenRow()).isEqualTo(-1)
+        } finally {
+            listener.stop()
+        }
+    }
+
+    @Test
+    fun weak20mMartin1HeaderIsReadFromItsDataCells() {
+        // AG5RT on 14.230 MHz under QRM: the start bit reads ~130 Hz high,
+        // which used to reject an otherwise readable VIS (issue #145); the
+        // picture was then only found from the sync train ~28 s in.
+        val audio = loadFixture("martin1_weak_vis_20m_yt.wav")
+        val listener = newListener()
+        listener.startDirect()
+        try {
+            val end = stream(listener, audio)
+            assertThat(end).isInstanceOf(SstvRxState.Decoding::class.java)
+            end as SstvRxState.Decoding
+            assertThat(end.mode).isEqualTo(SstvMode.MARTIN_1)
+            assertThat(end.rowsReady).isAtLeast(64)
+            assertThat(logs.any { it.contains("VIS lock") && it.contains("Martin 1") }).isTrue()
+        } finally {
+            listener.stop()
+        }
+    }
+
+    @Test
     fun clipJoinedMidImageLocksFromTheSyncTrain() {
         // No VIS anywhere in this clip: the engine must still show a decode.
         val audio = loadFixture("scottie2_midimage_20m_yt.wav")

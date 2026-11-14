@@ -236,6 +236,14 @@ class SstvSignalListener @JvmOverloads constructor(
     fun readNewRows(firstRow: Int, nRows: Int, out: IntArray): Int =
         synchronized(sessionLock) { session?.readRows(firstRow, nRows, out) ?: 0 }
 
+    /**
+     * Lowest row the decoder rewrote since the last call, or -1 (see
+     * [DecoderSession.takeRewrittenRow]); an incremental reader such as the
+     * RX canvas re-reads from there.
+     */
+    fun takeRewrittenRow(): Int =
+        synchronized(sessionLock) { session?.takeRewrittenRow() ?: -1 }
+
     // ------------------------------------------------------------------
     // Decode thread
     // ------------------------------------------------------------------
