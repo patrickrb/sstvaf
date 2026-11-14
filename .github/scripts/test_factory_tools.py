@@ -32,6 +32,31 @@ class FakeResponse:
         return self._body
 
 
+class ReleaseCadenceTest(unittest.TestCase):
+    """The factory releases every merge into dev to Play internal in the same
+    cycle (Patrick, 2026-11-13). A once-a-day throttle held #146-#148 on dev
+    after a release had already gone out that day; keep it from coming back."""
+
+    SKILLS = [
+        ROOT / ".claude/skills/sstvaf-factory/SKILL.md",
+        ROOT / ".claude/skills/sstvaf-release/SKILL.md",
+        ROOT / "docs/release-pipeline.md",
+    ]
+
+    def test_no_daily_release_throttle(self):
+        import re
+        throttle = re.compile(r"24 hours|once (a|per) day|once per 24|missed today", re.I)
+        for path in self.SKILLS:
+            text = path.read_text(encoding="utf-8")
+            self.assertIsNone(throttle.search(text), f"release throttle wording in {path}")
+
+    def test_factory_cycle_ends_with_a_release(self):
+        text = (ROOT / ".claude/skills/sstvaf-factory/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("### 9. Release it", text)
+        self.assertIn("same cycle", text)
+        self.assertIn("run the `sstvaf-release` skill now", text)
+
+
 class GuardTest(unittest.TestCase):
     def test_guard_self_test_passes(self):
         result = subprocess.run([sys.executable, str(ROOT / "scripts/factory/guard.py"), "--self-test"],

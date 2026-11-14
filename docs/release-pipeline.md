@@ -25,8 +25,9 @@ feature/* ──PR──▶ dev ──PR──▶ main ──(Patrick, Play Cons
 - **dev → main** — the release. Merging it (a push to `main`) cuts an
   `android-dev.<run#>` prerelease and publishes it to the Play **internal**
   track with status `completed` (rolled out to internal testers), plus a
-  `desktop-dev.<run#>` desktop GUI prerelease. The factory opens this PR at
-  most once a day and merges it only when every check on it passed
+  `desktop-dev.<run#>` desktop GUI prerelease. The factory opens this PR in
+  the same cycle as every merge into `dev` (no daily limit) and merges it only
+  when every check on it passed
   (`.claude/skills/sstvaf-release/SKILL.md`).
 - **Production is Patrick's alone:** he tests the internal build on his phone
   and promotes it in Play Console, or pushes an `android-v*` / `desktop-v*`
