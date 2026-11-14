@@ -163,6 +163,10 @@ class SstvRealRecordingTest {
             assertThat(Math.abs(end.slantPpm)).isLessThan(500f)
             assertThat(end.quality).isGreaterThan(0.8f)
             assertThat(logs.any { it.contains("VIS lock") && it.contains("Martin 1") }).isTrue()
+            // The comb re-decoded rows already readable; the RX canvas is
+            // told to re-read them (PR #147 review), through the real JNI.
+            assertThat(listener.takeRewrittenRow()).isEqualTo(0)
+            assertThat(listener.takeRewrittenRow()).isEqualTo(-1)
         } finally {
             listener.stop()
         }

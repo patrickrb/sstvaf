@@ -221,6 +221,7 @@ struct sstv_decoder {
     int reacq_n;
     int fit_refined;          // 0: nominal slope; 1: 2-point; 2: REG_YOUNG-point
     int comb_done;            // VIS-locked image: comb seed evaluated (1) or not
+    int rewritten_row;        // lowest already-readable row re-decoded, -1 none
 
     uint32_t* image;
     int rows_done;
@@ -799,6 +800,11 @@ static void redecode_frames(sstv_decoder_t* d, int k0, int k1)
     if (step == 2) k0 &= ~1;
     while (k0 < k1 && frame_start_us(d, k0) - 2000.0 < ring_oldest_us(d)) k0 += step;
     if (k0 >= k1) return;
+    // Rows a caller may already have copied out are about to change.
+    int row0 = k0 * d->mode->rows_per_frame;
+    if (row0 < d->rows_done && (d->rewritten_row < 0 || row0 < d->rewritten_row)) {
+        d->rewritten_row = row0;
+    }
     if (step == 2) d->r36_have0 = 0;
     for (int k = k0; k < k1; k++) decode_frame(d, k);
 }
@@ -1133,6 +1139,7 @@ static int enter_image(sstv_decoder_t* d, const sstv_mode_t* m)
     d->reacq_n = 0;
     d->fit_refined = 0;
     d->comb_done = 0;
+    d->rewritten_row = -1;
     d->sync_attempts = d->sync_hits = 0;
     d->coh_tot = d->coh_good = 0;
     d->mag_base = d->mag_ema;
@@ -1767,6 +1774,14 @@ int sstv_decoder_read_rows(const sstv_decoder_t* d, int first_row, int n_rows,
     memcpy(argb, d->image + (size_t)first_row * d->mode->width,
            (size_t)ncopy * (size_t)d->mode->width * sizeof(uint32_t));
     return ncopy;
+}
+
+int sstv_decoder_take_rewritten_row(sstv_decoder_t* d)
+{
+    if (!d || !d->mode) return -1;
+    int r = d->rewritten_row;
+    d->rewritten_row = -1;
+    return r;
 }
 
 int sstv_decoder_vis_locked(const sstv_decoder_t* d)

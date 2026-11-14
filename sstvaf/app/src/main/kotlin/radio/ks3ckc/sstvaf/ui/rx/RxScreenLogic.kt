@@ -474,6 +474,15 @@ internal fun rxMillisUntilNextLocalDay(nowMillis: Long, zone: ZoneId): Long {
  * of the screen keeps room, with a floor so a very short window still shows a
  * usable picture rather than a sliver (the screen scrolls in that case).
  */
+/**
+ * Where the live canvas resumes copying rows: [applied] normally, but back at
+ * [rewrittenRow] when the decoder re-decoded rows the canvas already shows (a
+ * better sync fit — otherwise those rows keep their sheared pixels until the
+ * picture completes; PR #147 review). -1 means nothing was rewritten.
+ */
+internal fun rxRowsResumeFrom(applied: Int, rewrittenRow: Int): Int =
+    if (rewrittenRow in 0 until applied) rewrittenRow else applied
+
 internal fun rxCanvasMaxHeightDp(screenHeightDp: Int): Int =
     (screenHeightDp * 0.56f).roundToInt().coerceAtLeast(140)
 

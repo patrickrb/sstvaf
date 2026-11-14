@@ -8,6 +8,25 @@ import radio.ks3ckc.sstvaf.sstv.SstvRxState
 /** Pure render-decision and formatting logic behind [RxScreen]. */
 class RxScreenLogicTest {
 
+    // ---- rxRowsResumeFrom (PR #147 review: re-read rows a refit rewrote) ----
+
+    @Test
+    fun `nothing rewritten resumes where the canvas left off`() {
+        assertThat(rxRowsResumeFrom(applied = 40, rewrittenRow = -1)).isEqualTo(40)
+    }
+
+    @Test
+    fun `rows rewritten under the canvas are read again from the first one`() {
+        assertThat(rxRowsResumeFrom(applied = 40, rewrittenRow = 0)).isEqualTo(0)
+        assertThat(rxRowsResumeFrom(applied = 40, rewrittenRow = 12)).isEqualTo(12)
+    }
+
+    @Test
+    fun `a rewrite at or past what the canvas has shown changes nothing`() {
+        assertThat(rxRowsResumeFrom(applied = 40, rewrittenRow = 40)).isEqualTo(40)
+        assertThat(rxRowsResumeFrom(applied = 40, rewrittenRow = 55)).isEqualTo(40)
+    }
+
     // ----- rxRenderKind ---------------------------------------------------
 
     @Test

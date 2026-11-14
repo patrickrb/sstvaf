@@ -101,6 +101,9 @@ class NativeSstvCodec : SstvCodec {
         @Synchronized
         override fun visLocked(): Boolean = nativeDecoderVisLocked(requireHandle()) != 0
 
+        @Synchronized
+        override fun takeRewrittenRow(): Int = nativeDecoderTakeRewrittenRow(requireHandle())
+
         /** Reused across drains; 5 ints per event, see sstv_decode_jni.cpp. */
         private val eventBuf = IntArray(EVENT_CAPACITY * EVENT_INTS)
 
@@ -164,6 +167,8 @@ class NativeSstvCodec : SstvCodec {
     private external fun nativeDecoderQuality(handle: Long): Float
 
     private external fun nativeDecoderVisLocked(handle: Long): Int
+
+    private external fun nativeDecoderTakeRewrittenRow(handle: Long): Int
 
     private external fun nativeDecoderDrainEvents(handle: Long, out: IntArray): Int
 
