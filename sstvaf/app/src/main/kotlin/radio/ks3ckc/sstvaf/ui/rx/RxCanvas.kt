@@ -12,12 +12,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,8 +37,10 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.k1af.ft8af.R
@@ -62,6 +67,9 @@ import radio.ks3ckc.sstvaf.theme.TextPrimary
  *
  * All the decisions live in RxScreenLogic.kt; this file only draws.
  */
+/** Test tag on the drawn canvas surface (inside its height-capped slot). */
+internal const val RX_CANVAS_SURFACE_TAG = "rx-canvas-surface"
+
 @Composable
 internal fun RxCanvas(
     image: ImageBitmap?,
@@ -73,39 +81,52 @@ internal fun RxCanvas(
     frequencyLabel: String,
     completedModeName: String?,
     showsSavedBadge: Boolean,
+    heightCap: Dp,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .aspectRatio(aspect)
-            .clip(RoundedCornerShape(12.dp))
-            .background(BgSurface)
-            .border(1.dp, BgSurface3, RoundedCornerShape(12.dp)),
+    // The slot is full width and capped; the surface inside it is sized
+    // explicitly so it can never overrun the cap (see rxCanvasFitSizeDp).
+    BoxWithConstraints(
+        modifier = modifier.fillMaxWidth().heightIn(max = heightCap),
         contentAlignment = Alignment.Center,
     ) {
-        if (showsImage && image != null) {
-            RevealedImage(image = image, revealFraction = revealFraction)
-            ScanlineTexture(alpha = 0.16f)
-            if (revealFraction > 0f && revealFraction < 1f) {
-                DecodeLine(fraction = revealFraction)
+        val (fitWidth, fitHeight) = rxCanvasFitSizeDp(
+            maxWidthDp = maxWidth.value,
+            maxHeightDp = minOf(maxHeight.value, heightCap.value),
+            aspect = aspect,
+        )
+        Box(
+            modifier = Modifier
+                .testTag(RX_CANVAS_SURFACE_TAG)
+                .size(width = fitWidth.dp, height = fitHeight.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(BgSurface)
+                .border(1.dp, BgSurface3, RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (showsImage && image != null) {
+                RevealedImage(image = image, revealFraction = revealFraction)
+                ScanlineTexture(alpha = 0.16f)
+                if (revealFraction > 0f && revealFraction < 1f) {
+                    DecodeLine(fraction = revealFraction)
+                }
+            } else if (listening) {
+                ListeningIndicator(
+                    receiveEnabled = receiveEnabled,
+                    frequencyLabel = frequencyLabel,
+                )
             }
-        } else if (listening) {
-            ListeningIndicator(
-                receiveEnabled = receiveEnabled,
-                frequencyLabel = frequencyLabel,
-            )
-        }
 
-        if (completedModeName != null) {
-            CompletionBadges(
-                modeName = completedModeName,
-                // The "Saved ✓" half is a promise that the picture is in the
-                // Gallery, so it waits for the store to confirm the write. The
-                // mode badge is about the decode and shows either way.
-                showsSaved = showsSavedBadge,
-                modifier = Modifier.align(Alignment.BottomStart).padding(10.dp),
-            )
+            if (completedModeName != null) {
+                CompletionBadges(
+                    modeName = completedModeName,
+                    // The "Saved ✓" half is a promise that the picture is in the
+                    // Gallery, so it waits for the store to confirm the write. The
+                    // mode badge is about the decode and shows either way.
+                    showsSaved = showsSavedBadge,
+                    modifier = Modifier.align(Alignment.BottomStart).padding(10.dp),
+                )
+            }
         }
     }
 }

@@ -478,6 +478,30 @@ internal fun rxCanvasMaxHeightDp(screenHeightDp: Int): Int =
     (screenHeightDp * 0.56f).roundToInt().coerceAtLeast(140)
 
 /**
+ * The receive canvas's size, in dp, inside a slot [maxWidthDp] wide and at
+ * most [maxHeightDp] tall: as wide as the slot when the picture's [aspect]
+ * (width / height) fits under the cap, otherwise exactly the cap tall and
+ * narrowed to keep the aspect.
+ *
+ * This is computed rather than left to `fillMaxWidth().aspectRatio()`
+ * because that pair cannot shrink: when the full-width height overruns the
+ * cap (any phone in landscape), `aspectRatio` falls back to ignoring the
+ * cap, and the oversized surface is centred on its slot and paints over the
+ * MODE / RX row above it and the status card below (issue #145).
+ */
+internal fun rxCanvasFitSizeDp(maxWidthDp: Float, maxHeightDp: Float, aspect: Float): Pair<Float, Float> {
+    val safeAspect = if (aspect.isFinite() && aspect > 0f) aspect else 4f / 3f
+    val width = maxWidthDp.coerceAtLeast(0f)
+    val cap = maxHeightDp.coerceAtLeast(0f)
+    val fullWidthHeight = width / safeAspect
+    return if (fullWidthHeight <= cap) {
+        width to fullWidthHeight
+    } else {
+        cap * safeAspect to cap
+    }
+}
+
+/**
  * Options for the RX mode-lock selector: automatic VIS detection (null)
  * first, then every mode in native-id order — the same order the TX mode
  * sheet uses, so the two lists never disagree.
