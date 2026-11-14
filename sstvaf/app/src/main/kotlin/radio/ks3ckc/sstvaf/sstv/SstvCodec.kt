@@ -181,6 +181,13 @@ interface DecoderSession : AutoCloseable {
     fun visLocked(): Boolean
 
     /**
+     * Lowest row the decoder rewrote since the last call (a better sync fit
+     * re-decoded rows that were already readable), or -1; the call clears
+     * it. An incremental reader re-reads from there. Default: never.
+     */
+    fun takeRewrittenRow(): Int = -1
+
+    /**
      * Drain the header-hunt diagnostics queued since the last call, oldest
      * first (see [DecodeEvent]). The queue survives [reset]; the native
      * decoder keeps the newest [DecodeEvent]s when a caller falls behind.

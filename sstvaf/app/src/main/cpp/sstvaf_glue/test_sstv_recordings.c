@@ -51,6 +51,16 @@ static const fixture_t kFixtures[] = {
     // Weak, fading 20 m Scottie 2 signal recorded from mid-image: no VIS in
     // the clip at all. Must lock from the sync train within a few lines.
     { "scottie2_midimage_20m_yt.wav", SSTV_MODE_SCOTTIE2, 0, 0, 80, 4.0, 0.0, 2000.0, 0.40 },
+    // Noisy 20 m Martin 1 (G4KJS, 14.230 MHz): the VIS decodes, but noise
+    // chops Martin's 4.9 ms sync, and the noise runs the young fit accepted
+    // in the first lines bent it to a 5131 ppm "slant" with the real syncs
+    // outside the window. Needs the multi-line comb seed (issue #145).
+    { "martin1_noisy_20m_yt.wav", SSTV_MODE_MARTIN1, 0, 1, 64, 3.0, 0.80, 500.0, 0.25 },
+    // Weak 20 m Martin 1 under QRM (AG5RT, 14.230 MHz): the VIS cells are
+    // readable but the start bit reads ~130 Hz high, so the leader->start
+    // scale failed and the header was rejected; the picture was only found
+    // by the sync train ~28 s in. Needs the VIS data-cell calibration.
+    { "martin1_weak_vis_20m_yt.wav", SSTV_MODE_MARTIN1, 0, 1, 64, 2.5, 0.75, 500.0, 0.15 },
 };
 #define N_FIXTURES ((int)(sizeof(kFixtures) / sizeof(kFixtures[0])))
 
@@ -102,11 +112,35 @@ static void run_fixture(const char* dir, const fixture_t* fx)
     sstv_decoder_t* d = sstv_decoder_create(rate);
     double lock_s = -1.0;
     int final_status = -1;
+    // A live reader, as the RX screen is: copy only rows past what it has
+    // already shown, rewinding to sstv_decoder_take_rewritten_row() when the
+    // decoder re-decoded rows it had already shown (#147 review). At the end
+    // its copy must equal the decoder's image.
+    uint32_t* live = 0;
+    int live_w = 0, applied = 0, rewinds = 0;
     for (int off = 0; off < n; off += CHUNK) {
         int c = (n - off < CHUNK) ? (n - off) : CHUNK;
         sstv_decoder_push(d, pcm + off, c);
         int s = sstv_decoder_status(d);
         if (lock_s < 0.0 && s == SSTV_STATUS_IMAGE) lock_s = (double)(off + c) / rate;
+        const sstv_mode_t* lm = sstv_mode_get(sstv_decoder_mode(d));
+        if (lm && !live) {
+            live_w = lm->width;
+            live = (uint32_t*)calloc((size_t)lm->width * lm->height, 4);
+        }
+        if (live) {
+            int rw = sstv_decoder_take_rewritten_row(d);
+            if (rw >= 0 && rw < applied) {
+                applied = rw;
+                rewinds++;
+            }
+            int ready = sstv_decoder_rows_ready(d);
+            if (ready > applied) {
+                int got = sstv_decoder_read_rows(d, applied, ready - applied,
+                                                 live + (size_t)applied * live_w);
+                if (got > 0) applied += got;
+            }
+        }
         if (s == SSTV_STATUS_DONE || s == SSTV_STATUS_ABORTED) {
             final_status = s;
             break;
@@ -119,12 +153,16 @@ static void run_fixture(const char* dir, const fixture_t* fx)
     double q = sstv_decoder_quality(d), slant = sstv_decoder_slant_ppm(d);
     int vis = sstv_decoder_vis_locked(d);
     double coh = -1.0;
+    int live_matches = 0;
     if (m && rows > 1) {
         uint32_t* img = (uint32_t*)calloc((size_t)m->width * m->height, 4);
         sstv_decoder_read_rows(d, 0, rows, img);
         coh = coherence(img, m->width, rows);
+        live_matches = live && live_w == m->width && applied == rows &&
+                       memcmp(live, img, (size_t)rows * m->width * 4) == 0;
         free(img);
     }
+    free(live);
     printf("  info: %s -> %s, lock %.1f s, vis %d, rows %d, quality %.2f, slant %.0f ppm,"
            " coherence %.2f, status %d\n", fx->file, m ? m->name : "(none)", lock_s, vis,
            rows, q, slant, coh, final_status);
@@ -149,6 +187,9 @@ static void run_fixture(const char* dir, const fixture_t* fx)
     check(fabs(slant) <= fx->max_abs_slant, label);
     snprintf(label, sizeof(label), "%s: image coherence >= %.2f", fx->file, fx->min_coherence);
     check(coh >= fx->min_coherence, label);
+    snprintf(label, sizeof(label), "%s: incremental reader ends with the decoder's image (%d rewinds)",
+             fx->file, rewinds);
+    check(live_matches, label);
 
     sstv_decoder_destroy(d);
     free(pcm);

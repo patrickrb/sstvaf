@@ -14,7 +14,7 @@
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts\factory\install-autostart.ps1
 #>
 param(
-    [string]$Repo = "C:\Users\burns\Projects\sstvaf",
+    [string]$Repo = "C:\Users\burns\Projects\sstvaf-factory-loop",
     [switch]$Remove
 )
 

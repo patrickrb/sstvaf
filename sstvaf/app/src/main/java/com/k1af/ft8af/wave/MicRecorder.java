@@ -236,8 +236,21 @@ public class MicRecorder {
                     "MicRecorder: AudioRecord(%s) preferredDevice id=%d ok=%b deviceFound=%b",
                     srcName, GeneralVariables.audioInputDeviceId, ok, deviceInfo != null));
         } else {
-            GeneralVariables.fileLog(
-                    "MicRecorder: AudioRecord(" + srcName + ") using system default mic");
+            // SSTVAF adaptation (#145): a plugged-in USB audio input (the
+            // rig's codec) is used automatically while the input is on
+            // "system default".
+            AudioDeviceInfo auto = radio.ks3ckc.sstvaf.audio.UsbInputAutoSelect.resolve(
+                    GeneralVariables.getMainContext(), GeneralVariables.audioInputDeviceId,
+                    GeneralVariables.connectMode);
+            if (auto != null) {
+                boolean ok = audioRecord.setPreferredDevice(auto);
+                GeneralVariables.fileLog(String.format(
+                        "MicRecorder: AudioRecord(%s) auto-selected USB input id=%d type=%d name=%s ok=%b",
+                        srcName, auto.getId(), auto.getType(), auto.getProductName(), ok));
+            } else {
+                GeneralVariables.fileLog(
+                        "MicRecorder: AudioRecord(" + srcName + ") using system default mic");
+            }
         }
     }
 
@@ -853,6 +866,17 @@ public class MicRecorder {
                 AudioDeviceInfo deviceInfo = findAudioDeviceById(
                         GeneralVariables.audioInputDeviceId, AudioManager.GET_DEVICES_INPUTS);
                 audioRecord.setPreferredDevice(deviceInfo);
+            } else if (audioRecord != null) {
+                // SSTVAF adaptation (#145): see the constructor.
+                AudioDeviceInfo auto = radio.ks3ckc.sstvaf.audio.UsbInputAutoSelect.resolve(
+                        GeneralVariables.getMainContext(), GeneralVariables.audioInputDeviceId,
+                        GeneralVariables.connectMode);
+                if (auto != null) {
+                    boolean ok = audioRecord.setPreferredDevice(auto);
+                    GeneralVariables.fileLog(String.format(
+                            "MicRecorder: reinit auto-selected USB input id=%d type=%d name=%s ok=%b",
+                            auto.getId(), auto.getType(), auto.getProductName(), ok));
+                }
             }
         }
 

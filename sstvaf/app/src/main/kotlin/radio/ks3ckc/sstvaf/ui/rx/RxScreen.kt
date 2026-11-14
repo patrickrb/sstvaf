@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -125,6 +124,9 @@ fun RxScreen(
                     liveAspect = s.mode.width.toFloat() / s.mode.height
                     liveImage = assembler.snapshotBitmap()?.asImageBitmap()
                 }
+                // Rows the decoder re-decoded under a better sync fit are
+                // read again rather than left as first painted.
+                appliedRows = rxRowsResumeFrom(appliedRows, listener.takeRewrittenRow())
                 if (s.rowsReady > appliedRows) {
                     val n = s.rowsReady - appliedRows
                     val buf = IntArray(n * s.mode.width)
@@ -250,22 +252,18 @@ fun RxScreen(
             }
         }
 
-        Box(
-            modifier = Modifier.fillMaxWidth().heightIn(max = maxCanvasHeight),
-            contentAlignment = Alignment.Center,
-        ) {
-            RxCanvas(
-                image = liveImage,
-                aspect = liveAspect,
-                revealFraction = rxRevealFraction(rxState),
-                showsImage = rxShowsCanvasImage(rxState),
-                listening = rxRenderKind(rxState) != RxRenderKind.DECODING,
-                receiveEnabled = rxEnabled,
-                frequencyLabel = frequencyLabel,
-                completedModeName = completedMode,
-                showsSavedBadge = rxShowsSavedBadge(rxState, saveState),
-            )
-        }
+        RxCanvas(
+            image = liveImage,
+            aspect = liveAspect,
+            revealFraction = rxRevealFraction(rxState),
+            showsImage = rxShowsCanvasImage(rxState),
+            listening = rxRenderKind(rxState) != RxRenderKind.DECODING,
+            receiveEnabled = rxEnabled,
+            frequencyLabel = frequencyLabel,
+            completedModeName = completedMode,
+            showsSavedBadge = rxShowsSavedBadge(rxState, saveState),
+            heightCap = maxCanvasHeight,
+        )
 
         RxStatusCard(
             statusLabel = rxStatusLabel(statusKind, rxState),

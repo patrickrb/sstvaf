@@ -22,16 +22,18 @@ All from PowerShell on jigglebilly. It is its own loop: Sorrel's factory
 (`/loop /software-factory` in `C:\Users\burns\Projects\sorrel`) keeps running
 beside it, untouched.
 
-**1. Get the main checkout onto the newest `dev`.** The loop reads its skill
-from `C:\Users\burns\Projects\sstvaf`. The launcher fast-forwards it only
-when it is on `dev` and clean — untracked files count as dirty, so move any
-strays out first.
+**1. The loop's own checkout.** The SSTVAF loop runs from a dedicated
+worktree on `dev`, `C:\Users\burns\Projects\sstvaf-factory-loop`, not from
+the primary checkout `C:\Users\burns\Projects\sstvaf` (which is free for
+your own branches and uncommitted work). The launcher fast-forwards the loop
+worktree to `origin/dev` on every start when it is on `dev` with no tracked
+changes (untracked files are fine). Create it once:
 
 ```powershell
 cd C:\Users\burns\Projects\sstvaf
-git status --short                      # must be empty (move untracked files elsewhere)
-git switch dev
-git pull --ff-only origin dev
+git fetch origin
+git branch -f dev origin/dev            # only if dev isn't checked out anywhere
+git worktree add ..\sstvaf-factory-loop dev
 ```
 
 **2. Install the logon task** (once; re-running replaces it). It starts the
@@ -70,7 +72,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\factory\install-auto
 ```powershell
 python scripts\factory\guard.py --self-test
 python -I .claude\skills\feature-announce\scripts\post_socials.py --self-test
-wsl -d Ubuntu -- bash -lc "cd /mnt/c/Users/burns/Projects/sstvaf && python3 -m unittest discover -s .github/scripts -p 'test_*.py'"
+wsl -d Ubuntu -- bash -lc "cd /mnt/c/Users/burns/Projects/sstvaf-factory-loop && python3 -m unittest discover -s .github/scripts -p 'test_*.py'"
 ```
 
 Give it work by filing an issue with the **Factory spec** form and labelling

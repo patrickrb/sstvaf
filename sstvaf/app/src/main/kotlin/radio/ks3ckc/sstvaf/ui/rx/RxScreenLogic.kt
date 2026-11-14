@@ -474,8 +474,41 @@ internal fun rxMillisUntilNextLocalDay(nowMillis: Long, zone: ZoneId): Long {
  * of the screen keeps room, with a floor so a very short window still shows a
  * usable picture rather than a sliver (the screen scrolls in that case).
  */
+/**
+ * Where the live canvas resumes copying rows: [applied] normally, but back at
+ * [rewrittenRow] when the decoder re-decoded rows the canvas already shows (a
+ * better sync fit — otherwise those rows keep their sheared pixels until the
+ * picture completes; PR #147 review). -1 means nothing was rewritten.
+ */
+internal fun rxRowsResumeFrom(applied: Int, rewrittenRow: Int): Int =
+    if (rewrittenRow in 0 until applied) rewrittenRow else applied
+
 internal fun rxCanvasMaxHeightDp(screenHeightDp: Int): Int =
     (screenHeightDp * 0.56f).roundToInt().coerceAtLeast(140)
+
+/**
+ * The receive canvas's size, in dp, inside a slot [maxWidthDp] wide and at
+ * most [maxHeightDp] tall: as wide as the slot when the picture's [aspect]
+ * (width / height) fits under the cap, otherwise exactly the cap tall and
+ * narrowed to keep the aspect.
+ *
+ * This is computed rather than left to `fillMaxWidth().aspectRatio()`
+ * because that pair cannot shrink: when the full-width height overruns the
+ * cap (any phone in landscape), `aspectRatio` falls back to ignoring the
+ * cap, and the oversized surface is centred on its slot and paints over the
+ * MODE / RX row above it and the status card below (issue #145).
+ */
+internal fun rxCanvasFitSizeDp(maxWidthDp: Float, maxHeightDp: Float, aspect: Float): Pair<Float, Float> {
+    val safeAspect = if (aspect.isFinite() && aspect > 0f) aspect else 4f / 3f
+    val width = maxWidthDp.coerceAtLeast(0f)
+    val cap = maxHeightDp.coerceAtLeast(0f)
+    val fullWidthHeight = width / safeAspect
+    return if (fullWidthHeight <= cap) {
+        width to fullWidthHeight
+    } else {
+        cap * safeAspect to cap
+    }
+}
 
 /**
  * Options for the RX mode-lock selector: automatic VIS detection (null)

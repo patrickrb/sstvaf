@@ -136,6 +136,14 @@ Java_radio_ks3ckc_sstvaf_sstv_NativeSstvCodec_nativeDecoderVisLocked(
     return dec != nullptr ? sstv_decoder_vis_locked(dec) : 0;
 }
 
+extern "C" JNIEXPORT jint JNICALL
+Java_radio_ks3ckc_sstvaf_sstv_NativeSstvCodec_nativeDecoderTakeRewrittenRow(
+        JNIEnv*, jobject, jlong handle)
+{
+    sstv_decoder_t* dec = decoder_from_handle(handle);
+    return dec != nullptr ? sstv_decoder_take_rewritten_row(dec) : -1;
+}
+
 // sstv_decoder_events(dec, ...) — drain the header-hunt diagnostics ring
 // into `out`, packed as 5 ints per event: type (SSTV_EVT_*), arg, arg2,
 // decoder time in ms, leader tuning offset in whole Hz. Returns the event
