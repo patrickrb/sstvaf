@@ -22,3 +22,7 @@ build/
 # Amp portal metadata and review artifacts are local to an orb.
 .amp/portals/
 .amp/in/
+
+# Python bytecode
+__pycache__/
+*.pyc
