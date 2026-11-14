@@ -49,7 +49,6 @@ GitHub issues in `patrickrb/sstvaf`:
 | `factory:ready` | take it (oldest first; `priority:high` first) |
 | `factory:in-progress` | claimed by a running loop (comment says which worktree) |
 | `factory:needs-decision` | blocked on Patrick; questions are in a comment |
-| `hotfix` | on a merged PR: release today even if one already went out |
 
 ```bash
 gh issue list --label factory:ready --state open --limit 1000 --json number,title,labels,createdAt \
@@ -217,17 +216,31 @@ checkout keeps the originals). Issues close when the change reaches `main`:
 `Closes #N` in a PR to dev does not fire, so close by hand after the release.
 Save a memory only for what the repo can't tell the next session.
 
+### 9. Release it
+The cycle isn't done when the PR is on `dev`: it is done when the build is on
+the Play internal track. Go straight to **Releasing dev → main** below. Don't
+take the next spec until the release is cut or a red check has stopped it.
+
 ## Releasing dev → main
 
+**Every piece of work the factory merges into `dev` goes to the Play internal
+track in the same cycle** (Patrick, 2026-11-13). There is no daily limit and
+no waiting window: a second release on the same day is normal.
+
 At the end of **every** cycle, idle ones included, check for unreleased work:
-`git log --oneline origin/main..origin/dev` (ignoring merges of earlier
-release PRs). If there is any, and no dev → main release merged in the last
-24 hours (or a PR in the backlog is labelled `hotfix`), run the
-`sstvaf-release` skill. Work that missed today's release goes out on the next
-cycle after the 24 hours, even if nothing new merges. The skill: it opens the
-release PR (with the "Test on your phone" list), merges it when every check
-passed, watches the internal publish land, and tells Patrick the build is
-ready to test.
+`git log --oneline --first-parent origin/main..origin/dev` (ignoring merges of
+earlier release PRs). If there is any, run the `sstvaf-release` skill now. The
+skill opens the release PR (with the "Test on your phone" list), or reuses one
+that is already open (its head is `dev`, so it already includes the new
+merges; wait for the checks on the new head). It merges the PR when every
+check passed, watches the internal publish land, and tells Patrick the build
+is ready to test.
+
+If an `Android CI & Release` run on `main` is still in progress from an
+earlier release, wait for it to finish before merging the next release PR,
+so two Play edits don't race. If a release can't go out (a red check, or a
+`BLOCKED` merge state), it stops the line (step 0b). Fix it or report it;
+don't silently leave work on `dev`.
 
 ## What a cycle reports
 
