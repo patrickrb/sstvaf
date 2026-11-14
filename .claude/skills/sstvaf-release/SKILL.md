@@ -31,9 +31,11 @@ What the merge fires:
 | `discord-merge-notify.yml` | 📦 post to Discord |
 | `discord-play-track-watch.yml` (every 10 min) | Discord post when the internal release appears, and later when Patrick promotes it |
 
-Releases cut at most once per 24 hours, unless a PR in the backlog is
-labelled `hotfix`; the factory checks for an unreleased backlog on every
-cycle, idle or not.
+Release every time there is unreleased work on `dev`, with no daily limit
+(Patrick, 2026-11-13). The factory runs this skill in the same cycle as every
+merge into `dev`, and checks for an unreleased backlog on every cycle, idle
+or not. If an `android.yml` run on `main` is still in progress, wait for it
+before merging, so two Play edits don't race.
 A desktop- or docs-only range builds but cuts no Android release; that's
 expected, not a failure.
 
