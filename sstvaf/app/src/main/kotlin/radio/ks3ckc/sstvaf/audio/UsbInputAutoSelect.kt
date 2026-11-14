@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import com.k1af.ft8af.connector.ConnectMode
+import com.k1af.ft8af.handoff.RigHandoffGate
 
 /**
  * Picks the radio's USB audio input automatically when the operator left the
@@ -18,6 +19,9 @@ import com.k1af.ft8af.connector.ConnectMode
  *
  * Rules, in order:
  * - An input the operator pinned in Settings (id > 0) always wins.
+ * - While the rig is handed to a sibling app ([RigHandoffGate.isYielded]),
+ *   nothing is picked: the release rebuilds capture precisely to let go of
+ *   the rig's audio, and asking for its USB input again would take it back.
  * - A Bluetooth rig keeps the default route: its audio rides the headset
  *   (SCO) link, which `refreshBluetoothHeadsetMode` manages, and a USB
  *   preference would fight that route.
@@ -39,21 +43,24 @@ object UsbInputAutoSelect {
 
     /** The input id to prefer, or null to leave the system default. */
     @JvmStatic
-    fun pick(configuredInputId: Int, connectMode: Int, inputs: List<Input>): Int? =
-        pickOf(configuredInputId, connectMode, inputs, { it.id }, { it.type })?.id
+    @JvmOverloads
+    fun pick(configuredInputId: Int, connectMode: Int, inputs: List<Input>, yielded: Boolean = false): Int? =
+        pickOf(configuredInputId, connectMode, inputs, yielded, { it.id }, { it.type })?.id
 
     /** [pick] over any device representation, returning the chosen element. */
     fun <T> pickOf(
         configuredInputId: Int,
         connectMode: Int,
         inputs: List<T>,
+        yielded: Boolean,
         id: (T) -> Int,
         type: (T) -> Int,
     ): T? {
         if (configuredInputId > 0) return null
+        if (yielded) return null
         if (connectMode == ConnectMode.BLUE_TOOTH) return null
         return inputs
-            .filter { type(it) == AudioDeviceInfo.TYPE_USB_DEVICE || type(it) == AudioDeviceInfo.TYPE_USB_HEADSET }
+            .filter { isUsbInputType(type(it)) }
             .sortedWith(compareBy<T>({ type(it) != AudioDeviceInfo.TYPE_USB_DEVICE }, { id(it) }))
             .firstOrNull()
     }
@@ -63,6 +70,11 @@ object UsbInputAutoSelect {
     fun resolve(context: Context?, configuredInputId: Int, connectMode: Int): AudioDeviceInfo? {
         val audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return null
         val devices = audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS).toList()
-        return pickOf(configuredInputId, connectMode, devices, { it.id }, { it.type })
+        return pickOf(configuredInputId, connectMode, devices, RigHandoffGate.isYielded(), { it.id }, { it.type })
     }
+
+    /** True for the USB input types [pick] chooses between. */
+    @JvmStatic
+    fun isUsbInputType(type: Int): Boolean =
+        type == AudioDeviceInfo.TYPE_USB_DEVICE || type == AudioDeviceInfo.TYPE_USB_HEADSET
 }

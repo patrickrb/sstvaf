@@ -61,6 +61,18 @@ class MicRecorderUsbAutoSelectTest {
         shadowOf(am).setInputDevices(types.map { AudioDeviceInfoBuilder.newBuilder().setType(it).build() })
     }
 
+    /** RigHandoffGate.yieldTo/clear are package-private to the handoff package. */
+    private fun setYielded(pkg: String?) {
+        val gate = Class.forName("com.k1af.ft8af.handoff.RigHandoffGate")
+        val m = if (pkg != null) {
+            gate.getDeclaredMethod("yieldTo", String::class.java)
+        } else {
+            gate.getDeclaredMethod("clear")
+        }
+        m.isAccessible = true
+        if (pkg != null) m.invoke(null, pkg) else m.invoke(null)
+    }
+
     private fun logAfterBuildingRecorder(): String {
         val log = java.io.File(context.getExternalFilesDir(null), "debug.log")
         log.delete()
@@ -87,6 +99,22 @@ class MicRecorderUsbAutoSelectTest {
         inputs(AudioDeviceInfo.TYPE_BUILTIN_MIC)
         assertThat(UsbInputAutoSelect.resolve(context, 0, ConnectMode.USB_CABLE)).isNull()
         assertThat(logAfterBuildingRecorder()).contains("using system default mic")
+    }
+
+    @Test
+    fun rigHandedToSiblingApp_withUsbPlugged_staysOnTheSystemRoute() {
+        // PR #148 review: the handoff release rebuilds the recorder to give
+        // the rig's audio up; it must not ask for the USB input again.
+        GeneralVariables.audioInputDeviceId = 0
+        GeneralVariables.connectMode = ConnectMode.USB_CABLE
+        inputs(AudioDeviceInfo.TYPE_BUILTIN_MIC, AudioDeviceInfo.TYPE_USB_DEVICE)
+        setYielded("radio.ks3ckc.ft8af")
+        try {
+            assertThat(UsbInputAutoSelect.resolve(context, 0, ConnectMode.USB_CABLE)).isNull()
+            assertThat(logAfterBuildingRecorder()).contains("using system default mic")
+        } finally {
+            setYielded(null)
+        }
     }
 
     @Test

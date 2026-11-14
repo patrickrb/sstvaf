@@ -44,6 +44,14 @@ class UsbInputAutoSelectTest {
     }
 
     @Test
+    fun `while the rig is handed to a sibling app nothing is picked`() {
+        // PR #148 review: the handoff release rebuilds capture to let go of
+        // the rig's audio; picking its USB input again would take it back.
+        assertThat(UsbInputAutoSelect.pick(0, ConnectMode.USB_CABLE, listOf(builtInMic, rigCodec), yielded = true))
+            .isNull()
+    }
+
+    @Test
     fun `a Bluetooth rig keeps the default route`() {
         assertThat(UsbInputAutoSelect.pick(0, ConnectMode.BLUE_TOOTH, listOf(builtInMic, rigCodec)))
             .isNull()
