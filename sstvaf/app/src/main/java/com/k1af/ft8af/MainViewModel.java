@@ -472,6 +472,7 @@ public class MainViewModel extends ViewModel {
         //create recording object
         hamRecorder = new HamRecorder(null);
         hamRecorder.startRecord();
+        startUsbInputWatcher();
 
         mutableIsFlexRadio.setValue(false);
         mutableIsXieguRadio.setValue(false);
@@ -1300,6 +1301,28 @@ public class MainViewModel extends ViewModel {
      * Reinitialize the audio input to pick up newly connected USB audio devices.
      * Call this after a USB device attach event to switch to USB audio if available.
      */
+    /**
+     * SSTVAF (#145, PR #148 review): rebuild capture when a USB audio input
+     * appears that the automatic USB selection would now choose — the USB
+     * attach intent only covers devices in device_filter.xml.
+     */
+    private radio.ks3ckc.sstvaf.audio.UsbInputWatcher usbInputWatcher;
+
+    private void startUsbInputWatcher() {
+        Context ctx = GeneralVariables.getMainContext();
+        if (ctx == null) return;
+        usbInputWatcher = new radio.ks3ckc.sstvaf.audio.UsbInputWatcher(
+                ctx,
+                () -> hamRecorder == null ? -1 : hamRecorder.getMicRecorder().routedInputDeviceType(),
+                () -> {
+                    Thread t = new Thread(this::reinitializeAudioInput, "UsbInputAdded");
+                    t.setDaemon(true);
+                    t.start();
+                    return kotlin.Unit.INSTANCE;
+                });
+        usbInputWatcher.register();
+    }
+
     public void reinitializeAudioInput() {
         if (hamRecorder != null) {
             hamRecorder.reinitializeMicRecorder();
@@ -1566,8 +1589,16 @@ public class MainViewModel extends ViewModel {
                 GeneralVariables.audioInputDeviceId, GeneralVariables.usbAudioInputVendorId);
         boolean usbAudioLive = hamRecorder != null
                 && hamRecorder.getMicRecorder().isUsingUsbDirect();
+        // SSTVAF (#145): a default-input operator gets the rig's USB input
+        // automatically, which the release gave up — take it back too.
+        android.media.AudioDeviceInfo autoUsb = radio.ks3ckc.sstvaf.audio.UsbInputAutoSelect.resolve(
+                GeneralVariables.getMainContext(), GeneralVariables.audioInputDeviceId,
+                GeneralVariables.connectMode);
+        boolean autoUsbWanted = autoUsb != null && hamRecorder != null
+                && hamRecorder.getMicRecorder().routedInputDeviceType() != autoUsb.getType();
         fileLog("RigHandoff: reclaiming rig (connected=" + connected
-                + " usbAudioWanted=" + usbAudioWanted + " usbAudioLive=" + usbAudioLive + ")");
+                + " usbAudioWanted=" + usbAudioWanted + " usbAudioLive=" + usbAudioLive
+                + " autoUsbWanted=" + autoUsbWanted + ")");
         if (!connected) {
             if (baseRig != null && baseRig.getConnector() != null) {
                 reconnectRig();
@@ -1576,7 +1607,7 @@ public class MainViewModel extends ViewModel {
                 getUsbDevice();
             }
         }
-        if (usbAudioWanted && !usbAudioLive) {
+        if ((usbAudioWanted && !usbAudioLive) || autoUsbWanted) {
             Thread t = new Thread(this::reinitializeAudioInput, "RigHandoffReclaim");
             t.setDaemon(true);
             t.start();
@@ -1961,6 +1992,7 @@ public class MainViewModel extends ViewModel {
         releaseRigOnClear(baseRig);
         // Drop any SCO request of ours so the headset link doesn't outlive the app.
         scoLink.shutdown();
+        if (usbInputWatcher != null) usbInputWatcher.unregister();
     }
 
     /**
