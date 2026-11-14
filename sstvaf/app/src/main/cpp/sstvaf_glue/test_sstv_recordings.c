@@ -51,6 +51,16 @@ static const fixture_t kFixtures[] = {
     // Weak, fading 20 m Scottie 2 signal recorded from mid-image: no VIS in
     // the clip at all. Must lock from the sync train within a few lines.
     { "scottie2_midimage_20m_yt.wav", SSTV_MODE_SCOTTIE2, 0, 0, 80, 4.0, 0.0, 2000.0, 0.40 },
+    // Noisy 20 m Martin 1 (G4KJS, 14.230 MHz): the VIS decodes, but noise
+    // chops Martin's 4.9 ms sync, and the noise runs the young fit accepted
+    // in the first lines bent it to a 5131 ppm "slant" with the real syncs
+    // outside the window. Needs the multi-line comb seed (issue #145).
+    { "martin1_noisy_20m_yt.wav", SSTV_MODE_MARTIN1, 0, 1, 64, 3.0, 0.80, 500.0, 0.25 },
+    // Weak 20 m Martin 1 under QRM (AG5RT, 14.230 MHz): the VIS cells are
+    // readable but the start bit reads ~130 Hz high, so the leader->start
+    // scale failed and the header was rejected; the picture was only found
+    // by the sync train ~28 s in. Needs the VIS data-cell calibration.
+    { "martin1_weak_vis_20m_yt.wav", SSTV_MODE_MARTIN1, 0, 1, 64, 2.5, 0.75, 500.0, 0.15 },
 };
 #define N_FIXTURES ((int)(sizeof(kFixtures) / sizeof(kFixtures[0])))
 

@@ -99,6 +99,13 @@
 #define SYNC_REACQ_FRAMES    3         // consistent off-grid syncs to re-anchor
 #define SYNC_REACQ_TOL_US    1500.0    // agreement between those offsets
 #define SYNC_GAP_US          2000.0    // noise gap bridged inside one sync pulse
+#define COMB_SPAN_US         4500000.0 // comb seed: lines buffered (fits the 6 s ring)
+#define COMB_MAX_LINES       8
+#define COMB_SLANT           0.02      // comb seed: line-period search, ± fraction
+#define COMB_PHASE_FRAC      0.02      // comb seed: phase search, ± fraction of a line
+#define COMB_MIN_SCORE       0.40      // mean sync-box fill to trust the comb
+#define COMB_MIN_CONTRAST    2.0       // ... and that many times the median fill
+#define COMB_MIN_GAIN        0.15      // ... and this much above the running fit's comb
 #define HL_MAX_PULSES        64        // header-less lock: pulse history depth
 #define HL_MIN_WIDTH_US      3000.0    // narrowest sync accepted (Martin 4.86 ms)
 #define HL_MAX_WIDTH_US      26000.0   // widest (PD 20 ms); VIS cells are 30 ms
@@ -213,6 +220,7 @@ struct sstv_decoder {
     int reacq_k[SYNC_REACQ_FRAMES];
     int reacq_n;
     int fit_refined;          // 0: nominal slope; 1: 2-point; 2: REG_YOUNG-point
+    int comb_done;            // VIS-locked image: comb seed evaluated (1) or not
 
     uint32_t* image;
     int rows_done;
@@ -796,6 +804,157 @@ static void redecode_frames(sstv_decoder_t* d, int k0, int k1)
 }
 
 // ---------------------------------------------------------------------------
+// Comb seed (VIS-locked images).
+//
+// On a weak HF signal Martin's 4.9 ms sync is chopped up by noise: line by
+// line, the best sync-shaped run in the young (±2 % of a line) window is as
+// often a noise run in the picture as the real pulse. A few of those in the
+// first REG_YOUNG lines bend the fit — a G4KJS 20 m recording came out at
+// 5118 ppm "slant" with 12 of 256 syncs found and a sheared, unreadable
+// picture, although the sender's clock was exact. Across several lines,
+// though, the syncs still stand out clearly: they are the only low-frequency
+// stretch that recurs at one period.
+//
+// So once the first L lines are buffered, search line period (±COMB_SLANT)
+// and phase (±COMB_PHASE_FRAC of a line) together for the comb of sync-width
+// boxes with the highest mean fill of below-threshold det samples. When that
+// comb is credible (absolute fill, and contrast against the median comb) and
+// the running fit disagrees with it by more than the outlier tolerance on
+// any of those lines, the fit is replaced by the comb and the frames decoded
+// so far are re-decoded. A fit that already agrees (every clean signal) is
+// left alone, so the trailing-edge sync timing is unchanged there.
+//
+// Returns 0 while the L lines are not yet buffered, 1 once evaluated.
+// ---------------------------------------------------------------------------
+// Prefix sums of "det sample below the sync threshold" over a span, for
+// O(1) sync-width box fills.
+typedef struct {
+    int* ps;
+    long long i0, n, wn;
+    double half, usps;
+    int lines;
+} comb_box_t;
+
+// Mean sync-box fill of the comb c(j) = cA + cB*j, j = 0..lines-1.
+static double comb_score(const comb_box_t* cb, double cA, double cB)
+{
+    double sum = 0.0;
+    for (int j = 0; j < cb->lines; j++) {
+        double c = cA + cB * (double)j;
+        long long a = (long long)lrint((c - cb->half) / cb->usps) - cb->i0;
+        long long b = a + cb->wn;
+        if (a < 0) a = 0;
+        if (b > cb->n) b = cb->n;
+        if (b > a) sum += (double)(cb->ps[b] - cb->ps[a]) / (double)cb->wn;
+    }
+    return sum / (double)cb->lines;
+}
+
+static int comb_seed(sstv_decoder_t* d)
+{
+    const sstv_mode_t* m = d->mode;
+    double T = d->T_nom;
+    int L = (int)(COMB_SPAN_US / T);
+    if (L > COMB_MAX_LINES) L = COMB_MAX_LINES;
+    if (L < 2) L = 2;
+
+    // Comb anchored on the running fit's frame 0, not on the VIS-predicted
+    // sync: some encoders start the picture a sync width off the header
+    // timing (a PD 180 sender, 20 ms early), which the tracker's
+    // re-acquisition has already corrected by the time the comb runs.
+    double A0 = d->A;
+    double half = m->sync_us * 0.5;
+    double ph_r = COMB_PHASE_FRAC * T;
+    double start = A0 - ph_r - half - 1000.0;
+    double end = A0 + ph_r + (double)(L - 1) * T * (1.0 + COMB_SLANT) + half + 1000.0;
+
+    if (t_of(d, d->n) <= end + 2000.0) return 0;
+    if (start < ring_oldest_us(d)) return 1;
+
+    comb_box_t cb;
+    cb.i0 = (long long)floor(start / d->usps);
+    cb.n = (long long)ceil(end / d->usps) - cb.i0 + 1;
+    cb.ps = (int*)malloc((size_t)(cb.n + 1) * sizeof(int));
+    if (!cb.ps) return 1;
+    double thr = map_hz(d, SYNC_THRESH_HZ);
+    cb.ps[0] = 0;
+    for (long long i = 0; i < cb.n; i++) {
+        cb.ps[i + 1] = cb.ps[i] + (getd(d, cb.i0 + i) < thr ? 1 : 0);
+    }
+    cb.wn = (long long)lrint(m->sync_us / d->usps);
+    if (cb.wn < 1) cb.wn = 1;
+    cb.half = half;
+    cb.usps = d->usps;
+    cb.lines = L;
+
+    double cur = comb_score(&cb, d->A, d->B);
+
+    // Period step: the comb's end drifts at most ~0.25 ms per step; phase
+    // step 0.25 ms.
+    double step_e = 250.0 / ((double)(L - 1) * T);
+    int ne = (int)(COMB_SLANT / step_e);
+    int np = (int)(ph_r / 250.0);
+    int hist[101] = {0};
+    long long total = 0;
+    double best = -1.0, best_e = 0.0, best_ph = 0.0;
+    int best_edge = 0;
+    for (int ei = -ne; ei <= ne; ei++) {
+        double Bc = T * (1.0 + (double)ei * step_e);
+        for (int pi = -np; pi <= np; pi++) {
+            double ph = (double)pi * 250.0;
+            double sc = comb_score(&cb, A0 + ph, Bc);
+            int hb = (int)lrint(sc * 100.0);
+            if (hb < 0) hb = 0;
+            if (hb > 100) hb = 100;
+            hist[hb]++;
+            total++;
+            if (sc > best) {
+                best = sc;
+                best_e = (double)ei * step_e;
+                best_ph = ph;
+                best_edge = (ei == -ne || ei == ne || pi == -np || pi == np);
+            }
+        }
+    }
+    free(cb.ps);
+
+    long long acc = 0;
+    int med_b = 0;
+    for (int b = 0; b <= 100; b++) {
+        acc += hist[b];
+        if (acc * 2 >= total) { med_b = b; break; }
+    }
+    double median = (double)med_b / 100.0;
+    // Credible: well filled, well above the typical comb, an interior peak
+    // (a best at the search edge means the real comb lies outside it), and
+    // a clear improvement on the line-up the running fit already has.
+    int credible = best >= COMB_MIN_SCORE && best >= COMB_MIN_CONTRAST * median &&
+                   !best_edge && best >= cur + COMB_MIN_GAIN;
+
+    double cA = A0 + best_ph, cB = T * (1.0 + best_e);
+    int disagree = 0;
+    for (int j = 0; j < L; j++) {
+        double c = cA + cB * (double)j;
+        if (fabs((d->A + d->B * (double)j) - c) > SYNC_OUTLIER_US) disagree = 1;
+    }
+    if (!credible || !disagree) return 1;
+
+    // Replace the fit: the comb's lines become the regression history (they
+    // count as REG_YOUNG-mature, so the tracker narrows its window around
+    // them), and frames decoded against the bent fit are re-decoded.
+    d->reg_n = 0;
+    d->reg_pos = 0;
+    d->B = cB;
+    int seed = L > REG_YOUNG ? L : REG_YOUNG;
+    for (int j = 0; j < seed; j++) reg_add(d, j, cA + cB * (double)j);
+    d->fit_refined = 2;
+    d->reacq_n = 0;
+    d->miss_streak = 0;
+    redecode_frames(d, 0, d->frame_idx);
+    return 1;
+}
+
+// ---------------------------------------------------------------------------
 // IMAGE state: sync-track + decode as many frames as the data allows.
 // ---------------------------------------------------------------------------
 static void image_step(sstv_decoder_t* d)
@@ -806,6 +965,10 @@ static void image_step(sstv_decoder_t* d)
             d->status = SSTV_STATUS_DONE;
             return;
         }
+        // Comb seed: evaluated once, as soon as its lines are buffered;
+        // until then frames decode on the running fit as before.
+        if (d->vis_locked && !d->comb_done && comb_seed(d)) d->comb_done = 1;
+
         int k = d->frame_idx;
         double s = d->B / d->T_nom;
         double T = d->T_nom * s;
@@ -969,6 +1132,7 @@ static int enter_image(sstv_decoder_t* d, const sstv_mode_t* m)
     d->miss_streak = 0;
     d->reacq_n = 0;
     d->fit_refined = 0;
+    d->comb_done = 0;
     d->sync_attempts = d->sync_hits = 0;
     d->coh_tot = d->coh_good = 0;
     d->mag_base = d->mag_ema;
@@ -998,6 +1162,46 @@ static void enter_image_vis(sstv_decoder_t* d, const sstv_mode_t* m, double t0,
 // ---------------------------------------------------------------------------
 // VIS evaluation
 // ---------------------------------------------------------------------------
+// Fallback calibration from the VIS data + parity cells (see vis_evaluate):
+// two-means split of the eight cell means. Accepts only a spread that fits
+// 1100/1300 Hz under a scale of VIS_CELLS_SLOPE_MIN..1.3, and a leader level
+// m_l within VIS_CELLS_LEADER_TOL_HZ of where that calibration puts 1900 Hz.
+// Returns 1 with the measured 1200 Hz level and the scale.
+#define VIS_CELLS_SLOPE_MIN     0.55
+#define VIS_CELLS_LEADER_TOL_HZ 150.0
+static int vis_cells_calibrate(const sstv_decoder_t* d, double t0, double m_l,
+                               double* split_out, double* slope_out)
+{
+    double cell[8];
+    double lo = 1e9, hi = -1e9;
+    for (int c = 0; c < 8; c++) {
+        double center = t0 + (double)(c + 1) * VIS_CELL_US + VIS_CELL_US * 0.5;
+        cell[c] = win_mean_det(d, center - VIS_HALF_WIN_US, center + VIS_HALF_WIN_US);
+        if (cell[c] < lo) lo = cell[c];
+        if (cell[c] > hi) hi = cell[c];
+    }
+    for (int it = 0; it < 8; it++) {
+        double mid = 0.5 * (lo + hi);
+        double sl = 0.0, sh = 0.0;
+        int nl = 0, nh = 0;
+        for (int c = 0; c < 8; c++) {
+            if (cell[c] < mid) { sl += cell[c]; nl++; }
+            else { sh += cell[c]; nh++; }
+        }
+        if (nl == 0 || nh == 0) return 0;  // one tone only: nothing to split
+        lo = sl / nl;
+        hi = sh / nh;
+    }
+    double slope = (hi - lo) / 200.0;
+    if (slope < VIS_CELLS_SLOPE_MIN || slope > 1.3) return 0;
+    double split = 0.5 * (lo + hi);
+    double want_leader = split + (SSTV_FREQ_LEADER - SSTV_FREQ_SYNC) * slope;
+    if (fabs(m_l - want_leader) > VIS_CELLS_LEADER_TOL_HZ) return 0;
+    *split_out = split;
+    *slope_out = slope;
+    return 1;
+}
+
 // Read the VIS cells of the header `h` found. Returns the mode (plus the
 // start-bit time and the two-point calibration through the out-params), or
 // NULL to reject.
@@ -1050,7 +1254,30 @@ static const sstv_mode_t* vis_evaluate(const sstv_decoder_t* d, const hdr_t* h,
     }
     double m_s = win_mean_det(d, t0 + 5000.0, t0 + 25000.0);
     double slope = (m_l - m_s) / (SSTV_FREQ_LEADER - SSTV_FREQ_SYNC);
-    if (slope < 0.7 || slope > 1.3) {
+    double stop_center = t0 + 9.0 * VIS_CELL_US + VIS_CELL_US * 0.5;
+    double stop_mf = win_mean_det(d, stop_center - VIS_HALF_WIN_US,
+                                  stop_center + VIS_HALF_WIN_US);
+    int cells_cal = 0;
+    if (!strict && !forced &&
+        (slope < 0.7 || slope > 1.3 || fabs(stop_mf - m_s) > STOP_TOL_HZ)) {
+        // The start bit is one 30 ms cell, read 5-25 ms in, right after the
+        // leader's falling edge: on a weak signal the smoothing and noise
+        // lift it far enough that the scale (or the stop-bit comparison)
+        // fails while the data cells are still plainly readable (an AG5RT
+        // 20 m Martin 1 header: start bit 1330 Hz, scale 0.70, cells a clean
+        // 1340/1190 Hz split). Calibrate on the cells instead: their two tone
+        // groups straddle 1200 Hz symmetrically, so their midpoint is the
+        // 1200 Hz level and their spread the scale. The leader must agree
+        // with that scale, and the stop-bit and parity checks below still
+        // apply against it.
+        double split2, slope2;
+        if (vis_cells_calibrate(d, t0, m_l, &split2, &slope2)) {
+            m_s = split2;
+            slope = slope2;
+            cells_cal = 1;
+        }
+    }
+    if (!cells_cal && (slope < 0.7 || slope > 1.3)) {
         if (!forced || strict) {
             // Not a credible start bit level.
             *why_out = SSTV_VISREJ_START_LEVEL;
@@ -1067,9 +1294,6 @@ static const sstv_mode_t* vis_evaluate(const sstv_decoder_t* d, const hdr_t* h,
     *slope_out = slope;
 
     // Stop bit: mean must sit near the calibrated 1200 Hz level.
-    double stop_center = t0 + 9.0 * VIS_CELL_US + VIS_CELL_US * 0.5;
-    double stop_mf = win_mean_det(d, stop_center - VIS_HALF_WIN_US,
-                                  stop_center + VIS_HALF_WIN_US);
     int stop_ok = fabs(stop_mf - m_s) <= STOP_TOL_HZ;
 
     // The operator's mode lock bypasses the VIS payload entirely — the

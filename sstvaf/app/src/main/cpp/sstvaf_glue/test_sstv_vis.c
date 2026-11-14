@@ -126,6 +126,46 @@ int main(void)
               "parity-corrupted VIS does not enter IMAGE");
     }
 
+    // 4b. Start bit lifted to 1420 Hz (leader->start scale 0.69, below the
+    //     0.7 floor), data cells clean. Off air (an AG5RT 20 m Martin 1
+    //     header, issue #145) the start bit reads high on a weak signal while
+    //     the 1100/1300 Hz cells stay readable; the cells must calibrate the
+    //     header instead of it being rejected. A parity error must still
+    //     reject it.
+    {
+        for (int flip = 0; flip <= 1; flip++) {
+            float* buf = (float*)calloc(BUF_SAMPLES, sizeof(float));
+            sstv_test_osc_t o;
+            tosc_init(&o, RATE, buf, BUF_SAMPLES);
+            tosc_tone_ms(&o, 700, 50, 0.0);
+            tosc_tone_ms(&o, 1900, 300, 0.7);
+            tosc_tone_ms(&o, 1200, 10, 0.7);
+            tosc_tone_ms(&o, 1900, 300, 0.7);
+            tosc_tone_ms(&o, 1420, 30, 0.7);  // lifted start bit
+            int ones = 0;
+            for (int b = 0; b < 7; b++) {
+                int bit = (44 >> b) & 1;
+                ones += bit;
+                tosc_tone_ms(&o, bit ? 1100 : 1300, 30, 0.7);
+            }
+            int parity = (ones & 1) ^ flip;
+            tosc_tone_ms(&o, parity ? 1100 : 1300, 30, 0.7);
+            tosc_tone_ms(&o, 1200, 30, 0.7);  // stop bit
+            tosc_tone_ms(&o, 1500, 400, 0.7);
+            sstv_decoder_t* d = sstv_decoder_create(RATE);
+            sstv_test_push_all(d, buf, o.pos);
+            int mode = sstv_decoder_mode(d);
+            if (!flip) {
+                check(mode == SSTV_MODE_MARTIN1,
+                      "lifted start bit: data cells calibrate, Martin 1 accepted");
+            } else {
+                check(mode == -1, "lifted start bit + parity error: still rejected");
+            }
+            sstv_decoder_destroy(d);
+            free(buf);
+        }
+    }
+
     // 5. Unknown code with valid parity: rejected. 0x03 (two bits set, even
     //    parity already) is not an assigned mode.
     check(detect(3, 0.0, 0, 300.0, 0.0, 0, 0) == -1,
