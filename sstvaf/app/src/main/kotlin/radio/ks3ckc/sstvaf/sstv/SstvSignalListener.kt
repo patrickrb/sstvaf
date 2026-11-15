@@ -86,6 +86,10 @@ class SstvSignalListener @JvmOverloads constructor(
     /** Capture thread only (see [onAudioBuffer]). */
     private val txMute = TxMuteGate(sampleRate)
 
+    /** Whether the last buffer handed to the decoders was a muted one (for the log). */
+    @Volatile
+    private var muteAnnounced = false
+
     private val queue = ArrayBlockingQueue<Chunk>(queueCapacity)
     private val enabled = AtomicBoolean(true)
     private val running = AtomicBoolean(false)
@@ -210,6 +214,9 @@ class SstvSignalListener @JvmOverloads constructor(
         txActiveCheck = check ?: TxActiveCheck { false }
     }
 
+    /** What the transmit check says right now: true while the app is on the air. */
+    fun isTxActive(): Boolean = txActiveCheck.isActive()
+
     /**
      * Feed one capture buffer (called on the recorder thread). Copies the
      * data (the recorder reuses its buffer) and enqueues it; on overflow the
@@ -226,14 +233,17 @@ class SstvSignalListener @JvmOverloads constructor(
         if (len <= 0) return
         // Before the enabled gate, so the mute tracks the capture stream even
         // while receive is switched off.
-        when (txMute.onBuffer(txActiveCheck.isActive(), len)) {
-            TxMuteGate.Edge.MUTED -> log("SSTV RX: muted while the app transmits")
-            TxMuteGate.Edge.UNMUTED -> log("SSTV RX: listening again")
-            TxMuteGate.Edge.NONE -> Unit
-        }
+        val muted = txMute.mutes(txActiveCheck.isActive(), len)
         if (!enabled.get() || !running.get()) return
+        // Logged for the buffers the decoders actually get: with receive off
+        // (or no decoder) the receiver is not listening either way, and a
+        // "listening again" in the log would say it was.
+        if (muted != muteAnnounced) {
+            muteAnnounced = muted
+            log(if (muted) "SSTV RX: muted while the app transmits" else "SSTV RX: listening again")
+        }
         val copy =
-            if (txMute.muted) Chunk(FloatArray(len), muted = true)
+            if (muted) Chunk(FloatArray(len), muted = true)
             else Chunk(data.copyOf(len), muted = false)
         if (!queue.offer(copy)) {
             queue.poll() // drop-oldest: fresh audio wins while hunting
@@ -340,17 +350,14 @@ class SstvSignalListener @JvmOverloads constructor(
         // milliseconds on a decode attempt) must run OUTSIDE it so the UI's
         // readNewRows never waits on a COFDM demod.
         val drained = ArrayList<FloatArray>(4)
-        if (first != null) {
-            if (!first.muted) inputLevel.add(first.samples, first.samples.size)
-            drained.add(first.samples)
-        }
-        while (true) {
-            val chunk = queue.poll() ?: break
+        var chunk = first
+        while (chunk != null) {
             // Muted buffers are silence the app put there itself. Left in the
             // summary they would read as "silent (all zero)", the line that
             // means the capture device is delivering nothing.
             if (!chunk.muted) inputLevel.add(chunk.samples, chunk.samples.size)
             drained.add(chunk.samples)
+            chunk = queue.poll()
         }
         inputLevel.summaryIfDue()?.let { log("SSTV RX: input level — $it") }
         synchronized(sessionLock) {
