@@ -17,7 +17,8 @@ package radio.ks3ckc.sstvaf.sstv
  * samples, not wall-clock time: it is deterministic in tests and covers that
  * much audio even when the capture thread delivers a backlog in a burst.
  *
- * Not thread-safe: the capture thread is the only caller.
+ * The capture thread is the only caller. [onBuffer] is synchronized all the
+ * same, because that thread is replaced when the capture device is reopened.
  */
 internal class TxMuteGate(sampleRate: Int, tailMs: Int = DEFAULT_TAIL_MS) {
 
@@ -28,6 +29,7 @@ internal class TxMuteGate(sampleRate: Int, tailMs: Int = DEFAULT_TAIL_MS) {
     private var tailLeft = 0L
 
     /** Whether the buffer last passed to [onBuffer] must be replaced with silence. */
+    @Volatile
     var muted = false
         private set
 
@@ -36,6 +38,7 @@ internal class TxMuteGate(sampleRate: Int, tailMs: Int = DEFAULT_TAIL_MS) {
      * app is ([txActive]) or is not transmitting. [muted] then says what to do
      * with that buffer. A buffer the tail only partly covers is muted whole.
      */
+    @Synchronized
     fun onBuffer(txActive: Boolean, samples: Int): Edge {
         val was = muted
         when {
