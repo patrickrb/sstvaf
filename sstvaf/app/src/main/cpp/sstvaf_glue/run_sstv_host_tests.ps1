@@ -18,6 +18,9 @@
     test_sstv_robust         — sync re-acquisition, header-less lock, big slant,
                                VIS preemption (synthetic reproductions)
     test_sstv_recordings     — real off-air/on-line recordings (fixtures/*.wav)
+    test_sstv_liveband       — a live band: noise and speech never lock, a
+                               drowned header still decodes from line 0, a
+                               dead image is preempted, a fade is one picture
     test_wefax               — WeFax/radiofax helpers, phasing lock, roundtrip
 
   Debugging a recording that fails: build the sstv_wav_decode CLI (-Tool)
@@ -85,6 +88,7 @@ $suites = @(
     "test_sstv_robot36_chroma",
     "test_sstv_robust",
     "test_sstv_recordings",
+    "test_sstv_liveband",
     "test_wefax"
 )
 

@@ -61,6 +61,21 @@ static const fixture_t kFixtures[] = {
     // scale failed and the header was rejected; the picture was only found
     // by the sync train ~28 s in. Needs the VIS data-cell calibration.
     { "martin1_weak_vis_20m_yt.wav", SSTV_MODE_MARTIN1, 0, 1, 64, 2.5, 0.75, 500.0, 0.15 },
+    // Strong 20 m Scottie 2 (KD8PE test card, heard in Vermont) whose header
+    // went out under a carrier and someone still talking: no VIS. The old
+    // pulse-matching lock took one of those first lines' distorted pulses
+    // into its period estimate, started the image 2500 ppm off, and the
+    // tracker — which re-anchored phase but kept the slope — never
+    // recovered: a strong, clean picture came out sheared end to end.
+    // Needs the sync comb (period stays nominal until the syncs teach it)
+    // and the first-line walk back (rows from the picture's first line).
+    { "scottie2_qrm_header_20m_kiwi.wav", SSTV_MODE_SCOTTIE2, 0, 0, 113, 12.0, 0.92, 400.0, 0.76 },
+    // The same transmission 1500 km away in Manitoba: weaker, with the
+    // ragged syncs HF gives (edges wandering a millisecond or so line by
+    // line). The VIS decodes; the old tracker's 1.5 ms gate then kept only
+    // one side of that scatter and re-anchored on it, and the raster
+    // wandered. Needs the wide symmetric gate over a long history.
+    { "scottie2_ragged_sync_20m_kiwi.wav", SSTV_MODE_SCOTTIE2, 0, 1, 110, 9.5, 0.78, 400.0, 0.52 },
 };
 #define N_FIXTURES ((int)(sizeof(kFixtures) / sizeof(kFixtures[0])))
 
@@ -195,11 +210,81 @@ static void run_fixture(const char* dir, const fixture_t* fx)
     free(pcm);
 }
 
+// ---------------------------------------------------------------------------
+// One station taking the frequency from another (Vermont, 14.230 MHz): a
+// weak Martin 2 picture is being received when a strong Scottie 2 station
+// starts over it, its header lost under the first. The decoder used to stay
+// on the Martin 2 image to its nominal end — its syncs gone, but the energy
+// never "collapsed", there was a stronger signal on top — and the strong
+// picture was plainly audible for half a minute while the app drew noise;
+// what was left of it afterwards was a partial that was not kept.
+//
+// Driven as the RX engine drives it (reset after every terminal state): the
+// Martin 2 image must end ABORTED within a few seconds of the Scottie 2
+// picture starting (30 s into the clip), and the reset must land in a
+// Scottie 2 image that decodes it from its first line.
+// ---------------------------------------------------------------------------
+static void run_takeover(const char* dir)
+{
+    const char* file = "martin2_scottie2_takeover_20m_kiwi.wav";
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/%s", dir, file);
+    int rate = 0, n = 0;
+    float* pcm = sstv_wav_read_mono(path, &rate, &n);
+    check(pcm != 0 && rate == 12000, "takeover: fixture readable (12 kHz)");
+    if (!pcm) return;
+
+    sstv_decoder_t* d = sstv_decoder_create(rate);
+    int first_mode = -1, first_rows = 0, first_status = -1, images = 0;
+    double end_s = -1.0;
+    for (int off = 0; off < n; off += CHUNK) {
+        int c = (n - off < CHUNK) ? (n - off) : CHUNK;
+        sstv_decoder_push(d, pcm + off, c);
+        int s = sstv_decoder_status(d);
+        if (s == SSTV_STATUS_DONE || s == SSTV_STATUS_ABORTED) {
+            if (images == 0) {
+                first_mode = sstv_decoder_mode(d);
+                first_rows = sstv_decoder_rows_ready(d);
+                first_status = s;
+                end_s = (double)(off + c) / rate;
+            }
+            images++;
+            sstv_decoder_reset(d);
+        }
+    }
+    const sstv_mode_t* m = sstv_mode_get(sstv_decoder_mode(d));
+    int rows = sstv_decoder_rows_ready(d);
+    int status = sstv_decoder_status(d), vis = sstv_decoder_vis_locked(d);
+    double coh = -1.0;
+    if (m && rows > 1) {
+        uint32_t* img = (uint32_t*)calloc((size_t)m->width * m->height, 4);
+        sstv_decoder_read_rows(d, 0, rows, img);
+        coh = coherence(img, m->width, rows);
+        free(img);
+    }
+    printf("  info: takeover -> first image mode %d ended status %d at %.1f s with %d rows;"
+           " then %s, vis %d, rows %d, coherence %.2f, status %d\n", first_mode, first_status,
+           end_s, first_rows, m ? m->name : "(none)", vis, rows, coh, status);
+    check(first_mode == SSTV_MODE_MARTIN2 && first_status == SSTV_STATUS_ABORTED &&
+              first_rows >= 100,
+          "takeover: the Martin 2 image ends ABORTED with its rows kept");
+    check(end_s >= 0.0 && end_s <= 36.0,
+          "takeover: it lets go within a few seconds of the Scottie 2 picture starting");
+    check(images == 1 && m && m->id == SSTV_MODE_SCOTTIE2 && vis == 0 &&
+              status == SSTV_STATUS_IMAGE,
+          "takeover: the reset lands in the Scottie 2 image (sync comb, no header)");
+    check(rows >= 34, "takeover: Scottie 2 rows from the picture's first line");
+    check(coh >= 0.60, "takeover: those rows are a picture (coherence >= 0.60)");
+    sstv_decoder_destroy(d);
+    free(pcm);
+}
+
 int main(int argc, char** argv)
 {
     const char* dir = (argc > 1) ? argv[1] : "fixtures";
     printf("sstv_recordings tests (%s):\n", dir);
     for (int i = 0; i < N_FIXTURES; i++) run_fixture(dir, &kFixtures[i]);
+    run_takeover(dir);
     if (g_failures) {
         printf("%d FAILURE(S)\n", g_failures);
         return 1;
