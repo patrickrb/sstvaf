@@ -5,10 +5,18 @@
 //! freshest audio is what matters for finding the next leader, so the stalest
 //! buffer is discarded rather than the newest. Drops are counted so the engine
 //! can log them instead of degrading silently.
+//!
+//! It is also where the receiver is kept from hearing the app's own
+//! transmission (see [`super::mute`]), as on Android, where the mute sits in
+//! `SstvSignalListener.onAudioBuffer`: the push is the moment a block is
+//! delivered from capture, and a block muted here stays muted however long it
+//! then waits for a lagging decoder.
 
 use std::collections::VecDeque;
 use std::sync::{Condvar, Mutex};
 use std::time::Duration;
+
+use super::mute::{TxActive, TxMuteGate, TX_MUTE_TAIL_MS};
 
 pub struct AudioQueue {
     inner: Mutex<Inner>,
@@ -17,9 +25,34 @@ pub struct AudioQueue {
 }
 
 struct Inner {
-    blocks: VecDeque<Vec<f32>>,
+    blocks: VecDeque<Block>,
     dropped: u64,
     closed: bool,
+    mute: Option<Mute>,
+    /// Whether the last block handed to the decoder was a muted one.
+    draining_muted: bool,
+}
+
+struct Block {
+    samples: Vec<f32>,
+    /// Queued as silence because the app was transmitting.
+    muted: bool,
+}
+
+struct Mute {
+    tx_active: TxActive,
+    gate: TxMuteGate,
+}
+
+/// What one drain hands the decode loop.
+pub struct Drained {
+    pub blocks: Vec<Vec<f32>>,
+    /// The mute changes among `blocks`, in order: `true` where muted blocks
+    /// begin (the app started transmitting), `false` where audio is heard
+    /// again. Reported with the blocks they belong to, so a log line written
+    /// from them is in step with what the decoder is being fed even when it
+    /// is working through a backlog.
+    pub mute_edges: Vec<bool>,
 }
 
 impl AudioQueue {
@@ -29,16 +62,32 @@ impl AudioQueue {
                 blocks: VecDeque::with_capacity(capacity.max(1)),
                 dropped: 0,
                 closed: false,
+                mute: None,
+                draining_muted: false,
             }),
             ready: Condvar::new(),
             capacity: capacity.max(1),
         }
     }
 
+    /// A queue that replaces every block pushed while `tx_active` is raised,
+    /// and for [`TX_MUTE_TAIL_MS`] of audio afterwards, with silence of the
+    /// same length. Silence, not a dropped block: the decoder's timeline stays
+    /// continuous, and a picture that was coming in ends as a partial within
+    /// a second or so instead of being completed from the app's own audio.
+    pub fn with_tx_mute(capacity: usize, tx_active: TxActive, sample_rate: u32) -> AudioQueue {
+        let q = AudioQueue::new(capacity);
+        q.inner.lock().unwrap().mute = Some(Mute {
+            tx_active,
+            gate: TxMuteGate::new(sample_rate, TX_MUTE_TAIL_MS),
+        });
+        q
+    }
+
     /// Enqueue a block. Never blocks: at capacity the oldest block is dropped.
     /// Returns the running dropped-block count so the caller can rate-limit a
     /// log line.
-    pub fn push(&self, block: Vec<f32>) -> u64 {
+    pub fn push(&self, mut block: Vec<f32>) -> u64 {
         if block.is_empty() {
             return self.dropped();
         }
@@ -46,11 +95,18 @@ impl AudioQueue {
         if g.closed {
             return g.dropped;
         }
+        let muted = match g.mute.as_mut() {
+            Some(m) => m.gate.mutes(m.tx_active.get(), block.len()),
+            None => false,
+        };
+        if muted {
+            block.fill(0.0);
+        }
         while g.blocks.len() >= self.capacity {
             g.blocks.pop_front();
             g.dropped += 1;
         }
-        g.blocks.push_back(block);
+        g.blocks.push_back(Block { samples: block, muted });
         let dropped = g.dropped;
         drop(g);
         self.ready.notify_one();
@@ -60,12 +116,29 @@ impl AudioQueue {
     /// Wait up to `timeout` for audio, then drain everything queued. Returns an
     /// empty vec on timeout, or once the queue is closed and empty.
     pub fn drain_blocking(&self, timeout: Duration) -> Vec<Vec<f32>> {
+        self.drain(timeout).blocks
+    }
+
+    /// [`drain_blocking`](AudioQueue::drain_blocking), together with the mute
+    /// changes among the blocks drained.
+    pub fn drain(&self, timeout: Duration) -> Drained {
         let mut g = self.inner.lock().unwrap();
         if g.blocks.is_empty() && !g.closed {
             let (next, _) = self.ready.wait_timeout(g, timeout).unwrap();
             g = next;
         }
-        g.blocks.drain(..).collect()
+        let mut blocks = Vec::with_capacity(g.blocks.len());
+        let mut mute_edges = Vec::new();
+        let mut muted = g.draining_muted;
+        for b in g.blocks.drain(..) {
+            if b.muted != muted {
+                muted = b.muted;
+                mute_edges.push(muted);
+            }
+            blocks.push(b.samples);
+        }
+        g.draining_muted = muted;
+        Drained { blocks, mute_edges }
     }
 
     /// Wake any waiter and refuse further pushes — used to stop the decode
@@ -98,6 +171,100 @@ impl AudioQueue {
 mod tests {
     use super::*;
     use std::sync::Arc;
+
+    /// One capture block (200 ms at 12 kHz) of a loud signal.
+    fn loud() -> Vec<f32> {
+        vec![0.5; 2400]
+    }
+
+    fn peaks(blocks: &[Vec<f32>]) -> Vec<f32> {
+        blocks.iter().map(|b| b.iter().fold(0.0f32, |m, v| m.max(v.abs()))).collect()
+    }
+
+    #[test]
+    fn blocks_captured_while_the_app_transmits_are_queued_as_silence() {
+        let tx = TxActive::new();
+        let q = AudioQueue::with_tx_mute(16, tx.clone(), 12_000);
+        q.push(loud());
+        tx.on_air(|| {
+            for _ in 0..3 {
+                q.push(loud());
+            }
+        });
+        let got = q.drain(Duration::from_millis(10));
+        // Same number of blocks, same lengths (the decoder's clock keeps
+        // running), but only the one from before the transmission has audio.
+        assert_eq!(got.blocks.iter().map(Vec::len).collect::<Vec<_>>(), vec![2400; 4]);
+        assert_eq!(peaks(&got.blocks), vec![0.5, 0.0, 0.0, 0.0]);
+        assert_eq!(got.mute_edges, vec![true]);
+        assert!(
+            q.drain(Duration::from_millis(1)).mute_edges.is_empty(),
+            "an edge is reported once"
+        );
+    }
+
+    #[test]
+    fn stays_muted_for_a_second_after_the_transmission_then_hears_again() {
+        let tx = TxActive::new();
+        let q = AudioQueue::with_tx_mute(16, tx.clone(), 12_000);
+        tx.on_air(|| {
+            q.push(loud());
+        });
+        // Five blocks = the 1 s tail; the sixth is live audio again.
+        for _ in 0..6 {
+            q.push(loud());
+        }
+        let got = q.drain(Duration::from_millis(10));
+        assert_eq!(peaks(&got.blocks), vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5]);
+        assert_eq!(got.mute_edges, vec![true, false]);
+    }
+
+    #[test]
+    fn mute_changes_are_reported_with_the_blocks_they_belong_to() {
+        // Not when the blocks were captured: a decoder working through a
+        // backlog is told "listening again" when it reaches the audio that
+        // is heard again, not seconds earlier.
+        let tx = TxActive::new();
+        let q = AudioQueue::with_tx_mute(64, tx.clone(), 12_000);
+        q.push(loud());
+        assert!(q.drain(Duration::from_millis(10)).mute_edges.is_empty());
+
+        tx.on_air(|| q.push(loud()));
+        for _ in 0..6 {
+            q.push(loud()); // the tail, then live audio: all queued, none drained
+        }
+        let got = q.drain(Duration::from_millis(10));
+        assert_eq!(got.mute_edges, vec![true, false]);
+        q.push(loud());
+        assert!(q.drain(Duration::from_millis(10)).mute_edges.is_empty());
+    }
+
+    #[test]
+    fn a_muted_block_stays_muted_while_it_waits_for_a_lagging_decoder() {
+        // The verdict is taken when the block is delivered, not when it is
+        // decoded: a backlog captured during a transmission must not be
+        // heard just because the transmission has ended by the time the
+        // decoder gets to it.
+        let tx = TxActive::new();
+        let q = AudioQueue::with_tx_mute(64, tx.clone(), 12_000);
+        tx.on_air(|| {
+            for _ in 0..20 {
+                q.push(loud());
+            }
+        });
+        assert!(!tx.get());
+        let got = q.drain_blocking(Duration::from_millis(10));
+        assert_eq!(peaks(&got), vec![0.0; 20]);
+    }
+
+    #[test]
+    fn a_queue_without_a_mute_never_mutes() {
+        let q = AudioQueue::new(4);
+        q.push(loud());
+        let got = q.drain(Duration::from_millis(10));
+        assert_eq!(peaks(&got.blocks), vec![0.5]);
+        assert!(got.mute_edges.is_empty());
+    }
 
     #[test]
     fn drains_in_order() {

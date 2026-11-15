@@ -8,4 +8,5 @@ pub mod audio;
 pub mod dsp;
 pub mod modes;
 pub mod rx;
+pub mod station;
 pub mod tx;
