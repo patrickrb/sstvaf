@@ -700,6 +700,13 @@ public class MainViewModel extends ViewModel {
         hamRecorder.getMicRecorder().setTxActiveCheck(() ->
                 (sstvTransmitter != null && sstvTransmitter.isTransmittingNow())
                         || (tuneOperator != null && tuneOperator.isTuning()));
+
+        // The receiver must not hear the app's own transmission (issue #153):
+        // the microphone picks up the speaker that is driving the radio, and a
+        // USB rig returns its monitor audio, so the picture being sent was
+        // decoded and saved as a received one. Same on-the-air check as the
+        // recorder above; the listener feeds its decoders silence while it holds.
+        sstvSignalListener.setTxActiveCheck(this::isTransmittingNow);
     }
 
     /** The continuous SSTV receive engine (decode state via {@code getRxState()}). */
