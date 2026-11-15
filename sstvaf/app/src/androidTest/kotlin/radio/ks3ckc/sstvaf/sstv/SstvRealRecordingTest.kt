@@ -215,4 +215,73 @@ class SstvRealRecordingTest {
             listener.stop()
         }
     }
+
+    @Test
+    fun strongLiveScottie2WithADrownedHeaderDecodesStraight() {
+        // Live 14.230 MHz (KiwiSDR, Vermont): a strong test card whose header
+        // went out under a carrier and someone still talking. The old
+        // pulse-matching lock started it 2500 ppm off and the picture came
+        // out sheared end to end, on a signal anyone could hear was clean.
+        val audio = loadFixture("scottie2_qrm_header_20m_kiwi.wav")
+        val listener = newListener()
+        listener.startDirect()
+        try {
+            val end = stream(listener, audio)
+            assertThat(end).isInstanceOf(SstvRxState.Decoding::class.java)
+            end as SstvRxState.Decoding
+            assertThat(end.mode).isEqualTo(SstvMode.SCOTTIE_2)
+            // From the picture's first line, not from where the lock landed.
+            assertThat(end.rowsReady).isAtLeast(113)
+            assertThat(Math.abs(end.slantPpm)).isLessThan(400f)
+            assertThat(end.quality).isGreaterThan(0.9f)
+            assertThat(logs.any { it.contains("sync lock (no VIS heard)") && it.contains("Scottie 2") })
+                .isTrue()
+        } finally {
+            listener.stop()
+        }
+    }
+
+    @Test
+    fun strongerStationTakesTheFrequencyFromAnImageInProgress() {
+        // Same capture: a weak Martin 2 picture is being received when a
+        // strong Scottie 2 station starts over it, its header lost. The
+        // engine used to draw the Martin 2 image to its nominal end, half a
+        // minute of noise, with the strong picture plainly audible.
+        val audio = loadFixture("martin2_scottie2_takeover_20m_kiwi.wav")
+        val listener = newListener()
+        listener.startDirect()
+        try {
+            val chunk = SstvSignalListener.SAMPLE_RATE_HZ * SstvSignalListener.MONITOR_BUFFER_MS / 1000
+            val terminals = mutableListOf<SstvRxState>()
+            var offset = 0
+            while (offset < audio.size) {
+                val n = minOf(chunk, audio.size - offset)
+                listener.onAudioBuffer(audio.copyOfRange(offset, offset + n), n)
+                listener.stepOnce(0)
+                offset += n
+                val s = listener.stateNow()
+                if ((s is SstvRxState.Complete || s is SstvRxState.Aborted) && terminals.lastOrNull() != s) {
+                    terminals += s
+                }
+            }
+            // The Martin 2 image ends as a partial, its rows kept ...
+            assertThat(terminals).hasSize(1)
+            val first = terminals.single()
+            assertThat(first).isInstanceOf(SstvRxState.Aborted::class.java)
+            first as SstvRxState.Aborted
+            assertThat(first.mode).isEqualTo(SstvMode.MARTIN_2)
+            assertThat(first.partialRows).isAtLeast(100)
+            // ... and the engine is on the Scottie 2 picture, from its top.
+            val end = listener.stateNow()
+            assertThat(end).isInstanceOf(SstvRxState.Decoding::class.java)
+            end as SstvRxState.Decoding
+            assertThat(end.mode).isEqualTo(SstvMode.SCOTTIE_2)
+            assertThat(end.rowsReady).isAtLeast(34)
+            assertThat(logs.any { it.contains("decode aborted") && it.contains("Martin 2") }).isTrue()
+            assertThat(logs.any { it.contains("sync lock (no VIS heard)") && it.contains("Scottie 2") })
+                .isTrue()
+        } finally {
+            listener.stop()
+        }
+    }
 }

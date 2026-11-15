@@ -15,7 +15,9 @@
 #                                    # fixtures/README.md)
 #
 # test_sstv_recordings runs the decoder over the real recordings in
-# ./fixtures; the other suites are synthetic.
+# ./fixtures; the other suites are synthetic (test_sstv_liveband reproduces
+# what a receiver parked on a busy frequency hears: noise, speech, drowned
+# headers, stations that stop).
 
 set -euo pipefail
 
@@ -72,6 +74,7 @@ suites=(
     test_sstv_robot36_chroma
     test_sstv_robust
     test_sstv_recordings
+    test_sstv_liveband
     test_wefax
 )
 
