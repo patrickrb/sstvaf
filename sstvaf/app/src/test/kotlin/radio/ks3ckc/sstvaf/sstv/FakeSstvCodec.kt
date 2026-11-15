@@ -68,6 +68,12 @@ class FakeSstvCodec : SstvCodec {
 
     /** First sample of every pushed buffer, in push order (drop-order checks). */
     val pushedFirstSamples = mutableListOf<Float>()
+
+    /** Largest |sample| of every pushed buffer, in push order (0 = silence). */
+    val pushedPeaks = mutableListOf<Float>()
+
+    /** Length of every pushed buffer, in push order. */
+    val pushedLengths = mutableListOf<Int>()
     var resetCount = 0
         private set
     var closedSessions = 0
@@ -88,6 +94,8 @@ class FakeSstvCodec : SstvCodec {
         override fun push(samples: FloatArray, length: Int) {
             pushCount++
             if (length > 0) pushedFirstSamples += samples[0]
+            pushedPeaks += (0 until length).maxOfOrNull { kotlin.math.abs(samples[it]) } ?: 0f
+            pushedLengths += length
             script.removeFirstOrNull()?.let { current = it }
         }
 

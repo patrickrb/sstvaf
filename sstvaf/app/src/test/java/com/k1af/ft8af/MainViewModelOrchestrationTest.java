@@ -142,6 +142,32 @@ public class MainViewModelOrchestrationTest {
     // ===== PTT request paths ==============================================
 
     @Test
+    public void receiver_isTold_whileTheAppIsOnTheAir() {
+        // Issue #153: the RX engine feeds its decoders silence while the app
+        // transmits, so it never draws (and saves) the operator's own picture.
+        // It can only do that if the view model hands it the on-the-air check;
+        // without this wiring every unit test of the mute still passes and the
+        // shipped app decodes its own transmissions again.
+        assertThat(viewModel.sstvSignalListener.isTxActive()).isFalse();
+
+        com.k1af.ft8af.transmit.TuneOperator real = viewModel.tuneOperator;
+        viewModel.tuneOperator = new com.k1af.ft8af.transmit.TuneOperator(
+                viewModel.pttController, viewModel.transmitAudioSink,
+                viewModel.meterProtectionController) {
+            @Override
+            public boolean isTuning() {
+                return true;  // the tune carrier is up
+            }
+        };
+        try {
+            assertThat(viewModel.sstvSignalListener.isTxActive()).isTrue();
+        } finally {
+            viewModel.tuneOperator = real;
+        }
+        assertThat(viewModel.sstvSignalListener.isTxActive()).isFalse();
+    }
+
+    @Test
     public void keyDown_reachesTheRig_andKeyUpReleasesIt() {
         plantConnectedRig();
 

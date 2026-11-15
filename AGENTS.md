@@ -306,6 +306,11 @@ there means the capture is delivering nothing, not that the signal is weak.
 No `SSTV RX:` lines at all while audio was audible means no leader ever
 reached the detector — look at the input level and the audio path
 (`MicRecorder:` lines say whether it is the phone mic, USB, or network).
+`SSTV RX: muted while the app transmits` and `SSTV RX: listening again`
+bracket each of the app's own transmissions (image, CW ID or tune carrier):
+between them, and for a second after the transmission ends, the decoders are
+fed silence, so nothing heard then can be decoded. Neither line is written
+while receive is switched off.
 
 For runtime detail not in `debug.log` (audio recording loop, system USB events,
 crashes), use `adb logcat`. Useful tags: `NativeSstvCodec`, `MicRecorder`,
