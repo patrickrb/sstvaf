@@ -22,6 +22,9 @@ clip below guards something that was first seen to break on a recording.
 | `scottie2_midimage_20m_yt.wav` | Scottie 2 | Weak, fading 20 m signal recorded from mid-image: no VIS in the clip. Needs the header-less sync-train lock (and noise-gap bridging in the pulse detector). |
 | `martin1_noisy_20m_yt.wav` | Martin 1 | Noisy 20 m signal, VIS readable. Noise chops Martin's 4.9 ms sync, so line by line a noise run in the picture often looks more sync-like than the real pulse; the few the young fit accepted bent it to a 5131 ppm "slant" and sheared the picture. Needs the multi-line comb seed. Clip ends mid-image (~71 rows). |
 | `martin1_weak_vis_20m_yt.wav` | Martin 1 | Weak 20 m signal under QRM. The VIS data cells are readable but the start bit reads ~130 Hz high, so the leader-to-start-bit scale failed and the header was rejected; the decoder only found the picture from the sync train ~28 s later. Needs the VIS data-cell calibration. Clip ends mid-image (~71 rows). |
+| `scottie2_qrm_header_20m_kiwi.wav` | Scottie 2 | Live 14.230 MHz, a strong test card whose header went out under a carrier and someone still talking, so there is no VIS. The pulse-matching lock took a distorted pulse from those first lines into its line-period estimate, started the image 2500 ppm off, and the tracker (which re-anchored phase but kept the slope) never recovered: a strong, clean picture came out sheared end to end. Needs the sync comb (the period stays nominal until the syncs teach it otherwise) and the walk back to the picture's first line. Clip ends mid-image (~114 rows). |
+| `scottie2_ragged_sync_20m_kiwi.wav` | Scottie 2 | The same transmission at a receiver 1500 km further on: weaker, with the ragged syncs HF gives (edges wandering a millisecond or so, line by line). The VIS decodes; the tracker's 1.5 ms gate then kept only one side of that scatter and re-anchored on it. Needs the wide symmetric gate, edge selection by agreement with the fit, and the long history. Clip ends mid-image (~113 rows). |
+| `martin2_scottie2_takeover_20m_kiwi.wav` | Martin 2, then Scottie 2 | One station taking the frequency from another: a weak Martin 2 picture is in progress when a strong Scottie 2 station starts over it, its header lost. The decoder stayed on the Martin 2 image to its nominal end (the energy never "collapsed": there was a stronger signal on top) while the strong picture was plainly audible. Needs preemption of an image whose syncs have gone. Run by its own case (`run_takeover`), driven the way the RX engine drives the decoder: reset after every terminal state. |
 
 ## Provenance
 
@@ -37,6 +40,17 @@ are included solely as engineering test data for this decoder:
 - `scottie2_midimage_20m_yt.wav` — "Amateur radio Slow Scan TV received on 20 meters." (`MH44mv_QkG4`), 12–40 s
 - `martin1_noisy_20m_yt.wav` — "SSTV Image Received on 14.230 MHz USB by G4KJS in Whitstable UK on 2026-07-03 11:10Z. Martin 1" (`LPjotkydz4E`), 38–72 s, added 2026-11-13
 - `martin1_weak_vis_20m_yt.wav` — "SSTV Image Received on 14.23 MHz USB by AG5RT in Austin Texas USA on 2026-10-24 15:25Z. Martin 1" (`wVz9yGRNzKg`), 36.5–70 s, added 2026-11-13
+
+The `_kiwi` clips are not from videos. They were recorded off the air on
+2026-11-15 between 15:56 and 16:11 UTC from public KiwiSDR receivers tuned to
+14.230 MHz USB (12 kHz audio, 200–2900 Hz passband, receiver AGC on), fifteen
+minutes at a time, to hear what the app hears on a busy frequency: band noise
+at full level between pictures, people talking, stations starting over each
+other. The transmissions are an ordinary on-air picture exchange.
+
+- `scottie2_qrm_header_20m_kiwi.wav` — receiver in Shrewsbury, Vermont, 52–92 s of the capture
+- `martin2_scottie2_takeover_20m_kiwi.wav` — same capture, 30–71 s
+- `scottie2_ragged_sync_20m_kiwi.wav` — receiver in Winnipeg, Manitoba, 52–92 s of its capture (the same transmission as the first clip)
 
 If a rights holder objects to a clip being here, replace it with an own
 recording of the same failure class and update the table.
@@ -58,6 +72,8 @@ recording of the same failure class and update the table.
    per sample (CSV) so the exact moment the decoder loses the signal can be
    inspected. `--gain G` scales the input, `--chunk N` changes the push
    size, `--rate-override HZ` lies about the sample rate.
+   A clip with more than one transmission in it needs its own case (see
+   `run_takeover`): the table runs a clip up to its first DONE/ABORTED.
 3. Add a row to `kFixtures` in `test_sstv_recordings.c` (mode, expected
    lock type, rows, quality/slant/coherence floors — set the floors a little
    under what the clean run prints) and, if the clip adds a new failure

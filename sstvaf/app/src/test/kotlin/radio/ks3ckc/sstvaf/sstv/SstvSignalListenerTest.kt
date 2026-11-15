@@ -614,4 +614,146 @@ class SstvSignalListenerTest {
             .isEqualTo("SSTV RX: input level — silent (all zero) over 30 s")
         listener.stop()
     }
+
+    // ------------------------------------------------------------------
+    // The app's own transmission (issue #153)
+    // ------------------------------------------------------------------
+
+    /** One recorder buffer (200 ms at 12 kHz) of a loud signal. */
+    private fun loud() = FloatArray(2400) { 0.5f }
+
+    @Test
+    fun audioCapturedWhileTheAppTransmitsReachesTheDecoderAsSilence() {
+        var transmitting = false
+        val listener = newListener()
+        listener.setTxActiveCheck { transmitting }
+        listener.startDirect()
+
+        listener.onAudioBuffer(loud(), 2400)
+        transmitting = true
+        repeat(3) { listener.onAudioBuffer(loud(), 2400) }
+        listener.stepOnce(0)
+
+        // Same number of buffers, same lengths (the decoder's clock keeps
+        // running), but only the one from before the transmission has audio.
+        assertThat(codec.pushedLengths).containsExactly(2400, 2400, 2400, 2400)
+        assertThat(codec.pushedPeaks).containsExactly(0.5f, 0f, 0f, 0f).inOrder()
+        assertThat(logs.count { it == "SSTV RX: muted while the app transmits" }).isEqualTo(1)
+        listener.stop()
+    }
+
+    @Test
+    fun staysMutedForASecondAfterTheTransmissionThenListensAgain() {
+        var transmitting = true
+        val listener = newListener(queueCapacity = 16)
+        listener.setTxActiveCheck { transmitting }
+        listener.startDirect()
+
+        listener.onAudioBuffer(loud(), 2400)
+        transmitting = false
+        // Five buffers = the 1 s tail (audio recorded while still on the air,
+        // the rig switching back); the sixth is live band audio again.
+        repeat(6) { listener.onAudioBuffer(loud(), 2400) }
+        listener.stepOnce(0)
+
+        assertThat(codec.pushedPeaks)
+            .containsExactly(0f, 0f, 0f, 0f, 0f, 0f, 0.5f).inOrder()
+        assertThat(logs.filter { it.contains("muted") || it.contains("listening") })
+            .containsExactly("SSTV RX: muted while the app transmits", "SSTV RX: listening again")
+            .inOrder()
+        listener.stop()
+    }
+
+    @Test
+    fun withoutATransmitCheckNothingIsMuted() {
+        val listener = newListener()
+        listener.startDirect()
+        listener.onAudioBuffer(loud(), 2400)
+        listener.stepOnce(0)
+        assertThat(codec.pushedPeaks).containsExactly(0.5f)
+
+        // Clearing a check restores that.
+        listener.setTxActiveCheck { true }
+        listener.setTxActiveCheck(null)
+        listener.onAudioBuffer(loud(), 2400)
+        listener.stepOnce(0)
+        assertThat(codec.pushedPeaks).containsExactly(0.5f, 0.5f)
+        assertThat(logs.none { it.contains("muted") }).isTrue()
+        listener.stop()
+    }
+
+    @Test
+    fun mutedAudioIsLeftOutOfTheInputLevelSummary() {
+        var transmitting = true
+        val listener = newListener(queueCapacity = 512)
+        listener.setTxActiveCheck { transmitting }
+        listener.startDirect()
+
+        // A 40 s transmission: 200 muted buffers. Counted, they would log
+        // "silent (all zero)", the line that means a dead capture device.
+        repeat(200) { listener.onAudioBuffer(loud(), 2400) }
+        listener.stepOnce(0)
+        assertThat(logs.none { it.contains("input level") }).isTrue()
+
+        // Back on receive: the 1 s tail, then 30 s of band audio.
+        transmitting = false
+        repeat(5 + 150) { listener.onAudioBuffer(loud(), 2400) }
+        listener.stepOnce(0)
+        assertThat(logs.filter { it.contains("input level") })
+            .containsExactly("SSTV RX: input level — peak -6.0 dBFS, rms -6.0 dBFS over 30 s")
+        listener.stop()
+    }
+
+    @Test
+    fun theMuteTracksTheCaptureStreamWhileReceiveIsSwitchedOff() {
+        var transmitting = true
+        val listener = newListener(queueCapacity = 16)
+        listener.setTxActiveCheck { transmitting }
+        listener.startDirect()
+        listener.setEnabled(false)
+
+        // Transmission and its tail both pass while receive is off.
+        listener.onAudioBuffer(loud(), 2400)
+        transmitting = false
+        repeat(6) { listener.onAudioBuffer(loud(), 2400) }
+        assertThat(listener.queuedBufferCount()).isEqualTo(0)
+        // Nothing was listening, so the log does not say it was muted, or
+        // that it is "listening again".
+        assertThat(logs.none { it.contains("muted") || it.contains("listening") }).isTrue()
+
+        // Switched back on, the first buffer is heard: no stale mute.
+        listener.setEnabled(true)
+        listener.onAudioBuffer(loud(), 2400)
+        listener.stepOnce(0)
+        assertThat(codec.pushedPeaks).containsExactly(0.5f)
+        listener.stop()
+    }
+
+    @Test
+    fun receiveSwitchedOnDuringATransmissionIsStillMuted() {
+        val listener = newListener()
+        listener.setTxActiveCheck { true }
+        listener.startDirect()
+        listener.setEnabled(false)
+        listener.onAudioBuffer(loud(), 2400)
+
+        listener.setEnabled(true)
+        listener.onAudioBuffer(loud(), 2400)
+        listener.stepOnce(0)
+        assertThat(codec.pushedPeaks).containsExactly(0f)
+        // The log picks the mute up at the first buffer the decoders get.
+        assertThat(logs.count { it == "SSTV RX: muted while the app transmits" }).isEqualTo(1)
+        listener.stop()
+    }
+
+    @Test
+    fun reportsWhatTheTransmitCheckSays() {
+        var transmitting = false
+        val listener = newListener()
+        assertThat(listener.isTxActive()).isFalse() // no check: never
+        listener.setTxActiveCheck { transmitting }
+        assertThat(listener.isTxActive()).isFalse()
+        transmitting = true
+        assertThat(listener.isTxActive()).isTrue()
+    }
 }

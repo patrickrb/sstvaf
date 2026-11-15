@@ -47,12 +47,21 @@ enum {
 // Decoder status
 // ---------------------------------------------------------------------------
 enum {
-    SSTV_STATUS_IDLE = 0,   // hunting for the 1900 Hz leader / a sync train
+    SSTV_STATUS_IDLE = 0,   // hunting for the 1900 Hz leader / a sync comb
     SSTV_STATUS_LEADER,     // leader seen; hunting for the VIS start bit
     SSTV_STATUS_VIS,        // start bit seen; sampling the VIS cells
-    SSTV_STATUS_IMAGE,      // VIS accepted; decoding image lines
-    SSTV_STATUS_DONE,       // full image decoded
-    SSTV_STATUS_ABORTED     // signal lost mid-image (partial image retained)
+    SSTV_STATUS_IMAGE,      // locked (VIS or sync comb); decoding image lines
+    // The image reached its last row and a picture was there for at least
+    // half the frame.
+    SSTV_STATUS_DONE,
+    // Not a complete picture, partial rows retained: the signal was lost
+    // (energy collapsed), a new transmission was found underneath it, a
+    // header lock showed no syncs in its first seconds, or the image reached
+    // its last row but the picture had ended less than half-way down (the
+    // station stopped, the transmission was joined late, or it was noise
+    // from the top). In that last case rows_ready is cut back to the rows
+    // that were picture.
+    SSTV_STATUS_ABORTED
 };
 
 // ---------------------------------------------------------------------------
@@ -104,6 +113,8 @@ sstv_decoder_t* sstv_decoder_create(int sample_rate);
 void   sstv_decoder_push(sstv_decoder_t* d, const float* samples, int n);
 int    sstv_decoder_status(const sstv_decoder_t* d);   // SSTV_STATUS_*
 int    sstv_decoder_mode(const sstv_decoder_t* d);     // mode id or -1
+// Rows decoded so far. Grows while the status is IMAGE; an image that ends
+// ABORTED at its last row reports the rows that were picture (see above).
 int    sstv_decoder_rows_ready(const sstv_decoder_t* d);
 
 // Copy up to n_rows decoded rows starting at first_row into argb (row-major,
@@ -120,14 +131,17 @@ float  sstv_decoder_slant_ppm(const sstv_decoder_t* d);
 float  sstv_decoder_quality(const sstv_decoder_t* d);
 
 // How the current image was locked: 1 = timed off a decoded VIS header,
-// 0 = locked onto the line-sync train alone (transmission joined
-// mid-image, or its header was unreadable; rows then start at the top of
-// the frame). 0 before any lock.
+// 0 = locked onto the line-sync comb alone (its header was unreadable, or
+// the transmission was joined mid-image). Row 0 is then the earliest line
+// with a sync still in the audio history: the picture's first line when the
+// header was merely drowned, the first line heard otherwise. 0 before any
+// lock.
 int    sstv_decoder_vis_locked(const sstv_decoder_t* d);
 
 // Lowest image row the decoder has rewritten since the last call (a better
 // sync fit re-decoded frames whose rows were already readable — the young-fit
-// refinement, a phase re-anchor, the comb seed), or -1 if none; the call
+// refinement, a phase re-anchor, the comb seed, the slope settling over the
+// first few dozen syncs), or -1 if none; the call
 // clears it. A caller that copies rows incrementally re-reads from there.
 int    sstv_decoder_take_rewritten_row(sstv_decoder_t* d);
 
@@ -164,7 +178,8 @@ enum {
     // A header was accepted: arg = mode id, arg2 = VIS code (the mode's own
     // code under a forced mode).
     SSTV_EVT_VIS_ACCEPTED   = 3,
-    // The header-less sync-train lock picked a mode: arg = mode id.
+    // The header-less sync-comb lock picked a mode: arg = mode id. Also
+    // reported when it takes over from an image whose syncs had gone.
     SSTV_EVT_SYNC_LOCK      = 4
 };
 
