@@ -4,9 +4,11 @@
 
 pub mod devices;
 pub mod input;
+pub mod mute;
 pub mod queue;
 pub mod resample;
 
 pub use devices::{list_input_devices, list_output_devices, AudioDevice};
 pub use input::AudioInput;
+pub use mute::TxActive;
 pub use queue::AudioQueue;

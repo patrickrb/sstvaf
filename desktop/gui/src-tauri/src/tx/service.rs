@@ -18,6 +18,7 @@ use cpal::traits::{DeviceTrait, StreamTrait};
 use cpal::{FromSample, SampleFormat, SizedSample};
 
 use crate::audio::devices::find_output_device;
+use crate::audio::TxActive;
 use crate::dsp::encode::{self, ENCODE_AMPLITUDE};
 use crate::modes::mode_by_id;
 use crate::tx::engine::{fill_frames, progress, TxEvent};
@@ -40,11 +41,16 @@ impl TxService {
     /// `mode_id` and start playing on `device_name` (or the system default).
     /// Blocks until the audio stream is running, so a bad device, mode or
     /// image size surfaces as an error here rather than as silence on the air.
+    ///
+    /// `tx_active` is raised for as long as the transmit thread lives (from
+    /// before the encode until the device has drained and the stream is
+    /// closed), which is what tells the receiver not to listen to it.
     pub fn start(
         device_name: Option<String>,
         mode_id: i32,
         pixels: Vec<u32>,
         events: Sender<TxEvent>,
+        tx_active: TxActive,
     ) -> anyhow::Result<TxService> {
         let mode = *mode_by_id(mode_id)
             .ok_or_else(|| anyhow::anyhow!("unknown SSTV mode id {mode_id}"))?;
@@ -58,6 +64,10 @@ impl TxService {
         let thread = std::thread::Builder::new()
             .name("sstvaf-tx".into())
             .spawn(move || {
+                // On the air from here until this thread ends, however it
+                // ends (declared first, so it is dropped last: after the
+                // stream is closed).
+                let _on_air = tx_active.hold();
                 // Set by `err_fn` when the stream faults (device unplugged
                 // mid-TX); `run_loop` polls it so a dead stream can't leave
                 // the loop spinning forever on a frozen `played`.
@@ -414,10 +424,25 @@ mod tests {
     #[test]
     fn start_rejects_an_unknown_mode_synchronously() {
         let (tx, _rx) = channel();
-        let err = match TxService::start(None, 99, vec![0; 4], tx) {
+        let on_air = TxActive::new();
+        let err = match TxService::start(None, 99, vec![0; 4], tx, on_air.clone()) {
             Ok(_) => panic!("mode 99 was accepted"),
             Err(e) => e,
         };
         assert!(err.to_string().contains("unknown SSTV mode"), "got {err}");
+        assert!(!on_air.get(), "a transmission that never started is not on the air");
+    }
+
+    #[test]
+    fn a_transmission_that_fails_to_start_leaves_the_receiver_unmuted() {
+        // A picture of the wrong size: the transmit thread starts, raises the
+        // on-air flag, fails in the encoder before any stream is opened (so
+        // nothing is played), and must lower the flag on its way out. With no
+        // output device at all (CI) it fails one step earlier, the same way.
+        let (tx, _rx) = channel();
+        let on_air = TxActive::new();
+        let started = TxService::start(None, 0, vec![0; 4], tx, on_air.clone());
+        assert!(started.is_err(), "a 4-pixel image was accepted for mode 0");
+        assert!(!on_air.get(), "a failed transmission left the receiver muted");
     }
 }

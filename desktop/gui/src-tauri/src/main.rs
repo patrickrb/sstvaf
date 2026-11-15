@@ -8,7 +8,7 @@ use std::sync::Mutex;
 
 use tauri::{Emitter, Manager, State};
 
-use sstvaf::audio::{self, AudioDevice};
+use sstvaf::audio::{self, AudioDevice, TxActive};
 use sstvaf::dsp::encode;
 use sstvaf::modes::{ModeInfo, MODES};
 use sstvaf::rx::{RxEvent, RxService};
@@ -22,6 +22,10 @@ struct AppState {
     /// dropped; a finished one lingers here until the next `start_tx`.
     tx: Mutex<Option<TxService>>,
     tx_events: Sender<TxEvent>,
+    /// "The app is on the air": raised by every `TxService`, read by every
+    /// `RxService`, so the receiver never decodes the app's own transmission.
+    /// One flag for the whole app; both services are handed clones of it.
+    tx_active: TxActive,
 }
 
 /// What `start_rx` tells the UI about the device it actually opened — which may
@@ -94,7 +98,8 @@ fn start_rx(
         ));
     }
     let service =
-        RxService::start(device, state.events.clone(), save_dir).map_err(|e| e.to_string())?;
+        RxService::start(device, state.events.clone(), save_dir, state.tx_active.clone())
+            .map_err(|e| e.to_string())?;
     let started = RxStarted {
         device_name: service.device_name.clone(),
         device_rate: service.device_rate,
@@ -149,8 +154,14 @@ fn start_tx(
     sstvaf::tx::ensure_idle(slot.as_ref().is_some_and(|s| s.is_running()))?;
     // Drop any finished service first — it owns a joined thread, nothing more.
     *slot = None;
-    let service = TxService::start(device, mode_id, pixels, state.tx_events.clone())
-        .map_err(|e| e.to_string())?;
+    let service = TxService::start(
+        device,
+        mode_id,
+        pixels,
+        state.tx_events.clone(),
+        state.tx_active.clone(),
+    )
+    .map_err(|e| e.to_string())?;
     let started = TxStarted {
         device_name: service.device_name.clone(),
         sample_rate: service.sample_rate,
@@ -187,6 +198,7 @@ fn main() {
             events,
             tx: Mutex::new(None),
             tx_events,
+            tx_active: TxActive::new(),
         })
         .setup(move |app| {
             // Forward RX events to the webview on the "rx-event" channel.
