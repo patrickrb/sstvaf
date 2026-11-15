@@ -19,12 +19,15 @@
 //           outliers > 2.5 ms from the fit; freewheel through missed
 //           syncs. Pixels are the fraction-weighted mean frequency over
 //           each pixel window.
-//   DONE    after the last row.
+//   DONE    after the last row, when a picture was there for at least
+//           half the frame.
 //   ABORTED > 5 line periods without a sync AND the in-band energy has
-//           collapsed (partial image retained); OR the lock showed no
+//           collapsed (partial image retained); OR a header lock showed no
 //           syncs through its probation (it was never a picture); OR a new
 //           transmission was found underneath the image (preemption,
-//           below).
+//           below); OR the last row was reached but the picture had ended
+//           less than half-way down the frame (the row count is cut back
+//           to the rows that were picture).
 //
 // Real-signal robustness (all learned from off-air recordings):
 //
@@ -41,7 +44,17 @@
 //     tracker therefore times a ragged pulse by whichever edge agrees
 //     better with the fit, accepts it within a gate wide enough to hold
 //     that scatter on both sides, and averages over a long history — the
-//     raster stays rigid instead of following each line's noise.
+//     raster stays rigid instead of following each line's noise. While
+//     the image is young the slope is also held toward the nominal period,
+//     but only as hard as the syncs are scattered about their own straight
+//     line: clean syncs from a sender whose clock is off (a fraction of a
+//     per cent is common, a per cent or more turns up) are believed at
+//     once.
+//   * A grid that has slipped. When the syncs are still seen near their
+//     predicted places but none has been close enough to enter the fit for
+//     SYNC_REACQ_FRAMES frames (a few milliseconds of audio cut out or
+//     repeated), the same comb search runs and the fit moves if the comb
+//     sits further off than the gate.
 //   * Young-fit window. Until REG_YOUNG syncs are in the regression the
 //     slope is still the nominal line period, so the search window is at
 //     least SYNC_YOUNG_FRAC of a line: a 1-2 % sound-card clock error is
@@ -57,24 +70,40 @@
 //     still decodes from its first line (and ends DONE), and one joined
 //     mid-image from the first line still buffered. Plain band noise and
 //     speech cross the sync threshold dozens of times a second in
-//     sync-length runs; they do not form a comb.
+//     sync-length runs; they do not form a comb. A sender whose clock is
+//     too far off for the rigid nominal comb is found by combs at line
+//     periods either side of nominal, tried once a second (hl_scan); the
+//     fit then starts from where the syncs on the comb's lines actually
+//     are, not from the comb.
 //   * Preemption. The header hunt keeps running underneath IMAGE (a
 //     "shadow" copy of the IDLE/LEADER/VIS machine). While the image's own
 //     syncs are arriving, only a header image content cannot imitate (the
-//     strict profile) counts. Once they have been gone for
+//     strict profile) counts. Once they have stopped arriving for
 //     IMG_UNHEALTHY_US — a deep fade, a station that stopped, a lock that
-//     was never a picture — any credible header counts, and so does any
-//     sync comb: a receiver's AGC brings the noise up to signal level when
-//     a station stops, so the energy never "collapses", and a decoder that
-//     waited for that sat on the dead image to its nominal end, deaf to
-//     the next transmission. Either way the current image ends ABORTED and
+//     was never a picture — a sync comb on another grid takes over, and
+//     once nothing sync-shaped has been seen for that long, so does any
+//     credible header: a receiver's AGC brings the noise up to signal
+//     level when a station stops, so the energy never "collapses", and a
+//     decoder that waited for that sat on the dead image to its nominal
+//     end, deaf to the next transmission. ("Arriving" means two syncs
+//     within IMG_CONFIRM_US of each other: noise, and the syncs of a
+//     station in another mode crossing this image's grid, put a single
+//     sync-shaped low on it every so often.) Either way the current image
+//     ends ABORTED and
 //     the following sstv_decoder_reset() enters IMAGE for the new
 //     transmission immediately, from its first line. For that reason
 //     reset() keeps the demodulated audio history and only rewinds the
 //     state machine.
-//   * Probation. A lock that shows no syncs in its first seconds was read
-//     out of speech or noise; it is dropped (ABORTED) instead of running
-//     for the length of an image.
+//   * Probation. A header lock that shows no syncs over the whole of its
+//     first seconds was read out of speech or noise; it is dropped
+//     (ABORTED) instead of running for the length of an image. A picture
+//     that fades right after its header has shown some and plays on.
+//   * Not a complete picture. An image runs to its last row whether or
+//     not its signal lasts (it may be a fade). At the end, one whose
+//     picture stopped less than half-way down — a station that stopped, a
+//     transmission joined so late that the frame ran on long past it —
+//     ends ABORTED with the rows that were picture, instead of DONE with
+//     a frame that is mostly noise.
 //
 // Robot 36 chroma pairing is keyed off the measured separator tone (1500 Hz
 // => the following chroma is R-Y, 2300 Hz => B-Y), NOT off assumed row
@@ -119,6 +148,8 @@
 #define REG_MAX              64        // regression history depth
 #define REG_PRIOR_LINES      8         // slope prior: worth this many consecutive lines,
 #define REG_PRIOR_HITS       24        // ... dropped after this many accepted syncs
+#define REG_PRIOR_CLEAN_US   250.0     // ... absent while the syncs scatter less than this
+#define REG_PRIOR_JITTER_US  750.0     // ... at full weight when they scatter this much
 #define MISS_LIMIT           5         // frames without sync before abort check
 #define MAG_COLLAPSE_FRAC    0.15      // energy collapse threshold vs baseline
 #define COH_MAG_FRAC         0.30      // "coherent" magnitude threshold
@@ -139,7 +170,8 @@
 #define COMB_MIN_GAIN        0.15      // ... and this much above the running fit's comb
 // Sync comb (header-less lock, re-anchor, preemption of a dead image).
 #define HLC_EVAL_US          100000.0  // evaluation cadence
-#define HLC_PHASE_US         500.0     // coarse phase step of the blind search
+#define HLC_PHASE_US         500.0     // coarse phase step of the blind search, at least;
+#define HLC_PHASE_DIV        6.0       // ... a sync this many steps wide, for the wider syncs
 #define HLC_REFINE_US        125.0     // fine step (phase, comb-end drift)
 #define HLC_SPAN_US          5300000.0 // longest comb (fits the 6 s ring)
 #define HLC_MIN_SPAN_US      2000000.0 // shortest
@@ -150,16 +182,25 @@
 #define HLC_LINE_SCORE       0.35      // per-line score for the line to count
 #define HLC_GUARD_GAP_US     1500.0    // sync box to guard box spacing
 #define HLC_CONFIRM_TOL_US   1000.0    // phase agreement between two evaluations
+#define HLC_CLOCK_MAX        0.006     // sender clock error the comb is tried out to, ±
+#define HLC_CLOCK_EVERY      10        // ... on every this-many-th evaluation
+#define HLC_FIT_SHARE        0.75      // lines of an off-nominal comb that must show a sync
+#define HLC_FIT_RMS_US       750.0     // ... lying on one straight line this closely
 #define HLC_BACK_MISSES      1         // faded lines bridged when extending back
+#define HLC_BRIDGE_SCORE     0.6       // ... to a line that scores at least this
 #define HLC_LEVEL_TOL_HZ     150.0     // ... a line counts when its box reads this near the sync tone
-#define IMG_UNHEALTHY_US     2000000.0 // no sync this long: the image is preemptible
-#define IMG_PROBATION_US     4000000.0 // a lock must show syncs by this long ...
+// Line scores (sync_mf_live) measured on live 20 m audio: band noise averages
+// -0.06 to -0.10 a line in every mode (sd 0.25, 0.35 on Martin's short sync)
+// and reaches HLC_LINE_SCORE on one line in twenty (one in eight on Martin);
+// the weakest complete pictures averaged +0.2 to +0.3.
+#define IMG_UNHEALTHY_US     2000000.0 // no confirmed sync this long: the image is preemptible
+#define IMG_CONFIRM_US       1500000.0 // two syncs this close together confirm each other
+#define IMG_PROBATION_US     4000000.0 // a header lock must show syncs by this long ...
 #define IMG_PROBATION_MIN    16        // ... or this many frames, whichever is more,
-#define IMG_PROBATION_SCORE  0.0       // at this mean line score over their second half
-                                       // (noise reads about -0.15, the weakest real
-                                       // picture in the live captures +0.08)
+#define IMG_PROBATION_SCORE  0.0       // as this mean line score over all of them
 #define IMG_MIN_SCORE        0.0       // mean line score for an image to count as one
-                                       // (noise -0.05 to -0.08, weakest real +0.04)
+#define IMG_LINE_FLOOR       0.10      // line score that separates picture from noise
+#define IMG_DONE_FRAC        0.5       // share of the frame the picture must reach to be complete
 #define IMG_REANCHOR_GAP_US  3000000.0 // off-grid syncs after a longer silence are
                                        // a new transmission, not a dropout
 #define HDR_STRICT_LEADER_US 180000.0  // shadow hunt: leader heard this long
@@ -249,6 +290,7 @@ struct sstv_decoder {
     // threshold" over det indices [cps_i0, cps_i0 + cps_n).
     int* cps;
     long long cps_i0, cps_n;
+    int cps_hunt;             // the sums are the header-less hunt's (cps_slide may extend them)
 
     // Header-less lock: the comb is evaluated every HLC_EVAL_US of audio; a
     // mode locks when it passes two evaluations in a row at one phase.
@@ -258,6 +300,7 @@ struct sstv_decoder {
     int hl_seq;               // evaluation counter
     int hl_pass_seq[SSTV_NUM_MODES];   // evaluation the mode last passed at
     double hl_pass_c[SSTV_NUM_MODES];  // ... and its newest sync centre, µs
+    double hl_pass_T[SSTV_NUM_MODES];  // ... and the line period it passed at, µs
 
     long long wait_n;         // IMAGE: resume image_step at this det index
 
@@ -270,10 +313,16 @@ struct sstv_decoder {
     double reg_k[REG_MAX], reg_c[REG_MAX];
     int reg_n, reg_pos;
     int miss_streak;          // frames since a sync sat at its predicted place
+    int nohit_streak;         // frames since a sync was accepted into the fit
     double score_sum;         // line scores (sync_mf_live) over the image so far
-    double score_late;        // ... over the second half of the probation frames
+    double ext_run;           // running sum of (line score - IMG_LINE_FLOOR) ...
+    double ext_best;          // ... its maximum so far ...
+    int ext_k;                // ... and the frame it was reached at: where the picture ends
     int last_present_k;       // newest frame whose sync was there, -1 none
-    int unhealthy_frames;     // miss_streak that makes the image preemptible
+    int last_ok_k;            // ... and had another within ok_gap frames before it
+    int last_hit_k;           // newest frame whose sync went into the fit, -1 none
+    int ok_gap;               // frames in IMG_CONFIRM_US
+    int unhealthy_frames;     // frames without one that make the image preemptible
     int prob_frames;          // frame count at which probation is judged
     long long sync_attempts, sync_hits;
     long long coh_tot, coh_good;
@@ -431,6 +480,7 @@ static void enter_image_sync(sstv_decoder_t* d, const sstv_mode_t* m, double c_l
                              double B, int lines);
 static int cps_build(sstv_decoder_t* d, long long i0, long long i1, double thr);
 static int cps_build_history(sstv_decoder_t* d);
+static double sync_mf(const sstv_decoder_t* d, double c, double w);
 
 static void free_image_state(sstv_decoder_t* d)
 {
@@ -570,10 +620,20 @@ void sstv_decoder_destroy(sstv_decoder_t* d)
 // ---------------------------------------------------------------------------
 static void reg_add(sstv_decoder_t* d, int k, double c)
 {
-    d->reg_k[d->reg_pos] = (double)k;
-    d->reg_c[d->reg_pos] = c;
-    d->reg_pos = (d->reg_pos + 1) % REG_MAX;
-    if (d->reg_n < REG_MAX) d->reg_n++;
+    // One point per frame: a frame measured again (seeded from a comb and
+    // then tracked, or re-evaluated after a re-anchor) replaces its point.
+    int at = -1;
+    for (int i = 0; i < d->reg_n && at < 0; i++) {
+        if (d->reg_k[i] == (double)k) at = i;
+    }
+    if (at >= 0) {
+        d->reg_c[at] = c;
+    } else {
+        d->reg_k[d->reg_pos] = (double)k;
+        d->reg_c[d->reg_pos] = c;
+        d->reg_pos = (d->reg_pos + 1) % REG_MAX;
+        if (d->reg_n < REG_MAX) d->reg_n++;
+    }
 
     if (d->reg_n == 1) {
         d->A = c - d->B * (double)k;  // keep the current slope
@@ -594,21 +654,40 @@ static void reg_add(sstv_decoder_t* d, int k, double c)
     }
     if (den > 0.0) {
         // While the image is young, a ridge prior on the slope, centred on
-        // B0 (the nominal line period, or the comb seed's once it has
-        // spoken) with the weight of REG_PRIOR_LINES consecutive lines. Off
+        // B0 (the nominal line period, or the comb's once it has spoken)
+        // with up to the weight of REG_PRIOR_LINES consecutive lines. Off
         // the air each sync is a millisecond or so uncertain, so a slope
         // taken freely from the first handful is good to ±1000 ppm at best
         // — enough to walk the prediction off the syncs before there are
         // enough of them to correct it, which is how a weak but readable
-        // picture lost its grid a third of the way down. Nearly every
-        // sender is within a few hundred ppm of nominal: the prior holds
-        // the slope near there while the evidence is thin, and is dropped
-        // altogether after REG_PRIOR_HITS syncs, by when the syncs know
-        // better (a prior kept on would shave a real slant by its last few
-        // per cent, a pixel or two of skew).
+        // picture lost its grid a third of the way down.
+        //
+        // The prior is for THAT case only, so its weight follows the
+        // scatter of the syncs about their own straight line. Syncs that
+        // lie on a line to within REG_PRIOR_CLEAN_US are telling the truth
+        // about the sender's clock, however far from nominal it is, and
+        // get the free fit: a clean PD 180 from a sender 0.15 % fast moves
+        // 1.1 ms a frame, and held to nominal the prediction left the gate
+        // within four frames (with only a few syncs in, even a hundredth
+        // of the prior is a quarter of the fit, hence a dead band and not
+        // a smooth weight). Syncs scattered by REG_PRIOR_JITTER_US or more
+        // get the whole prior. A fit still on its first REG_YOUNG syncs has
+        // no scatter worth measuring and a wide search window besides: it
+        // runs free. The prior is dropped altogether after REG_PRIOR_HITS
+        // syncs, by when the syncs know better (a prior kept on would shave
+        // a real slant by its last few per cent, a pixel or two of skew).
         double prior = 0.0;
-        if (d->sync_hits < REG_PRIOR_HITS) {
-            prior = (double)REG_PRIOR_LINES *
+        if (d->sync_hits < REG_PRIOR_HITS && d->reg_n >= REG_YOUNG) {
+            double b_ls = num / den, a_ls = mc - b_ls * mk, sse = 0.0;
+            for (int i = 0; i < d->reg_n; i++) {
+                double r = d->reg_c[i] - a_ls - b_ls * d->reg_k[i];
+                sse += r * r;
+            }
+            double rms = sqrt(sse / (double)(d->reg_n - 2));
+            double g = (rms - REG_PRIOR_CLEAN_US) / (REG_PRIOR_JITTER_US - REG_PRIOR_CLEAN_US);
+            if (g < 0.0) g = 0.0;
+            if (g > 1.0) g = 1.0;
+            prior = g * (double)REG_PRIOR_LINES *
                     ((double)REG_PRIOR_LINES * REG_PRIOR_LINES - 1.0) / 12.0;
         }
         d->B = (num + prior * d->B0) / (den + prior);
@@ -720,8 +799,10 @@ static int find_sync_run(const sstv_decoder_t* d, double a_us, double b_us,
                 // edge has its own enemy, the brightness of the scan before
                 // it. They rarely fail together, so with a prediction to
                 // judge by, time the pulse by whichever edge puts it nearer.
+                // (A run already low at the window's first sample began
+                // somewhere before it: there is no leading edge to time.)
                 double c_lead = ((double)run_start - 0.5) * d->usps + want_us * 0.5;
-                if (fabs(c_lead - pref_us) < fabs(c - pref_us)) c = c_lead;
+                if (run_start > ia && fabs(c_lead - pref_us) < fabs(c - pref_us)) c = c_lead;
             }
             double err = (pref_us >= 0.0) ? fabs(c - pref_us) : fabs(width - want_us);
             if (err < best_err) {
@@ -955,10 +1036,10 @@ static void redecode_frames(sstv_decoder_t* d, int k0, int k1)
 //
 // Returns 0 while the L lines are not yet buffered, 1 once evaluated.
 // ---------------------------------------------------------------------------
-// Prefix sums of "det sample below the sync threshold" over a span, for
-// O(1) sync-width box fills.
+// The decoder's prefix sums of "det sample below the sync threshold"
+// (cps_build) over the seed's span, for O(1) sync-width box fills.
 typedef struct {
-    int* ps;
+    const int* ps;
     long long i0, n, wn;
     double half, usps;
     int lines;
@@ -1001,15 +1082,13 @@ static int comb_seed(sstv_decoder_t* d)
     if (start < ring_oldest_us(d)) return 1;
 
     comb_box_t cb;
-    cb.i0 = (long long)floor(start / d->usps);
-    cb.n = (long long)ceil(end / d->usps) - cb.i0 + 1;
-    cb.ps = (int*)malloc((size_t)(cb.n + 1) * sizeof(int));
-    if (!cb.ps) return 1;
-    double thr = map_hz(d, SYNC_THRESH_HZ);
-    cb.ps[0] = 0;
-    for (long long i = 0; i < cb.n; i++) {
-        cb.ps[i + 1] = cb.ps[i] + (getd(d, cb.i0 + i) < thr ? 1 : 0);
+    if (!cps_build(d, (long long)floor(start / d->usps), (long long)ceil(end / d->usps) + 1,
+                   map_hz(d, SYNC_THRESH_HZ))) {
+        return 1;
     }
+    cb.ps = d->cps;
+    cb.i0 = d->cps_i0;
+    cb.n = d->cps_n;
     cb.wn = (long long)lrint(m->sync_us / d->usps);
     if (cb.wn < 1) cb.wn = 1;
     cb.half = half;
@@ -1045,7 +1124,6 @@ static int comb_seed(sstv_decoder_t* d)
             }
         }
     }
-    free(cb.ps);
 
     long long acc = 0;
     int med_b = 0;
@@ -1061,11 +1139,20 @@ static int comb_seed(sstv_decoder_t* d)
                    !best_edge && best >= cur + COMB_MIN_GAIN;
 
     double cA = A0 + best_ph, cB = T * (1.0 + best_e);
-    int disagree = 0;
+    int disagree = 0, shown = 0;
     for (int j = 0; j < L; j++) {
         double c = cA + cB * (double)j;
         if (fabs((d->A + d->B * (double)j) - c) > SYNC_OUTLIER_US) disagree = 1;
+        if (sync_mf(d, c, m->sync_us) >= HLC_LINE_SCORE) shown++;
     }
+    // ... and a comb of syncs, not of noise. The fill alone cannot tell:
+    // band noise is below the threshold a third of the time, and over the
+    // thousands of periods and phases searched some comb of it always
+    // fills well. When the first lines were a fade (two real syncs, then
+    // noise), that comb replaced a good fit with a slope 0.7 % off and the
+    // picture was lost. A sync has its guards clear; most of the comb's
+    // lines must show one.
+    if ((double)shown < HLC_FIT_SHARE * (double)L) credible = 0;
     if (!credible || !disagree) return 1;
 
     // Replace the fit: the comb's lines become the regression history (they
@@ -1116,6 +1203,7 @@ static int cps_build(sstv_decoder_t* d, long long i0, long long i1, double thr)
     if (lo < 0) lo = 0;
     if (i0 < lo) i0 = lo;
     if (i1 > hi) i1 = hi;
+    d->cps_hunt = 0;
     if (i1 - i0 < 2) {
         d->cps_n = 0;
         return 0;
@@ -1127,6 +1215,40 @@ static int cps_build(sstv_decoder_t* d, long long i0, long long i1, double thr)
         d->cps[i + 1] = d->cps[i] + (getd(d, i0 + i) < thr ? 1 : 0);
     }
     return 1;
+}
+
+// The header-less hunt asks for the same sums ten times a second, each time
+// over a span that has moved on by a tenth of a second: slide what is there
+// and count only the new samples, instead of counting five seconds of audio
+// again (a quarter of the cost of listening to an empty band). The sums are
+// only ever used as differences, so they need not start at zero; they are
+// brought back down before they can overflow. Falls back to a full build
+// whenever the sums on hand are not the hunt's own.
+static int cps_slide(sstv_decoder_t* d, long long i0, long long i1)
+{
+    long long have_end = d->cps_i0 + d->cps_n;
+    if (!d->cps_hunt || i0 < d->cps_i0 || i0 >= have_end || i1 < have_end) {
+        int ok = cps_build(d, i0, i1, SYNC_THRESH_HZ);
+        d->cps_hunt = ok;
+        return ok;
+    }
+    long long hi = det_end(d);
+    if (i1 > hi) i1 = hi;
+    long long drop = i0 - d->cps_i0;
+    if (drop > 0) {
+        memmove(d->cps, d->cps + drop, (size_t)(d->cps_n - drop + 1) * sizeof(int));
+        d->cps_i0 = i0;
+        d->cps_n -= drop;
+    }
+    for (long long i = d->cps_i0 + d->cps_n; i < i1; i++) {
+        d->cps[d->cps_n + 1] = d->cps[d->cps_n] + (getd(d, i) < SYNC_THRESH_HZ ? 1 : 0);
+        d->cps_n++;
+    }
+    if (d->cps[d->cps_n] > (1 << 30)) {
+        int base = d->cps[0];
+        for (long long i = 0; i <= d->cps_n; i++) d->cps[i] -= base;
+    }
+    return d->cps_n >= 2;
 }
 
 // Share of below-threshold det samples over [a_us, b_us); the part of the
@@ -1230,7 +1352,12 @@ static int comb_blind(const sstv_decoder_t* d, double T, double w, int L,
     long long wn = (long long)lrint(w / d->usps);
     long long gn = (long long)lrint(HLC_GUARD_GAP_US / d->usps);
     double Tn = T / d->usps;
-    double step = HLC_PHASE_US / d->usps;
+    // The line score falls off linearly either side of a sync, over its own
+    // width: a sixth of that is step enough to land on the peak, which the
+    // fine pass then climbs a sample at a time.
+    double step_us = w / HLC_PHASE_DIV;
+    if (step_us < HLC_PHASE_US) step_us = HLC_PHASE_US;
+    double step = step_us / d->usps;
     if (wn < 2) wn = 2;
     // The newest box at phase 0 leaves room for its right guard; the oldest
     // box at the last phase needs its left guard inside the span.
@@ -1269,36 +1396,84 @@ static int comb_blind(const sstv_decoder_t* d, double T, double w, int L,
     return 1;
 }
 
-// Refine a comb found at the nominal period: the line period (within
-// ±e_max, a fraction) and the newest sync centre (within ±ph_max of c_last)
-// whose comb scores highest. Returns that mean line score.
-static double comb_refine(const sstv_decoder_t* d, double T, double w, int L,
-                          double c_last, double ph_max, double e_max,
-                          double* c_out, double* B_out)
+// Refine a comb's phase: the newest sync centre, within ±ph_max of c_last,
+// whose comb of L lines at line period T scores highest.
+static double comb_phase(const sstv_decoder_t* d, double T, double w, int L, double c_last,
+                         double ph_max)
 {
-    double step_e = (L > 1) ? HLC_REFINE_US / ((double)(L - 1) * T) : 1.0;
-    int ne = (int)(e_max / step_e);
     int np = (int)(ph_max / HLC_REFINE_US);
-    double best = -1e18, best_e = 0.0, best_ph = 0.0;
-    for (int ei = -ne; ei <= ne; ei++) {
-        double B = T * (1.0 + (double)ei * step_e);
-        for (int pi = -np; pi <= np; pi++) {
-            double c0 = c_last + (double)pi * HLC_REFINE_US;
-            double sum = 0.0;
-            for (int j = 0; j < L; j++) sum += sync_mf(d, c0 - (double)j * B, w);
-            // The peak is flat across the periods that move the comb's far
-            // end by less than a sample: on a tie keep the nominal one.
-            sum -= 1e-6 * (double)(ei < 0 ? -ei : ei);
-            if (sum > best) {
-                best = sum;
-                best_e = (double)ei * step_e;
-                best_ph = (double)pi * HLC_REFINE_US;
-            }
+    double best = -1e18, best_ph = 0.0;
+    for (int pi = -np; pi <= np; pi++) {
+        double c0 = c_last + (double)pi * HLC_REFINE_US;
+        double sum = 0.0;
+        for (int j = 0; j < L; j++) sum += sync_mf(d, c0 - (double)j * T, w);
+        if (sum > best) {
+            best = sum;
+            best_ph = (double)pi * HLC_REFINE_US;
         }
     }
-    *c_out = c_last + best_ph;
-    *B_out = T * (1.0 + best_e);
-    return best / (double)L;
+    return c_last + best_ph;
+}
+
+// Where the syncs on a comb's lines actually are: each line's own best
+// position within ±reach of the comb's (line score at least HLC_LINE_SCORE),
+// and the straight line through those. `a` is the newest line's offset from
+// the comb (µs), `slope` the correction to the comb's period (µs a line),
+// `rms` the scatter about the line, `n` the lines that showed a sync.
+typedef struct {
+    double a, slope, rms;
+    int n;
+} comb_fit_t;
+
+static void comb_fit_lines(const sstv_decoder_t* d, double c_last, double B, double w, int L,
+                           double reach, comb_fit_t* f)
+{
+    double x[HLC_MAX_LINES], y[HLC_MAX_LINES];
+    int n = 0;
+    if (L > HLC_MAX_LINES) L = HLC_MAX_LINES;
+    for (int j = 0; j < L; j++) {
+        double c = c_last - (double)j * B;
+        double best = -1e18, lo = 0.0, hi = 0.0;
+        for (double ph = -reach; ph <= reach; ph += HLC_REFINE_US) {
+            double v = sync_mf(d, c + ph, w);
+            if (v > best + 1e-9) {
+                best = v;
+                lo = hi = ph;
+            } else if (v > best - 1e-9) {
+                hi = ph;  // a flat top: take its middle
+            }
+        }
+        if (best >= HLC_LINE_SCORE) {
+            x[n] = -(double)j;
+            y[n] = 0.5 * (lo + hi);
+            n++;
+        }
+    }
+    f->n = n;
+    f->a = f->slope = 0.0;
+    f->rms = 1e18;
+    if (n < 3) return;
+    double mx = 0.0, my = 0.0;
+    for (int i = 0; i < n; i++) {
+        mx += x[i];
+        my += y[i];
+    }
+    mx /= n;
+    my /= n;
+    double num = 0.0, den = 0.0;
+    for (int i = 0; i < n; i++) {
+        num += (x[i] - mx) * (y[i] - my);
+        den += (x[i] - mx) * (x[i] - mx);
+    }
+    if (den <= 0.0) return;
+    f->slope = num / den;
+    f->a = my - f->slope * mx;
+    double sse = 0.0;
+    for (int i = 0; i < n; i++) {
+        double r = y[i] - f->a - f->slope * x[i];
+        sse += r * r;
+    }
+    f->rms = sqrt(sse / (double)(n - 2));
 }
 
 // The comb places a sync by where its box and guards balance, which sits a
@@ -1336,6 +1511,41 @@ static double comb_edge_offset(const sstv_decoder_t* d, double c0, double B, dou
     return (n & 1) ? off[n / 2] : 0.5 * (off[n / 2 - 1] + off[n / 2]);
 }
 
+// Seed the regression from a comb: frame k_last's sync is at c_last, the
+// `lines` frames up to it one period B apart. Each line's pulse is measured
+// the tracker's way and goes in where it actually is, so a sender whose
+// clock is off shows its real slope from the first fit; points laid on the
+// comb itself would be evidence for the period the comb merely assumed (a
+// Robot 36 sender 0.7 % fast, re-anchored on such points, took eighty rows
+// to shake them off). A line with no measurable pulse is left out. Fewer
+// than two measurable: the comb's own line stands in, at period B.
+static void reg_seed_comb(sstv_decoder_t* d, int k_last, double c_last, double B, double w,
+                          int lines)
+{
+    d->reg_n = 0;
+    d->reg_pos = 0;
+    d->B = B;
+    double reach = SYNC_GATE_US;
+    if (w / 3.0 > reach) reach = w / 3.0;
+    int got = 0;
+    for (int j = lines - 1; j >= 0; j--) {
+        if (k_last - j < 0) continue;
+        double c = c_last - (double)j * B, cm;
+        if (find_sync(d, c - 0.5 * w - reach, c + 0.5 * w + reach, w, c, &cm) &&
+            fabs(cm - c) <= reach && sync_mf_live(d, cm, w) >= HLC_LINE_SCORE) {
+            reg_add(d, k_last - j, cm);
+            got++;
+        }
+    }
+    if (got >= 2) return;
+    d->reg_n = 0;
+    d->reg_pos = 0;
+    d->B = B;
+    for (int j = lines - 1; j >= 0; j--) {
+        if (k_last - j >= 0) reg_add(d, k_last - j, c_last - (double)j * B);
+    }
+}
+
 // The sync has been missing from its predicted place for SYNC_REACQ_FRAMES
 // or more frames while the picture plays on: an audio dropout, a dropped
 // capture buffer or a sender glitch has moved every later sync by one
@@ -1351,62 +1561,98 @@ static double comb_edge_offset(const sstv_decoder_t* d, double c0, double B, dou
 // picture resuming but the next transmission in the same mode: the image
 // ends (ABORTED, partial rows kept) and the reset that follows locks onto it.
 //
+// `adrift` is the other way a fit comes loose: the syncs are still near
+// enough to their predicted places to be seen there, but further off than
+// the gate takes into the fit (a few milliseconds of audio cut out or
+// repeated), so the fit never learns where they went. The comb is laid over
+// the frames since the last accepted sync, and the fit moves only when the
+// comb sits further from it than the gate.
+//
 // Returns 1 when the fit moved (the caller re-evaluates frame k).
-static int image_reanchor(sstv_decoder_t* d, int k)
+static int image_reanchor(sstv_decoder_t* d, int k, int adrift)
 {
     const sstv_mode_t* m = d->mode;
     // A fit still on its first few syncs has no slope worth keeping: the
-    // comb is laid at the nominal period and replaces it outright.
-    int young = d->reg_n < REG_YOUNG;
+    // comb is laid at the nominal period and replaces it outright. (Twice
+    // REG_YOUNG accepted syncs, not REG_YOUNG points: in a fade right after
+    // the header the young fit's wide window picks up a noise run or two,
+    // which make the fit look older without making it any better.)
+    int young = d->reg_n < REG_YOUNG || d->sync_hits < 2 * REG_YOUNG;
     double T = young ? d->T_nom : d->B;
     double w = m->sync_us * (T / d->T_nom);
-    int n = d->miss_streak;
+    int n_max = adrift ? d->nohit_streak : d->miss_streak;
     int lines_max = hlc_lines(d->T_nom, m->sync_us);
-    if (n > lines_max) n = lines_max;
-    if (n > k + 1) n = k + 1;
-    if (n < SYNC_REACQ_FRAMES) return 0;
-    // The mode is known and its sync was just there, so the bar is the
-    // noise ceiling itself, without the margin a blind lock adds.
-    double want = hlc_threshold(n, m->sync_us) - 0.15;
-    if (want > 0.75) return 0;  // too few lines yet for a sync this short
+    if (n_max > lines_max) n_max = lines_max;
+    if (n_max > k + 1) n_max = k + 1;
+    if (n_max < SYNC_REACQ_FRAMES) return 0;
 
     double predk = d->A + d->B * (double)k;
     double reach = 1.5 * w + HLC_GUARD_GAP_US + 1000.0;
-    double a = predk - (double)(n - 1) * T - 0.5 * T - reach;
+    double a = predk - (double)(n_max - 1) * T - 0.5 * T - reach;
     double b = predk + 0.5 * T + reach;
     if (!cps_build(d, (long long)floor(a / d->usps), (long long)ceil(b / d->usps) + 1,
                    map_hz(d, SYNC_THRESH_HZ))) {
         return 0;
     }
 
+    // An established fit asks for the comb on every frame missed: a glitch
+    // moves all the later syncs, so a comb on only the newest of them is
+    // something else (a station starting up in the same mode, which is the
+    // comb lock's to take, from its first line). A young fit has nothing to
+    // lose and may have been knocked about by noise in a fade right after
+    // the header, which a comb over all the missed frames fails on: for it
+    // the comb is tried over all of them, then over the newest half, and so
+    // on down to SYNC_REACQ_FRAMES.
+    int n = 0;
+    double best_ph = 0.0;
     double half = 0.5 * T - HLC_PHASE_US;
-    double best = -1e18, best_ph = 0.0;
-    for (double ph = -half; ph <= half; ph += HLC_PHASE_US) {
-        double sum = 0.0;
-        for (int j = 0; j < n; j++) sum += sync_mf(d, predk - (double)j * T + ph, w);
-        if (sum > best) {
-            best = sum;
-            best_ph = ph;
+    for (int nt = n_max; nt >= SYNC_REACQ_FRAMES && n == 0;) {
+        // The mode is known and its sync was just there, so the bar is the
+        // noise ceiling itself, without the margin a blind lock adds.
+        double want = hlc_threshold(nt, m->sync_us) - 0.15;
+        if (want > 0.75) break;  // too few lines for a sync this short
+        double best = -1e18, ph_best = 0.0;
+        for (double ph = -half; ph <= half; ph += HLC_PHASE_US) {
+            double sum = 0.0;
+            for (int j = 0; j < nt; j++) sum += sync_mf(d, predk - (double)j * T + ph, w);
+            if (sum > best) {
+                best = sum;
+                ph_best = ph;
+            }
+        }
+        double centre = ph_best;
+        for (double ph = centre - HLC_PHASE_US; ph <= centre + HLC_PHASE_US;
+             ph += HLC_REFINE_US) {
+            double sum = 0.0;
+            for (int j = 0; j < nt; j++) sum += sync_mf(d, predk - (double)j * T + ph, w);
+            if (sum > best) {
+                best = sum;
+                ph_best = ph;
+            }
+        }
+        int ok = best / (double)nt >= want;
+        for (int j = 0; j < nt && ok; j++) {
+            ok = sync_mf(d, predk - (double)j * T + ph_best, w) >= HLC_LINE_SCORE;
+        }
+        if (ok) {
+            n = nt;
+            best_ph = ph_best;
+        } else if (nt == SYNC_REACQ_FRAMES || !young) {
+            break;
+        } else {
+            nt = nt / 2 < SYNC_REACQ_FRAMES ? SYNC_REACQ_FRAMES : nt / 2;
         }
     }
-    double centre = best_ph;
-    for (double ph = centre - HLC_PHASE_US; ph <= centre + HLC_PHASE_US; ph += HLC_REFINE_US) {
-        double sum = 0.0;
-        for (int j = 0; j < n; j++) sum += sync_mf(d, predk - (double)j * T + ph, w);
-        if (sum > best) {
-            best = sum;
-            best_ph = ph;
-        }
-    }
-    if (best / (double)n < want) return 0;
-    for (int j = 0; j < n; j++) {
-        if (sync_mf(d, predk - (double)j * T + best_ph, w) < HLC_LINE_SCORE) return 0;
-    }
+    if (n == 0) return 0;
 
     best_ph += comb_edge_offset(d, predk + best_ph, T, w, n);
+    if (adrift && fabs(best_ph) <= SYNC_GATE_US) return 0;  // ragged edges, not a moved grid
 
-    double gap_us = (double)(k - d->last_present_k) * T;
-    if (gap_us > IMG_REANCHOR_GAP_US && fabs(best_ph) > 3000.0 + 0.002 * gap_us) {
+    // (Not for a young fit: it has no grid of its own to be off, and what
+    // it is being moved onto is the picture its header announced.)
+    double gap_us = (double)(k - d->last_ok_k) * T;
+    if (!adrift && !young && gap_us > IMG_REANCHOR_GAP_US &&
+        fabs(best_ph) > 3000.0 + 0.002 * gap_us) {
         d->pend_kind = 2;
         d->pend_mode = m;
         d->pend_c = predk + best_ph;
@@ -1417,21 +1663,17 @@ static int image_reanchor(sstv_decoder_t* d, int k)
     }
 
     if (young) {
-        d->B = T;
-        d->reg_n = 0;
-        d->reg_pos = 0;
-        int seed = n > REG_YOUNG ? n : REG_YOUNG;
-        for (int j = seed - 1; j >= 0; j--) {
-            if (k - j >= 0) reg_add(d, k - j, predk + best_ph - (double)j * T);
-        }
+        reg_seed_comb(d, k, predk + best_ph, T, w, n);
         d->fit_refined = 2;
         d->miss_streak = 0;
+        d->nohit_streak = 0;
         redecode_frames(d, 0, k);
         return 1;
     }
     for (int i = 0; i < d->reg_n; i++) d->reg_c[i] += best_ph;
     d->A += best_ph;
     d->miss_streak = 0;
+    d->nohit_streak = 0;
     redecode_frames(d, k - n + 1, k);
     return 1;
 }
@@ -1444,13 +1686,29 @@ static void image_step(sstv_decoder_t* d)
     const sstv_mode_t* m = d->mode;
     for (;;) {
         if (d->frame_idx >= d->n_frames) {
-            // An "image" that reached its last row with a mean line score
-            // under IMG_MIN_SCORE was noise from top to bottom, or all but
-            // its first few rows: it ends ABORTED, so it is not presented,
-            // or saved, as a received picture.
-            d->status = (d->score_sum < IMG_MIN_SCORE * (double)d->n_frames)
-                            ? SSTV_STATUS_ABORTED
-                            : SSTV_STATUS_DONE;
+            // An "image" that reached its last row is a complete picture
+            // only if a picture was there for most of the frame. Two ways
+            // it was not: a mean line score under IMG_MIN_SCORE (noise from
+            // top to bottom: a header read out of speech), and a picture
+            // that ended less than IMG_DONE_FRAC of the way down (the
+            // station stopped, or was joined so late that the frame ran on
+            // long past it; the mean cannot see that, twenty good lines
+            // outweigh two hundred of noise). Where the picture ended is
+            // the frame at which the running sum of (line score -
+            // IMG_LINE_FLOOR) peaked: it climbs while syncs arrive, even on
+            // one line in three, and falls steadily over noise. Such an
+            // image ends ABORTED, so it is not presented, or saved, as a
+            // complete picture, and its row count is cut back to the rows
+            // that were picture.
+            int ext_frames = d->ext_k + 1;
+            if (d->score_sum < IMG_MIN_SCORE * (double)d->n_frames ||
+                (double)ext_frames < IMG_DONE_FRAC * (double)d->n_frames) {
+                int rows = ext_frames * m->rows_per_frame;
+                if (rows < d->rows_done) d->rows_done = rows;
+                d->status = SSTV_STATUS_ABORTED;
+            } else {
+                d->status = SSTV_STATUS_DONE;
+            }
             return;
         }
         // Comb seed: evaluated once, as soon as its lines are buffered;
@@ -1506,8 +1764,12 @@ static void image_step(sstv_decoder_t* d)
         // line in four or five. A real sync stands clear of what is either
         // side of it; a run that does not is noise (or picture), and during
         // a fade a fit fed on those wanders off the grid it should hold.
-        double mf_hit = (hit && !young) ? sync_mf_live(d, cm, sync_w) : 0.0;
-        if (hit && !young && mf_hit < HLC_LINE_SCORE) hit = 0;
+        // (The first sync of a header-locked Martin, Robot or PD image
+        // abuts the VIS stop bit, which is at the sync tone too: its left
+        // guard is as full as its box, and it is taken on its width alone.)
+        int abuts_header = d->vis_locked && k == 0;
+        double mf_hit = hit ? (abuts_header ? 1.0 : sync_mf_live(d, cm, sync_w)) : 0.0;
+        if (hit && mf_hit < HLC_LINE_SCORE) hit = 0;
         if (hit) {
             reg_add(d, k, cm);
             d->sync_hits++;
@@ -1541,22 +1803,52 @@ static void image_step(sstv_decoder_t* d)
         double mf = sync_mf_live(d, predc, sync_w);
         if (hit && mf_hit > mf) mf = mf_hit;
         int present = hit || mf >= HLC_LINE_SCORE;
+        int stuck = 0, adrift = 0;
+        if (hit) {
+            d->nohit_streak = 0;
+        } else {
+            d->nohit_streak++;
+        }
         if (present) {
             d->miss_streak = 0;
-            d->last_present_k = k;
-            // Audio up to this sync belongs to this image: a header-less
-            // lock that follows must not reach back into it.
-            long long fl = (long long)((predc + half_sync) / d->usps);
-            if (fl > d->hl_floor) d->hl_floor = fl;
+            // The sync was there, but nothing has been accepted into the
+            // fit for a while: see whether the grid has moved (tried every
+            // SYNC_REACQ_FRAMES frames, not every frame).
+            adrift = d->nohit_streak >= SYNC_REACQ_FRAMES &&
+                     d->nohit_streak % SYNC_REACQ_FRAMES == 0;
         } else {
             d->miss_streak++;
-            if (d->miss_streak >= SYNC_REACQ_FRAMES) {
-                if (image_reanchor(d, k)) {
-                    d->sync_attempts--;  // counted again on re-evaluation
-                    continue;
-                }
-                if (d->status != SSTV_STATUS_IMAGE) return;  // next transmission
+            stuck = d->miss_streak >= SYNC_REACQ_FRAMES;
+        }
+        if (stuck || adrift) {
+            if (image_reanchor(d, k, adrift)) {
+                d->sync_attempts--;  // counted again on re-evaluation
+                continue;
             }
+            if (d->status != SSTV_STATUS_IMAGE) return;  // next transmission
+        }
+        if (present) {
+            // One sync-shaped low where a sync is due proves little: band
+            // noise makes one on a line in twenty (one in eight on
+            // Martin's short sync), and a station that has taken the
+            // frequency in another mode puts one of its own syncs on this
+            // image's grid every few seconds (Scottie 1 on a Robot 36
+            // grid: every twentieth line). Two within IMG_CONFIRM_US of
+            // each other keep the image healthy.
+            if (d->last_present_k >= 0 && k - d->last_present_k <= d->ok_gap) d->last_ok_k = k;
+            d->last_present_k = k;
+        }
+        if (hit) {
+            // Two frames running whose syncs went into the fit: the audio
+            // up to here belongs to this image, and a header-less lock that
+            // follows must not reach back past it. (Stricter than "healthy"
+            // on purpose. A floor left behind costs nothing; one moved
+            // forward by noise takes the first lines off the next picture.)
+            if (d->last_hit_k == k - 1) {
+                long long fl = (long long)((predc + half_sync) / d->usps);
+                if (fl > d->hl_floor) d->hl_floor = fl;
+            }
+            d->last_hit_k = k;
         }
         // The line score itself, summed, is the image's health: over a
         // dozen lines it tells a weak picture (a sync on one line in three
@@ -1565,7 +1857,11 @@ static void image_step(sstv_decoder_t* d)
         // counting the lines that pass. (Summed here, past the re-anchor,
         // so a frame that is re-evaluated counts once.)
         d->score_sum += mf;
-        if (k >= d->prob_frames / 2 && k < d->prob_frames) d->score_late += mf;
+        d->ext_run += mf - IMG_LINE_FLOOR;
+        if (d->ext_run > d->ext_best) {
+            d->ext_best = d->ext_run;
+            d->ext_k = k;
+        }
 
         decode_frame(d, k);
         d->frame_idx++;
@@ -1577,12 +1873,15 @@ static void image_step(sstv_decoder_t* d)
         // Probation: a header lock that has shown no syncs where it
         // predicts them by now was read out of speech or noise (it happens
         // a few times an hour on a busy band). Stop instead of painting
-        // noise until its nominal end. A comb lock is not judged this
-        // early: it was made on syncs, so silence right after it is a fade,
-        // and cutting it would split one faded picture into two partials.
+        // noise until its nominal end. The test is for NO sign of a
+        // picture over the whole of the first frames, not for a picture at
+        // the moment they end: a real one that fades a second or two after
+        // its header has shown its syncs already, and dropping it there
+        // lost the whole picture (what was left came back as a second,
+        // mis-rowed partial). A comb lock is not judged at all: it was
+        // made on syncs.
         if (d->vis_locked && d->frame_idx == d->prob_frames) {
-            int span = d->prob_frames - d->prob_frames / 2;
-            if (d->score_late < IMG_PROBATION_SCORE * (double)span) {
+            if (d->score_sum < IMG_PROBATION_SCORE * (double)d->prob_frames) {
                 d->status = SSTV_STATUS_ABORTED;
                 return;
             }
@@ -1631,9 +1930,16 @@ static int enter_image(sstv_decoder_t* d, const sstv_mode_t* m)
     d->reg_n = 0;
     d->reg_pos = 0;
     d->miss_streak = 0;
+    d->nohit_streak = 0;
     d->score_sum = 0.0;
-    d->score_late = 0.0;
+    d->ext_run = 0.0;
+    d->ext_best = 0.0;
+    d->ext_k = -1;
     d->last_present_k = -1;
+    d->last_ok_k = -1;
+    d->last_hit_k = -1;
+    d->ok_gap = (int)(IMG_CONFIRM_US / m->line_us);
+    if (d->ok_gap < 1) d->ok_gap = 1;
     d->unhealthy_frames = (int)ceil(IMG_UNHEALTHY_US / m->line_us);
     if (d->unhealthy_frames < HLC_MIN_LINES) d->unhealthy_frames = HLC_MIN_LINES;
     d->prob_frames = (int)ceil(IMG_PROBATION_US / m->line_us);
@@ -1687,8 +1993,9 @@ static double sync_body_hz(const sstv_decoder_t* d, double c, double w)
 }
 
 // Lock `m` onto a sync comb, with no header: `c_last` is the sync centre of
-// the newest line heard (µs), `B` the line period, `lines` the lines the
-// comb was seen on. The caller has built the below-threshold sums
+// the newest line heard (µs), `B` the line period the comb passed at
+// (nominal, or the measured one of a sender whose clock is off), `lines`
+// the lines the comb was seen on. The caller has built the below-threshold sums
 // (cps_build, uncalibrated threshold) over everything the comb may read.
 //
 // The lock comes a couple of seconds into the picture — the comb needs its
@@ -1705,14 +2012,31 @@ static void enter_image_sync(sstv_decoder_t* d, const sstv_mode_t* m, double c_l
 {
     double w = m->sync_us;
     if (lines < 1) lines = 1;
-    // Phase only: the period stays nominal. Nearly every sender's clock is
-    // within a few hundred ppm, and the first lines of a picture whose
-    // header was drowned are the ones most likely to be distorted by
-    // whatever drowned it — a period fitted to them started a strong
-    // off-air Scottie 2 picture 900 ppm off. The regression learns the real
-    // slant from the syncs that follow, and the first frames are re-decoded
-    // as it firms up (SYNC_REFIT_HITS).
-    comb_refine(d, m->line_us, w, lines, c_last, 1000.0, 0.0, &c_last, &B);
+    // Phase only: the period stays the one the comb passed at (nominal
+    // for nearly every sender, whose clocks are within a few hundred ppm).
+    // The first lines of a picture whose header was drowned are the ones
+    // most likely to be distorted by whatever drowned it — a period fitted
+    // freely to them started a strong off-air Scottie 2 picture 900 ppm
+    // off. The regression learns the real slant from the syncs themselves
+    // (reg_seed_comb, then the tracker), and the first frames are
+    // re-decoded as it firms up (SYNC_REFIT_HITS).
+    //
+    // Unless those lines are clean. Syncs that lie on one straight line to
+    // within REG_PRIOR_CLEAN_US are not distorted, and the line through
+    // them is the sender's clock: the comb's period only has to be good
+    // enough to find them, and left as it is it puts the walk back, and
+    // the sync-level measurement below, a little further off the pulses
+    // on every line.
+    c_last = comb_phase(d, B, w, lines, c_last, 1000.0);
+    {
+        comb_fit_t f;
+        comb_fit_lines(d, c_last, B, w, lines, w / 3.0 + 1000.0, &f);
+        if (f.n >= 4 && (double)f.n >= HLC_FIT_SHARE * (double)lines &&
+            f.rms <= REG_PRIOR_CLEAN_US) {
+            c_last += f.a;
+            B += f.slope;
+        }
+    }
     c_last += comb_edge_offset(d, c_last, B, w, lines);
     double scale = B / m->line_us;
 
@@ -1757,7 +2081,12 @@ static void enter_image_sync(sstv_decoder_t* d, const sstv_mode_t* m, double c_l
         double F = c - (m->sync_offset_us + 0.5 * w) * scale;
         if (F - 2000.0 < lo_us) break;
         if (c - 1.5 * w - HLC_GUARD_GAP_US < lo_us) break;
-        if (sync_mf(d, c, w) >= HLC_LINE_SCORE &&
+        // A line reached across a faded one has to be an unmistakable sync:
+        // noise in front of the picture passes the plain line score on one
+        // line in twenty, and bridging to it put two rows of noise on top
+        // of the picture (and cost it its last two).
+        double need = misses > 0 ? HLC_BRIDGE_SCORE : HLC_LINE_SCORE;
+        if (sync_mf(d, c, w) >= need &&
             win_mean_det(d, c - 0.25 * w, c + 0.25 * w) <= f_sync + HLC_LEVEL_TOL_HZ) {
             oldest = j;
             misses = 0;
@@ -1772,13 +2101,13 @@ static void enter_image_sync(sstv_decoder_t* d, const sstv_mode_t* m, double c_l
     d->cal_slope = 1.0;
     d->vis_locked = 0;
     d->B = B;
+    d->B0 = B;
     double A0 = c_last - (double)oldest * B;
     d->A = A0;
-    // Seed the regression with the comb's own line, one point per frame,
-    // so the tracker starts mature (narrow window) on a slope that is the
-    // comb's verdict over all its lines rather than whatever the first two
-    // or three measured edges happen to say.
-    for (int k = 0; k < nl; k++) reg_add(d, k, A0 + (double)k * B);
+    // Seed the regression with the syncs on the comb's lines, so the
+    // tracker starts mature (narrow window) on what those lines say about
+    // the sender's clock.
+    reg_seed_comb(d, nl - 1, c_last, B, w * scale, nl);
     d->fit_refined = 2;
     d->comb_done = 1;
     d->t_img = frame_start_us(d, 0);
@@ -2062,9 +2391,35 @@ static int hdr_step(sstv_decoder_t* d, hdr_t* h, long long cur)
 // Robot 72 comb, never the reverse), and of two modes with identical timing
 // (Martin 1/3, Martin 2/4) only the earlier, more common one is tried. A
 // forced mode restricts the search to that mode.
+//
+// A comb is rigid: a sender whose clock is off walks its syncs out of the
+// boxes across the comb's lines (Martin 1 at 0.15 % moves 7 ms over twelve
+// lines, more than its sync is wide), and at the nominal period such a
+// picture never locks. So when a mode's nominal comb fails, the comb is
+// also tried at line periods either side of nominal, out to
+// ±HLC_CLOCK_MAX, in steps that let the syncs drift a third of their width
+// at most between one step and the next. That is several times the work of
+// the nominal comb, so it runs on every HLC_CLOCK_EVERY-th evaluation only.
+//
+// Many more combs are that many more chances for noise, or for a picture in
+// another mode, to pass one. An off-nominal comb therefore has to show more
+// than its score: its syncs, located line by line, must lie on one straight
+// line (HLC_FIT_SHARE of the lines, to within HLC_FIT_RMS_US), the period
+// that line gives must still be off nominal (a step that passes on a
+// sender who is on nominal is the nominal comb's business, a moment
+// later), and the comb laid at exactly that period must pass too. That
+// measured period is the one tried again on the very next evaluation,
+// which is what confirms it. *T_out receives the period the comb passed at.
 // ---------------------------------------------------------------------------
+static int hl_comb_pass(const sstv_decoder_t* d, const sstv_mode_t* m, double T, int L,
+                        comb_hit_t* h)
+{
+    return comb_blind(d, T, m->sync_us, L, h) && h->score >= hlc_threshold(L, m->sync_us) &&
+           h->lines_ok >= L - (L >= 8 ? 1 : 0);
+}
+
 static const sstv_mode_t* hl_scan(sstv_decoder_t* d, long long cur, double* c_out,
-                                  int* lines_out)
+                                  int* lines_out, double* T_out)
 {
     static const int kPref[] = {
         SSTV_MODE_ROBOT36,  SSTV_MODE_ROBOT72, SSTV_MODE_MARTIN1,
@@ -2081,11 +2436,12 @@ static const sstv_mode_t* hl_scan(sstv_decoder_t* d, long long cur, double* c_ou
     long long end = cur + 1;
     long long i0 = end - (long long)((HLC_SPAN_US + 100000.0) / d->usps);
     if (i0 < d->hl_floor) i0 = d->hl_floor;
-    if (!cps_build(d, i0, end, SYNC_THRESH_HZ)) return 0;
+    if (!cps_slide(d, i0, end)) return 0;
 
     const sstv_mode_t* best = 0;
-    double best_c = 0.0;
+    double best_c = 0.0, best_T = 0.0;
     int best_lines = 0;
+    int sweep = d->hl_seq % HLC_CLOCK_EVERY == 0;
     for (int p = 0; p < n_pref; p++) {
         const sstv_mode_t* m = sstv_mode_get(kPref[p]);
         if (!m) continue;
@@ -2101,25 +2457,60 @@ static const sstv_mode_t* hl_scan(sstv_decoder_t* d, long long cur, double* c_ou
         }
         int L = hlc_lines(m->line_us, m->sync_us);
         comb_hit_t h;
-        int pass = comb_blind(d, m->line_us, m->sync_us, L, &h) &&
-                   h.score >= hlc_threshold(L, m->sync_us) &&
-                   h.lines_ok >= L - (L >= 8 ? 1 : 0);
+        double T = m->line_us;
+        int prev = d->hl_pass_seq[m->id] == d->hl_seq - 1;
+        int pass = hl_comb_pass(d, m, T, L, &h);
+        if (!pass && prev && d->hl_pass_T[m->id] != m->line_us) {
+            // The off-nominal period that passed a moment ago.
+            T = d->hl_pass_T[m->id];
+            pass = hl_comb_pass(d, m, T, L, &h);
+        }
+        if (!pass && sweep && L > 1) {
+            double step = 2.0 * m->sync_us / (3.0 * (double)(L - 1) * m->line_us);
+            int n_e = (int)ceil(HLC_CLOCK_MAX / step);
+            comb_hit_t hb, hc;
+            int found = 0;
+            for (int i = 1; i <= n_e; i++) {
+                for (int sg = -1; sg <= 1; sg += 2) {
+                    double Te = m->line_us * (1.0 + (double)(sg * i) * step);
+                    if (hl_comb_pass(d, m, Te, L, &hb) && (!found || hb.score > hc.score)) {
+                        found = 1;
+                        hc = hb;
+                        T = Te;
+                    }
+                }
+            }
+            if (found) {
+                comb_fit_t f;
+                comb_fit_lines(d, hc.c_last, T, m->sync_us, L, m->sync_us / 3.0 + 1000.0, &f);
+                double Tm = T + f.slope;
+                if ((double)f.n >= HLC_FIT_SHARE * (double)L && f.rms <= HLC_FIT_RMS_US &&
+                    fabs(Tm / m->line_us - 1.0) > 0.5 * step &&
+                    fabs(Tm / m->line_us - 1.0) <= HLC_CLOCK_MAX + step &&
+                    hl_comb_pass(d, m, Tm, L, &h)) {
+                    pass = 1;
+                    T = Tm;
+                }
+            }
+        }
         if (!pass) {
             d->hl_pass_seq[m->id] = 0;
             continue;
         }
         int confirmed = 0;
-        if (d->hl_pass_seq[m->id] == d->hl_seq - 1) {
-            double r = fmod(h.c_last - d->hl_pass_c[m->id], m->line_us);
-            if (r < 0.0) r += m->line_us;
-            if (r > 0.5 * m->line_us) r -= m->line_us;
+        if (prev && d->hl_pass_T[m->id] == T) {
+            double r = fmod(h.c_last - d->hl_pass_c[m->id], T);
+            if (r < 0.0) r += T;
+            if (r > 0.5 * T) r -= T;
             confirmed = fabs(r) <= HLC_CONFIRM_TOL_US;
         }
         d->hl_pass_seq[m->id] = d->hl_seq;
         d->hl_pass_c[m->id] = h.c_last;
+        d->hl_pass_T[m->id] = T;
         if (confirmed && (!best || m->line_us < best->line_us - 1.0)) {
             best = m;
             best_c = h.c_last;
+            best_T = T;
             best_lines = L;
         }
     }
@@ -2139,9 +2530,10 @@ static const sstv_mode_t* hl_scan(sstv_decoder_t* d, long long cur, double* c_ou
             }
             double mid = 0.0;
             for (int j = 0; j < best_lines; j++) {
-                mid += sync_mf(d, best_c - ((double)j + 0.5) * best->line_us, best->sync_us);
+                mid += sync_mf(d, best_c - ((double)j + 0.5) * best_T, best->sync_us);
             }
             if (mid / (double)best_lines >= HLC_LINE_SCORE) {
+                best_T *= h->line_us / best->line_us;
                 best = h;
                 best_lines = hlc_lines(h->line_us, h->sync_us);
             }
@@ -2150,6 +2542,7 @@ static const sstv_mode_t* hl_scan(sstv_decoder_t* d, long long cur, double* c_ou
     }
     *c_out = best_c;
     *lines_out = best_lines;
+    *T_out = best_T;
     return best;
 }
 
@@ -2266,11 +2659,11 @@ void sstv_decoder_push(sstv_decoder_t* d, const float* samples, int n)
             // Header-less lock runs alongside the header hunt: a sync comb
             // locks even when no VIS was (or will be) heard.
             if (cur >= d->hl_next) {
-                double c_last;
+                double c_last, T;
                 int lines;
-                const sstv_mode_t* m = hl_scan(d, cur, &c_last, &lines);
+                const sstv_mode_t* m = hl_scan(d, cur, &c_last, &lines, &T);
                 if (m && cps_build_history(d)) {
-                    enter_image_sync(d, m, c_last, m->line_us, lines);
+                    enter_image_sync(d, m, c_last, T, lines);
                 }
             }
             break;
@@ -2288,14 +2681,20 @@ void sstv_decoder_push(sstv_decoder_t* d, const float* samples, int n)
             // nominal end in case the signal comes back, but it no longer
             // shuts out the next transmission: any credible header, and any
             // sync comb, takes over.
-            int unhealthy = d->miss_streak >= d->unhealthy_frames;
+            // "Unhealthy" (no two syncs near each other for that long)
+            // lets a sync comb on another grid take over: a comb is hard
+            // evidence, so the test for letting it in can be quick. A
+            // header is easier to imitate, so the relaxed header profile
+            // waits for the stricter "silent": nothing sync-shaped at all.
+            int unhealthy = d->frame_idx - 1 - d->last_ok_k >= d->unhealthy_frames;
+            int silent = d->miss_streak >= d->unhealthy_frames;
             // VIS preemption: a new calibration header under the running
             // image ends it (partial rows retained); the pending lock is
             // applied by the reset that follows. Under a healthy image only
             // a header image content cannot imitate counts.
             if (d->status == SSTV_STATUS_IMAGE && hdr_step(d, &d->shadow, cur)) {
                 double t0, cal0, slope;
-                const sstv_mode_t* m = vis_evaluate(d, &d->shadow, !unhealthy, &t0, &cal0,
+                const sstv_mode_t* m = vis_evaluate(d, &d->shadow, !silent, &t0, &cal0,
                                                     &slope, 0, 0);
                 hdr_init(&d->shadow);
                 if (m) {
@@ -2308,9 +2707,9 @@ void sstv_decoder_push(sstv_decoder_t* d, const float* samples, int n)
                 }
             }
             if (d->status == SSTV_STATUS_IMAGE && unhealthy && cur >= d->hl_next) {
-                double c_last;
+                double c_last, T;
                 int lines;
-                const sstv_mode_t* m = hl_scan(d, cur, &c_last, &lines);
+                const sstv_mode_t* m = hl_scan(d, cur, &c_last, &lines, &T);
                 if (m && m == d->mode) {
                     // This image's own syncs, back on its own grid after a
                     // fade: the tracker picks them up; nothing to preempt.
@@ -2323,7 +2722,7 @@ void sstv_decoder_push(sstv_decoder_t* d, const float* samples, int n)
                     d->pend_kind = 2;
                     d->pend_mode = m;
                     d->pend_c = c_last;
-                    d->pend_B = m->line_us;
+                    d->pend_B = T;
                     d->pend_lines = lines;
                     d->status = SSTV_STATUS_ABORTED;
                 }

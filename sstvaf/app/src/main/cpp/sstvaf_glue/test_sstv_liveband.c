@@ -24,6 +24,19 @@
 //   - a picture that fades out for a few seconds and comes back is ONE
 //     picture: none of the above may cut it in two.
 //
+// Cases 8 to 13 came out of the review of the first version of that work,
+// which had bought the above at the price of things the decoder used to do:
+//
+//   - a sender whose clock is off by a fraction of a per cent or more must
+//     decode straight, with its header (8) and without it (9);
+//   - a fade right after the header is still a fade (10);
+//   - a few milliseconds of audio lost or repeated mid-picture must not
+//     leave the rest of it decoded that far off (11);
+//   - a takeover in another mode, whose syncs keep crossing the dead
+//     image's grid, must still be quick and complete (12);
+//   - a picture that stops part of the way down is a partial, with the rows
+//     that were picture, not a complete picture that is mostly noise (13).
+//
 // HOW TO RUN: sstvaf_glue/run_sstv_host_tests.ps1 / run_sstv_host_tests.sh.
 
 #include "sstv.h"
@@ -483,6 +496,303 @@ static void test_fade_is_one_picture(void)
 }
 
 // ---------------------------------------------------------------------------
+// 8. A sender whose clock is off, header heard. Sound cards a fraction of a
+//    per cent off are common and a per cent turns up; a clean picture from
+//    one puts its syncs on a straight line that is not the nominal one. The
+//    tracker has to believe them from the first few (a fit held toward the
+//    nominal period walked off a PD 180 only 0.15 % fast within four
+//    frames, and the picture came out sheared).
+// ---------------------------------------------------------------------------
+static void clock_error_case(int mode_id, double ppm, double floor_db)
+{
+    const sstv_mode_t* m = sstv_mode_get(mode_id);
+    uint32_t* img;
+    int n;
+    float* tx = encode_card(mode_id, &img, &n);
+    int cap = n + n / 20 + 16 + 3 * RATE;
+    float* rs = (float*)calloc((size_t)cap, sizeof(float));
+    int rn = sstv_test_resample_ppm(tx, n, ppm, rs, cap - 3 * RATE) + 2 * RATE;
+
+    sstv_decoder_t* d = sstv_decoder_create(RATE);
+    sstv_test_push_all(d, rs, rn);
+    int st = sstv_decoder_status(d), rows = sstv_decoder_rows_ready(d);
+    double p = -1.0;
+    if (rows == m->height) {
+        uint32_t* out = read_image(d, m);
+        p = sstv_test_min_psnr(img, out, m->width * m->height);
+        free(out);
+    }
+    char msg[160];
+    printf("  info: %s at %+.0f ppm, header heard -> status %d, %d rows, slant %.0f ppm, %.1f dB\n",
+           m->name, ppm, st, rows, sstv_decoder_slant_ppm(d), p);
+    snprintf(msg, sizeof(msg), "%s %+.0f ppm with a header: DONE, every row", m->name, ppm);
+    check(st == SSTV_STATUS_DONE && rows == m->height, msg);
+    snprintf(msg, sizeof(msg), "%s %+.0f ppm with a header: PSNR >= %.0f dB", m->name, ppm,
+             floor_db);
+    check(p >= floor_db, msg);
+    snprintf(msg, sizeof(msg), "%s %+.0f ppm with a header: slant within 100 ppm", m->name, ppm);
+    check(fabs(sstv_decoder_slant_ppm(d) - ppm) <= 100.0, msg);
+    sstv_decoder_destroy(d);
+    free(rs);
+    free(tx);
+    free(img);
+}
+
+// ---------------------------------------------------------------------------
+// 9. The same sender with the header drowned. The comb is rigid: at the
+//    nominal line period the syncs of a Martin 1 sender 0.15 % off drift
+//    7 ms across its twelve lines, more than the sync is wide, and the
+//    picture never locked at all. It must lock, decode from its first line
+//    and end DONE.
+// ---------------------------------------------------------------------------
+static void header_lost_clock_error_case(int mode_id, double ppm, double floor_db)
+{
+    const sstv_mode_t* m = sstv_mode_get(mode_id);
+    uint32_t* img;
+    int n;
+    float* tx = encode_card(mode_id, &img, &n);
+    int cap = n + n / 20 + 16;
+    float* rs = (float*)calloc((size_t)cap, sizeof(float));
+    int rn = sstv_test_resample_ppm(tx, n, ppm, rs, cap);
+    int hdr = (int)(header_samples() * (1.0 + ppm * 1e-6));
+    int lead = 3 * RATE, tail = 3 * RATE;
+    int total = lead + rn + tail;
+    float* buf = (float*)calloc((size_t)total, sizeof(float));
+    memcpy(buf + lead + hdr, rs + hdr, (size_t)(rn - hdr) * sizeof(float));
+    sstv_test_srand(0xBADC0DEull + (uint64_t)mode_id);
+    sstv_test_add_awgn(buf, lead + hdr, 0.2);     // what drowned the header
+    sstv_test_add_awgn(buf, total, 0.01);
+
+    sstv_decoder_t* d = sstv_decoder_create(RATE);
+    run_t r;
+    run_init(&r);
+    run_engine(d, buf, total, &r);
+    int off = -1;
+    double p = -1.0;
+    if (r.images >= 1 && r.last_img && r.last_mode == mode_id && r.last_rows > 32) {
+        int rpf = m->rows_per_frame;
+        p = psnr_best_offset(img, r.last_img, m->width, m->height, 2 * rpf,
+                             r.last_rows - 2 * rpf, 12 * rpf, &off);
+    }
+    char msg[160];
+    printf("  info: %s at %+.0f ppm, header drowned -> %d image(s), status %d, %d rows,"
+           " row offset %d, %.1f dB\n", m->name, ppm, r.images, r.first_status, r.first_rows,
+           off, p);
+    snprintf(msg, sizeof(msg), "%s %+.0f ppm, no header: one picture, DONE, every row",
+             m->name, ppm);
+    check(r.images == 1 && r.first_mode == mode_id && r.first_status == SSTV_STATUS_DONE &&
+          r.first_rows == m->height, msg);
+    snprintf(msg, sizeof(msg), "%s %+.0f ppm, no header: starts at the first line", m->name, ppm);
+    check(off == 0, msg);
+    snprintf(msg, sizeof(msg), "%s %+.0f ppm, no header: PSNR >= %.0f dB", m->name, ppm, floor_db);
+    check(p >= floor_db, msg);
+    free(r.last_img);
+    sstv_decoder_destroy(d);
+    free(buf);
+    free(rs);
+    free(tx);
+    free(img);
+}
+
+// ---------------------------------------------------------------------------
+// 10. A fade right after the header is still a fade. The picture has shown
+//     its first syncs; dropping it because the next few seconds are noise
+//     (probation is for headers with NOTHING behind them, see 5) lost the
+//     whole picture: what came back was locked again as a second, mis-rowed
+//     partial.
+// ---------------------------------------------------------------------------
+static void early_fade_case(int mode_id, double t0, double t1, double floor_db)
+{
+    const sstv_mode_t* m = sstv_mode_get(mode_id);
+    uint32_t* img;
+    int n;
+    float* tx = encode_card(mode_id, &img, &n);
+    int hdr = header_samples();
+    int f0 = hdr + (int)(t0 * RATE), f1 = hdr + (int)(t1 * RATE);
+    int total = n + 3 * RATE;
+    float* buf = (float*)calloc((size_t)total, sizeof(float));
+    memcpy(buf, tx, (size_t)n * sizeof(float));
+    memset(buf + f0, 0, (size_t)(f1 - f0) * sizeof(float));
+    sstv_test_srand(0xFADE01ull + (uint64_t)mode_id);
+    sstv_test_add_awgn(buf + f0, f1 - f0, AGC_SIGMA);
+
+    sstv_decoder_t* d = sstv_decoder_create(RATE);
+    run_t r;
+    run_init(&r);
+    run_engine(d, buf, total, &r);
+    double p = -1.0;
+    if (r.images == 1 && r.last_img && r.last_rows == m->height) {
+        int rpf = m->rows_per_frame;
+        int skip = (int)(t1 * 1e6 / m->line_us) * rpf + 4 * rpf;
+        p = psnr_rows(img, r.last_img, m->width, skip, m->height, 0);
+    }
+    char msg[160];
+    printf("  info: %s fading %.1f-%.1f s after its header -> %d image(s), status %d,"
+           " %d rows, %.1f dB after the fade\n", m->name, t0, t1, r.images, r.first_status,
+           r.first_rows, p);
+    snprintf(msg, sizeof(msg), "%s early fade: one picture, DONE with every row", m->name);
+    check(r.images == 1 && r.first_status == SSTV_STATUS_DONE && r.first_rows == m->height, msg);
+    snprintf(msg, sizeof(msg), "%s early fade: rows after it on the grid (PSNR >= %.0f dB)",
+             m->name, floor_db);
+    check(p >= floor_db, msg);
+    free(r.last_img);
+    sstv_decoder_destroy(d);
+    free(buf);
+    free(tx);
+    free(img);
+}
+
+// ---------------------------------------------------------------------------
+// 11. A few milliseconds of audio cut out or repeated mid-picture (a capture
+//     overrun, a sender glitch) leaves every later sync that far from where
+//     the fit expects it: near enough to still be seen there, too far to be
+//     taken into the fit. Without a re-anchor for that case the rest of the
+//     picture is decoded that far off, and the sync quality stays high.
+// ---------------------------------------------------------------------------
+static void slipped_grid_case(int mode_id, int at, double cut_ms, double floor_db)
+{
+    const sstv_mode_t* m = sstv_mode_get(mode_id);
+    uint32_t* img;
+    int n;
+    float* tx = encode_card(mode_id, &img, &n);
+    int pos = line_start_sample(m, at) + (int)(0.3 * m->line_us * RATE / 1e6);
+    int c = (int)(fabs(cut_ms) * RATE / 1000.0);
+    int total = n + c + 3 * RATE;
+    float* buf = (float*)calloc((size_t)total, sizeof(float));
+    int len;
+    memcpy(buf, tx, (size_t)pos * sizeof(float));
+    if (cut_ms > 0) {  // audio lost
+        memcpy(buf + pos, tx + pos + c, (size_t)(n - pos - c) * sizeof(float));
+        len = n - c;
+    } else {           // audio repeated
+        memcpy(buf + pos, tx + pos - c, (size_t)c * sizeof(float));
+        memcpy(buf + pos + c, tx + pos, (size_t)(n - pos) * sizeof(float));
+        len = n + c;
+    }
+    sstv_decoder_t* d = sstv_decoder_create(RATE);
+    sstv_test_push_all(d, buf, len + 3 * RATE);
+    int rows = sstv_decoder_rows_ready(d), st = sstv_decoder_status(d);
+    int rpf = m->rows_per_frame;
+    double p = -1.0;
+    if (rows == m->height) {
+        uint32_t* out = read_image(d, m);
+        p = psnr_rows(img, out, m->width, (at + 4) * rpf, m->height, 0);
+        free(out);
+    }
+    char msg[160];
+    printf("  info: %s, %.1f ms of audio %s at line %d -> status %d, %d rows, %.1f dB after it\n",
+           m->name, fabs(cut_ms), cut_ms > 0 ? "lost" : "repeated", at, st, rows, p);
+    snprintf(msg, sizeof(msg), "%s %.1f ms %s: DONE, rows after it on the grid (PSNR >= %.0f dB)",
+             m->name, fabs(cut_ms), cut_ms > 0 ? "lost" : "repeated", floor_db);
+    check(st == SSTV_STATUS_DONE && p >= floor_db, msg);
+    sstv_decoder_destroy(d);
+    free(buf);
+    free(tx);
+    free(img);
+}
+
+// ---------------------------------------------------------------------------
+// 12. A takeover in another mode whose syncs keep crossing the dead image's
+//     grid. A Robot 36 station stops; a second of noise; a Scottie 1 picture
+//     starts with no header. Every twentieth Robot 36 line (3 s) lands on a
+//     Scottie 1 sync. One sync-shaped low on the old grid must not make the
+//     dead image healthy again, nor claim the audio in front of it for the
+//     old image: the Scottie 1 picture has to take over within a few
+//     seconds and start at its first line.
+// ---------------------------------------------------------------------------
+static void test_takeover_across_crossing_grids(void)
+{
+    const sstv_mode_t* ma = sstv_mode_get(SSTV_MODE_ROBOT36);
+    const sstv_mode_t* mb = sstv_mode_get(SSTV_MODE_SCOTTIE1);
+    uint32_t *ia, *ib;
+    int na, nb;
+    float* a = encode_card(SSTV_MODE_ROBOT36, &ia, &na);
+    float* b = encode_card(SSTV_MODE_SCOTTIE1, &ib, &nb);
+    int cut = line_start_sample(ma, 77);
+    int gap = 1 * RATE, hdr = header_samples();
+    int b_at = cut + gap;
+    int total = b_at + (nb - hdr) + 4 * RATE;
+    float* buf = (float*)calloc((size_t)total, sizeof(float));
+    memcpy(buf, a, (size_t)cut * sizeof(float));
+    sstv_test_srand(0xC0551Dull);
+    sstv_test_add_awgn(buf + cut, gap, AGC_SIGMA);
+    memcpy(buf + b_at, b + hdr, (size_t)(nb - hdr) * sizeof(float));
+    sstv_test_add_awgn(buf, total, 0.01);
+
+    sstv_decoder_t* d = sstv_decoder_create(RATE);
+    run_t r;
+    run_init(&r);
+    run_engine(d, buf, total, &r);
+    int off = -1;
+    double p = -1.0;
+    if (r.images == 2 && r.last_img && r.last_mode == SSTV_MODE_SCOTTIE1) {
+        p = psnr_best_offset(ib, r.last_img, mb->width, mb->height, 2, r.last_rows - 2, 40, &off);
+    }
+    printf("  info: crossing grids -> %d image(s); Robot 36 let go %.1f s after the Scottie 1"
+           " picture began; Scottie 1: status %d, %d rows, row offset %d, %.1f dB\n", r.images,
+           r.first_end_s - (double)b_at / RATE, r.last_status, r.last_rows, off, p);
+    check(r.images == 2 && r.first_mode == SSTV_MODE_ROBOT36 &&
+          r.first_status == SSTV_STATUS_ABORTED,
+          "crossing grids: the Robot 36 image ends as a partial");
+    check(r.first_end_s <= (double)b_at / RATE + 6.0,
+          "crossing grids: ... within 6 s of the Scottie 1 picture starting");
+    check(r.last_mode == SSTV_MODE_SCOTTIE1 && r.last_status == SSTV_STATUS_DONE &&
+          r.last_rows == mb->height, "crossing grids: the Scottie 1 picture is DONE, every row");
+    check(off == 0, "crossing grids: ... from its first line");
+    check(p >= 35.0, "crossing grids: ... PSNR >= 35 dB");
+    free(r.last_img);
+    sstv_decoder_destroy(d);
+    free(buf);
+    free(a);
+    free(b);
+    free(ia);
+    free(ib);
+}
+
+// ---------------------------------------------------------------------------
+// 13. A picture that stops part of the way down is a partial, however good
+//     its top was: 6 covers ten lines, but twenty to ninety good lines
+//     outweigh the noise that follows in any score summed over the frame,
+//     and came out DONE (presented and saved as a complete picture, most of
+//     it noise). It ends ABORTED, with the rows that were picture.
+// ---------------------------------------------------------------------------
+static void stopped_station_case(int mode_id, int keep_lines)
+{
+    const sstv_mode_t* m = sstv_mode_get(mode_id);
+    uint32_t* img;
+    int n;
+    float* tx = encode_card(mode_id, &img, &n);
+    int hdr = header_samples();
+    int keep = line_start_sample(m, keep_lines) - hdr;
+    int total = (n - hdr) + 6 * RATE;
+    float* buf = (float*)calloc((size_t)total, sizeof(float));
+    memcpy(buf, tx + hdr, (size_t)keep * sizeof(float));
+    sstv_test_srand(0x0DDBA11ull + (uint64_t)keep_lines);
+    sstv_test_add_awgn(buf + keep, total - keep, AGC_SIGMA);
+
+    sstv_decoder_t* d = sstv_decoder_create(RATE);
+    run_t r;
+    run_init(&r);
+    run_engine(d, buf, total, &r);
+    int want = keep_lines * m->rows_per_frame;
+    char msg[160];
+    printf("  info: %s stops after %d lines -> status %d with %d rows at %.1f s\n", m->name,
+           keep_lines, r.first_status, r.first_rows, r.first_end_s);
+    snprintf(msg, sizeof(msg), "%s stopping after %d lines: ABORTED, not DONE", m->name,
+             keep_lines);
+    check(r.first_mode == mode_id && r.first_status == SSTV_STATUS_ABORTED, msg);
+    snprintf(msg, sizeof(msg), "%s stopping after %d lines: reports the rows that were picture",
+             m->name, keep_lines);
+    check(r.first_rows >= want - 4 * m->rows_per_frame &&
+          r.first_rows <= want + 6 * m->rows_per_frame, msg);
+    free(r.last_img);
+    sstv_decoder_destroy(d);
+    free(buf);
+    free(tx);
+    free(img);
+}
+
+// ---------------------------------------------------------------------------
 int main(void)
 {
     printf("sstv_liveband tests:\n");
@@ -499,6 +809,42 @@ int main(void)
     test_dead_header_is_dropped();
     test_noise_image_is_not_done();
     test_fade_is_one_picture();
+
+    clock_error_case(SSTV_MODE_PD180, 1500.0, 36.0);
+    clock_error_case(SSTV_MODE_PD240, 1500.0, 38.0);
+    clock_error_case(SSTV_MODE_PD120, -2000.0, 30.0);
+    clock_error_case(SSTV_MODE_PD290, -1500.0, 36.0);
+    clock_error_case(SSTV_MODE_SCOTTIE1, 7000.0, 39.0);
+    clock_error_case(SSTV_MODE_SCOTTIEDX, 1000.0, 45.0);
+    clock_error_case(SSTV_MODE_MARTIN1, -8000.0, 40.0);
+    clock_error_case(SSTV_MODE_ROBOT72, 8000.0, 27.0);
+    clock_error_case(SSTV_MODE_ROBOT36, 7000.0, 24.0);
+
+    header_lost_clock_error_case(SSTV_MODE_MARTIN1, 1500.0, 36.0);
+    header_lost_clock_error_case(SSTV_MODE_MARTIN1, -5000.0, 36.0);
+    header_lost_clock_error_case(SSTV_MODE_SCOTTIE1, 3000.0, 35.0);
+    header_lost_clock_error_case(SSTV_MODE_SCOTTIE2, -5000.0, 30.0);
+    header_lost_clock_error_case(SSTV_MODE_PD180, 1500.0, 29.0);
+    header_lost_clock_error_case(SSTV_MODE_ROBOT36, -2000.0, 23.0);
+
+    early_fade_case(SSTV_MODE_SCOTTIE1, 1.5, 5.0, 40.0);
+    early_fade_case(SSTV_MODE_SCOTTIE2, 1.5, 5.0, 32.0);
+    early_fade_case(SSTV_MODE_MARTIN1, 0.5, 4.0, 40.0);
+    early_fade_case(SSTV_MODE_MARTIN2, 1.5, 5.0, 30.0);
+    early_fade_case(SSTV_MODE_ROBOT36, 1.5, 5.0, 24.0);
+
+    slipped_grid_case(SSTV_MODE_SCOTTIE1, 100, 3.0, 42.0);
+    slipped_grid_case(SSTV_MODE_SCOTTIE1, 100, -3.0, 42.0);
+    slipped_grid_case(SSTV_MODE_ROBOT36, 100, 4.0, 25.0);
+    slipped_grid_case(SSTV_MODE_MARTIN1, 100, 3.5, 45.0);
+    slipped_grid_case(SSTV_MODE_PD120, 60, -6.0, 31.0);
+
+    test_takeover_across_crossing_grids();
+
+    stopped_station_case(SSTV_MODE_SCOTTIE2, 30);
+    stopped_station_case(SSTV_MODE_SCOTTIE2, 90);
+    stopped_station_case(SSTV_MODE_MARTIN1, 45);
+    stopped_station_case(SSTV_MODE_ROBOT36, 60);
 
     if (g_failures) {
         printf("%d FAILURE(S)\n", g_failures);

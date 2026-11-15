@@ -51,11 +51,16 @@ enum {
     SSTV_STATUS_LEADER,     // leader seen; hunting for the VIS start bit
     SSTV_STATUS_VIS,        // start bit seen; sampling the VIS cells
     SSTV_STATUS_IMAGE,      // locked (VIS or sync comb); decoding image lines
-    SSTV_STATUS_DONE,       // the image reached its last row
-    // The image ended early, partial rows retained: the signal was lost
+    // The image reached its last row and a picture was there for at least
+    // half the frame.
+    SSTV_STATUS_DONE,
+    // Not a complete picture, partial rows retained: the signal was lost
     // (energy collapsed), a new transmission was found underneath it, a
     // header lock showed no syncs in its first seconds, or the image reached
-    // its last row having been noise all the way down.
+    // its last row but the picture had ended less than half-way down (the
+    // station stopped, the transmission was joined late, or it was noise
+    // from the top). In that last case rows_ready is cut back to the rows
+    // that were picture.
     SSTV_STATUS_ABORTED
 };
 
@@ -108,6 +113,8 @@ sstv_decoder_t* sstv_decoder_create(int sample_rate);
 void   sstv_decoder_push(sstv_decoder_t* d, const float* samples, int n);
 int    sstv_decoder_status(const sstv_decoder_t* d);   // SSTV_STATUS_*
 int    sstv_decoder_mode(const sstv_decoder_t* d);     // mode id or -1
+// Rows decoded so far. Grows while the status is IMAGE; an image that ends
+// ABORTED at its last row reports the rows that were picture (see above).
 int    sstv_decoder_rows_ready(const sstv_decoder_t* d);
 
 // Copy up to n_rows decoded rows starting at first_row into argb (row-major,
