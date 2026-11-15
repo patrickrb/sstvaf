@@ -18,6 +18,7 @@ use cpal::traits::{DeviceTrait, StreamTrait};
 use cpal::{FromSample, SampleFormat, SizedSample};
 
 use crate::audio::devices::find_output_device;
+use crate::audio::mute::OnAir;
 use crate::audio::TxActive;
 use crate::dsp::encode::{self, ENCODE_AMPLITUDE};
 use crate::modes::mode_by_id;
@@ -42,9 +43,10 @@ impl TxService {
     /// Blocks until the audio stream is running, so a bad device, mode or
     /// image size surfaces as an error here rather than as silence on the air.
     ///
-    /// `tx_active` is raised for as long as the transmit thread lives (from
-    /// before the encode until the device has drained and the stream is
-    /// closed), which is what tells the receiver not to listen to it.
+    /// `tx_active` is raised from just before the output stream is built
+    /// until it has been closed (after the device has drained), which is what
+    /// tells the receiver not to listen to it. A transmission that fails
+    /// before that (no device, a bad image) never raises it.
     pub fn start(
         device_name: Option<String>,
         mode_id: i32,
@@ -64,18 +66,20 @@ impl TxService {
         let thread = std::thread::Builder::new()
             .name("sstvaf-tx".into())
             .spawn(move || {
-                // On the air from here until this thread ends, however it
-                // ends (declared first, so it is dropped last: after the
-                // stream is closed).
-                let _on_air = tx_active.hold();
                 // Set by `err_fn` when the stream faults (device unplugged
                 // mid-TX); `run_loop` polls it so a dead stream can't leave
                 // the loop spinning forever on a frozen `played`.
                 let errored = Arc::new(AtomicBool::new(false));
-                let result =
-                    open_and_play(device_name.as_deref(), &mode, &pixels, &events, &errored);
+                let result = open_and_play(
+                    device_name.as_deref(),
+                    &mode,
+                    &pixels,
+                    &events,
+                    &errored,
+                    &tx_active,
+                );
                 match result {
-                    Ok((stream, dev_name, rate, played)) => {
+                    Ok((stream, on_air, dev_name, rate, played)) => {
                         let total = played.1;
                         let _ = ready_tx.send(Ok((dev_name, rate, total)));
                         run_loop(
@@ -90,6 +94,11 @@ impl TxService {
                         );
                         // The stream must be dropped on this thread (cpal).
                         drop(stream);
+                        // Off the air once the stream is closed, and before
+                        // `finished` says so: nothing that sees the
+                        // transmission as over finds the receiver still muted
+                        // by it.
+                        drop(on_air);
                     }
                     Err(e) => {
                         let _ = ready_tx.send(Err(e.to_string()));
@@ -152,7 +161,8 @@ fn open_and_play(
     pixels: &[u32],
     events: &Sender<TxEvent>,
     errored: &Arc<AtomicBool>,
-) -> anyhow::Result<(cpal::Stream, String, u32, (Arc<AtomicUsize>, usize))> {
+    tx_active: &TxActive,
+) -> anyhow::Result<(cpal::Stream, OnAir, String, u32, (Arc<AtomicUsize>, usize))> {
     let device = find_output_device(device_name)
         .ok_or_else(|| anyhow::anyhow!("no output audio device available"))?;
     let dev_name = device.name().unwrap_or_else(|_| "unknown".into());
@@ -181,6 +191,13 @@ fn open_and_play(
         err_errored.store(true, Ordering::Relaxed);
     };
 
+    // On the air from here. Raised before the stream is built, not when it
+    // is played, because some hosts start a stream as it is created; and not
+    // any earlier, so a transmission that never gets this far (no device, an
+    // image the encoder rejects) does not silence a picture that is coming
+    // in. If the build or the play fails, the guard is dropped on the way
+    // out.
+    let on_air = tx_active.hold();
     let stream = match sample_format {
         SampleFormat::F32 => build_stream::<f32>(&device, &config, samples, played.clone(), err_fn)?,
         SampleFormat::I16 => build_stream::<i16>(&device, &config, samples, played.clone(), err_fn)?,
@@ -189,7 +206,7 @@ fn open_and_play(
     };
     stream.play()?;
 
-    Ok((stream, dev_name, rate, (played, total)))
+    Ok((stream, on_air, dev_name, rate, (played, total)))
 }
 
 /// One arm per sample format cpal may hand us; each replicates the mono
@@ -435,10 +452,10 @@ mod tests {
 
     #[test]
     fn a_transmission_that_fails_to_start_leaves_the_receiver_unmuted() {
-        // A picture of the wrong size: the transmit thread starts, raises the
-        // on-air flag, fails in the encoder before any stream is opened (so
-        // nothing is played), and must lower the flag on its way out. With no
-        // output device at all (CI) it fails one step earlier, the same way.
+        // A picture of the wrong size: the transmit thread starts and fails in
+        // the encoder, before any stream is opened (so nothing is played).
+        // With no output device at all (CI) it fails one step earlier.
+        // Neither is a transmission, and neither may leave the flag up.
         let (tx, _rx) = channel();
         let on_air = TxActive::new();
         let started = TxService::start(None, 0, vec![0; 4], tx, on_air.clone());

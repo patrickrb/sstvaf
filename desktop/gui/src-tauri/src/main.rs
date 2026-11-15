@@ -8,10 +8,11 @@ use std::sync::Mutex;
 
 use tauri::{Emitter, Manager, State};
 
-use sstvaf::audio::{self, AudioDevice, TxActive};
+use sstvaf::audio::{self, AudioDevice};
 use sstvaf::dsp::encode;
 use sstvaf::modes::{ModeInfo, MODES};
 use sstvaf::rx::{RxEvent, RxService};
+use sstvaf::station::Station;
 use sstvaf::tx::{TxEvent, TxService};
 
 struct AppState {
@@ -22,10 +23,9 @@ struct AppState {
     /// dropped; a finished one lingers here until the next `start_tx`.
     tx: Mutex<Option<TxService>>,
     tx_events: Sender<TxEvent>,
-    /// "The app is on the air": raised by every `TxService`, read by every
-    /// `RxService`, so the receiver never decodes the app's own transmission.
-    /// One flag for the whole app; both services are handed clones of it.
-    tx_active: TxActive,
+    /// Starts both services, so the receiver knows when the transmitter is on
+    /// the air and never decodes the app's own transmission.
+    station: Station,
 }
 
 /// What `start_rx` tells the UI about the device it actually opened — which may
@@ -97,9 +97,10 @@ fn start_rx(
             "auto-save disabled: no pictures or app-data directory on this system".into(),
         ));
     }
-    let service =
-        RxService::start(device, state.events.clone(), save_dir, state.tx_active.clone())
-            .map_err(|e| e.to_string())?;
+    let service = state
+        .station
+        .start_rx(device, state.events.clone(), save_dir)
+        .map_err(|e| e.to_string())?;
     let started = RxStarted {
         device_name: service.device_name.clone(),
         device_rate: service.device_rate,
@@ -154,14 +155,10 @@ fn start_tx(
     sstvaf::tx::ensure_idle(slot.as_ref().is_some_and(|s| s.is_running()))?;
     // Drop any finished service first — it owns a joined thread, nothing more.
     *slot = None;
-    let service = TxService::start(
-        device,
-        mode_id,
-        pixels,
-        state.tx_events.clone(),
-        state.tx_active.clone(),
-    )
-    .map_err(|e| e.to_string())?;
+    let service = state
+        .station
+        .start_tx(device, mode_id, pixels, state.tx_events.clone())
+        .map_err(|e| e.to_string())?;
     let started = TxStarted {
         device_name: service.device_name.clone(),
         sample_rate: service.sample_rate,
@@ -198,7 +195,7 @@ fn main() {
             events,
             tx: Mutex::new(None),
             tx_events,
-            tx_active: TxActive::new(),
+            station: Station::new(),
         })
         .setup(move |app| {
             // Forward RX events to the webview on the "rx-event" channel.

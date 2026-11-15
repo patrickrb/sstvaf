@@ -14,7 +14,7 @@
 //!
 //! [`AudioQueue`]: super::queue::AudioQueue
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 /// How much capture audio stays muted after a transmission ends. A block
@@ -24,8 +24,11 @@ use std::sync::Arc;
 pub const TX_MUTE_TAIL_MS: u32 = 1000;
 
 /// "The app is on the air." Cheap to clone; every clone is the same flag.
+///
+/// It is a count of the transmissions holding it up, not a bool: one that is
+/// still closing its stream must not lower the flag for the next one.
 #[derive(Clone, Debug, Default)]
-pub struct TxActive(Arc<AtomicBool>);
+pub struct TxActive(Arc<AtomicUsize>);
 
 impl TxActive {
     pub fn new() -> TxActive {
@@ -33,7 +36,7 @@ impl TxActive {
     }
 
     pub fn get(&self) -> bool {
-        self.0.load(Ordering::Relaxed)
+        self.0.load(Ordering::Relaxed) > 0
     }
 
     /// Raise the flag until the returned guard is dropped. Dropping covers
@@ -41,11 +44,12 @@ impl TxActive {
     /// leave the receiver muted for the rest of the session.
     #[must_use = "the flag is lowered as soon as the guard is dropped"]
     pub fn hold(&self) -> OnAir {
-        self.0.store(true, Ordering::Relaxed);
+        self.0.fetch_add(1, Ordering::Relaxed);
         OnAir(self.0.clone())
     }
 
     /// Run `f` with the flag raised.
+    #[cfg(test)]
     pub fn on_air<T>(&self, f: impl FnOnce() -> T) -> T {
         let _held = self.hold();
         f()
@@ -54,11 +58,11 @@ impl TxActive {
 
 /// Keeps [`TxActive`] raised while it lives.
 #[derive(Debug)]
-pub struct OnAir(Arc<AtomicBool>);
+pub struct OnAir(Arc<AtomicUsize>);
 
 impl Drop for OnAir {
     fn drop(&mut self) {
-        self.0.store(false, Ordering::Relaxed);
+        self.0.fetch_sub(1, Ordering::Relaxed);
     }
 }
 
@@ -184,6 +188,19 @@ mod tests {
         assert!(!tx.get());
         let inside = tx.on_air(|| seen_by_a_clone.get());
         assert!(inside, "every clone is the same flag");
+        assert!(!tx.get());
+    }
+
+    #[test]
+    fn the_flag_stays_up_until_every_holder_has_let_go() {
+        // An old transmission still closing its stream while the next one
+        // has started: the first to finish must not unmute the receiver.
+        let tx = TxActive::new();
+        let old = tx.hold();
+        let new = tx.hold();
+        drop(old);
+        assert!(tx.get(), "the flag came down with a transmission still on the air");
+        drop(new);
         assert!(!tx.get());
     }
 

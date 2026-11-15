@@ -11,4 +11,4 @@ pub mod resample;
 pub use devices::{list_input_devices, list_output_devices, AudioDevice};
 pub use input::AudioInput;
 pub use mute::TxActive;
-pub use queue::AudioQueue;
+pub use queue::{AudioQueue, Drained};

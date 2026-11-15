@@ -11,11 +11,11 @@ use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
-use crate::audio::{AudioInput, AudioQueue, TxActive};
+use crate::audio::{AudioInput, AudioQueue};
 use crate::dsp::decoder::Decoder;
 use crate::rx::engine::{RxEngine, RxEvent};
 use crate::rx::save;
-use crate::rx::{DROP_LOG_EVERY, POLL_WAIT_MS, QUEUE_CAPACITY, SAMPLE_RATE};
+use crate::rx::{DROP_LOG_EVERY, POLL_WAIT_MS, SAMPLE_RATE};
 
 /// A running receiver. Dropping it stops capture and joins the thread.
 pub struct RxService {
@@ -36,18 +36,17 @@ impl RxService {
     /// `save_dir`, when given, is where completed decodes are auto-saved as
     /// PNGs; `None` disables auto-save (the caller decides and reports why).
     ///
-    /// `tx_active` is the app's "on the air" flag, the same one handed to
-    /// `TxService`: while it is raised, and for a second of audio after, the
-    /// decoder is fed silence, so the receiver never draws (and saves) the
-    /// picture the app itself is sending.
+    /// `queue` is the capture hand-off. The app passes one that goes deaf
+    /// while it transmits (`Station::start_rx`), so the receiver never draws
+    /// (and saves) the picture the app itself is sending.
     pub fn start(
         device_name: Option<String>,
         events: Sender<RxEvent>,
         save_dir: Option<PathBuf>,
-        tx_active: TxActive,
+        queue: AudioQueue,
     ) -> anyhow::Result<RxService> {
         let stop = Arc::new(AtomicBool::new(false));
-        let queue = Arc::new(AudioQueue::with_tx_mute(QUEUE_CAPACITY, tx_active, SAMPLE_RATE));
+        let queue = Arc::new(queue);
         // The decoder is built here, on the caller's thread, so an allocation
         // failure is reported synchronously.
         let decoder = Decoder::new(SAMPLE_RATE)?;
@@ -135,15 +134,16 @@ fn run_loop(
     let _ = events.send(RxEvent::Info(format!("hunting (rate={SAMPLE_RATE} Hz)")));
 
     while !stop.load(Ordering::Relaxed) {
-        let blocks = queue.drain_blocking(Duration::from_millis(POLL_WAIT_MS));
+        let drained = queue.drain(Duration::from_millis(POLL_WAIT_MS));
         // Say so when the receiver goes deaf for a transmission and when it
         // comes back: "nothing decoded" is otherwise unexplained in the log.
-        for muted in queue.take_mute_edges() {
+        for muted in drained.mute_edges {
             let msg = if muted { "muted while the app transmits" } else { "listening again" };
             if events.send(RxEvent::Info(msg.into())).is_err() {
                 return;
             }
         }
+        let blocks = drained.blocks;
         let out = if blocks.is_empty() {
             engine.poll_only()
         } else {
@@ -302,6 +302,13 @@ mod tests {
     }
 
     // --- the app's own transmission (issue #157) ----------------------------
+    //
+    // The two decode tests do the loop's work on the test thread (drain, feed
+    // the engine, read its events), so what they see does not depend on how
+    // fast a decode thread happens to run. The thread itself only adds the
+    // two log lines, which the third test waits for by name.
+
+    use crate::audio::TxActive;
 
     /// What the app would put on the air, at the capture rate: Robot 36.
     fn outgoing_picture() -> Vec<f32> {
@@ -325,93 +332,51 @@ mod tests {
         }
     }
 
-    /// Everything the loop reports until the queue is drained and it has been
-    /// quiet for a second (or `limit` passes).
-    fn events_until_quiet(
-        queue: &AudioQueue,
-        rx: &std::sync::mpsc::Receiver<RxEvent>,
-        limit: Duration,
-    ) -> Vec<RxEvent> {
-        let deadline = std::time::Instant::now() + limit;
-        let mut out = Vec::new();
-        while std::time::Instant::now() < deadline {
-            match rx.recv_timeout(Duration::from_secs(1)) {
-                Ok(ev) => out.push(ev),
-                Err(_) if queue.is_empty() => break,
-                Err(_) => {}
-            }
-        }
-        out
-    }
-
-    fn infos(events: &[RxEvent]) -> Vec<&str> {
-        events
-            .iter()
-            .filter_map(|e| match e {
-                RxEvent::Info(m) => Some(m.as_str()),
-                _ => None,
-            })
-            .collect()
+    /// One pass of the decode loop: everything queued goes to the engine.
+    fn pump(queue: &AudioQueue, engine: &mut RxEngine<Decoder>) -> Vec<RxEvent> {
+        assert_eq!(queue.dropped(), 0, "test queue was too small");
+        let blocks = queue.drain_blocking(Duration::from_millis(0));
+        engine.feed(&blocks)
     }
 
     #[test]
-    fn the_picture_the_app_is_sending_is_not_decoded_or_saved() {
+    fn the_picture_the_app_is_sending_is_not_decoded() {
         let samples = outgoing_picture();
-        let save_dir =
-            std::env::temp_dir().join(format!("sstvaf-own-tx-test-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&save_dir);
         let on_air = TxActive::new();
-        let queue = Arc::new(AudioQueue::with_tx_mute(1024, on_air.clone(), SAMPLE_RATE));
-        let (queue, stop, rx, t) = spawn_loop_on(queue, Some(save_dir.clone()));
+        let queue = AudioQueue::with_tx_mute(1024, on_air.clone(), SAMPLE_RATE);
+        let mut engine = RxEngine::new(Decoder::new(SAMPLE_RATE).expect("decoder"));
 
         // The whole transmission arrives on the capture while the app is on
         // the air, then two seconds of a quiet band.
         on_air.on_air(|| feed(&queue, &samples));
         feed_quiet(&queue, 2);
-        assert_eq!(queue.dropped(), 0, "test queue was too small");
-        let during = events_until_quiet(&queue, &rx, Duration::from_secs(30));
-        for ev in &during {
+        for ev in pump(&queue, &mut engine) {
             match ev {
-                RxEvent::Rows { .. } | RxEvent::Saved { .. } => {
-                    panic!("the app's own picture reached the decoder: {ev:?}")
-                }
-                RxEvent::State(RxState::Idle) | RxEvent::Info(_) => {}
-                other => panic!("the receiver left idle during the app's transmission: {other:?}"),
+                RxEvent::State(RxState::Idle) => {}
+                other => panic!("the app's own picture reached the decoder: {other:?}"),
             }
         }
-        let said = infos(&during);
-        let muted_at = said.iter().position(|m| *m == "muted while the app transmits");
-        let back_at = said.iter().position(|m| *m == "listening again");
-        assert!(muted_at.is_some() && back_at > muted_at, "mute not reported in order: {said:?}");
         assert!(
-            !save_dir.exists() || std::fs::read_dir(&save_dir).unwrap().next().is_none(),
-            "something was auto-saved during the app's own transmission"
+            engine.take_completed_frame().is_none(),
+            "the app's own picture was handed to the auto-saver"
         );
 
-        // The same waveform from another station afterwards is received and
-        // saved: the mute was the only thing in the way, and it has lifted.
+        // The same waveform from another station afterwards is received:
+        // the mute was the only thing in the way, and it has lifted.
         feed(&queue, &samples);
         feed_quiet(&queue, 1);
-        let mut completed = false;
-        let mut saved = false;
-        let deadline = std::time::Instant::now() + Duration::from_secs(30);
-        while std::time::Instant::now() < deadline && !(completed && saved) {
-            match rx.recv_timeout(Duration::from_secs(2)) {
-                Ok(RxEvent::State(RxState::Complete { rows, .. })) => {
-                    assert_eq!(rows, 240);
-                    completed = true;
-                }
-                Ok(RxEvent::Saved { .. }) => saved = true,
-                Ok(_) => {}
-                Err(_) => {}
-            }
-        }
-        stop.store(true, Ordering::Relaxed);
-        queue.close();
-        let _ = t.join();
-        assert!(completed, "the next station's picture never completed");
-        assert!(saved, "the next station's picture was never auto-saved");
-        let _ = std::fs::remove_dir_all(&save_dir);
+        let after = pump(&queue, &mut engine);
+        assert!(
+            after
+                .iter()
+                .any(|e| matches!(e, RxEvent::State(RxState::Complete { rows: 240, .. }))),
+            "the next station's picture did not complete: {:?}",
+            after.iter().filter(|e| matches!(e, RxEvent::State(_))).collect::<Vec<_>>()
+        );
+        assert!(
+            engine.take_completed_frame().is_some(),
+            "the next station's picture was not handed to the auto-saver"
+        );
     }
 
     #[test]
@@ -419,12 +384,12 @@ mod tests {
         let samples = outgoing_picture();
         let cut = 15 * SAMPLE_RATE as usize;
         let on_air = TxActive::new();
-        let queue = Arc::new(AudioQueue::with_tx_mute(1024, on_air.clone(), SAMPLE_RATE));
-        let (queue, stop, rx, t) = spawn_loop_on(queue, None);
+        let queue = AudioQueue::with_tx_mute(1024, on_air.clone(), SAMPLE_RATE);
+        let mut engine = RxEngine::new(Decoder::new(SAMPLE_RATE).expect("decoder"));
 
         // Another station's picture, 15 s in...
         feed(&queue, &samples[..cut]);
-        let before = events_until_quiet(&queue, &rx, Duration::from_secs(30));
+        let before = pump(&queue, &mut engine);
         assert!(
             before.iter().any(|e| matches!(e, RxEvent::State(RxState::Decoding { .. }))),
             "the incoming picture never started decoding"
@@ -434,11 +399,7 @@ mod tests {
         // capture (as the app's own audio would be) but must not be drawn.
         on_air.on_air(|| feed(&queue, &samples[cut..]));
         feed_quiet(&queue, 3);
-        let during = events_until_quiet(&queue, &rx, Duration::from_secs(30));
-        stop.store(true, Ordering::Relaxed);
-        queue.close();
-        let _ = t.join();
-
+        let during = pump(&queue, &mut engine);
         assert!(
             !during.iter().any(|e| matches!(e, RxEvent::State(RxState::Complete { .. }))),
             "the picture was completed from audio captured during the app's transmission"
@@ -451,6 +412,37 @@ mod tests {
         // not at the end of the picture's 36 s.
         let rows = partial.expect("the incoming picture did not end as a partial");
         assert!((60..120).contains(&rows), "partial of {rows} rows");
+        assert!(engine.take_completed_frame().is_none());
+    }
+
+    #[test]
+    fn the_log_says_when_the_receiver_goes_deaf_and_when_it_is_back() {
+        let on_air = TxActive::new();
+        let queue = Arc::new(AudioQueue::with_tx_mute(64, on_air.clone(), SAMPLE_RATE));
+        let (queue, stop, rx, t) = spawn_loop_on(queue, None);
+
+        on_air.on_air(|| queue.push(vec![0.5; 2400]));
+        for _ in 0..6 {
+            queue.push(vec![0.5; 2400]); // the 1 s tail, then live audio
+        }
+        let mut said: Vec<String> = Vec::new();
+        let deadline = std::time::Instant::now() + Duration::from_secs(30);
+        while std::time::Instant::now() < deadline && !said.iter().any(|m| m == "listening again")
+        {
+            if let Ok(RxEvent::Info(m)) = rx.recv_timeout(Duration::from_secs(1)) {
+                said.push(m);
+            }
+        }
+        stop.store(true, Ordering::Relaxed);
+        queue.close();
+        let _ = t.join();
+
+        let muted_at = said.iter().position(|m| m == "muted while the app transmits");
+        let back_at = said.iter().position(|m| m == "listening again");
+        assert!(
+            muted_at.is_some() && back_at > muted_at,
+            "the mute was not reported, or not in order: {said:?}"
+        );
     }
 
     #[test]
